@@ -89,7 +89,7 @@ export const updateCredential = createServerFn({ method: "POST" })
       patch.key_id = enc.keyId;
     }
 
-    const { error } = await context.supabase.from("credentials").update(patch).eq("id", data.id);
+    const { error } = await context.supabase.from("credentials").update(patch as any).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
