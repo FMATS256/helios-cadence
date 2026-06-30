@@ -9,11 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 
+const TicketsRoute = TicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -24,9 +35,24 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomersRoute = CustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredentialsRoute = CredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,43 +60,113 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TicketsIdRoute = TicketsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TicketsRoute,
+} as any)
+const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
+  id: '/$accountNumber',
+  path: '/$accountNumber',
+  getParentRoute: () => CustomersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/notifications' | '/settings'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/credentials'
+    | '/customers'
+    | '/notifications'
+    | '/settings'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/notifications' | '/settings'
-  id: '__root__' | '/' | '/auth' | '/notifications' | '/settings'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/credentials'
+    | '/customers'
+    | '/notifications'
+    | '/settings'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/credentials'
+    | '/customers'
+    | '/notifications'
+    | '/settings'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  CredentialsRoute: typeof CredentialsRoute
+  CustomersRoute: typeof CustomersRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
+  TicketsRoute: typeof TicketsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tickets': {
+      id: '/tickets'
+      path: '/tickets'
+      fullPath: '/tickets'
+      preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -85,11 +181,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customers': {
+      id: '/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof CustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credentials': {
+      id: '/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof CredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -99,14 +216,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tickets/$id': {
+      id: '/tickets/$id'
+      path: '/$id'
+      fullPath: '/tickets/$id'
+      preLoaderRoute: typeof TicketsIdRouteImport
+      parentRoute: typeof TicketsRoute
+    }
+    '/customers/$accountNumber': {
+      id: '/customers/$accountNumber'
+      path: '/$accountNumber'
+      fullPath: '/customers/$accountNumber'
+      preLoaderRoute: typeof CustomersAccountNumberRouteImport
+      parentRoute: typeof CustomersRoute
+    }
   }
 }
 
+interface CustomersRouteChildren {
+  CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
+}
+
+const CustomersRouteChildren: CustomersRouteChildren = {
+  CustomersAccountNumberRoute: CustomersAccountNumberRoute,
+}
+
+const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
+  CustomersRouteChildren,
+)
+
+interface TicketsRouteChildren {
+  TicketsIdRoute: typeof TicketsIdRoute
+}
+
+const TicketsRouteChildren: TicketsRouteChildren = {
+  TicketsIdRoute: TicketsIdRoute,
+}
+
+const TicketsRouteWithChildren =
+  TicketsRoute._addFileChildren(TicketsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  CredentialsRoute: CredentialsRoute,
+  CustomersRoute: CustomersRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
+  TicketsRoute: TicketsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

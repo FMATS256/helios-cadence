@@ -47,7 +47,7 @@ function TicketsPage() {
       const { error } = await supabase.from("tickets").insert({
         customer_id: form.customer_id, subject: form.subject, description: form.description,
         priority: form.priority, category: form.category || null, sla_due_at: sla.toISOString(), created_by: user?.id ?? null,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tickets"] }); setOpen(false); setForm({ customer_id: "", subject: "", description: "", priority: "normal", category: "" }); toast.success("Ticket created"); },

@@ -44,7 +44,7 @@ function TicketDetail() {
 
   const update = useMutation({
     mutationFn: async (patch: Record<string, any>) => {
-      const { error } = await supabase.from("tickets").update(patch).eq("id", id);
+      const { error } = await supabase.from("tickets").update(patch as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ticket", id] }); toast.success("Updated"); },
