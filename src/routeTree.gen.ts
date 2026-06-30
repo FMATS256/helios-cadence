@@ -9,43 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ZohoRouteImport } from './routes/zoho'
-import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as QuotesRouteImport } from './routes/quotes'
-import { Route as ProposalsRouteImport } from './routes/proposals'
-import { Route as ProductsRouteImport } from './routes/products'
-import { Route as PipelineRouteImport } from './routes/pipeline'
-import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as MarketingRouteImport } from './routes/marketing'
-import { Route as LeadsRouteImport } from './routes/leads'
-import { Route as InvoicesRouteImport } from './routes/invoices'
-import { Route as InstallationsRouteImport } from './routes/installations'
-import { Route as GettingStartedRouteImport } from './routes/getting-started'
-import { Route as DocumentsRouteImport } from './routes/documents'
-import { Route as ContactsRouteImport } from './routes/contacts'
-import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ClientsIdRouteImport } from './routes/clients.$id'
-import { Route as ApiZohoSyncRouteImport } from './routes/api.zoho.sync'
-import { Route as ApiZohoInvoicesRouteImport } from './routes/api.zoho.invoices'
-import { Route as ApiZohoDashboardSyncRouteImport } from './routes/api.zoho.dashboard-sync'
-import { Route as ApiZohoCustomersRouteImport } from './routes/api.zoho.customers'
-import { Route as ApiZohoOauthStartRouteImport } from './routes/api.zoho.oauth.start'
-import { Route as ApiZohoOauthCallbackRouteImport } from './routes/api.zoho.oauth.callback'
+import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 
-const ZohoRoute = ZohoRouteImport.update({
-  id: '/zoho',
-  path: '/zoho',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
+const TicketsRoute = TicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -53,84 +30,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuotesRoute = QuotesRouteImport.update({
-  id: '/quotes',
-  path: '/quotes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProposalsRoute = ProposalsRouteImport.update({
-  id: '/proposals',
-  path: '/proposals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsRoute = ProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PipelineRoute = PipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentsRoute = PaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MarketingRoute = MarketingRouteImport.update({
-  id: '/marketing',
-  path: '/marketing',
+const CustomersRoute = CustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LeadsRoute = LeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InvoicesRoute = InvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InstallationsRoute = InstallationsRouteImport.update({
-  id: '/installations',
-  path: '/installations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GettingStartedRoute = GettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocumentsRoute = DocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactsRoute = ContactsRouteImport.update({
-  id: '/contacts',
-  path: '/contacts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsRoute = ClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const CredentialsRoute = CredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -138,275 +50,121 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClientsIdRoute = ClientsIdRouteImport.update({
+const TicketsIdRoute = TicketsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => ClientsRoute,
+  getParentRoute: () => TicketsRoute,
 } as any)
-const ApiZohoSyncRoute = ApiZohoSyncRouteImport.update({
-  id: '/api/zoho/sync',
-  path: '/api/zoho/sync',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiZohoInvoicesRoute = ApiZohoInvoicesRouteImport.update({
-  id: '/api/zoho/invoices',
-  path: '/api/zoho/invoices',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiZohoDashboardSyncRoute = ApiZohoDashboardSyncRouteImport.update({
-  id: '/api/zoho/dashboard-sync',
-  path: '/api/zoho/dashboard-sync',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiZohoCustomersRoute = ApiZohoCustomersRouteImport.update({
-  id: '/api/zoho/customers',
-  path: '/api/zoho/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiZohoOauthStartRoute = ApiZohoOauthStartRouteImport.update({
-  id: '/api/zoho/oauth/start',
-  path: '/api/zoho/oauth/start',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiZohoOauthCallbackRoute = ApiZohoOauthCallbackRouteImport.update({
-  id: '/api/zoho/oauth/callback',
-  path: '/api/zoho/oauth/callback',
-  getParentRoute: () => rootRouteImport,
+const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
+  id: '/$accountNumber',
+  path: '/$accountNumber',
+  getParentRoute: () => CustomersRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
-  '/clients': typeof ClientsRouteWithChildren
-  '/contacts': typeof ContactsRoute
-  '/documents': typeof DocumentsRoute
-  '/getting-started': typeof GettingStartedRoute
-  '/installations': typeof InstallationsRoute
-  '/invoices': typeof InvoicesRoute
-  '/leads': typeof LeadsRoute
-  '/marketing': typeof MarketingRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
-  '/payments': typeof PaymentsRoute
-  '/pipeline': typeof PipelineRoute
-  '/products': typeof ProductsRoute
-  '/proposals': typeof ProposalsRoute
-  '/quotes': typeof QuotesRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/zoho': typeof ZohoRoute
-  '/clients/$id': typeof ClientsIdRoute
-  '/api/zoho/customers': typeof ApiZohoCustomersRoute
-  '/api/zoho/dashboard-sync': typeof ApiZohoDashboardSyncRoute
-  '/api/zoho/invoices': typeof ApiZohoInvoicesRoute
-  '/api/zoho/sync': typeof ApiZohoSyncRoute
-  '/api/zoho/oauth/callback': typeof ApiZohoOauthCallbackRoute
-  '/api/zoho/oauth/start': typeof ApiZohoOauthStartRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
-  '/clients': typeof ClientsRouteWithChildren
-  '/contacts': typeof ContactsRoute
-  '/documents': typeof DocumentsRoute
-  '/getting-started': typeof GettingStartedRoute
-  '/installations': typeof InstallationsRoute
-  '/invoices': typeof InvoicesRoute
-  '/leads': typeof LeadsRoute
-  '/marketing': typeof MarketingRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
-  '/payments': typeof PaymentsRoute
-  '/pipeline': typeof PipelineRoute
-  '/products': typeof ProductsRoute
-  '/proposals': typeof ProposalsRoute
-  '/quotes': typeof QuotesRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/zoho': typeof ZohoRoute
-  '/clients/$id': typeof ClientsIdRoute
-  '/api/zoho/customers': typeof ApiZohoCustomersRoute
-  '/api/zoho/dashboard-sync': typeof ApiZohoDashboardSyncRoute
-  '/api/zoho/invoices': typeof ApiZohoInvoicesRoute
-  '/api/zoho/sync': typeof ApiZohoSyncRoute
-  '/api/zoho/oauth/callback': typeof ApiZohoOauthCallbackRoute
-  '/api/zoho/oauth/start': typeof ApiZohoOauthStartRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/calendar': typeof CalendarRoute
-  '/clients': typeof ClientsRouteWithChildren
-  '/contacts': typeof ContactsRoute
-  '/documents': typeof DocumentsRoute
-  '/getting-started': typeof GettingStartedRoute
-  '/installations': typeof InstallationsRoute
-  '/invoices': typeof InvoicesRoute
-  '/leads': typeof LeadsRoute
-  '/marketing': typeof MarketingRoute
+  '/credentials': typeof CredentialsRoute
+  '/customers': typeof CustomersRouteWithChildren
   '/notifications': typeof NotificationsRoute
-  '/payments': typeof PaymentsRoute
-  '/pipeline': typeof PipelineRoute
-  '/products': typeof ProductsRoute
-  '/proposals': typeof ProposalsRoute
-  '/quotes': typeof QuotesRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/zoho': typeof ZohoRoute
-  '/clients/$id': typeof ClientsIdRoute
-  '/api/zoho/customers': typeof ApiZohoCustomersRoute
-  '/api/zoho/dashboard-sync': typeof ApiZohoDashboardSyncRoute
-  '/api/zoho/invoices': typeof ApiZohoInvoicesRoute
-  '/api/zoho/sync': typeof ApiZohoSyncRoute
-  '/api/zoho/oauth/callback': typeof ApiZohoOauthCallbackRoute
-  '/api/zoho/oauth/start': typeof ApiZohoOauthStartRoute
+  '/tickets': typeof TicketsRouteWithChildren
+  '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/tickets/$id': typeof TicketsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
-    | '/calendar'
-    | '/clients'
-    | '/contacts'
-    | '/documents'
-    | '/getting-started'
-    | '/installations'
-    | '/invoices'
-    | '/leads'
-    | '/marketing'
+    | '/credentials'
+    | '/customers'
     | '/notifications'
-    | '/payments'
-    | '/pipeline'
-    | '/products'
-    | '/proposals'
-    | '/quotes'
-    | '/reports'
     | '/settings'
-    | '/tasks'
-    | '/zoho'
-    | '/clients/$id'
-    | '/api/zoho/customers'
-    | '/api/zoho/dashboard-sync'
-    | '/api/zoho/invoices'
-    | '/api/zoho/sync'
-    | '/api/zoho/oauth/callback'
-    | '/api/zoho/oauth/start'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/auth'
-    | '/calendar'
-    | '/clients'
-    | '/contacts'
-    | '/documents'
-    | '/getting-started'
-    | '/installations'
-    | '/invoices'
-    | '/leads'
-    | '/marketing'
+    | '/credentials'
+    | '/customers'
     | '/notifications'
-    | '/payments'
-    | '/pipeline'
-    | '/products'
-    | '/proposals'
-    | '/quotes'
-    | '/reports'
     | '/settings'
-    | '/tasks'
-    | '/zoho'
-    | '/clients/$id'
-    | '/api/zoho/customers'
-    | '/api/zoho/dashboard-sync'
-    | '/api/zoho/invoices'
-    | '/api/zoho/sync'
-    | '/api/zoho/oauth/callback'
-    | '/api/zoho/oauth/start'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/auth'
-    | '/calendar'
-    | '/clients'
-    | '/contacts'
-    | '/documents'
-    | '/getting-started'
-    | '/installations'
-    | '/invoices'
-    | '/leads'
-    | '/marketing'
+    | '/credentials'
+    | '/customers'
     | '/notifications'
-    | '/payments'
-    | '/pipeline'
-    | '/products'
-    | '/proposals'
-    | '/quotes'
-    | '/reports'
     | '/settings'
-    | '/tasks'
-    | '/zoho'
-    | '/clients/$id'
-    | '/api/zoho/customers'
-    | '/api/zoho/dashboard-sync'
-    | '/api/zoho/invoices'
-    | '/api/zoho/sync'
-    | '/api/zoho/oauth/callback'
-    | '/api/zoho/oauth/start'
+    | '/tickets'
+    | '/customers/$accountNumber'
+    | '/tickets/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
-  CalendarRoute: typeof CalendarRoute
-  ClientsRoute: typeof ClientsRouteWithChildren
-  ContactsRoute: typeof ContactsRoute
-  DocumentsRoute: typeof DocumentsRoute
-  GettingStartedRoute: typeof GettingStartedRoute
-  InstallationsRoute: typeof InstallationsRoute
-  InvoicesRoute: typeof InvoicesRoute
-  LeadsRoute: typeof LeadsRoute
-  MarketingRoute: typeof MarketingRoute
+  CredentialsRoute: typeof CredentialsRoute
+  CustomersRoute: typeof CustomersRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
-  PaymentsRoute: typeof PaymentsRoute
-  PipelineRoute: typeof PipelineRoute
-  ProductsRoute: typeof ProductsRoute
-  ProposalsRoute: typeof ProposalsRoute
-  QuotesRoute: typeof QuotesRoute
-  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
-  TasksRoute: typeof TasksRoute
-  ZohoRoute: typeof ZohoRoute
-  ApiZohoCustomersRoute: typeof ApiZohoCustomersRoute
-  ApiZohoDashboardSyncRoute: typeof ApiZohoDashboardSyncRoute
-  ApiZohoInvoicesRoute: typeof ApiZohoInvoicesRoute
-  ApiZohoSyncRoute: typeof ApiZohoSyncRoute
-  ApiZohoOauthCallbackRoute: typeof ApiZohoOauthCallbackRoute
-  ApiZohoOauthStartRoute: typeof ApiZohoOauthStartRoute
+  TicketsRoute: typeof TicketsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/zoho': {
-      id: '/zoho'
-      path: '/zoho'
-      fullPath: '/zoho'
-      preLoaderRoute: typeof ZohoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
+    '/tickets': {
+      id: '/tickets'
+      path: '/tickets'
+      fullPath: '/tickets'
+      preLoaderRoute: typeof TicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -416,48 +174,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quotes': {
-      id: '/quotes'
-      path: '/quotes'
-      fullPath: '/quotes'
-      preLoaderRoute: typeof QuotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proposals': {
-      id: '/proposals'
-      path: '/proposals'
-      fullPath: '/proposals'
-      preLoaderRoute: typeof ProposalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products': {
-      id: '/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof ProductsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pipeline': {
-      id: '/pipeline'
-      path: '/pipeline'
-      fullPath: '/pipeline'
-      preLoaderRoute: typeof PipelineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payments': {
-      id: '/payments'
-      path: '/payments'
-      fullPath: '/payments'
-      preLoaderRoute: typeof PaymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -465,67 +181,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/marketing': {
-      id: '/marketing'
-      path: '/marketing'
-      fullPath: '/marketing'
-      preLoaderRoute: typeof MarketingRouteImport
+    '/customers': {
+      id: '/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof CustomersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/leads': {
-      id: '/leads'
-      path: '/leads'
-      fullPath: '/leads'
-      preLoaderRoute: typeof LeadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/invoices': {
-      id: '/invoices'
-      path: '/invoices'
-      fullPath: '/invoices'
-      preLoaderRoute: typeof InvoicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/installations': {
-      id: '/installations'
-      path: '/installations'
-      fullPath: '/installations'
-      preLoaderRoute: typeof InstallationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/getting-started': {
-      id: '/getting-started'
-      path: '/getting-started'
-      fullPath: '/getting-started'
-      preLoaderRoute: typeof GettingStartedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/documents': {
-      id: '/documents'
-      path: '/documents'
-      fullPath: '/documents'
-      preLoaderRoute: typeof DocumentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contacts': {
-      id: '/contacts'
-      path: '/contacts'
-      fullPath: '/contacts'
-      preLoaderRoute: typeof ContactsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients': {
-      id: '/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof ClientsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
+    '/credentials': {
+      id: '/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -535,6 +202,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -542,108 +216,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/clients/$id': {
-      id: '/clients/$id'
+    '/tickets/$id': {
+      id: '/tickets/$id'
       path: '/$id'
-      fullPath: '/clients/$id'
-      preLoaderRoute: typeof ClientsIdRouteImport
-      parentRoute: typeof ClientsRoute
+      fullPath: '/tickets/$id'
+      preLoaderRoute: typeof TicketsIdRouteImport
+      parentRoute: typeof TicketsRoute
     }
-    '/api/zoho/sync': {
-      id: '/api/zoho/sync'
-      path: '/api/zoho/sync'
-      fullPath: '/api/zoho/sync'
-      preLoaderRoute: typeof ApiZohoSyncRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/zoho/invoices': {
-      id: '/api/zoho/invoices'
-      path: '/api/zoho/invoices'
-      fullPath: '/api/zoho/invoices'
-      preLoaderRoute: typeof ApiZohoInvoicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/zoho/dashboard-sync': {
-      id: '/api/zoho/dashboard-sync'
-      path: '/api/zoho/dashboard-sync'
-      fullPath: '/api/zoho/dashboard-sync'
-      preLoaderRoute: typeof ApiZohoDashboardSyncRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/zoho/customers': {
-      id: '/api/zoho/customers'
-      path: '/api/zoho/customers'
-      fullPath: '/api/zoho/customers'
-      preLoaderRoute: typeof ApiZohoCustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/zoho/oauth/start': {
-      id: '/api/zoho/oauth/start'
-      path: '/api/zoho/oauth/start'
-      fullPath: '/api/zoho/oauth/start'
-      preLoaderRoute: typeof ApiZohoOauthStartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/zoho/oauth/callback': {
-      id: '/api/zoho/oauth/callback'
-      path: '/api/zoho/oauth/callback'
-      fullPath: '/api/zoho/oauth/callback'
-      preLoaderRoute: typeof ApiZohoOauthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
+    '/customers/$accountNumber': {
+      id: '/customers/$accountNumber'
+      path: '/$accountNumber'
+      fullPath: '/customers/$accountNumber'
+      preLoaderRoute: typeof CustomersAccountNumberRouteImport
+      parentRoute: typeof CustomersRoute
     }
   }
 }
 
-interface ClientsRouteChildren {
-  ClientsIdRoute: typeof ClientsIdRoute
+interface CustomersRouteChildren {
+  CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
 }
 
-const ClientsRouteChildren: ClientsRouteChildren = {
-  ClientsIdRoute: ClientsIdRoute,
+const CustomersRouteChildren: CustomersRouteChildren = {
+  CustomersAccountNumberRoute: CustomersAccountNumberRoute,
 }
 
-const ClientsRouteWithChildren =
-  ClientsRoute._addFileChildren(ClientsRouteChildren)
+const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
+  CustomersRouteChildren,
+)
+
+interface TicketsRouteChildren {
+  TicketsIdRoute: typeof TicketsIdRoute
+}
+
+const TicketsRouteChildren: TicketsRouteChildren = {
+  TicketsIdRoute: TicketsIdRoute,
+}
+
+const TicketsRouteWithChildren =
+  TicketsRoute._addFileChildren(TicketsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
-  CalendarRoute: CalendarRoute,
-  ClientsRoute: ClientsRouteWithChildren,
-  ContactsRoute: ContactsRoute,
-  DocumentsRoute: DocumentsRoute,
-  GettingStartedRoute: GettingStartedRoute,
-  InstallationsRoute: InstallationsRoute,
-  InvoicesRoute: InvoicesRoute,
-  LeadsRoute: LeadsRoute,
-  MarketingRoute: MarketingRoute,
+  CredentialsRoute: CredentialsRoute,
+  CustomersRoute: CustomersRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
-  PaymentsRoute: PaymentsRoute,
-  PipelineRoute: PipelineRoute,
-  ProductsRoute: ProductsRoute,
-  ProposalsRoute: ProposalsRoute,
-  QuotesRoute: QuotesRoute,
-  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
-  TasksRoute: TasksRoute,
-  ZohoRoute: ZohoRoute,
-  ApiZohoCustomersRoute: ApiZohoCustomersRoute,
-  ApiZohoDashboardSyncRoute: ApiZohoDashboardSyncRoute,
-  ApiZohoInvoicesRoute: ApiZohoInvoicesRoute,
-  ApiZohoSyncRoute: ApiZohoSyncRoute,
-  ApiZohoOauthCallbackRoute: ApiZohoOauthCallbackRoute,
-  ApiZohoOauthStartRoute: ApiZohoOauthStartRoute,
+  TicketsRoute: TicketsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
