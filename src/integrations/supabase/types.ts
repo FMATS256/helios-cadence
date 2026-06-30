@@ -14,1107 +14,672 @@ export type Database = {
   }
   public: {
     Tables: {
-      client_activities: {
+      audit_log: {
         Row: {
-          activity_type: string
-          client_id: string
+          account_number: string | null
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      credential_access_log: {
+        Row: {
+          accessed_by: string | null
+          action: string
+          created_at: string
+          credential_id: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_by?: string | null
+          action: string
+          created_at?: string
+          credential_id: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_by?: string | null
+          action?: string
+          created_at?: string
+          credential_id?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_access_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credential_versions: {
+        Row: {
+          auth_tag: string
+          changed_by: string | null
+          ciphertext: string
+          created_at: string
+          credential_id: string
+          id: string
+          iv: string
+          key_id: string
+        }
+        Insert: {
+          auth_tag: string
+          changed_by?: string | null
+          ciphertext: string
+          created_at?: string
+          credential_id: string
+          id?: string
+          iv: string
+          key_id: string
+        }
+        Update: {
+          auth_tag?: string
+          changed_by?: string | null
+          ciphertext?: string
+          created_at?: string
+          credential_id?: string
+          id?: string
+          iv?: string
+          key_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_versions_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credentials: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          auth_tag: string
+          ciphertext: string
+          created_at: string
+          created_by: string | null
+          credential_type: string
+          customer_id: string | null
+          expires_at: string | null
+          id: string
+          iv: string
+          key_id: string
+          linked_asset: string | null
+          name: string
+          notes: string | null
+          owner_id: string | null
+          tags: string[]
+          updated_at: string
+          url: string | null
+          username: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          auth_tag: string
+          ciphertext: string
+          created_at?: string
+          created_by?: string | null
+          credential_type: string
+          customer_id?: string | null
+          expires_at?: string | null
+          id?: string
+          iv: string
+          key_id?: string
+          linked_asset?: string | null
+          name: string
+          notes?: string | null
+          owner_id?: string | null
+          tags?: string[]
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          auth_tag?: string
+          ciphertext?: string
+          created_at?: string
+          created_by?: string | null
+          credential_type?: string
+          customer_id?: string | null
+          expires_at?: string | null
+          id?: string
+          iv?: string
+          key_id?: string
+          linked_asset?: string | null
+          name?: string
+          notes?: string | null
+          owner_id?: string | null
+          tags?: string[]
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credentials_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_branches: {
+        Row: {
+          account_number: string
+          address: string | null
+          archived_at: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          is_headquarters: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_headquarters?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_headquarters?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_branches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_contacts: {
+        Row: {
+          account_number: string
+          archived_at: string | null
+          contact_type: string
+          created_at: string
+          customer_id: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          archived_at?: string | null
+          contact_type?: string
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          archived_at?: string | null
+          contact_type?: string
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_notes: {
+        Row: {
+          account_number: string
+          author_id: string | null
+          body: string
+          created_at: string
+          customer_id: string
+          id: string
+          pinned: boolean
+        }
+        Insert: {
+          account_number: string
+          author_id?: string | null
+          body: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          pinned?: boolean
+        }
+        Update: {
+          account_number?: string
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          pinned?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_timeline: {
+        Row: {
+          account_number: string
+          actor_id: string | null
+          created_at: string
+          customer_id: string
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          title: string
+        }
+        Insert: {
+          account_number: string
+          actor_id?: string | null
+          created_at?: string
+          customer_id: string
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          title: string
+        }
+        Update: {
+          account_number?: string
+          actor_id?: string | null
+          created_at?: string
+          customer_id?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_timeline_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          account_manager_id: string | null
+          account_number: string
+          archived_at: string | null
+          billing_address: string | null
+          company_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          industry: string | null
+          notes: string | null
+          primary_email: string | null
+          primary_phone: string | null
+          status: string
+          tags: string[]
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          account_manager_id?: string | null
+          account_number?: string
+          archived_at?: string | null
+          billing_address?: string | null
+          company_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          account_manager_id?: string | null
+          account_number?: string
+          archived_at?: string | null
+          billing_address?: string | null
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
           created_at: string
           id: string
-          notes: string | null
-          occurred_at: string
+          kind: string
+          link: string | null
+          read_at: string | null
           title: string
           user_id: string
         }
         Insert: {
-          activity_type?: string
-          client_id: string
+          body?: string | null
           created_at?: string
           id?: string
-          notes?: string | null
-          occurred_at?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
           title: string
           user_id: string
         }
         Update: {
-          activity_type?: string
-          client_id?: string
+          body?: string | null
           created_at?: string
           id?: string
-          notes?: string | null
-          occurred_at?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
           title?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "client_activities_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_phones: {
-        Row: {
-          client_id: string
-          created_at: string
-          id: string
-          is_primary: boolean
-          label: string
-          number: string
-          user_id: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          label?: string
-          number: string
-          user_id: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          label?: string
-          number?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_phones_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_systems: {
-        Row: {
-          battery: string | null
-          client_id: string
-          created_at: string
-          id: string
-          installed_date: string | null
-          inverter: string | null
-          name: string
-          notes: string | null
-          panels: string | null
-          status: string
-          system_size: string | null
-          system_type: string | null
-          updated_at: string
-          user_id: string
-          value: number
-          warranty: string | null
-        }
-        Insert: {
-          battery?: string | null
-          client_id: string
-          created_at?: string
-          id?: string
-          installed_date?: string | null
-          inverter?: string | null
-          name: string
-          notes?: string | null
-          panels?: string | null
-          status?: string
-          system_size?: string | null
-          system_type?: string | null
-          updated_at?: string
-          user_id: string
-          value?: number
-          warranty?: string | null
-        }
-        Update: {
-          battery?: string | null
-          client_id?: string
-          created_at?: string
-          id?: string
-          installed_date?: string | null
-          inverter?: string | null
-          name?: string
-          notes?: string | null
-          panels?: string | null
-          status?: string
-          system_size?: string | null
-          system_type?: string | null
-          updated_at?: string
-          user_id?: string
-          value?: number
-          warranty?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_systems_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clients: {
-        Row: {
-          address: string | null
-          battery: string | null
-          city: string | null
-          contact_person: string | null
-          created_at: string
-          email: string | null
-          gps: string | null
-          id: string
-          installation_date: string | null
-          inverter: string | null
-          name: string
-          next_action: string | null
-          notes: string | null
-          panels: string | null
-          phone: string | null
-          status: string
-          system_size: string | null
-          system_type: string | null
-          updated_at: string
-          user_id: string
-          value: number
-          warranty: string | null
-        }
-        Insert: {
-          address?: string | null
-          battery?: string | null
-          city?: string | null
-          contact_person?: string | null
-          created_at?: string
-          email?: string | null
-          gps?: string | null
-          id?: string
-          installation_date?: string | null
-          inverter?: string | null
-          name: string
-          next_action?: string | null
-          notes?: string | null
-          panels?: string | null
-          phone?: string | null
-          status?: string
-          system_size?: string | null
-          system_type?: string | null
-          updated_at?: string
-          user_id: string
-          value?: number
-          warranty?: string | null
-        }
-        Update: {
-          address?: string | null
-          battery?: string | null
-          city?: string | null
-          contact_person?: string | null
-          created_at?: string
-          email?: string | null
-          gps?: string | null
-          id?: string
-          installation_date?: string | null
-          inverter?: string | null
-          name?: string
-          next_action?: string | null
-          notes?: string | null
-          panels?: string | null
-          phone?: string | null
-          status?: string
-          system_size?: string | null
-          system_type?: string | null
-          updated_at?: string
-          user_id?: string
-          value?: number
-          warranty?: string | null
-        }
         Relationships: []
-      }
-      installations: {
-        Row: {
-          city: string | null
-          client_id: string | null
-          client_name: string | null
-          created_at: string
-          crew_lead: string | null
-          id: string
-          notes: string | null
-          progress: number
-          scheduled_date: string | null
-          status: string
-          system: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          city?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          crew_lead?: string | null
-          id?: string
-          notes?: string | null
-          progress?: number
-          scheduled_date?: string | null
-          status?: string
-          system?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          city?: string | null
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          crew_lead?: string | null
-          id?: string
-          notes?: string | null
-          progress?: number
-          scheduled_date?: string | null
-          status?: string
-          system?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "installations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invoices: {
-        Row: {
-          amount: number
-          amount_paid: number
-          client_id: string | null
-          client_name: string | null
-          created_at: string
-          due_date: string | null
-          id: string
-          issue_date: string
-          notes: string | null
-          number: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount?: number
-          amount_paid?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          issue_date?: string
-          notes?: string | null
-          number: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          amount_paid?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          issue_date?: string
-          notes?: string | null
-          number?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoices_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leads: {
-        Row: {
-          city: string | null
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          owner: string | null
-          phone: string | null
-          source: string | null
-          stage: string
-          system_type: string | null
-          updated_at: string
-          user_id: string
-          value: number
-        }
-        Insert: {
-          city?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          owner?: string | null
-          phone?: string | null
-          source?: string | null
-          stage?: string
-          system_type?: string | null
-          updated_at?: string
-          user_id: string
-          value?: number
-        }
-        Update: {
-          city?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          owner?: string | null
-          phone?: string | null
-          source?: string | null
-          stage?: string
-          system_type?: string | null
-          updated_at?: string
-          user_id?: string
-          value?: number
-        }
-        Relationships: []
-      }
-      payments: {
-        Row: {
-          amount: number
-          client_id: string | null
-          client_name: string | null
-          created_at: string
-          id: string
-          invoice_id: string | null
-          method: string | null
-          notes: string | null
-          paid_on: string
-          reference: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          id?: string
-          invoice_id?: string | null
-          method?: string | null
-          notes?: string | null
-          paid_on?: string
-          reference?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          id?: string
-          invoice_id?: string | null
-          method?: string | null
-          notes?: string | null
-          paid_on?: string
-          reference?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
+          archived_at: string | null
           created_at: string
+          department: string | null
           email: string | null
           full_name: string | null
           id: string
+          phone: string | null
+          status: string
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          phone?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
       }
-      quotes: {
+      system_settings: {
         Row: {
-          amount: number
-          client_id: string | null
-          client_name: string | null
-          created_at: string
-          id: string
-          notes: string | null
-          number: string
-          status: string
-          system_summary: string | null
+          key: string
           updated_at: string
-          user_id: string
-          valid_until: string | null
+          updated_by: string | null
+          value: Json
         }
         Insert: {
-          amount?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          number: string
-          status?: string
-          system_summary?: string | null
+          key: string
           updated_at?: string
-          user_id: string
-          valid_until?: string | null
+          updated_by?: string | null
+          value: Json
         }
         Update: {
-          amount?: number
-          client_id?: string | null
-          client_name?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      ticket_messages: {
+        Row: {
+          attachments: Json
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_id?: string | null
+          body: string
           created_at?: string
           id?: string
-          notes?: string | null
-          number?: string
-          status?: string
-          system_summary?: string | null
-          updated_at?: string
-          user_id?: string
-          valid_until?: string | null
+          is_internal?: boolean
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
       }
-      tasks: {
+      tickets: {
         Row: {
-          client_id: string | null
+          account_number: string
+          archived_at: string | null
+          assigned_team: string | null
+          assigned_to: string | null
+          category: string | null
           created_at: string
-          done: boolean
-          due_date: string | null
+          created_by: string | null
+          customer_id: string
+          description: string | null
           id: string
-          lead_id: string | null
-          notes: string | null
-          owner: string | null
           priority: string
-          related_to: string | null
-          title: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          sla_due_at: string | null
+          status: string
+          subject: string
+          ticket_number: string
           updated_at: string
-          user_id: string
         }
         Insert: {
-          client_id?: string | null
+          account_number: string
+          archived_at?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
+          category?: string | null
           created_at?: string
-          done?: boolean
-          due_date?: string | null
+          created_by?: string | null
+          customer_id: string
+          description?: string | null
           id?: string
-          lead_id?: string | null
-          notes?: string | null
-          owner?: string | null
           priority?: string
-          related_to?: string | null
-          title: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          sla_due_at?: string | null
+          status?: string
+          subject: string
+          ticket_number?: string
           updated_at?: string
-          user_id: string
         }
         Update: {
-          client_id?: string | null
+          account_number?: string
+          archived_at?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
+          category?: string | null
           created_at?: string
-          done?: boolean
-          due_date?: string | null
+          created_by?: string | null
+          customer_id?: string
+          description?: string | null
           id?: string
-          lead_id?: string | null
-          notes?: string | null
-          owner?: string | null
           priority?: string
-          related_to?: string | null
-          title?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          sla_due_at?: string | null
+          status?: string
+          subject?: string
+          ticket_number?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tasks_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "tickets_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
       }
-      zoho_connections: {
+      user_roles: {
         Row: {
-          access_token: string
-          connected_by: string | null
           created_at: string
-          expires_at: string
+          granted_by: string | null
           id: string
-          organization_id: string | null
-          refresh_token: string
-          region: string
-          scope: string | null
-          updated_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
         }
         Insert: {
-          access_token: string
-          connected_by?: string | null
           created_at?: string
-          expires_at: string
+          granted_by?: string | null
           id?: string
-          organization_id?: string | null
-          refresh_token: string
-          region?: string
-          scope?: string | null
-          updated_at?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
         }
         Update: {
-          access_token?: string
-          connected_by?: string | null
           created_at?: string
-          expires_at?: string
+          granted_by?: string | null
           id?: string
-          organization_id?: string | null
-          refresh_token?: string
-          region?: string
-          scope?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      zoho_credit_notes: {
-        Row: {
-          balance: number | null
-          creditnote_number: string | null
-          customer_name: string | null
-          customer_zoho_id: string | null
-          date: string | null
-          id: string
-          raw: Json
-          status: string | null
-          synced_at: string
-          total: number | null
-          zoho_id: string
-        }
-        Insert: {
-          balance?: number | null
-          creditnote_number?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id: string
-        }
-        Update: {
-          balance?: number | null
-          creditnote_number?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_customers: {
-        Row: {
-          company_name: string | null
-          display_name: string | null
-          email: string | null
-          id: string
-          mobile: string | null
-          outstanding: number | null
-          phone: string | null
-          raw: Json
-          status: string | null
-          synced_at: string
-          unused_credits: number | null
-          zoho_id: string
-        }
-        Insert: {
-          company_name?: string | null
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          mobile?: string | null
-          outstanding?: number | null
-          phone?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          unused_credits?: number | null
-          zoho_id: string
-        }
-        Update: {
-          company_name?: string | null
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          mobile?: string | null
-          outstanding?: number | null
-          phone?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          unused_credits?: number | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_estimates: {
-        Row: {
-          currency_code: string | null
-          customer_name: string | null
-          customer_zoho_id: string | null
-          date: string | null
-          estimate_number: string | null
-          expiry_date: string | null
-          id: string
-          raw: Json
-          status: string | null
-          synced_at: string
-          total: number | null
-          zoho_id: string
-        }
-        Insert: {
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          estimate_number?: string | null
-          expiry_date?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id: string
-        }
-        Update: {
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          estimate_number?: string | null
-          expiry_date?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_expenses: {
-        Row: {
-          account_name: string | null
-          amount: number | null
-          date: string | null
-          description: string | null
-          id: string
-          raw: Json
-          status: string | null
-          synced_at: string
-          vendor_name: string | null
-          vendor_zoho_id: string | null
-          zoho_id: string
-        }
-        Insert: {
-          account_name?: string | null
-          amount?: number | null
-          date?: string | null
-          description?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          vendor_name?: string | null
-          vendor_zoho_id?: string | null
-          zoho_id: string
-        }
-        Update: {
-          account_name?: string | null
-          amount?: number | null
-          date?: string | null
-          description?: string | null
-          id?: string
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          vendor_name?: string | null
-          vendor_zoho_id?: string | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_invoices: {
-        Row: {
-          balance: number | null
-          currency_code: string | null
-          customer_name: string | null
-          customer_zoho_id: string | null
-          date: string | null
-          due_date: string | null
-          id: string
-          invoice_number: string | null
-          raw: Json
-          status: string | null
-          synced_at: string
-          total: number | null
-          zoho_id: string
-        }
-        Insert: {
-          balance?: number | null
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          due_date?: string | null
-          id?: string
-          invoice_number?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id: string
-        }
-        Update: {
-          balance?: number | null
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          due_date?: string | null
-          id?: string
-          invoice_number?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_items: {
-        Row: {
-          description: string | null
-          id: string
-          name: string | null
-          rate: number | null
-          raw: Json
-          sku: string | null
-          status: string | null
-          synced_at: string
-          unit: string | null
-          zoho_id: string
-        }
-        Insert: {
-          description?: string | null
-          id?: string
-          name?: string | null
-          rate?: number | null
-          raw?: Json
-          sku?: string | null
-          status?: string | null
-          synced_at?: string
-          unit?: string | null
-          zoho_id: string
-        }
-        Update: {
-          description?: string | null
-          id?: string
-          name?: string | null
-          rate?: number | null
-          raw?: Json
-          sku?: string | null
-          status?: string | null
-          synced_at?: string
-          unit?: string | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_organizations: {
-        Row: {
-          country: string | null
-          currency_code: string | null
-          email: string | null
-          fiscal_year_start_month: number | null
-          id: string
-          name: string | null
-          raw: Json
-          synced_at: string
-          zoho_id: string
-        }
-        Insert: {
-          country?: string | null
-          currency_code?: string | null
-          email?: string | null
-          fiscal_year_start_month?: number | null
-          id?: string
-          name?: string | null
-          raw?: Json
-          synced_at?: string
-          zoho_id: string
-        }
-        Update: {
-          country?: string | null
-          currency_code?: string | null
-          email?: string | null
-          fiscal_year_start_month?: number | null
-          id?: string
-          name?: string | null
-          raw?: Json
-          synced_at?: string
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_payments: {
-        Row: {
-          amount: number | null
-          customer_name: string | null
-          customer_zoho_id: string | null
-          date: string | null
-          id: string
-          payment_mode: string | null
-          payment_number: string | null
-          raw: Json
-          reference_number: string | null
-          synced_at: string
-          zoho_id: string
-        }
-        Insert: {
-          amount?: number | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          payment_mode?: string | null
-          payment_number?: string | null
-          raw?: Json
-          reference_number?: string | null
-          synced_at?: string
-          zoho_id: string
-        }
-        Update: {
-          amount?: number | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          payment_mode?: string | null
-          payment_number?: string | null
-          raw?: Json
-          reference_number?: string | null
-          synced_at?: string
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_sales_orders: {
-        Row: {
-          currency_code: string | null
-          customer_name: string | null
-          customer_zoho_id: string | null
-          date: string | null
-          id: string
-          raw: Json
-          salesorder_number: string | null
-          status: string | null
-          synced_at: string
-          total: number | null
-          zoho_id: string
-        }
-        Insert: {
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          raw?: Json
-          salesorder_number?: string | null
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id: string
-        }
-        Update: {
-          currency_code?: string | null
-          customer_name?: string | null
-          customer_zoho_id?: string | null
-          date?: string | null
-          id?: string
-          raw?: Json
-          salesorder_number?: string | null
-          status?: string | null
-          synced_at?: string
-          total?: number | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_sync_logs: {
-        Row: {
-          entity: string
-          error: string | null
-          finished_at: string | null
-          id: string
-          records_synced: number | null
-          started_at: string
-          status: string
-          triggered_by: string | null
-        }
-        Insert: {
-          entity: string
-          error?: string | null
-          finished_at?: string | null
-          id?: string
-          records_synced?: number | null
-          started_at?: string
-          status: string
-          triggered_by?: string | null
-        }
-        Update: {
-          entity?: string
-          error?: string | null
-          finished_at?: string | null
-          id?: string
-          records_synced?: number | null
-          started_at?: string
-          status?: string
-          triggered_by?: string | null
-        }
-        Relationships: []
-      }
-      zoho_taxes: {
-        Row: {
-          id: string
-          raw: Json
-          synced_at: string
-          tax_name: string | null
-          tax_percentage: number | null
-          tax_type: string | null
-          zoho_id: string
-        }
-        Insert: {
-          id?: string
-          raw?: Json
-          synced_at?: string
-          tax_name?: string | null
-          tax_percentage?: number | null
-          tax_type?: string | null
-          zoho_id: string
-        }
-        Update: {
-          id?: string
-          raw?: Json
-          synced_at?: string
-          tax_name?: string | null
-          tax_percentage?: number | null
-          tax_type?: string | null
-          zoho_id?: string
-        }
-        Relationships: []
-      }
-      zoho_vendors: {
-        Row: {
-          company_name: string | null
-          email: string | null
-          id: string
-          outstanding_payable: number | null
-          phone: string | null
-          raw: Json
-          status: string | null
-          synced_at: string
-          vendor_name: string | null
-          zoho_id: string
-        }
-        Insert: {
-          company_name?: string | null
-          email?: string | null
-          id?: string
-          outstanding_payable?: number | null
-          phone?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          vendor_name?: string | null
-          zoho_id: string
-        }
-        Update: {
-          company_name?: string | null
-          email?: string | null
-          id?: string
-          outstanding_payable?: number | null
-          phone?: string | null
-          raw?: Json
-          status?: string | null
-          synced_at?: string
-          vendor_name?: string | null
-          zoho_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -1123,10 +688,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gen_customer_account_number: { Args: never; Returns: string }
+      has_any_role: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_master_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "master_admin"
+        | "operations_manager"
+        | "finance"
+        | "sales"
+        | "account_manager"
+        | "technical_support"
+        | "cloud_engineer"
+        | "cyber_security"
+        | "noc"
+        | "inventory"
+        | "procurement"
+        | "customer_success"
+        | "read_only"
+        | "custom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1253,6 +841,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "master_admin",
+        "operations_manager",
+        "finance",
+        "sales",
+        "account_manager",
+        "technical_support",
+        "cloud_engineer",
+        "cyber_security",
+        "noc",
+        "inventory",
+        "procurement",
+        "customer_success",
+        "read_only",
+        "custom",
+      ],
+    },
   },
 } as const
