@@ -1,3 +1,4 @@
+import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
@@ -67,11 +68,13 @@ function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-3">
-          <div className="h-11 w-11 shrink-0 rounded-lg flex items-center justify-center text-solar-foreground font-display font-bold text-lg group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9" style={{ background: "var(--gradient-solar)" }}>
-            IMT
-          </div>
+          <img
+            src={imtLogo.url}
+            alt="IMT Solutions"
+            className="h-11 w-11 shrink-0 object-contain group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9"
+          />
           <div className="group-data-[collapsible=icon]:hidden min-w-0">
-            <div className="font-display text-sm font-bold text-solar leading-none truncate">IMT Solutions</div>
+            <div className="font-display text-sm font-bold text-sidebar-foreground leading-none truncate">IMT Solutions</div>
             <div className="text-[10px] tracking-[2px] text-sidebar-foreground/60 mt-1">OPERATIONS PLATFORM</div>
           </div>
         </div>

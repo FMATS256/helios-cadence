@@ -1,3 +1,4 @@
+import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,7 +59,7 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex flex-col items-center justify-center mb-8 gap-3">
-          <div className="h-16 w-16 rounded-2xl flex items-center justify-center text-solar-foreground font-display font-bold text-2xl" style={{ background: "var(--gradient-solar)" }}>IMT</div>
+          <img src={imtLogo.url} alt="IMT Solutions" className="h-16 w-16 object-contain" />
           <div className="text-center">
             <div className="font-display text-xl font-bold">IMT Operations Platform</div>
             <div className="text-xs uppercase tracking-[3px] text-muted-foreground mt-1">Single source of truth</div>
