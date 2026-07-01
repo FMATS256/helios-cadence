@@ -78,10 +78,11 @@
   --navy-foreground: oklch(0.98 0.005 250);
   --navy-muted: oklch(0.32 0.08 265);
 
-  /* Solar orange accent */
-  --solar: oklch(0.72 0.18 48);
+  /* Brand blue accent (from IMT logo) */
+  --solar: oklch(0.58 0.14 250);
   --solar-foreground: oklch(1 0 0);
-  --solar-glow: oklch(0.78 0.16 60);
+  --solar-glow: oklch(0.68 0.13 245);
+
 
   --primary: oklch(0.22 0.09 265);
   --primary-foreground: oklch(0.98 0.005 250);
@@ -89,8 +90,8 @@
   --secondary-foreground: oklch(0.22 0.09 265);
   --muted: oklch(0.96 0.01 250);
   --muted-foreground: oklch(0.5 0.03 260);
-  --accent: oklch(0.95 0.04 60);
-  --accent-foreground: oklch(0.35 0.12 50);
+  --accent: oklch(0.95 0.03 250);
+  --accent-foreground: oklch(0.35 0.12 255);
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.98 0.005 250);
 
