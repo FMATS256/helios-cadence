@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          asset_tag: string | null
+          asset_type: string
+          assigned_to: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          location: string | null
+          make: string | null
+          model: string | null
+          notes: string | null
+          purchase_date: string | null
+          serial_number: string | null
+          status: string
+          updated_at: string
+          warranty_expires: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          asset_tag?: string | null
+          asset_type: string
+          assigned_to?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          location?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expires?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          asset_tag?: string | null
+          asset_type?: string
+          assigned_to?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          location?: string | null
+          make?: string | null
+          model?: string | null
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expires?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           account_number: string | null
@@ -58,6 +132,74 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      cloud_services: {
+        Row: {
+          account_number: string
+          admin_url: string | null
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          monthly_cost: number | null
+          notes: string | null
+          plan: string | null
+          renewal_date: string | null
+          seats: number | null
+          service_name: string
+          service_type: string
+          status: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          account_number: string
+          admin_url?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          monthly_cost?: number | null
+          notes?: string | null
+          plan?: string | null
+          renewal_date?: string | null
+          seats?: number | null
+          service_name: string
+          service_type: string
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          account_number?: string
+          admin_url?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          monthly_cost?: number | null
+          notes?: string | null
+          plan?: string | null
+          renewal_date?: string | null
+          seats?: number | null
+          service_name?: string
+          service_type?: string
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_services_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credential_access_log: {
         Row: {
@@ -460,6 +602,190 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          archived_at: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          quantity: number
+          reorder_level: number
+          sku: string
+          supplier: string | null
+          unit_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          quantity?: number
+          reorder_level?: number
+          sku: string
+          supplier?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          quantity?: number
+          reorder_level?: number
+          sku?: string
+          supplier?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          account_number: string
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          paid_at: string | null
+          status: string
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_checks: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          check_type: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          enabled: boolean
+          id: string
+          interval_seconds: number
+          last_checked_at: string | null
+          last_error: string | null
+          last_response_ms: number | null
+          name: string
+          status: string
+          target: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          check_type: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          enabled?: boolean
+          id?: string
+          interval_seconds?: number
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_response_ms?: number | null
+          name: string
+          status?: string
+          target: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          check_type?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          enabled?: boolean
+          id?: string
+          interval_seconds?: number
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_response_ms?: number | null
+          name?: string
+          status?: string
+          target?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_checks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -528,6 +854,74 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          account_number: string
+          archived_at: string | null
+          budget: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          name: string
+          owner_id: string | null
+          priority: string
+          project_code: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          archived_at?: string | null
+          budget?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          owner_id?: string | null
+          priority?: string
+          project_code?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          archived_at?: string | null
+          budget?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          owner_id?: string | null
+          priority?: string
+          project_code?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {

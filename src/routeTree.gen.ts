@@ -11,10 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MonitoringRouteImport } from './routes/monitoring'
+import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
+import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
@@ -30,9 +37,29 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitoringRoute = MonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -45,9 +72,24 @@ const CredentialsRoute = CredentialsRouteImport.update({
   path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/cloud',
+  path: '/cloud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssetsRoute = AssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -74,10 +116,17 @@ const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/inventory': typeof InventoryRoute
+  '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/projects': typeof ProjectsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -86,10 +135,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/inventory': typeof InventoryRoute
+  '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/projects': typeof ProjectsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -99,10 +155,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/inventory': typeof InventoryRoute
+  '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/projects': typeof ProjectsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -113,10 +176,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/assets'
     | '/auth'
+    | '/billing'
+    | '/cloud'
     | '/credentials'
     | '/customers'
+    | '/inventory'
+    | '/monitoring'
     | '/notifications'
+    | '/projects'
+    | '/reports'
     | '/settings'
     | '/tickets'
     | '/customers/$accountNumber'
@@ -125,10 +195,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/assets'
     | '/auth'
+    | '/billing'
+    | '/cloud'
     | '/credentials'
     | '/customers'
+    | '/inventory'
+    | '/monitoring'
     | '/notifications'
+    | '/projects'
+    | '/reports'
     | '/settings'
     | '/tickets'
     | '/customers/$accountNumber'
@@ -137,10 +214,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/assets'
     | '/auth'
+    | '/billing'
+    | '/cloud'
     | '/credentials'
     | '/customers'
+    | '/inventory'
+    | '/monitoring'
     | '/notifications'
+    | '/projects'
+    | '/reports'
     | '/settings'
     | '/tickets'
     | '/customers/$accountNumber'
@@ -150,10 +234,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AssetsRoute: typeof AssetsRoute
   AuthRoute: typeof AuthRoute
+  BillingRoute: typeof BillingRoute
+  CloudRoute: typeof CloudRoute
   CredentialsRoute: typeof CredentialsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
+  InventoryRoute: typeof InventoryRoute
+  MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
+  ProjectsRoute: typeof ProjectsRoute
+  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
 }
@@ -174,11 +265,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitoring': {
+      id: '/monitoring'
+      path: '/monitoring'
+      fullPath: '/monitoring'
+      preLoaderRoute: typeof MonitoringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -195,11 +314,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cloud': {
+      id: '/cloud'
+      path: '/cloud'
+      fullPath: '/cloud'
+      preLoaderRoute: typeof CloudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assets': {
+      id: '/assets'
+      path: '/assets'
+      fullPath: '/assets'
+      preLoaderRoute: typeof AssetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -259,10 +399,17 @@ const TicketsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AssetsRoute: AssetsRoute,
   AuthRoute: AuthRoute,
+  BillingRoute: BillingRoute,
+  CloudRoute: CloudRoute,
   CredentialsRoute: CredentialsRoute,
   CustomersRoute: CustomersRouteWithChildren,
+  InventoryRoute: InventoryRoute,
+  MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
+  ProjectsRoute: ProjectsRoute,
+  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TicketsRoute: TicketsRouteWithChildren,
 }
