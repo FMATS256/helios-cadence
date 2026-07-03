@@ -55,6 +55,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "IMT Operations Platform" },
       { name: "twitter:description", content: "IMT Operations Platform — unified system for customers, services, support, credentials, and field operations." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3fec914d-25e4-4a04-8d2a-fb9133929293/id-preview-f6564763--c44632e7-4e60-424d-92dc-77876dacb52f.lovable.app-1783098489453.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3fec914d-25e4-4a04-8d2a-fb9133929293/id-preview-f6564763--c44632e7-4e60-424d-92dc-77876dacb52f.lovable.app-1783098489453.png" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
