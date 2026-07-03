@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://wshaeoagbsrmccknuybx.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "imt-ops-mcp",
+      "version": "0.1.0",
+      "title": "IMT Operations Platform"
+    },
+    "tools": [
+      {
+        "name": "list_customers",
+        "title": "List customers",
+        "description": "List IMT customers (M-numbered accounts). Optional search matches company name or account number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Optional text to match on company or account number (e.g. M0001).",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_customer",
+        "title": "Get customer",
+        "description": "Fetch a customer's full profile by M-number (e.g. M0001) including related tickets and services counts.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_number": {
+              "type": "string",
+              "pattern": "^M\\d{4,}$"
+            }
+          },
+          "required": [
+            "account_number"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tickets",
+        "title": "List support tickets",
+        "description": "List support tickets, optionally filtered by status, priority, or customer M-number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "open",
+                "in_progress",
+                "waiting_customer",
+                "resolved",
+                "closed"
+              ]
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ]
+            },
+            "account_number": {
+              "type": "string",
+              "pattern": "^M\\d{4,}$"
+            },
+            "limit": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_ticket",
+        "title": "Create support ticket",
+        "description": "Create a new support ticket linked to a customer M-number.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_number": {
+              "type": "string",
+              "pattern": "^M\\d{4,}$"
+            },
+            "subject": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 5000
+            },
+            "priority": {
+              "default": "normal",
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ]
+            }
+          },
+          "required": [
+            "account_number",
+            "subject"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_credentials",
+        "title": "List credentials (metadata only)",
+        "description": "List credential vault entries by metadata. Never returns secret values — use the app to reveal secrets.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_number": {
+              "type": "string",
+              "pattern": "^M\\d{4,}$"
+            },
+            "type": {
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

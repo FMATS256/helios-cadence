@@ -86,15 +86,21 @@ function RootComponent() {
 function AuthGate() {
   const { user, loading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.searchStr });
   const navigate = useNavigate();
+  const isConsent = pathname === "/.lovable/oauth/consent";
 
   useEffect(() => {
-    if (!loading && !user && pathname !== "/auth") navigate({ to: "/auth" });
-  }, [user, loading, pathname, navigate]);
+    if (!loading && !user && pathname !== "/auth") {
+      const next = pathname + (search ?? "");
+      navigate({ to: "/auth", search: { next } as any });
+    }
+  }, [user, loading, pathname, search, navigate]);
 
   if (pathname === "/auth") return <Outlet />;
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
   }
+  if (isConsent) return <Outlet />;
   return <AppShell><Outlet /></AppShell>;
 }

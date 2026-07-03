@@ -12,19 +12,29 @@ import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — IMT Operations Platform" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const goNext = () => {
+    if (next) window.location.href = next;
+    else navigate({ to: "/" });
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { if (data.session) navigate({ to: "/" }); });
-  }, [navigate]);
+    supabase.auth.getSession().then(({ data }) => { if (data.session) goNext(); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
@@ -32,27 +42,29 @@ function AuthPage() {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
-    navigate({ to: "/" });
+    goNext();
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
+    const redirect = next ? `${window.location.origin}${next}` : `${window.location.origin}/`;
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: `${window.location.origin}/`, data: { full_name: fullName } },
+      options: { emailRedirectTo: redirect, data: { full_name: fullName } },
     });
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Account created — signing you in");
-    navigate({ to: "/" });
+    goNext();
   };
 
   const handleGoogle = async () => {
     setBusy(true);
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const redirect = next ? `${window.location.origin}${next}` : window.location.origin;
+    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirect });
     setBusy(false);
     if (res.error) return toast.error(res.error.message);
-    if (!res.redirected) navigate({ to: "/" });
+    if (!res.redirected) goNext();
   };
 
   return (
