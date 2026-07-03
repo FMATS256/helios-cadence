@@ -21,7 +21,7 @@ export default defineTool({
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     const acct = account_number.toUpperCase();
     const client = sb(ctx);
-    const { data, error } = await client.from("customers").select("*").eq("account_number", acct).is("deleted_at", null).maybeSingle();
+    const { data, error } = await client.from("customers").select("*").eq("account_number", acct).is("archived_at", null).maybeSingle();
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     if (!data) return { content: [{ type: "text", text: `No customer ${acct}` }], isError: true };
     return {

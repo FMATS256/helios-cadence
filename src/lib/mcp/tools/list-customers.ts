@@ -20,8 +20,8 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ search, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = sb(ctx).from("customers").select("account_number,company,status,industry").is("deleted_at", null).order("account_number").limit(limit);
-    if (search) q = q.or(`company.ilike.%${search}%,account_number.ilike.%${search}%`);
+    let q = sb(ctx).from("customers").select("account_number,company_name,status,industry").is("archived_at", null).order("account_number").limit(limit);
+    if (search) q = q.or(`company_name.ilike.%${search}%,account_number.ilike.%${search}%`);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     return {

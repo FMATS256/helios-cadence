@@ -21,9 +21,9 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ account_number, type, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = sb(ctx).from("credentials").select("id,name,type,account_number,expires_at,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(limit);
+    let q = sb(ctx).from("credentials").select("id,name,credential_type,account_number,expires_at,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(limit);
     if (account_number) q = q.eq("account_number", account_number.toUpperCase());
-    if (type) q = q.eq("type", type);
+    if (type) q = q.eq("credential_type", type);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     return {

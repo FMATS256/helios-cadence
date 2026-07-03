@@ -22,7 +22,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, priority, account_number, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = sb(ctx).from("tickets").select("id,subject,status,priority,account_number,created_at").is("deleted_at", null).order("created_at", { ascending: false }).limit(limit);
+    let q = sb(ctx).from("tickets").select("id,subject,status,priority,account_number,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(limit);
     if (status) q = q.eq("status", status);
     if (priority) q = q.eq("priority", priority);
     if (account_number) q = q.eq("account_number", account_number.toUpperCase());
