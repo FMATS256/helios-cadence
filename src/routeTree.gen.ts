@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -51,6 +52,11 @@ const QuotesRoute = QuotesRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
+  PaymentsRoute: typeof PaymentsRoute
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -428,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
+  PaymentsRoute: PaymentsRoute,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
