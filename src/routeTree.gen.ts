@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
@@ -40,6 +41,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
     | '/tickets'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
     | '/tickets'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
     | '/tickets'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
   ProjectsRoute: typeof ProjectsRoute
+  QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes': {
+      id: '/quotes'
+      path: '/quotes'
+      fullPath: '/quotes'
+      preLoaderRoute: typeof QuotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -409,6 +429,7 @@ const rootRouteChildren: RootRouteChildren = {
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
   ProjectsRoute: ProjectsRoute,
+  QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TicketsRoute: TicketsRouteWithChildren,
