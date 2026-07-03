@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, Search, ChevronDown,
+  FileText, CreditCard, Repeat, BookOpen,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -44,7 +45,10 @@ const navGroups = [
   {
     label: "Business",
     items: [
+      { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Billing", url: "/billing", icon: Receipt },
+      { title: "Payments", url: "/payments", icon: CreditCard },
+      { title: "Subscriptions", url: "/subscriptions", icon: Repeat },
       { title: "Inventory", url: "/inventory", icon: Warehouse },
       { title: "Reports", url: "/reports", icon: BarChart3 },
     ],
@@ -52,6 +56,7 @@ const navGroups = [
   {
     label: "System",
     items: [
+      { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
       { title: "Notifications", url: "/notifications", icon: Bell },
       { title: "Master Admin", url: "/admin", icon: Shield, masterOnly: true },
       { title: "Settings", url: "/settings", icon: Settings },

@@ -721,6 +721,48 @@ export type Database = {
           },
         ]
       }
+      kb_articles: {
+        Row: {
+          author_id: string | null
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          published: boolean
+          slug: string
+          tags: string[]
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          author_id?: string | null
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string | null
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       monitoring_checks: {
         Row: {
           account_number: string | null
@@ -819,6 +861,72 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          account_number: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          id: string
+          invoice_id: string | null
+          method: string | null
+          notes: string | null
+          paid_at: string
+          reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          notes?: string | null
+          paid_at?: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           archived_at: string | null
@@ -916,6 +1024,127 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          account_number: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          id: string
+          notes: string | null
+          quote_number: string | null
+          status: string
+          title: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          account_number: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          quote_number?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          quote_number?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          account_number: string
+          amount: number
+          auto_renew: boolean
+          billing_cycle: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          description: string | null
+          id: string
+          next_renewal: string | null
+          notes: string | null
+          plan_name: string
+          started_on: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          amount?: number
+          auto_renew?: boolean
+          billing_cycle?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          description?: string | null
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          plan_name: string
+          started_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          auto_renew?: boolean
+          billing_cycle?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          description?: string | null
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          plan_name?: string
+          started_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"

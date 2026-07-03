@@ -10,11 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
@@ -32,6 +36,11 @@ const TicketsRoute = TicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -42,9 +51,19 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -55,6 +74,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const MonitoringRoute = MonitoringRouteImport.update({
   id: '/monitoring',
   path: '/monitoring',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -123,11 +147,15 @@ export interface FileRoutesByFullPath {
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/knowledge': typeof KnowledgeRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -142,11 +170,15 @@ export interface FileRoutesByTo {
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/knowledge': typeof KnowledgeRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -162,11 +194,15 @@ export interface FileRoutesById {
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/knowledge': typeof KnowledgeRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/projects': typeof ProjectsRoute
+  '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -183,11 +219,15 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/customers'
     | '/inventory'
+    | '/knowledge'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -202,11 +242,15 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/customers'
     | '/inventory'
+    | '/knowledge'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -221,11 +265,15 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/customers'
     | '/inventory'
+    | '/knowledge'
     | '/monitoring'
     | '/notifications'
+    | '/payments'
     | '/projects'
+    | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -241,11 +289,15 @@ export interface RootRouteChildren {
   CredentialsRoute: typeof CredentialsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
   InventoryRoute: typeof InventoryRoute
+  KnowledgeRoute: typeof KnowledgeRoute
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
+  PaymentsRoute: typeof PaymentsRoute
   ProjectsRoute: typeof ProjectsRoute
+  QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
 }
 
@@ -256,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/tickets'
       preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -272,11 +331,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quotes': {
+      id: '/quotes'
+      path: '/quotes'
+      fullPath: '/quotes'
+      preLoaderRoute: typeof QuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects': {
       id: '/projects'
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -291,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoring'
       fullPath: '/monitoring'
       preLoaderRoute: typeof MonitoringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -406,11 +486,15 @@ const rootRouteChildren: RootRouteChildren = {
   CredentialsRoute: CredentialsRoute,
   CustomersRoute: CustomersRouteWithChildren,
   InventoryRoute: InventoryRoute,
+  KnowledgeRoute: KnowledgeRoute,
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
+  PaymentsRoute: PaymentsRoute,
   ProjectsRoute: ProjectsRoute,
+  QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
+  SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
