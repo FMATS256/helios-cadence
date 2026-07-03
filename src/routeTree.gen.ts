@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
@@ -32,6 +33,11 @@ import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/tickets/$id': typeof TicketsIdRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/quotes'
     | '/reports'
     | '/settings'
+    | '/subscriptions'
     | '/tickets'
     | '/customers/$accountNumber'
     | '/tickets/$id'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
 }
 
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/tickets'
       preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -453,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
+  SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
