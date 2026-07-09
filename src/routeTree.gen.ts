@@ -20,6 +20,7 @@ import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CustomersRouteImport } from './routes/customers'
@@ -98,6 +99,11 @@ const MonitoringRoute = MonitoringRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
+  id: '/laptop-tracking',
+  path: '/laptop-tracking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KnowledgeRoute = KnowledgeRouteImport.update({
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
+  '/laptop-tracking': typeof LaptopTrackingRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -274,6 +281,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
+  '/laptop-tracking': typeof LaptopTrackingRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
+  '/laptop-tracking': typeof LaptopTrackingRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/inventory'
     | '/knowledge'
+    | '/laptop-tracking'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/inventory'
     | '/knowledge'
+    | '/laptop-tracking'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -423,6 +434,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/inventory'
     | '/knowledge'
+    | '/laptop-tracking'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -461,6 +473,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRouteWithChildren
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
+  LaptopTrackingRoute: typeof LaptopTrackingRoute
   McpRoute: typeof McpRoute
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -558,6 +571,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/laptop-tracking': {
+      id: '/laptop-tracking'
+      path: '/laptop-tracking'
+      fullPath: '/laptop-tracking'
+      preLoaderRoute: typeof LaptopTrackingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/knowledge': {
@@ -793,6 +813,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRouteWithChildren,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
+  LaptopTrackingRoute: LaptopTrackingRoute,
   McpRoute: McpRoute,
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
