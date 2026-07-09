@@ -21,10 +21,9 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { next } = Route.useSearch();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
 
   const goNext = () => { if (next) window.location.href = next; else navigate({ to: "/" }); };
@@ -43,18 +42,6 @@ function AuthPage() {
     goNext();
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault(); setBusy(true);
-    const redirect = next ? `${window.location.origin}${next}` : `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { emailRedirectTo: redirect, data: { full_name: fullName } },
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Account created — signing you in");
-    goNext();
-  };
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
