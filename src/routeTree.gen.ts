@@ -42,6 +42,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 
 const TicketsRoute = TicketsRouteImport.update({
@@ -212,6 +213,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksRemindersTickRoute =
+  ApiPublicHooksRemindersTickRouteImport.update({
+    id: '/api/public/hooks/reminders-tick',
+    path: '/api/public/hooks/reminders-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksMonitoringTickRoute =
   ApiPublicHooksMonitoringTickRouteImport.update({
     id: '/api/public/hooks/monitoring-tick',
@@ -254,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/reminders-tick'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/reminders-tick'
   id:
     | '__root__'
     | '/'
@@ -435,6 +447,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/reminders-tick'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -465,6 +478,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
+  ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -700,6 +714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/reminders-tick': {
+      id: '/api/public/hooks/reminders-tick'
+      path: '/api/public/hooks/reminders-tick'
+      fullPath: '/api/public/hooks/reminders-tick'
+      preLoaderRoute: typeof ApiPublicHooksRemindersTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/monitoring-tick': {
       id: '/api/public/hooks/monitoring-tick'
       path: '/api/public/hooks/monitoring-tick'
@@ -790,6 +811,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
+  ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
