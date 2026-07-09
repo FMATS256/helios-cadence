@@ -7,7 +7,9 @@ import { useEffect } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/app-shell";
+import { PortalShell } from "@/components/portal-shell";
 import { useAuth } from "@/hooks/use-auth";
+import { usePortal } from "@/hooks/use-portal";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 function NotFoundComponent() {
