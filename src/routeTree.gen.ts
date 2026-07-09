@@ -15,6 +15,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
@@ -29,12 +30,19 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
+import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
+import { Route as PortalAssetsRouteImport } from './routes/portal.assets'
+import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
+import { Route as AssetsIdRouteImport } from './routes/assets.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
@@ -64,6 +72,11 @@ const QuotesRoute = QuotesRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -136,15 +149,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const TicketsIdRoute = TicketsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => TicketsRoute,
 } as any)
+const PortalTicketsRoute = PortalTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalInvoicesRoute = PortalInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAssetsRoute = PortalAssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
+  getParentRoute: () => PortalRoute,
+} as any)
+const InvoicesIdRoute = InvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
   id: '/$accountNumber',
   path: '/$accountNumber',
   getParentRoute: () => CustomersRoute,
+} as any)
+const AssetsIdRoute = AssetsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AssetsRoute,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -169,11 +212,17 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksMonitoringTickRoute =
+  ApiPublicHooksMonitoringTickRouteImport.update({
+    id: '/api/public/hooks/monitoring-tick',
+    path: '/api/public/hooks/monitoring-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRoute
+  '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
@@ -185,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/portal': typeof PortalRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -193,15 +243,22 @@ export interface FileRoutesByFullPath {
   '/tickets': typeof TicketsRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/assets': typeof PortalAssetsRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRoute
+  '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
@@ -221,16 +278,23 @@ export interface FileRoutesByTo {
   '/tickets': typeof TicketsRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/assets': typeof PortalAssetsRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/portal': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRoute
+  '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
@@ -242,6 +306,7 @@ export interface FileRoutesById {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/portal': typeof PortalRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -250,10 +315,17 @@ export interface FileRoutesById {
   '/tickets': typeof TicketsRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/assets': typeof PortalAssetsRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -272,6 +344,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
+    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -280,10 +353,17 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/assets/$id'
     | '/customers/$accountNumber'
+    | '/invoices/$id'
+    | '/portal/assets'
+    | '/portal/invoices'
+    | '/portal/tickets'
     | '/tickets/$id'
+    | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/hooks/monitoring-tick'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -308,10 +388,17 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/assets/$id'
     | '/customers/$accountNumber'
+    | '/invoices/$id'
+    | '/portal/assets'
+    | '/portal/invoices'
+    | '/portal/tickets'
     | '/tickets/$id'
+    | '/portal'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/hooks/monitoring-tick'
   id:
     | '__root__'
     | '/'
@@ -328,6 +415,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
+    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -336,16 +424,23 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/assets/$id'
     | '/customers/$accountNumber'
+    | '/invoices/$id'
+    | '/portal/assets'
+    | '/portal/invoices'
+    | '/portal/tickets'
     | '/tickets/$id'
+    | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/hooks/monitoring-tick'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  AssetsRoute: typeof AssetsRoute
+  AssetsRoute: typeof AssetsRouteWithChildren
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
   CloudRoute: typeof CloudRoute
@@ -357,6 +452,7 @@ export interface RootRouteChildren {
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentsRoute: typeof PaymentsRoute
+  PortalRoute: typeof PortalRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
@@ -365,8 +461,10 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRouteWithChildren
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  InvoicesIdRoute: typeof InvoicesIdRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -411,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -511,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/tickets/$id': {
       id: '/tickets/$id'
       path: '/$id'
@@ -518,12 +630,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
     }
+    '/portal/tickets': {
+      id: '/portal/tickets'
+      path: '/tickets'
+      fullPath: '/portal/tickets'
+      preLoaderRoute: typeof PortalTicketsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/invoices': {
+      id: '/portal/invoices'
+      path: '/invoices'
+      fullPath: '/portal/invoices'
+      preLoaderRoute: typeof PortalInvoicesRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/assets': {
+      id: '/portal/assets'
+      path: '/assets'
+      fullPath: '/portal/assets'
+      preLoaderRoute: typeof PortalAssetsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/invoices/$id': {
+      id: '/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/invoices/$id'
+      preLoaderRoute: typeof InvoicesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/customers/$accountNumber': {
       id: '/customers/$accountNumber'
       path: '/$accountNumber'
       fullPath: '/customers/$accountNumber'
       preLoaderRoute: typeof CustomersAccountNumberRouteImport
       parentRoute: typeof CustomersRoute
+    }
+    '/assets/$id': {
+      id: '/assets/$id'
+      path: '/$id'
+      fullPath: '/assets/$id'
+      preLoaderRoute: typeof AssetsIdRouteImport
+      parentRoute: typeof AssetsRoute
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -553,8 +700,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/monitoring-tick': {
+      id: '/api/public/hooks/monitoring-tick'
+      path: '/api/public/hooks/monitoring-tick'
+      fullPath: '/api/public/hooks/monitoring-tick'
+      preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AssetsRouteChildren {
+  AssetsIdRoute: typeof AssetsIdRoute
+}
+
+const AssetsRouteChildren: AssetsRouteChildren = {
+  AssetsIdRoute: AssetsIdRoute,
+}
+
+const AssetsRouteWithChildren =
+  AssetsRoute._addFileChildren(AssetsRouteChildren)
 
 interface CustomersRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
@@ -567,6 +732,23 @@ const CustomersRouteChildren: CustomersRouteChildren = {
 const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
   CustomersRouteChildren,
 )
+
+interface PortalRouteChildren {
+  PortalAssetsRoute: typeof PortalAssetsRoute
+  PortalInvoicesRoute: typeof PortalInvoicesRoute
+  PortalTicketsRoute: typeof PortalTicketsRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAssetsRoute: PortalAssetsRoute,
+  PortalInvoicesRoute: PortalInvoicesRoute,
+  PortalTicketsRoute: PortalTicketsRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
 
 interface TicketsRouteChildren {
   TicketsIdRoute: typeof TicketsIdRoute
@@ -582,7 +764,7 @@ const TicketsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  AssetsRoute: AssetsRoute,
+  AssetsRoute: AssetsRouteWithChildren,
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
   CloudRoute: CloudRoute,
@@ -594,6 +776,7 @@ const rootRouteChildren: RootRouteChildren = {
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentsRoute: PaymentsRoute,
+  PortalRoute: PortalRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
@@ -603,8 +786,10 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  InvoicesIdRoute: InvoicesIdRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

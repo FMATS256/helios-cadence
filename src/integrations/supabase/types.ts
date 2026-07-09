@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_lifecycle_events: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          notes: string | null
+          occurred_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_lifecycle_events_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           account_number: string | null
@@ -653,6 +691,50 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number | null
+          position: number
+          quantity: number
+          tax_rate: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number | null
+          position?: number
+          quantity?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number | null
+          position?: number
+          quantity?: number
+          tax_rate?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           account_number: string
@@ -828,6 +910,82 @@ export type Database = {
           },
         ]
       }
+      monitoring_incidents: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          check_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          last_error: string | null
+          started_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          check_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_error?: string | null
+          started_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          check_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_error?: string | null
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_incidents_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_results: {
+        Row: {
+          check_id: string
+          checked_at: string
+          error: string | null
+          id: string
+          response_ms: number | null
+          status: string
+        }
+        Insert: {
+          check_id: string
+          checked_at?: string
+          error?: string | null
+          id?: string
+          response_ms?: number | null
+          status: string
+        }
+        Update: {
+          check_id?: string
+          checked_at?: string
+          error?: string | null
+          id?: string
+          response_ms?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_results_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -860,6 +1018,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payment_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          payment_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          payment_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -931,6 +1128,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           created_at: string
+          customer_id: string | null
           department: string | null
           email: string | null
           full_name: string | null
@@ -942,6 +1140,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           created_at?: string
+          customer_id?: string | null
           department?: string | null
           email?: string | null
           full_name?: string | null
@@ -953,6 +1152,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           created_at?: string
+          customer_id?: string | null
           department?: string | null
           email?: string | null
           full_name?: string | null
@@ -961,7 +1161,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -1027,6 +1235,50 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          line_total: number | null
+          position: number
+          quantity: number
+          quote_id: string
+          tax_rate: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          line_total?: number | null
+          position?: number
+          quantity?: number
+          quote_id: string
+          tax_rate?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          line_total?: number | null
+          position?: number
+          quantity?: number
+          quote_id?: string
+          tax_rate?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_line_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -1321,6 +1573,11 @@ export type Database = {
         Returns: boolean
       }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      portal_customer_id: { Args: { _user_id: string }; Returns: string }
+      recompute_invoice_status: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:

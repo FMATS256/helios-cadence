@@ -35,7 +35,7 @@ function BillingPage() {
         return { ...f, due_date: f.due_date || null, subtotal, tax, total: subtotal + tax };
       }}
       columns={[
-        { header: "Invoice #", cell: (r: any) => <span className="font-mono font-semibold">{r.invoice_number}</span> },
+        { header: "Invoice #", cell: (r: any) => <Link to="/invoices/$id" params={{ id: r.id }} className="font-mono font-semibold text-solar hover:underline">{r.invoice_number}</Link> },
         { header: "Customer", cell: (r: any) => <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link> },
         { header: "Status", cell: (r: any) => <StatusPill tone={r.status === "paid" ? "success" : r.status === "overdue" ? "danger" : r.status === "sent" ? "info" : "neutral"}>{r.status}</StatusPill> },
         { header: "Issued", cell: (r: any) => new Date(r.issue_date).toLocaleDateString() },

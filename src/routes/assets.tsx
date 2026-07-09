@@ -31,7 +31,7 @@ function AssetsPage() {
       validateForm={(f) => (!f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
       transformInsert={(f) => ({ ...f, customer_id: f.customer_id || null, purchase_date: f.purchase_date || null, warranty_expires: f.warranty_expires || null, cost: Number(f.cost) || null })}
       columns={[
-        { header: "Tag / Serial", cell: (r: any) => <div><div className="font-mono text-sm">{r.asset_tag || "—"}</div><div className="text-xs text-muted-foreground">{r.serial_number || "—"}</div></div> },
+        { header: "Tag / Serial", cell: (r: any) => <Link to="/assets/$id" params={{ id: r.id }}><div><div className="font-mono text-sm text-solar hover:underline">{r.asset_tag || r.id.slice(0, 8)}</div><div className="text-xs text-muted-foreground">{r.serial_number || "—"}</div></div></Link> },
         { header: "Type", cell: (r: any) => <StatusPill tone="info">{r.asset_type}</StatusPill> },
         { header: "Device", cell: (r: any) => <div>{r.make} {r.model}</div> },
         { header: "Customer", cell: (r: any) => r.account_number ? <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link> : <span className="text-muted-foreground text-xs">Internal</span> },
