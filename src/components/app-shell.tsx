@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, Search, ChevronDown,
-  FileText, CreditCard, Repeat, BookOpen,
+  FileText, CreditCard, Repeat, BookOpen, Laptop,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -38,6 +38,7 @@ const navGroups = [
     items: [
       { title: "Cloud Services", url: "/cloud", icon: Cloud },
       { title: "Assets", url: "/assets", icon: Server },
+      { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Projects", url: "/projects", icon: FolderKanban },
     ],
@@ -122,10 +123,10 @@ function AppSidebar() {
 function TopBar() {
   const navigate = useNavigate();
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-6">
-      <SidebarTrigger className="text-foreground" />
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-3 sm:px-6">
+      <SidebarTrigger className="text-foreground shrink-0" />
       <form
-        className="relative flex-1 max-w-2xl"
+        className="relative flex-1 max-w-2xl min-w-0"
         onSubmit={(e) => {
           e.preventDefault();
           const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim();
@@ -135,13 +136,13 @@ function TopBar() {
         }}
       >
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input name="q" placeholder="Search customers (M0001…), tickets, credentials, assets…" className="pl-10 h-10 bg-muted/50 border-transparent focus-visible:bg-background" />
+        <Input name="q" placeholder="Search M-number, tickets, assets…" className="pl-10 h-10 bg-muted/50 border-transparent focus-visible:bg-background" />
       </form>
-      <div className="flex items-center gap-3 ml-auto">
+      <div className="flex items-center gap-1.5 sm:gap-3 ml-auto shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" className="h-10 px-4 text-solar-foreground border-0 shadow-[var(--shadow-glow)]" style={{ background: "var(--gradient-solar)" }}>
-              <Plus className="h-4 w-4 mr-1.5" />New<ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
+            <Button size="sm" className="h-10 px-3 sm:px-4 text-solar-foreground border-0 shadow-[var(--shadow-glow)]" style={{ background: "var(--gradient-solar)" }}>
+              <Plus className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">New</span><ChevronDown className="h-3.5 w-3.5 ml-1 opacity-70" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
