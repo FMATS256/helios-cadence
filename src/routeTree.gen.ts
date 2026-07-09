@@ -32,6 +32,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 import { Route as AssetsIdRouteImport } from './routes/assets.$id'
@@ -156,6 +157,11 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TicketsRoute,
 } as any)
+const PortalTicketsRoute = PortalTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => PortalRoute,
+} as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/tickets'
     | '/tickets/$id'
     | '/portal/'
     | '/.lovable/oauth/consent'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/tickets'
     | '/tickets/$id'
     | '/portal'
     | '/.lovable/oauth/consent'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/tickets'
     | '/tickets/$id'
     | '/portal/'
     | '/.lovable/oauth/consent'
@@ -594,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
     }
+    '/portal/tickets': {
+      id: '/portal/tickets'
+      path: '/tickets'
+      fullPath: '/portal/tickets'
+      preLoaderRoute: typeof PortalTicketsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/invoices/$id': {
       id: '/invoices/$id'
       path: '/invoices/$id'
@@ -677,10 +696,12 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
 )
 
 interface PortalRouteChildren {
+  PortalTicketsRoute: typeof PortalTicketsRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalTicketsRoute: PortalTicketsRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
 
