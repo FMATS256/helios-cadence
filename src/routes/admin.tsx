@@ -43,12 +43,73 @@ function AdminPage() {
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users"><UserPlus className="h-4 w-4 mr-1.5" />Users & Roles</TabsTrigger>
+          <TabsTrigger value="portal"><Users className="h-4 w-4 mr-1.5" />Portal Users</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="h-4 w-4 mr-1.5" />Audit Log</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="mt-4"><UsersTab /></TabsContent>
+        <TabsContent value="portal" className="mt-4"><PortalTab /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
       </Tabs>
     </PageContainer>
+  );
+}
+
+function PortalTab() {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listPortalUsers);
+  const inviteFn = useServerFn(invitePortalUser);
+  const unlinkFn = useServerFn(unlinkPortalUser);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ email: "", full_name: "", customer_id: "" });
+  const { data: users = [] } = useQuery({ queryKey: ["portal-users"], queryFn: () => listFn() });
+  const { data: customers = [] } = useQuery({ queryKey: ["cust-lite"], queryFn: async () => (await supabase.from("customers").select("id,account_number,company_name").is("archived_at", null).order("company_name")).data ?? [] });
+  const invite = useMutation({
+    mutationFn: () => inviteFn({ data: form }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["portal-users"] }); setOpen(false); setForm({ email: "", full_name: "", customer_id: "" }); toast.success("Portal access granted"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const unlink = useMutation({
+    mutationFn: (user_id: string) => unlinkFn({ data: { user_id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["portal-users"] }),
+  });
+  return (
+    <Card><CardHeader className="flex flex-row items-center justify-between">
+      <CardTitle className="font-display">Customer portal users</CardTitle>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild><Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}><UserPlus className="h-4 w-4 mr-1.5" />Grant portal access</Button></DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Grant customer portal access</DialogTitle></DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); invite.mutate(); }} className="space-y-4">
+            <div className="space-y-2"><Label>Email *</Label><Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Customer *</Label>
+              <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                <SelectContent>{(customers as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <DialogFooter><Button type="submit" disabled={invite.isPending}>{invite.isPending ? "Sending…" : "Send invite"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </CardHeader>
+    <CardContent className="p-0">
+      {users.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">No portal users yet.</div> : (
+        <Table>
+          <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Customer</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableBody>
+            {(users as any[]).map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-semibold">{u.full_name || u.email?.split("@")[0]}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{u.email}</TableCell>
+                <TableCell><span className="font-mono text-xs">{u.customers?.account_number}</span> · {u.customers?.company_name}</TableCell>
+                <TableCell><Button size="sm" variant="ghost" onClick={() => unlink.mutate(u.id)}>Revoke</Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </CardContent></Card>
   );
 }
 
