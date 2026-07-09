@@ -4,8 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-
 @theme inline {
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', sans-serif;
