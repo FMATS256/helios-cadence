@@ -35,7 +35,7 @@ function PortalTickets() {
   const create = useMutation({
     mutationFn: async () => {
       if (!customer?.id || !form.subject) throw new Error("Subject required");
-      const { error } = await supabase.from("tickets").insert({ customer_id: customer.id, ...form, status: "open" });
+      const { error } = await supabase.from("tickets").insert({ customer_id: customer.id, ...form, status: "open" } as any);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["portal-tickets"] }); setOpen(false); setForm({ subject: "", description: "", priority: "normal", category: "general" }); toast.success("Ticket submitted"); },
