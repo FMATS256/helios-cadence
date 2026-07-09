@@ -13,9 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, UserPlus, ScrollText } from "lucide-react";
+import { Shield, UserPlus, ScrollText, Users } from "lucide-react";
 import { useRoles } from "@/hooks/use-roles";
 import { listAllUsers, assignRole, inviteUser, recentAuditLog, ALL_ROLES, type AppRole } from "@/lib/admin.functions";
+import { invitePortalUser, listPortalUsers, unlinkPortalUser } from "@/lib/portal-admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Master Admin — IMT Operations" }] }),
