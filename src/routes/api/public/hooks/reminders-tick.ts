@@ -19,7 +19,7 @@ async function runReminders() {
   const { data: staff } = await supabaseAdmin
     .from("user_roles")
     .select("user_id, role")
-    .in("role", roles as unknown as string[]);
+    .in("role", roles as any);
   const staffIds = Array.from(new Set((staff ?? []).map((r: any) => r.user_id)));
   if (staffIds.length === 0) return { ok: true, message: "no staff to notify" };
 
