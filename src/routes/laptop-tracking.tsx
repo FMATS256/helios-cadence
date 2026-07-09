@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useServerFn } from "@tanstack/react-query";
-import { useServerFn as useSFN } from "@tanstack/react-start";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader, PageContainer, StatusPill } from "@/components/page";
@@ -33,7 +33,7 @@ function fmtMoney(n: number, ccy = "USD") {
 function fmtDate(s?: string | null) { return s ? new Date(s).toLocaleDateString() : "—"; }
 
 function useTrackx() {
-  const fn = useSFN(trackxCall);
+  const fn = useServerFn(trackxCall);
   return async (action: string, params: Record<string, any> = {}) => fn({ data: { action, params } });
 }
 
