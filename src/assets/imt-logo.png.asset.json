@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "944c9636-46af-4791-9586-f6785b6fe48b",
-  "project_id": "c44632e7-4e60-424d-92dc-77876dacb52f",
-  "url": "/__l5e/assets-v1/944c9636-46af-4791-9586-f6785b6fe48b/imt-logo.png",
-  "r2_key": "a/v1/c44632e7-4e60-424d-92dc-77876dacb52f/944c9636-46af-4791-9586-f6785b6fe48b/imt-logo.png",
-  "original_filename": "imt-logo.png",
-  "size": 25027,
   "content_type": "image/png",
-  "created_at": "2026-07-01T13:46:01Z"
+  "created_at": "2026-07-01T13:46:01Z",
+  "original_filename": "imt-logo.png",
+  "project_id": "fa087a88-9f60-44c0-9005-6182e6511bac",
+  "r2_key": "a/v1/fa087a88-9f60-44c0-9005-6182e6511bac/944c9636-46af-4791-9586-f6785b6fe48b/imt-logo.png",
+  "size": 25027,
+  "url": "/__l5e/assets-v1/944c9636-46af-4791-9586-f6785b6fe48b/imt-logo.png",
+  "version": 1
 }
