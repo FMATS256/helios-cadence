@@ -15,6 +15,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
@@ -67,6 +68,11 @@ const QuotesRoute = QuotesRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/portal': typeof PortalRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/portal': typeof PortalRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/portal': typeof PortalRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
+    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
+    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
+    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -394,6 +406,7 @@ export interface RootRouteChildren {
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentsRoute: typeof PaymentsRoute
+  PortalRoute: typeof PortalRoute
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
@@ -450,6 +463,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -665,6 +685,7 @@ const rootRouteChildren: RootRouteChildren = {
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentsRoute: PaymentsRoute,
+  PortalRoute: PortalRoute,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
@@ -682,3 +703,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
