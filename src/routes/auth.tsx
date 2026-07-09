@@ -140,13 +140,11 @@ function AuthPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="font-display text-3xl font-bold text-foreground">
-                {mode === "signin" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
+                {mode === "signin" ? "Sign In" : "Reset Password"}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 {mode === "signin"
                   ? "Please log in to continue to your account"
-                  : mode === "signup"
-                  ? "First user becomes Master Administrator"
                   : "We'll email you a secure reset link"}
               </p>
             </div>
@@ -197,41 +195,13 @@ function AuthPage() {
                 <GoogleGlyph /> Sign in with Google
               </Button>
 
-              <p className="text-sm text-center text-muted-foreground pt-2">
-                Don't have an account?{" "}
-                <button type="button" onClick={() => setMode("signup")} className="text-solar font-semibold hover:underline">
-                  Create one
-                </button>
+              <p className="text-[11px] text-center text-muted-foreground pt-2">
+                Access is invite-only. Contact your Master Administrator to be onboarded.
               </p>
             </form>
           )}
 
-          {mode === "signup" && (
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="su-name">Full name</Label>
-                <Input id="su-name" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-11" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="su-email">Email</Label>
-                <Input id="su-email" type="email" required autoComplete="email"
-                  value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="su-pw">Password</Label>
-                <Input id="su-pw" type="password" required minLength={6} autoComplete="new-password"
-                  value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
-              </div>
-              <Button type="submit" disabled={busy}
-                className="w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
-                style={{ background: "var(--gradient-solar)" }}>
-                {busy ? "Creating…" : "Create account"}
-              </Button>
-              <p className="text-[11px] text-muted-foreground text-center">
-                First account becomes Master Administrator automatically.
-              </p>
-            </form>
-          )}
+
 
           {mode === "reset" && (
             <form onSubmit={handleReset} className="space-y-4">
