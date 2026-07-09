@@ -33,6 +33,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
 import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
+import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 import { Route as AssetsIdRouteImport } from './routes/assets.$id'
@@ -162,6 +163,11 @@ const PortalTicketsRoute = PortalTicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalInvoicesRoute = PortalInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => PortalRoute,
+} as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal/': typeof PortalIndexRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal': typeof PortalIndexRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/assets/$id': typeof AssetsIdRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/portal/': typeof PortalIndexRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
     | '/portal/'
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
     | '/portal'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/assets/$id'
     | '/customers/$accountNumber'
     | '/invoices/$id'
+    | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
     | '/portal/'
@@ -613,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalTicketsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/invoices': {
+      id: '/portal/invoices'
+      path: '/invoices'
+      fullPath: '/portal/invoices'
+      preLoaderRoute: typeof PortalInvoicesRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/invoices/$id': {
       id: '/invoices/$id'
       path: '/invoices/$id'
@@ -696,11 +715,13 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
 )
 
 interface PortalRouteChildren {
+  PortalInvoicesRoute: typeof PortalInvoicesRoute
   PortalTicketsRoute: typeof PortalTicketsRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalInvoicesRoute: PortalInvoicesRoute,
   PortalTicketsRoute: PortalTicketsRoute,
   PortalIndexRoute: PortalIndexRoute,
 }
