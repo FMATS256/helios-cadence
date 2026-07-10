@@ -4,10 +4,6 @@ const MASTER_EMAIL = "[email protected]";
 const MASTER_PASSWORD = "ImtMaster!2026";
 const MASTER_NAME = "Master Administrator";
 
-/**
- * Ensures the hardcoded Master Administrator account exists.
- * Idempotent — safe to call on every auth page load.
- */
 export const ensureMasterAdmin = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
