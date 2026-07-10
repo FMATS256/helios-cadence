@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { lovable } from "@/integrations/lovable";
-import { KeyRound, LifeBuoy, Server, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ensureMasterAdmin } from "@/lib/bootstrap.functions";
+import { KeyRound, LifeBuoy, Server, ShieldCheck, Copy } from "lucide-react";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — IMT Operations Platform" }] }),
@@ -25,13 +27,17 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [master, setMaster] = useState<{ email: string; password: string } | null>(null);
+  const bootstrap = useServerFn(ensureMasterAdmin);
 
   const goNext = () => { if (next) window.location.href = next; else navigate({ to: "/" }); };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { if (data.session) goNext(); });
+    bootstrap().then(setMaster).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
