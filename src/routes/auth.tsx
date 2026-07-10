@@ -60,14 +60,12 @@ function AuthPage() {
     setMode("signin");
   };
 
-  const handleGoogle = async () => {
-    setBusy(true);
-    const redirect = next ? `${window.location.origin}${next}` : window.location.origin;
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirect });
-    setBusy(false);
-    if (res.error) return toast.error(res.error.message);
-    if (!res.redirected) goNext();
+  const fillMaster = () => {
+    if (!master) return;
+    setEmail(master.email);
+    setPassword(master.password);
   };
+
 
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -190,16 +188,33 @@ function AuthPage() {
                 {busy ? "Signing in…" : "Sign in"}
               </Button>
 
-              <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">or</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+              {master && (
+                <div className="rounded-xl border border-solar/30 bg-solar/5 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] uppercase tracking-widest font-semibold text-solar">Master Administrator</p>
+                    <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={fillMaster}>
+                      Use these
+                    </Button>
+                  </div>
+                  <div className="text-xs font-mono text-foreground/80 space-y-1 break-all">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground shrink-0">email:</span>
+                      <span>{master.email}</span>
+                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => { navigator.clipboard.writeText(master.email); toast.success("Email copied"); }}>
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground shrink-0">pass:</span>
+                      <span>{master.password}</span>
+                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => { navigator.clipboard.writeText(master.password); toast.success("Password copied"); }}>
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <Button type="button" variant="outline" className="w-full h-11 font-medium"
-                disabled={busy} onClick={handleGoogle}>
-                <GoogleGlyph /> Sign in with Google
-              </Button>
 
               <p className="text-[11px] text-center text-muted-foreground pt-2">
                 Access is invite-only. Contact your Master Administrator to be onboarded.
