@@ -93,32 +93,11 @@ function RootComponent() {
 }
 
 function AuthGate() {
-  const { user, loading } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.searchStr });
-  const navigate = useNavigate();
   const isConsent = pathname === "/.lovable/oauth/consent";
   const isPortalRoute = pathname === "/portal" || pathname.startsWith("/portal/");
-  const { isPortal } = usePortal();
-
-  useEffect(() => {
-    if (!loading && !user && pathname !== "/auth") {
-      const next = pathname + (search ?? "");
-      navigate({ to: "/auth", search: { next } as any });
-    }
-  }, [user, loading, pathname, search, navigate]);
-
-  // Portal users are redirected out of the staff app
-  useEffect(() => {
-    if (!loading && user && isPortal && !isPortalRoute && pathname !== "/auth") {
-      navigate({ to: "/portal" });
-    }
-  }, [loading, user, isPortal, isPortalRoute, pathname, navigate]);
 
   if (pathname === "/auth") return <Outlet />;
-  if (loading || !user) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
-  }
   if (isConsent) return <Outlet />;
   if (isPortalRoute) return <PortalShell><Outlet /></PortalShell>;
   return <AppShell><Outlet /></AppShell>;
