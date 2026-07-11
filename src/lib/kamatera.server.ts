@@ -68,7 +68,7 @@ export type CreateServerInput = {
   ssh_key?: string;
   datacenter: string;
   image: string;
-  cpu: string;              // e.g. "1A" (cores + type)
+  cpu: string;              // e.g. "1A"
   ram: number;              // MB
   disk_size_0: number;      // GB
   disk_size_1?: number;
@@ -94,4 +94,33 @@ export async function getCommandStatus(commandId: string) {
 
 export async function listServers() {
   return kamateraRequest<any[]>("/service/server");
+}
+
+export async function getServerInfo(idOrName: string) {
+  // Kamatera accepts either { id } or { name }; try id form first.
+  try {
+    return await kamateraRequest<any>("/service/server/info", { method: "POST", body: { id: idOrName } });
+  } catch {
+    return await kamateraRequest<any>("/service/server/info", { method: "POST", body: { name: idOrName } });
+  }
+}
+
+export async function powerAction(idOrName: string, action: "poweron" | "poweroff" | "reboot") {
+  return kamateraRequest<any>(`/service/server/${action}`, {
+    method: "POST",
+    body: { id: idOrName, name: idOrName },
+  });
+}
+
+export async function terminateServer(idOrName: string, force = true) {
+  return kamateraRequest<any>(`/service/server/terminate`, {
+    method: "POST",
+    body: { id: idOrName, name: idOrName, force: force ? "yes" : "no" },
+  });
+}
+
+export async function ping() {
+  // Cheap sanity check that credentials work.
+  const dcs = await listDatacenters();
+  return { ok: true, datacenterCount: Array.isArray(dcs) ? dcs.length : 0 };
 }
