@@ -122,10 +122,9 @@ export async function powerAction(idOrName: string, action: "poweron" | "powerof
 }
 
 export async function terminateServer(idOrName: string, force = true) {
-  return kamateraRequest<any>(`/service/server/terminate`, {
-    method: "POST",
-    body: { id: idOrName, name: idOrName, force: force ? "yes" : "no" },
-  });
+  const body: any = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
+  body.force = force ? "yes" : "no";
+  return kamateraRequest<any>(`/service/server/terminate`, { method: "POST", body });
 }
 
 export async function ping() {
