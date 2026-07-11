@@ -1,0 +1,376 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { refreshServer, serverPower, terminateServer } from "@/lib/kamatera.functions";
+import { PageContainer, PageHeader, StatusPill } from "@/components/page";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  ArrowLeft, RefreshCw, Power, PowerOff, RotateCw, Trash2, Server as ServerIcon,
+  Cpu, HardDrive, Network, Shield, Save, Key, DollarSign, Rocket, Bell, ScrollText, Gauge,
+} from "lucide-react";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+
+export const Route = createFileRoute("/cloud-ops/$id")({
+  head: () => ({ meta: [{ title: "Server — IMT Cloud Ops" }] }),
+  component: ServerDetailPage,
+});
+
+function ServerDetailPage() {
+  const { id } = Route.useParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const fnRefresh = useServerFn(refreshServer);
+  const fnPower = useServerFn(serverPower);
+  const fnTerminate = useServerFn(terminateServer);
+
+  const server = useQuery({
+    queryKey: ["cloud_server", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cloud_servers" as any)
+        .select("*, customer:customer_id(id,account_number,company_name)")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const activity = useQuery({
+    queryKey: ["cloud_activity", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cloud_activity" as any).select("*")
+        .eq("server_id", id).order("created_at", { ascending: false }).limit(50);
+      return (data ?? []) as any[];
+    },
+  });
+
+  const deployments = useQuery({
+    queryKey: ["cloud_deployments", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cloud_deployments" as any).select("*")
+        .eq("server_id", id).order("created_at", { ascending: false }).limit(50);
+      return (data ?? []) as any[];
+    },
+  });
+
+  const credentials = useQuery({
+    queryKey: ["server_credentials", id, server.data?.customer_id],
+    enabled: !!server.data?.customer_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("credentials" as any)
+        .select("id,name,credential_type,expires_at,created_at")
+        .eq("customer_id", server.data.customer_id)
+        .is("archived_at", null)
+        .order("created_at", { ascending: false });
+      return (data ?? []) as any[];
+    },
+  });
+
+  const refresh = useMutation({
+    mutationFn: () => fnRefresh({ data: { server_id: id } }),
+    onSuccess: () => {
+      toast.success("Refreshed from Kamatera");
+      qc.invalidateQueries({ queryKey: ["cloud_server", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const power = useMutation({
+    mutationFn: (action: "poweron" | "poweroff" | "reboot") => fnPower({ data: { server_id: id, action } }),
+    onSuccess: (_, action) => {
+      toast.success(`Command sent: ${action}`);
+      qc.invalidateQueries({ queryKey: ["cloud_server", id] });
+      qc.invalidateQueries({ queryKey: ["cloud_activity", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const terminate = useMutation({
+    mutationFn: () => fnTerminate({ data: { server_id: id } }),
+    onSuccess: () => {
+      toast.success("Server terminated");
+      navigate({ to: "/cloud-ops" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (server.isLoading) return <PageContainer><p className="p-8 text-center">Loading…</p></PageContainer>;
+  if (!server.data) return <PageContainer><p className="p-8 text-center">Server not found.</p></PageContainer>;
+
+  const s = server.data;
+  const meta = (s.provider_meta ?? {}) as any;
+  const on = s.power_state === "on";
+
+  return (
+    <PageContainer>
+      <div className="mb-3">
+        <Link to="/cloud-ops" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud Ops
+        </Link>
+      </div>
+      <PageHeader
+        eyebrow={`Kamatera · ${s.datacenter ?? "—"}`}
+        title={s.name}
+        description={s.customer ? `${s.customer.account_number} · ${s.customer.company_name}` : "Unassigned"}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => power.mutate("reboot")} disabled={power.isPending || !on}>
+              <RotateCw className="h-4 w-4 mr-1.5" /> Reboot
+            </Button>
+            {on ? (
+              <Button variant="outline" size="sm" onClick={() => power.mutate("poweroff")} disabled={power.isPending}>
+                <PowerOff className="h-4 w-4 mr-1.5" /> Power off
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => power.mutate("poweron")} disabled={power.isPending}>
+                <Power className="h-4 w-4 mr-1.5" /> Power on
+              </Button>
+            )}
+            <Button
+              variant="destructive" size="sm"
+              onClick={() => { if (confirm(`Terminate ${s.name}? This cannot be undone.`)) terminate.mutate(); }}
+              disabled={terminate.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" /> Terminate
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <Stat label="Power" value={<StatusPill tone={on ? "success" : "neutral"}>{s.power_state}</StatusPill>} />
+        <Stat label="Status" value={<StatusPill tone={s.status === "active" ? "success" : s.status === "failed" ? "danger" : "warning"}>{s.status}</StatusPill>} />
+        <Stat label="Public IP" value={<span className="font-mono text-sm">{(s.public_ips ?? [])[0] ?? "—"}</span>} />
+        <Stat label="Provider cost / mo" value={`$${Number(s.monthly_cost_usd || 0).toFixed(2)}`} />
+        <Stat label="Selling price / mo" value={`$${Number(s.selling_price_usd || 0).toFixed(2)}`} />
+      </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="overview"><ServerIcon className="h-3.5 w-3.5 mr-1.5" />Overview</TabsTrigger>
+          <TabsTrigger value="monitoring"><Gauge className="h-3.5 w-3.5 mr-1.5" />Monitoring</TabsTrigger>
+          <TabsTrigger value="compute"><Cpu className="h-3.5 w-3.5 mr-1.5" />Compute</TabsTrigger>
+          <TabsTrigger value="storage"><HardDrive className="h-3.5 w-3.5 mr-1.5" />Storage</TabsTrigger>
+          <TabsTrigger value="networking"><Network className="h-3.5 w-3.5 mr-1.5" />Networking</TabsTrigger>
+          <TabsTrigger value="firewall"><Shield className="h-3.5 w-3.5 mr-1.5" />Firewall</TabsTrigger>
+          <TabsTrigger value="backups"><Save className="h-3.5 w-3.5 mr-1.5" />Backups</TabsTrigger>
+          <TabsTrigger value="credentials"><Key className="h-3.5 w-3.5 mr-1.5" />Credentials</TabsTrigger>
+          <TabsTrigger value="billing"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Billing</TabsTrigger>
+          <TabsTrigger value="deployments"><Rocket className="h-3.5 w-3.5 mr-1.5" />Deployments</TabsTrigger>
+          <TabsTrigger value="alerts"><Bell className="h-3.5 w-3.5 mr-1.5" />Alerts</TabsTrigger>
+          <TabsTrigger value="activity"><ScrollText className="h-3.5 w-3.5 mr-1.5" />Activity</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoCard title="Server">
+              <Row k="Name" v={s.name} />
+              <Row k="Provider" v={s.provider} />
+              <Row k="Provider ID" v={s.provider_server_id ?? "—"} />
+              <Row k="Datacenter" v={s.datacenter ?? "—"} />
+              <Row k="Image" v={s.image ?? "—"} />
+              <Row k="Billing cycle" v={s.billing_cycle ?? "—"} />
+              <Row k="Created" v={formatDistanceToNow(new Date(s.created_at), { addSuffix: true })} />
+              <Row k="Last synced" v={s.last_synced_at ? formatDistanceToNow(new Date(s.last_synced_at), { addSuffix: true }) : "Never"} />
+            </InfoCard>
+            <InfoCard title="Notes">
+              <p className="text-sm whitespace-pre-wrap">{s.notes || "No notes."}</p>
+            </InfoCard>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="monitoring" className="mt-4">
+          <InfoCard title="Live provider data">
+            <Row k="Power" v={s.power_state ?? "unknown"} />
+            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? "—"} />
+            <Row k="Uptime" v={meta.uptime ?? "—"} />
+            <Row k="Traffic used" v={meta.traffic_used ?? "—"} />
+            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from Kamatera.</p>
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="compute" className="mt-4">
+          <InfoCard title="Compute">
+            <Row k="vCPU cores" v={s.cpu_cores ?? "—"} />
+            <Row k="CPU type" v={s.cpu_type ?? "—"} />
+            <Row k="RAM" v={s.ram_mb ? `${(s.ram_mb / 1024).toFixed(1)} GB (${s.ram_mb} MB)` : "—"} />
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="storage" className="mt-4">
+          <InfoCard title="Disks">
+            {(s.disk_sizes_gb ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No disks reported.</p>
+            ) : (
+              <ul className="space-y-1">
+                {(s.disk_sizes_gb as number[]).map((d, i) => (
+                  <li key={i} className="text-sm flex justify-between">
+                    <span>Disk #{i}</span><span className="font-mono">{d} GB</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="networking" className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoCard title="Public IPs">
+              {(s.public_ips ?? []).length === 0 ? <p className="text-sm text-muted-foreground">None</p> :
+                <ul>{(s.public_ips as string[]).map((ip) => <li key={ip} className="font-mono text-sm">{ip}</li>)}</ul>}
+            </InfoCard>
+            <InfoCard title="Private IPs">
+              {(s.private_ips ?? []).length === 0 ? <p className="text-sm text-muted-foreground">None</p> :
+                <ul>{(s.private_ips as string[]).map((ip) => <li key={ip} className="font-mono text-sm">{ip}</li>)}</ul>}
+            </InfoCard>
+            <InfoCard title="Networks (raw)">
+              <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-64">
+                {JSON.stringify(s.networks ?? [], null, 2)}
+              </pre>
+            </InfoCard>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="firewall" className="mt-4">
+          <InfoCard title="Firewall rules">
+            <p className="text-sm text-muted-foreground">
+              Firewall management runs at the Kamatera network layer. Managed rules will appear here once configured.
+            </p>
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="backups" className="mt-4">
+          <InfoCard title="Backup policy">
+            <Row k="Daily backup" v={meta.dailybackup ?? meta.backup ?? "off"} />
+            <Row k="Snapshots" v={Array.isArray(meta.snapshots) ? `${meta.snapshots.length}` : "0"} />
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="credentials" className="mt-4">
+          <InfoCard title="Linked customer credentials">
+            {!s.customer_id ? (
+              <p className="text-sm text-muted-foreground">Assign this server to a customer to link credentials.</p>
+            ) : (credentials.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No credentials for this customer.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {credentials.data!.map((c: any) => (
+                  <li key={c.id} className="flex justify-between text-sm">
+                    <span>{c.name}</span>
+                    <span className="text-xs text-muted-foreground">{c.credential_type}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="billing" className="mt-4">
+          <InfoCard title="Billing">
+            <Row k="Provider cost / mo" v={`$${Number(s.monthly_cost_usd || 0).toFixed(2)} USD`} />
+            <Row k="Selling price / mo" v={`$${Number(s.selling_price_usd || 0).toFixed(2)} USD`} />
+            <Row k="Gross margin / mo" v={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)} USD`} />
+            <Row k="Cycle" v={s.billing_cycle ?? "monthly"} />
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="deployments" className="mt-4">
+          <Card><CardContent className="p-0">
+            {(deployments.data ?? []).length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground text-center">No deployments logged.</p>
+            ) : (
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Action</TableHead><TableHead>Status</TableHead>
+                  <TableHead>Command</TableHead><TableHead>When</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {deployments.data!.map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="font-mono text-xs">{d.action}</TableCell>
+                      <TableCell><StatusPill tone={d.status === "completed" ? "success" : d.status === "failed" ? "danger" : "warning"}>{d.status}</StatusPill></TableCell>
+                      <TableCell className="font-mono text-xs">{d.provider_command_id ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="mt-4">
+          <InfoCard title="Alerts">
+            <p className="text-sm text-muted-foreground">
+              Attach a monitoring check from the Monitoring module to raise alerts when this server is unreachable.
+            </p>
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-4">
+          <Card><CardContent className="p-0">
+            {(activity.data ?? []).length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground text-center">No activity yet.</p>
+            ) : (
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Action</TableHead><TableHead>Actor</TableHead>
+                  <TableHead>Detail</TableHead><TableHead>When</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {activity.data!.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-mono text-xs">{a.action}</TableCell>
+                      <TableCell className="text-xs">{a.actor_email ?? "system"}</TableCell>
+                      <TableCell className="font-mono text-xs max-w-md truncate">{JSON.stringify(a.detail ?? {})}</TableCell>
+                      <TableCell className="text-xs">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent></Card>
+        </TabsContent>
+      </Tabs>
+    </PageContainer>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <Card><CardContent className="p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="text-lg font-semibold mt-0.5">{value}</div>
+    </CardContent></Card>
+  );
+}
+
+function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2"><CardTitle className="text-sm">{title}</CardTitle></CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div className="flex justify-between text-sm py-1 border-b last:border-0">
+      <span className="text-muted-foreground">{k}</span>
+      <span className="font-mono text-xs">{v}</span>
+    </div>
+  );
+}
