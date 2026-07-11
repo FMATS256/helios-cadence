@@ -202,7 +202,7 @@ function CloudOpsPage() {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{(s.public_ips ?? [])[0] ?? "—"}</TableCell>
                     <TableCell>
-                      <StatusPill tone={s.power_state === "on" ? "success" : s.power_state === "off" ? "muted" : "warning"}>
+                      <StatusPill tone={s.power_state === "on" ? "success" : s.power_state === "off" ? "neutral" : "warning"}>
                         {s.power_state ?? "unknown"}
                       </StatusPill>
                     </TableCell>
