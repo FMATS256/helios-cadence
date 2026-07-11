@@ -1,5 +1,5 @@
 // Kamatera provider adapter (server-only).
-// Docs: https://kamatera.github.io/kamateratoolbox/
+// Endpoints derived from the official cloudcli schema (https://cloudcli.cloudwm.com/schema).
 const BASE = "https://cloudcli.cloudwm.com";
 
 function creds() {
