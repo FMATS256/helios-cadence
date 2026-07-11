@@ -36,6 +36,7 @@ const navGroups = [
   {
     label: "Services",
     items: [
+      { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Cloud Services", url: "/cloud", icon: Cloud },
       { title: "Assets", url: "/assets", icon: Server },
       { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
