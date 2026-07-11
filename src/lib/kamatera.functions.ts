@@ -193,7 +193,7 @@ export const syncServers = createServerFn({ method: "POST" }).handler(async () =
       provider_server_id: providerId,
       name,
       datacenter: r.datacenter ?? null,
-      image: r.image ?? existing?.image ?? null,
+      image: r.image ?? null,
       cpu_type: cpuType,
       cpu_cores: cpuCores,
       ram_mb: Number(r.ram) || null,
