@@ -171,6 +171,213 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_activity: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          detail: Json | null
+          id: string
+          server_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          server_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          server_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_activity_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_deployments: {
+        Row: {
+          action: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          operation_id: string | null
+          progress: number | null
+          provider_command_id: string | null
+          provider_response: Json | null
+          request_payload: Json | null
+          server_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          operation_id?: string | null
+          progress?: number | null
+          provider_command_id?: string | null
+          provider_response?: Json | null
+          request_payload?: Json | null
+          server_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          operation_id?: string | null
+          progress?: number | null
+          provider_command_id?: string | null
+          provider_response?: Json | null
+          request_payload?: Json | null
+          server_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_deployments_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_servers: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          billing_cycle: string | null
+          cpu_cores: number | null
+          cpu_type: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          datacenter: string | null
+          disk_sizes_gb: number[] | null
+          id: string
+          image: string | null
+          last_synced_at: string | null
+          monthly_cost_usd: number | null
+          name: string
+          networks: Json | null
+          notes: string | null
+          power_state: string | null
+          private_ips: string[] | null
+          provider: string
+          provider_meta: Json | null
+          provider_server_id: string | null
+          public_ips: string[] | null
+          ram_mb: number | null
+          root_password_ref: string | null
+          selling_price_usd: number | null
+          ssh_key: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          billing_cycle?: string | null
+          cpu_cores?: number | null
+          cpu_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          datacenter?: string | null
+          disk_sizes_gb?: number[] | null
+          id?: string
+          image?: string | null
+          last_synced_at?: string | null
+          monthly_cost_usd?: number | null
+          name: string
+          networks?: Json | null
+          notes?: string | null
+          power_state?: string | null
+          private_ips?: string[] | null
+          provider?: string
+          provider_meta?: Json | null
+          provider_server_id?: string | null
+          public_ips?: string[] | null
+          ram_mb?: number | null
+          root_password_ref?: string | null
+          selling_price_usd?: number | null
+          ssh_key?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          billing_cycle?: string | null
+          cpu_cores?: number | null
+          cpu_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          datacenter?: string | null
+          disk_sizes_gb?: number[] | null
+          id?: string
+          image?: string | null
+          last_synced_at?: string | null
+          monthly_cost_usd?: number | null
+          name?: string
+          networks?: Json | null
+          notes?: string | null
+          power_state?: string | null
+          private_ips?: string[] | null
+          provider?: string
+          provider_meta?: Json | null
+          provider_server_id?: string | null
+          public_ips?: string[] | null
+          ram_mb?: number | null
+          root_password_ref?: string | null
+          selling_price_usd?: number | null
+          ssh_key?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_servers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_services: {
         Row: {
           account_number: string
