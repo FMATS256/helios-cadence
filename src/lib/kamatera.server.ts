@@ -107,23 +107,18 @@ export async function getCommandStatus(commandId: string) {
 }
 
 export async function listServers() {
-  return kamateraRequest<any[]>("/service/server");
+  return kamateraRequest<any[]>("/service/servers");
 }
 
 export async function getServerInfo(idOrName: string) {
-  // Kamatera accepts either { id } or { name }; try id form first.
-  try {
-    return await kamateraRequest<any>("/service/server/info", { method: "POST", body: { id: idOrName } });
-  } catch {
-    return await kamateraRequest<any>("/service/server/info", { method: "POST", body: { name: idOrName } });
-  }
+  // The `serversInfo` endpoint returns an array of matches for id/name.
+  const body = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
+  return kamateraRequest<any>("/service/server/info", { method: "POST", body });
 }
 
 export async function powerAction(idOrName: string, action: "poweron" | "poweroff" | "reboot") {
-  return kamateraRequest<any>(`/service/server/${action}`, {
-    method: "POST",
-    body: { id: idOrName, name: idOrName },
-  });
+  const body = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
+  return kamateraRequest<any>(`/service/server/${action}`, { method: "POST", body });
 }
 
 export async function terminateServer(idOrName: string, force = true) {
