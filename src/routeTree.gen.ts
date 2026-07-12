@@ -25,7 +25,6 @@ import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
-import { Route as CloudOpsRouteImport } from './routes/cloud-ops'
 import { Route as CloudRouteImport } from './routes/cloud'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -33,6 +32,7 @@ import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
 import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
 import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
@@ -129,11 +129,6 @@ const CredentialsRoute = CredentialsRouteImport.update({
   path: '/credentials',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CloudOpsRoute = CloudOpsRouteImport.update({
-  id: '/cloud-ops',
-  path: '/cloud-ops',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CloudRoute = CloudRouteImport.update({
   id: '/cloud',
   path: '/cloud',
@@ -169,6 +164,11 @@ const PortalIndexRoute = PortalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PortalRoute,
 } as any)
+const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
+  id: '/cloud-ops/',
+  path: '/cloud-ops/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TicketsIdRoute = TicketsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -200,14 +200,14 @@ const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
   getParentRoute: () => CustomersRoute,
 } as any)
 const CloudOpsNewRoute = CloudOpsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => CloudOpsRoute,
+  id: '/cloud-ops/new',
+  path: '/cloud-ops/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CloudOpsRoute,
+  id: '/cloud-ops/$id',
+  path: '/cloud-ops/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AssetsIdRoute = AssetsIdRouteImport.update({
   id: '/$id',
@@ -257,7 +257,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
-  '/cloud-ops': typeof CloudOpsRouteWithChildren
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
@@ -285,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/cloud-ops/': typeof CloudOpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -298,7 +298,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
-  '/cloud-ops': typeof CloudOpsRouteWithChildren
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
@@ -325,6 +324,7 @@ export interface FileRoutesByTo {
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/cloud-ops': typeof CloudOpsIndexRoute
   '/portal': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -339,7 +339,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
-  '/cloud-ops': typeof CloudOpsRouteWithChildren
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
@@ -367,6 +366,7 @@ export interface FileRoutesById {
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/cloud-ops/': typeof CloudOpsIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -382,7 +382,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
-    | '/cloud-ops'
     | '/credentials'
     | '/customers'
     | '/inventory'
@@ -410,6 +409,7 @@ export interface FileRouteTypes {
     | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
+    | '/cloud-ops/'
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -423,7 +423,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
-    | '/cloud-ops'
     | '/credentials'
     | '/customers'
     | '/inventory'
@@ -450,6 +449,7 @@ export interface FileRouteTypes {
     | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
+    | '/cloud-ops'
     | '/portal'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -463,7 +463,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
-    | '/cloud-ops'
     | '/credentials'
     | '/customers'
     | '/inventory'
@@ -491,6 +490,7 @@ export interface FileRouteTypes {
     | '/portal/invoices'
     | '/portal/tickets'
     | '/tickets/$id'
+    | '/cloud-ops/'
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -505,7 +505,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
   CloudRoute: typeof CloudRoute
-  CloudOpsRoute: typeof CloudOpsRouteWithChildren
   CredentialsRoute: typeof CredentialsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
   InventoryRoute: typeof InventoryRoute
@@ -524,7 +523,10 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRouteWithChildren
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  CloudOpsIdRoute: typeof CloudOpsIdRoute
+  CloudOpsNewRoute: typeof CloudOpsNewRoute
   InvoicesIdRoute: typeof InvoicesIdRoute
+  CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
@@ -645,13 +647,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cloud-ops': {
-      id: '/cloud-ops'
-      path: '/cloud-ops'
-      fullPath: '/cloud-ops'
-      preLoaderRoute: typeof CloudOpsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/cloud': {
       id: '/cloud'
       path: '/cloud'
@@ -701,6 +696,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalIndexRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/cloud-ops/': {
+      id: '/cloud-ops/'
+      path: '/cloud-ops'
+      fullPath: '/cloud-ops/'
+      preLoaderRoute: typeof CloudOpsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tickets/$id': {
       id: '/tickets/$id'
       path: '/$id'
@@ -745,17 +747,17 @@ declare module '@tanstack/react-router' {
     }
     '/cloud-ops/new': {
       id: '/cloud-ops/new'
-      path: '/new'
+      path: '/cloud-ops/new'
       fullPath: '/cloud-ops/new'
       preLoaderRoute: typeof CloudOpsNewRouteImport
-      parentRoute: typeof CloudOpsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/cloud-ops/$id': {
       id: '/cloud-ops/$id'
-      path: '/$id'
+      path: '/cloud-ops/$id'
       fullPath: '/cloud-ops/$id'
       preLoaderRoute: typeof CloudOpsIdRouteImport
-      parentRoute: typeof CloudOpsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/assets/$id': {
       id: '/assets/$id'
@@ -820,20 +822,6 @@ const AssetsRouteChildren: AssetsRouteChildren = {
 const AssetsRouteWithChildren =
   AssetsRoute._addFileChildren(AssetsRouteChildren)
 
-interface CloudOpsRouteChildren {
-  CloudOpsIdRoute: typeof CloudOpsIdRoute
-  CloudOpsNewRoute: typeof CloudOpsNewRoute
-}
-
-const CloudOpsRouteChildren: CloudOpsRouteChildren = {
-  CloudOpsIdRoute: CloudOpsIdRoute,
-  CloudOpsNewRoute: CloudOpsNewRoute,
-}
-
-const CloudOpsRouteWithChildren = CloudOpsRoute._addFileChildren(
-  CloudOpsRouteChildren,
-)
-
 interface CustomersRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
 }
@@ -881,7 +869,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
   CloudRoute: CloudRoute,
-  CloudOpsRoute: CloudOpsRouteWithChildren,
   CredentialsRoute: CredentialsRoute,
   CustomersRoute: CustomersRouteWithChildren,
   InventoryRoute: InventoryRoute,
@@ -901,7 +888,10 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  CloudOpsIdRoute: CloudOpsIdRoute,
+  CloudOpsNewRoute: CloudOpsNewRoute,
   InvoicesIdRoute: InvoicesIdRoute,
+  CloudOpsIndexRoute: CloudOpsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
