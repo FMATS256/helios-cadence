@@ -11,7 +11,7 @@ import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
-export const Route = createFileRoute("/cloud-ops")({
+export const Route = createFileRoute("/cloud-ops/")({
   head: () => ({ meta: [{ title: "Cloud Operations — IMT" }] }),
   component: CloudOpsPage,
 });
