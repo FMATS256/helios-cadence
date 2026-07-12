@@ -83,6 +83,7 @@ export const kamateraAdapter: CloudProvider = {
     const res: any = await createServer({
       name: req.name,
       password: req.password,
+      passwordValidate: req.password,
       ssh_key: req.ssh_key,
       datacenter: req.region,
       image: req.image,
@@ -94,7 +95,7 @@ export const kamateraAdapter: CloudProvider = {
       monitoring: req.monitoring ? "yes" : "no",
       billingcycle: req.billing_cycle ?? "monthly",
       networks: req.networks ?? [{ name: "wan" }],
-    });
+    } as any);
     return {
       provider_server_id: String(res?.id ?? res?.commandIds?.[0] ?? ""),
       public_ips: res?.publicIps ?? [],
