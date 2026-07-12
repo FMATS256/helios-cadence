@@ -48,6 +48,7 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
+import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
@@ -249,6 +250,11 @@ const ApiPublicHooksMonitoringTickRoute =
     path: '/api/public/hooks/monitoring-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
+  id: '/api/public/agent/provision',
+  path: '/api/public/agent/provision',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
@@ -328,6 +335,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
@@ -413,6 +422,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/reminders-tick'
   fileRoutesByTo: FileRoutesByTo
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/reminders-tick'
   id:
@@ -494,6 +505,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/reminders-tick'
   fileRoutesById: FileRoutesById
@@ -529,6 +541,7 @@ export interface RootRouteChildren {
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
 }
@@ -808,6 +821,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/agent/provision': {
+      id: '/api/public/agent/provision'
+      path: '/api/public/agent/provision'
+      fullPath: '/api/public/agent/provision'
+      preLoaderRoute: typeof ApiPublicAgentProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -894,6 +914,7 @@ const rootRouteChildren: RootRouteChildren = {
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
 }

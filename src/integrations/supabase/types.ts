@@ -847,6 +847,135 @@ export type Database = {
         }
         Relationships: []
       }
+      deployment_steps: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          output: Json | null
+          seq: number
+          started_at: string | null
+          status: string
+          step_key: string
+          step_label: string
+          workflow_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          output?: Json | null
+          seq: number
+          started_at?: string | null
+          status?: string
+          step_key: string
+          step_label: string
+          workflow_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          output?: Json | null
+          seq?: number
+          started_at?: string | null
+          status?: string
+          step_key?: string
+          step_label?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deployment_workflows: {
+        Row: {
+          completed_at: string | null
+          context: Json
+          created_at: string
+          created_by: string | null
+          current_step: string | null
+          customer_id: string | null
+          error: string | null
+          id: string
+          plan_id: string | null
+          progress: number
+          provider: string
+          server_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          context?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          plan_id?: string | null
+          progress?: number
+          provider: string
+          server_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          context?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          plan_id?: string | null
+          progress?: number
+          provider?: string
+          server_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_workflows_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_workflows_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "provisioning_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_workflows_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           archived_at: string | null
@@ -1439,6 +1568,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provisioning_plans: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          estimated_hourly_usd: number | null
+          estimated_monthly_usd: number | null
+          estimated_setup_minutes: number | null
+          id: string
+          notes: string | null
+          provider: string
+          region: string | null
+          rejected_reason: string | null
+          report: Json
+          request: Json
+          status: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          estimated_hourly_usd?: number | null
+          estimated_monthly_usd?: number | null
+          estimated_setup_minutes?: number | null
+          id?: string
+          notes?: string | null
+          provider: string
+          region?: string | null
+          rejected_reason?: string | null
+          report: Json
+          request: Json
+          status?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          estimated_hourly_usd?: number | null
+          estimated_monthly_usd?: number | null
+          estimated_setup_minutes?: number | null
+          id?: string
+          notes?: string | null
+          provider?: string
+          region?: string | null
+          rejected_reason?: string | null
+          report?: Json
+          request?: Json
+          status?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_plans_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"

@@ -1,102 +1,87 @@
+# Cloud Provisioning Agent — Phased Plan
 
-## IMT Operations Platform — Phase 1
+Full spec (7 providers, 15 resource types, 18 templates, 20-step workflow) is a multi-week build. I'll ship it in phases, each independently useful. This turn covers **Phase 1 + 2**; Phases 3–5 land in follow-up turns.
 
-Reuse the existing visual language (navy + solar-orange tokens, Inter/Space Grotesk, AppShell, sidebar, CrudTable, PageHeader, StatusPill). Drop the solar CRM tables. Build the foundation, Credential Vault, and Support Tickets in this phase; everything else from the spec becomes "Coming soon" placeholder pages so the sidebar reflects the full IMT module map from day one.
-
-### Scope of Phase 1
-
-**Foundation (full functionality)**
-- Customer Accounts with auto-generated `M0001`-style numbers (immutable, non-reusable, globally searchable)
-- Users, Roles, RBAC (Master Admin, Ops Mgr, Finance, Sales, Account Mgr, Tech Support, Cloud Eng, Cyber Sec, NOC, Inventory, Procurement, Customer Success, Read-Only, Custom)
-- Master Administrator dashboard
-- Global search across customers, tickets, credentials, assets, invoices
-- Append-only audit log (user, IP, action, old/new value) — visible to Master Admin
-- Soft-delete + restore everywhere
-- MFA-ready auth scaffolding (email/password + Google), session timeout, account lockout
-
-**Credential Vault (full functionality)**
-- Encrypted credential store (envelope encryption — see Technical section)
-- Credential types: Server, NAS, Router, Firewall, Switch, WiFi, SSH key, API key, VPN, DB, Microsoft, Email, Cloud, Licence, Recovery, Certificate, Private/Public key
-- Per-credential: linked customer, linked device/asset, owner, expiry, version history, access log, permission control
-- Every reveal logged
-
-**Support Tickets (full functionality)**
-- Create from customer, sales, AM, engineer
-- Assign to team / engineer, priority, SLA timer, status workflow
-- Internal notes vs customer replies, attachments, resolution notes
-- Escalation rules (priority + SLA breach)
-- Linked to customer timeline
-
-**Stubbed modules (sidebar + placeholder page only)**
-Cloud Services, Assets, Monitoring, Billing (Quotes/Invoices/Payments/Statements/Subscriptions), Projects, Inventory, Reports, Notifications, Knowledge Base, Settings sub-pages. Each shows a "Coming in Phase 2" panel so the IA is complete and the platform feels whole.
-
-### Information architecture
+## Architecture (locked once, reused by every phase)
 
 ```text
-/                         Master dashboard (KPIs, alerts, recent tickets, system health)
-/customers                Customer directory (M-numbers, global view)
-/customers/$accountNumber Customer 360 (profile, contacts, services, tickets, credentials, assets, invoices, timeline)
-/tickets                  Support desk (list + board)
-/tickets/$id              Ticket detail
-/credentials              Credential vault (filterable by customer/type)
-/cloud                    [stub] Cloud Services
-/assets                   [stub] Asset Management
-/monitoring               [stub] Monitoring & alerts
-/billing                  [stub] Billing hub (sub-tabs: quotes, invoices, payments, subs)
-/projects                 [stub] Projects
-/inventory                [stub] Inventory & warehouse
-/reports                  [stub] Reports
-/notifications            Notification center (real, basic)
-/admin                    Master Admin (users, roles, audit log, system settings, impersonation, backups)
-/settings                 Personal settings + MFA
-/auth                     Sign in / sign up
+API layer (TanStack server fns + /api/public/agent/* routes)
+        │
+Provisioning engine   ── validates, prices, picks provider/region, orchestrates workflow
+        │
+Provider abstraction  ── CloudProvider interface (createVM, power, terminate, listRegions, price…)
+        │      ├── kamatera/  (done)
+        │      ├── hetzner/   (Phase 3)
+        │      ├── digitalocean/, vultr/  (Phase 3)
+        │      └── aws/, azure/, gcp/     (Phase 5)
+        │
+Template engine       ── cloud-init user-data renderer, one file per stack
+        │
+Asset registry        ── writes to cloud_servers + assets + monitoring_checks
+        │
+Workflow runner       ── deployment_steps table, resumable, emits activity + notifications
 ```
 
-### Existing solar pages
+Common `CloudProvider` interface every adapter implements:  
+`listRegions`, `listImages`, `listInstanceTypes`, `estimatePrice`, `createServer`, `powerAction`, `terminate`, `getServer`, `attachFloatingIp`, `createFirewall`, `createBlockStorage`.
 
-Dropped. Routes deleted: leads, clients, contacts, pipeline, quotes, proposals, installations, products, tasks, calendar, documents, invoices, payments, marketing, Zoho sync pages. Existing tables dropped via migration. Existing Zoho integration code archived (kept in repo, removed from sidebar) so we can revisit if needed.
+## Phase 1 — Foundation (this turn)
 
-### Technical section
+- `src/lib/providers/types.ts` — `CloudProvider` interface, shared types (`Region`, `InstanceType`, `ProvisionRequest`, `ProvisionResult`, `ResourceKind`).
+- `src/lib/providers/registry.ts` — provider registry + `getProvider(name)`.
+- `src/lib/providers/kamatera/adapter.ts` — wraps existing `kamatera.server.ts` behind the interface.
+- `src/lib/providers/kamatera/pricing.ts` — deterministic Kamatera monthly price estimator.
+- `src/lib/agent/validate.ts` — request validation (spec bounds, image/region compat, cost cap).
+- `src/lib/agent/select-provider.ts` — provider/region selector (policy → price → availability).
+- Migration: `deployment_workflows` + `deployment_steps` tables (workflow state, resumable) with GRANT + RLS.
 
-**Stack:** existing TanStack Start + Lovable Cloud (Supabase). All app-internal logic via `createServerFn`; webhooks/external under `/api/public/*`.
+## Phase 2 — Provisioning engine + templates (this turn)
 
-**Schema (Phase 1 tables):**
-- `customers` — id, `account_number` (text, unique, auto from sequence `M%04d`), company, status, industry, tags, assigned_account_manager, soft-delete columns
-- `customer_contacts`, `customer_branches`, `customer_documents`, `customer_notes`, `customer_timeline`
-- `app_roles` enum + `user_roles` table (separate from profiles, per security rules) + `permissions` + `role_permissions` for custom roles
-- `profiles` (extended), `user_sessions`, `failed_logins`
-- `tickets`, `ticket_messages`, `ticket_attachments`, `ticket_sla_rules`
-- `credentials` (encrypted ciphertext + iv + key_id), `credential_versions`, `credential_access_log`
-- `audit_log` (append-only, trigger-driven)
-- `notifications`
-- `system_settings`
+- `src/lib/agent/workflow.ts` — runs the 20-step workflow, writes each step to `deployment_steps`, emits `cloud_activity`, sends `notifications` on success/failure.
+- `src/lib/agent/templates/` — one cloud-init renderer per stack. Phase 2 ships: **wordpress, nextcloud, docker, docker-compose, nginx, nodejs, postgres, mysql, mariadb, monitoring-stack**. Others (`gitlab`, `jenkins`, `laravel`, `python`, `apache`, `freepbx`, `3cx`, `active-directory`) stubbed with `Not yet implemented` — added in Phase 4.
+- `src/lib/agent.functions.ts` — server functions: `provisionResource`, `getWorkflow`, `cancelWorkflow`, `estimateCost`, `listTemplates`, `listProviders`.
+- Public API route `src/routes/api/public/agent/provision.ts` — HMAC-signed webhook contract for Account Manager integration.
+- Auto-register in `assets` table + auto-create a `monitoring_checks` HTTP/ping check on success.
 
-**Customer numbering:** Postgres sequence + `BEFORE INSERT` trigger generating `M` + `lpad(nextval, 4, '0')`. Column is immutable (trigger blocks UPDATE).
+## Phase 3 — Multi-provider (next turn)
 
-**RBAC:** `has_role(uuid, app_role)` and `has_permission(uuid, text)` SECURITY DEFINER functions used in every RLS policy. No role data on profiles.
+- Hetzner, DigitalOcean, Vultr adapters (all have simple REST APIs + cloud-init support).
+- Each requires a Lovable Cloud secret (I'll request via `add_secret` when we get there).
+- Region/price data hydrated on first call, cached in `provider_regions` table.
 
-**Credential encryption:** AES-256-GCM in a server function. DEK per credential, wrapped by a KEK stored as a Lovable Cloud secret (`CREDENTIAL_MASTER_KEY` — generated via `generate_secret`, 64 chars). Plaintext never stored, never logged, never returned except through an explicit "reveal" server fn that writes to `credential_access_log` first.
+## Phase 4 — Remaining templates + advanced resources (next turn)
 
-**Audit log:** Generic Postgres trigger on tracked tables writing `(actor, action, table, row_id, old, new, ip, user_agent)` into `audit_log`. IP/UA passed via `set_config('app.request_ip', ...)` from a request middleware.
+- Remaining 8 templates.
+- Block/object storage, load balancers, floating IPs, firewalls, DNS zones, SSL (Let's Encrypt via cloud-init).
 
-**Soft delete:** `deleted_at timestamptz` on every domain table; RLS policies filter it out by default; Master Admin can query archived.
+## Phase 5 — Hyperscalers (deferred)
 
-**Global search:** Postgres `tsvector` columns + `gin` indexes on customers, tickets, credentials (metadata only — never ciphertext), assets. One `search` server fn returns grouped results.
+- AWS/Azure/GCP require IAM, VPC, SG, credentials management. Deferred because each is a project on its own — I'll ask you to confirm scope + provide credentials before starting.
 
-**Auth:** Supabase email/password + Google (configured this turn). MFA via Supabase TOTP enrollment in `/settings`. Session timeout enforced client-side via existing auth hook + server-side via short-lived JWT refresh policy.
+## Explicitly out of scope (call out now)
 
-**RLS:** Every table RLS-enabled, every public table gets explicit GRANTs in the same migration. Policies use `has_role` / `has_permission`. `service_role` always granted for admin server fns.
+- **UI**: you said "focus is functionality, not UI." I'll expose everything via server fns + API. The existing Cloud Ops page keeps working; I won't redesign it in this stream.
+- **Kubernetes clusters** and **VPN/Backup/Database managed services**: these use *provider-managed* services (EKS, DOKS, Hetzner LB, DO Spaces). Ship in Phase 4 for providers that expose them; skip elsewhere.
+- **AD/3CX/FreePBX**: real installers, not cloud-init one-liners — Phase 4 will render the automation scripts but you'll need licenses/ISOs for 3CX.
 
-**UI reuse:** Keep `AppShell`, `Sidebar`, `PageContainer`, `PageHeader`, `StatusPill`, `CrudTable`, color tokens, gradients. New sidebar groups: Operations / Customers / Services / Admin. No new colors, no new fonts.
+## Technical notes
 
-### What this turn delivers
+- Workflow is idempotent per `workflow_id` — re-running resumes at the last non-completed step. Steps write their own compensating action so failures can auto-rollback (`terminateServer` if `createServer` succeeded but init failed).
+- Templates render to cloud-init YAML passed as `user-data`. Kamatera doesn't expose `user-data` on all images, so for Kamatera we SSH-inject the script post-boot (needs SSH key at provision time — already supported in the wizard).
+- Cost estimator returns `{ monthly_usd, hourly_usd, breakdown[] }` and is called both before provision (dry-run) and stored on the row.
+- All `/api/public/agent/*` endpoints require HMAC signature (`X-Agent-Signature: sha256=…`) verified against `AGENT_WEBHOOK_SECRET` (I'll `generate_secret` it in Phase 1).
+- Notifications go through the existing `notifications` table + (later) email via the existing email pipeline.
 
-1. Migration: drop old tables; create new schema; seed roles; create sequence + triggers; RLS + grants.
-2. Configure Google OAuth provider.
-3. Generate `CREDENTIAL_MASTER_KEY` secret.
-4. New sidebar + route files (real for foundation/vault/tickets, stub for the rest).
-5. Server functions for customers CRUD, tickets CRUD, credentials CRUD + reveal, global search, admin user mgmt, audit log read.
-6. Master Admin dashboard.
-7. Update `__root.tsx` head metadata + tour copy to "IMT Operations Platform".
+## Deliverable this turn
 
-Phase 2 candidates (not built now): Cloud provisioning, Asset/Monitoring agents, full Billing engine, Projects, Inventory, Reports, Knowledge Base, WhatsApp/SMS integration, customer portal, mobile.
+Phase 1 + 2: Kamatera end-to-end through the new engine, 10 templates, workflow runner, public webhook API, cost estimator, asset auto-registration, monitoring auto-enablement.
+
+Reply **Approve** to build Phase 1 + 2, or tell me what to cut/add.
+
+&nbsp;
+
+Add the following to the specification:
+
+&nbsp;
+
+> The IMT Service Provisioning Agent is an internal technical execution engine used exclusively by IMT Solutions staff to automate the provisioning and deployment of client infrastructure and services. Before performing any work, it must analyze the request and automatically generate a comprehensive execution report that includes the proposed architecture, recommended integrated service provider (selected intelligently from configured providers based on pricing, availability, performance, region, and service compatibility), required resources, software stack, estimated cloud and licensing costs, projected operational costs, estimated provisioning and configuration time, deployment workflow, technical risks, dependencies, security considerations, and AI-driven optimization recommendations. The report must support a full dry-run simulation, showing every planned action and API call without creating any resources, allowing IMT engineers to review, modify, approve, or reject the plan. Only after approval should the agent begin provisioning, installing, configuring, validating, and documenting the infrastructure. Throughout execution it must display live progress, logs, warnings, and errors, automatically retry or roll back failed operations where appropriate, perform comprehensive post-deployment validation, register all deployed assets in the IMT Account Manager, securely store credentials, enable monitoring and backups, and generate complete deployment documentation before the finished service is handed over to the client.
