@@ -87,20 +87,20 @@ const STEPS: Omit<StepDef, "compensate">[] = [
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("monitoring_checks").insert({
       name: `${ctx.req.name} (ping)`,
-      kind: "ping",
+      check_type: "ping",
       target: ctx.state.public_ips[0],
       interval_seconds: 60,
       enabled: true,
+      status: "unknown",
     });
     return { check_created: true };
   }},
   { key: "notify_client", label: "Notify client", run: async (ctx) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("cloud_activity").insert({
-      kind: "provisioned",
+      action: "provisioned",
       server_id: ctx.state.server_id ?? null,
-      message: `Provisioned ${ctx.req.name} on ${ctx.provider}`,
-      metadata: { public_ips: ctx.state.public_ips ?? [] },
+      detail: { message: `Provisioned ${ctx.req.name} on ${ctx.provider}`, public_ips: ctx.state.public_ips ?? [] },
     });
     return { ok: true };
   }},
@@ -141,7 +141,7 @@ export async function runWorkflow(input: {
     try {
       const out = await step.run(ctx);
       await supabaseAdmin.from("deployment_steps").update({
-        status: "completed", completed_at: new Date().toISOString(), output: out ?? null,
+        status: "completed", completed_at: new Date().toISOString(), output: (out ?? null) as any,
       }).eq("id", stepRow.id);
     } catch (e: any) {
       const msg = e?.message ?? String(e);

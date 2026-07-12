@@ -111,9 +111,9 @@ export const executeProvisioningPlan = createServerFn({ method: "POST" })
         workflow_id: wf.id,
         plan_id: plan.id,
         provider: plan.provider as ProviderName,
-        request: plan.request as ProvisionRequest,
+        request: plan.request as unknown as ProvisionRequest,
       });
-      return { workflow_id: wf.id, ...result };
+      return { ...result, workflow_id: wf.id };
     } catch (e: any) {
       throw new Error(e?.message ?? "Workflow failed");
     }
