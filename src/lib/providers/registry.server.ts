@@ -1,12 +1,18 @@
 import type { CloudProvider, ProviderName } from "./types";
 import { kamateraAdapter } from "./kamatera/adapter.server";
+import { vultrAdapter } from "./vultr/adapter.server";
+import { contaboAdapter } from "./contabo/adapter.server";
 
 const REGISTRY: Partial<Record<ProviderName, CloudProvider>> = {
   kamatera: kamateraAdapter,
+  vultr: vultrAdapter,
+  contabo: contaboAdapter,
 };
 
 export function listProviders(): { name: ProviderName; displayName: string; enabled: boolean }[] {
-  const all: ProviderName[] = ["kamatera", "hetzner", "digitalocean", "vultr", "aws", "azure", "gcp"];
+  const all: ProviderName[] = [
+    "kamatera", "vultr", "contabo", "hetzner", "digitalocean", "aws", "azure", "gcp",
+  ];
   return all.map((n) => ({
     name: n,
     displayName: displayNameFor(n),
@@ -23,9 +29,10 @@ export function getProvider(name: ProviderName): CloudProvider {
 function displayNameFor(n: ProviderName) {
   return {
     kamatera: "Kamatera",
+    vultr: "Vultr",
+    contabo: "Contabo",
     hetzner: "Hetzner Cloud",
     digitalocean: "DigitalOcean",
-    vultr: "Vultr",
     aws: "Amazon Web Services",
     azure: "Microsoft Azure",
     gcp: "Google Cloud Platform",
