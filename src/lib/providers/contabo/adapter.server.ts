@@ -1,0 +1,187 @@
+// Contabo adapter — implements CloudProvider against Contabo Cloud API v1.
+// Auth: OAuth2 password grant against auth.contabo.com.
+import type {
+  CloudProvider, InstanceType, PowerAction, PriceEstimate,
+  ProvisionRequest, ProvisionResult, Region,
+} from "../types";
+
+const BASE = "https://api.contabo.com/v1";
+const TOKEN_URL = "https://auth.contabo.com/auth/realms/contabo/protocol/openid-connect/token";
+
+let cachedToken: { token: string; expires_at: number } | null = null;
+
+async function getToken(): Promise<string> {
+  if (cachedToken && cachedToken.expires_at > Date.now() + 30_000) return cachedToken.token;
+  const cid = process.env.CONTABO_CLIENT_ID;
+  const cs = process.env.CONTABO_CLIENT_SECRET;
+  const u = process.env.CONTABO_API_USER;
+  const p = process.env.CONTABO_API_PASSWORD;
+  if (!cid || !cs || !u || !p) throw new Error("Contabo credentials not fully configured");
+  const body = new URLSearchParams({
+    client_id: cid, client_secret: cs,
+    username: u, password: p,
+    grant_type: "password",
+  });
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!res.ok) throw new Error(`Contabo token ${res.status}: ${await res.text()}`);
+  const j: any = await res.json();
+  cachedToken = { token: j.access_token, expires_at: Date.now() + (j.expires_in ?? 300) * 1000 };
+  return cachedToken.token;
+}
+
+function uuid() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) =>
+    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
+  );
+}
+
+async function contabo<T = any>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "x-request-id": uuid(),
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Contabo ${init?.method ?? "GET"} ${path} ${res.status}: ${body}`);
+  }
+  if (res.status === 204) return {} as T;
+  return res.json() as Promise<T>;
+}
+
+// Contabo regions (physical DCs). Kept static — endpoint doesn't list them uniformly.
+const CONTABO_REGIONS: Region[] = [
+  { id: "EU", name: "Nuremberg, Germany", country: "DE", city: "Nuremberg" },
+  { id: "US-central", name: "St. Louis, USA", country: "US", city: "St. Louis" },
+  { id: "US-east", name: "New York, USA", country: "US", city: "New York" },
+  { id: "US-west", name: "Seattle, USA", country: "US", city: "Seattle" },
+  { id: "SIN", name: "Singapore", country: "SG", city: "Singapore" },
+  { id: "UK", name: "London, UK", country: "GB", city: "London" },
+  { id: "AUS", name: "Sydney, Australia", country: "AU", city: "Sydney" },
+  { id: "JPN", name: "Tokyo, Japan", country: "JP", city: "Tokyo" },
+  { id: "IND", name: "Mumbai, India", country: "IN", city: "Mumbai" },
+];
+
+// Contabo VPS SKUs (approximate USD monthly list pricing).
+const CONTABO_PLANS: InstanceType[] = [
+  { id: "V78",  cpu_cores: 4,  ram_mb: 6144,   disk_gb: 100,  monthly_usd: 6.99,  family: "VPS S SSD" },
+  { id: "V79",  cpu_cores: 6,  ram_mb: 12288,  disk_gb: 200,  monthly_usd: 9.99,  family: "VPS M SSD" },
+  { id: "V80",  cpu_cores: 8,  ram_mb: 24576,  disk_gb: 400,  monthly_usd: 15.99, family: "VPS L SSD" },
+  { id: "V81",  cpu_cores: 10, ram_mb: 61440,  disk_gb: 800,  monthly_usd: 31.99, family: "VPS XL SSD" },
+  { id: "V85",  cpu_cores: 6,  ram_mb: 16384,  disk_gb: 100,  monthly_usd: 15.50, family: "Cloud VPS 10" },
+  { id: "V86",  cpu_cores: 8,  ram_mb: 32768,  disk_gb: 200,  monthly_usd: 27.50, family: "Cloud VPS 20" },
+  { id: "V87",  cpu_cores: 12, ram_mb: 65536,  disk_gb: 400,  monthly_usd: 46.50, family: "Cloud VPS 30" },
+];
+
+function detectOs(id: string): any {
+  const n = id.toLowerCase();
+  if (n.includes("ubuntu")) return "ubuntu";
+  if (n.includes("debian")) return "debian";
+  if (n.includes("alma")) return "almalinux";
+  if (n.includes("rocky")) return "rocky";
+  if (n.includes("windows")) return "windows";
+  return undefined;
+}
+
+export const contaboAdapter: CloudProvider = {
+  name: "contabo" as any,
+  displayName: "Contabo",
+  supports: ["vm", "block_storage", "object_storage"],
+
+  async listRegions() { return CONTABO_REGIONS; },
+
+  async listImages() {
+    try {
+      const r = await contabo<{ data: any[] }>("/compute/images?size=100");
+      return (r.data ?? []).map((i) => ({
+        id: i.imageId, name: i.name, os: detectOs(i.name),
+      }));
+    } catch {
+      // Fallback standard images.
+      return [
+        { id: "ubuntu-22.04", name: "Ubuntu 22.04 LTS", os: "ubuntu" as const },
+        { id: "debian-12", name: "Debian 12", os: "debian" as const },
+        { id: "almalinux-9", name: "AlmaLinux 9", os: "almalinux" as const },
+      ];
+    }
+  },
+
+  async listInstanceTypes() { return CONTABO_PLANS; },
+
+  async estimatePrice(req: ProvisionRequest): Promise<PriceEstimate> {
+    const plan =
+      CONTABO_PLANS.find((p) => p.id === (req.template_params?.plan as string)) ??
+      CONTABO_PLANS.find((p) =>
+        p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024),
+      ) ?? CONTABO_PLANS[0];
+    const backup = req.daily_backup ? plan.monthly_usd * 0.2 : 0;
+    const total = round(plan.monthly_usd + backup);
+    return {
+      monthly_usd: total,
+      hourly_usd: round(total / 730),
+      currency: "USD",
+      breakdown: [
+        { label: `${plan.family} (${plan.id})`, monthly_usd: plan.monthly_usd },
+        ...(backup ? [{ label: "Automated backups", monthly_usd: round(backup) }] : []),
+      ],
+    };
+  },
+
+  async createServer(req: ProvisionRequest): Promise<ProvisionResult> {
+    const plan =
+      (req.template_params?.plan as string) ??
+      CONTABO_PLANS.find((p) =>
+        p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024),
+      )?.id ?? "V78";
+    const body: any = {
+      imageId: req.image ?? "ubuntu-22.04",
+      productId: plan,
+      region: req.region,
+      period: 1,
+      displayName: req.name,
+      defaultUser: "root",
+      rootPassword: req.password,
+      sshKeys: req.ssh_key ? [Number(req.ssh_key)] : undefined,
+    };
+    const r = await contabo<{ data: any[] }>("/compute/instances", {
+      method: "POST", body: JSON.stringify(body),
+    });
+    const inst = r.data?.[0] ?? {};
+    return {
+      provider_server_id: String(inst.instanceId ?? ""),
+      public_ips: inst.ipConfig?.v4?.ip ? [inst.ipConfig.v4.ip] : [],
+      private_ips: [],
+      raw: inst,
+    };
+  },
+
+  async getServer(id: string) {
+    const r = await contabo<{ data: any[] }>(`/compute/instances/${id}`);
+    const inst = r.data?.[0] ?? {};
+    return {
+      status: inst.status ?? "unknown",
+      power_state: inst.status === "running" ? "on" : inst.status === "stopped" ? "off" : "unknown",
+      raw: inst,
+    };
+  },
+
+  async powerAction(id: string, action: PowerAction) {
+    const map = { on: "start", off: "stop", reboot: "restart" } as const;
+    await contabo(`/compute/instances/${id}/actions/${map[action]}`, { method: "POST" });
+  },
+
+  async terminate(id: string) {
+    await contabo(`/compute/instances/${id}`, { method: "DELETE" });
+  },
+};
+
+function round(n: number) { return Math.round(n * 100) / 100; }

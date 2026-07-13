@@ -5,6 +5,7 @@ export type ProviderName =
   | "hetzner"
   | "digitalocean"
   | "vultr"
+  | "contabo"
   | "aws"
   | "azure"
   | "gcp";
