@@ -108,7 +108,7 @@ export const updateVoipAccount = createServerFn({ method: "POST" })
     if (data.low_balance_threshold_usd != null) patch.low_balance_threshold_usd = data.low_balance_threshold_usd;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.extensions) patch.extensions = data.extensions;
-    const { error } = await supabaseAdmin.from("voip_accounts").update(patch).eq("id", data.id);
+    const { error } = await (supabaseAdmin.from("voip_accounts") as any).update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
