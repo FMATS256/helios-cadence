@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import {
   listVoipAccounts, listVoipRecharges, createVoipAccount, updateVoipAccount,
   recordVoipRecharge, syncVoipAccount, voipSummary,
@@ -31,17 +32,42 @@ function fmtMoney(n: number | null | undefined) {
 function fmtDate(s?: string | null) { return s ? new Date(s).toLocaleString() : "—"; }
 
 function VoipPage() {
+  const { user, loading } = useAuth();
   const listFn = useServerFn(listVoipAccounts);
   const summaryFn = useServerFn(voipSummary);
   const rechargesFn = useServerFn(listVoipRecharges);
 
-  const accountsQ = useQuery({ queryKey: ["voip-accounts"], queryFn: () => listFn() });
-  const summaryQ = useQuery({ queryKey: ["voip-summary"], queryFn: () => summaryFn(), refetchInterval: 30_000 });
-  const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }) });
+  const isSignedIn = !!user;
+  const accountsQ = useQuery({ queryKey: ["voip-accounts"], queryFn: () => listFn(), enabled: isSignedIn });
+  const summaryQ = useQuery({ queryKey: ["voip-summary"], queryFn: () => summaryFn(), refetchInterval: isSignedIn ? 30_000 : false, enabled: isSignedIn });
+  const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }), enabled: isSignedIn });
 
   const [addOpen, setAddOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
   const [balanceFor, setBalanceFor] = useState<any | null>(null);
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="p-6 text-sm text-muted-foreground">Loading…</div>
+      </PageContainer>
+    );
+  }
+
+  if (!user) {
+    return (
+      <PageContainer>
+        <PageHeader
+          eyebrow="Communications"
+          title="Dandemutande VoIP"
+          description="Sign in to manage VoIP numbers, balances, recharges and Proof of Payment."
+        />
+        <div className="rounded-xl border p-6 text-sm">
+          You must be signed in to access this page. <a href="/auth" className="font-medium underline">Sign in →</a>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
