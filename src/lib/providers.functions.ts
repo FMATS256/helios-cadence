@@ -41,6 +41,7 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
     name: string;
     region: string;
     image?: string;
+    cpu_type?: string;
     cpu_cores?: number;
     ram_mb?: number;
     disk_gb?: number;
@@ -66,11 +67,12 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       account_number = c?.account_number ?? null;
     }
 
-    const req = {
+    const req: any = {
       kind: "vm" as const,
       name: data.name,
       region: data.region,
       image: data.image,
+      cpu_type: data.cpu_type,
       cpu_cores: data.cpu_cores,
       ram_mb: data.ram_mb,
       disk_gb: data.disk_gb,
