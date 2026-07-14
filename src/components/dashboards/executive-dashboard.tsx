@@ -173,9 +173,9 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
 
       {/* Business KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" />
-        <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" />
-        <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" />
+        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} />
+        <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" spark={s?.ticketsSpark} />
+        <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" spark={s?.mrrSpark} />
         <KpiCard label="Unpaid AR" value={USD(s?.unpaid ?? 0)} icon={FileText} tone="warning" to="/billing" />
         <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
         <KpiCard label="Assets" value={s?.assetCount ?? 0} icon={Box} tone="info" to="/assets" />
@@ -183,7 +183,7 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
 
       {/* Cloud infra KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} />
+        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
         <KpiCard label="Cloud Spend / mo" value={USD(s?.cloudSpend ?? 0)} icon={DollarSign} tone="solar" to="/cloud-ops" />
         <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
         <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
