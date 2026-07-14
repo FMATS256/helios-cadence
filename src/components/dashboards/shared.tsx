@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Sparkline, IMT_COLORS } from "./charts";
 
 /** Futuristic gradient hero panel with animated glow. */
 export function HeroPanel({
@@ -68,6 +69,8 @@ export function KpiCard({
   tone = "info",
   hint,
   to,
+  spark,
+  delta,
 }: {
   label: string;
   value: string | number;
@@ -75,6 +78,8 @@ export function KpiCard({
   tone?: "success" | "warning" | "info" | "danger" | "solar";
   hint?: string;
   to?: string;
+  spark?: number[];
+  delta?: number;
 }) {
   const toneMap: Record<string, string> = {
     solar: "bg-solar/15 text-solar",
@@ -82,6 +87,13 @@ export function KpiCard({
     success: "bg-success/15 text-success",
     warning: "bg-warning/20 text-[oklch(0.45_0.13_75)]",
     danger: "bg-destructive/15 text-destructive",
+  };
+  const sparkColor: Record<string, string> = {
+    solar: IMT_COLORS.solar,
+    info: IMT_COLORS.info,
+    success: IMT_COLORS.success,
+    warning: IMT_COLORS.warning,
+    danger: IMT_COLORS.danger,
   };
   const inner = (
     <Card className="group relative overflow-hidden border-border transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-elegant)]">
@@ -91,7 +103,7 @@ export function KpiCard({
       />
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[2px]">
               {label}
             </p>
@@ -103,7 +115,24 @@ export function KpiCard({
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        {hint && <p className="mt-3 text-xs text-muted-foreground">{hint}</p>}
+        {spark && spark.length > 1 && (
+          <div className="-mx-1 mt-2">
+            <Sparkline data={spark} color={sparkColor[tone]} height={32} />
+          </div>
+        )}
+        <div className="mt-1 flex items-center justify-between gap-2">
+          {hint && <p className="text-xs text-muted-foreground truncate">{hint}</p>}
+          {typeof delta === "number" && (
+            <span
+              className={cn(
+                "text-[11px] font-semibold tabular-nums rounded-full px-1.5 py-0.5",
+                delta >= 0 ? "text-success bg-success/10" : "text-destructive bg-destructive/10",
+              )}
+            >
+              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}%
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
