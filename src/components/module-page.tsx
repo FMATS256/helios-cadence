@@ -32,12 +32,13 @@ interface ModulePageProps<T> {
   emptyForm: any;
   validateForm?: (f: any) => string | null;
   transformInsert?: (f: any) => any;
+  onCreate?: (f: any) => Promise<unknown>;
 }
 
 export function ModulePage<T extends { id: string }>({
   eyebrow, title, description, table, queryKey, orderBy = "created_at",
   columns, searchFields, emptyLabel, createTitle, createLabel = "New",
-  renderForm, emptyForm, validateForm, transformInsert,
+  renderForm, emptyForm, validateForm, transformInsert, onCreate,
 }: ModulePageProps<T>) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -61,8 +62,12 @@ export function ModulePage<T extends { id: string }>({
         if (err) throw new Error(err);
       }
       const insertData = transformInsert ? transformInsert(form) : form;
-      const { error } = await supabase.from(table as any).insert(insertData as any);
-      if (error) throw error;
+      if (onCreate) {
+        await onCreate(insertData);
+      } else {
+        const { error } = await supabase.from(table as any).insert(insertData as any);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [queryKey] });

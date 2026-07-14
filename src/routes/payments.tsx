@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
+import { createPaymentRecord } from "@/lib/ops.functions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/payments")({
 
 function PaymentsPage() {
   const { data: customers = [] } = useCustomersLite();
+  const createPayment = useServerFn(createPaymentRecord);
   return (
     <ModulePage
       eyebrow="Business"
@@ -28,9 +31,10 @@ function PaymentsPage() {
       emptyLabel="No payments recorded yet."
       createTitle="Record payment"
       createLabel="Record payment"
-      emptyForm={{ customer_id: "", amount: 0, currency: "USD", method: "bank_transfer", reference: "", status: "received", paid_at: new Date().toISOString().slice(0, 10), notes: "" }}
-      validateForm={(f) => (!f.customer_id ? "Customer required" : !f.amount ? "Amount required" : null)}
+      emptyForm={{ customer_id: "", walk_in_name: "", walk_in_email: "", walk_in_phone: "", amount: 0, currency: "USD", method: "cash", reference: "", status: "received", paid_at: new Date().toISOString().slice(0, 10), notes: "" }}
+      validateForm={(f) => (!f.customer_id ? "Customer required" : f.customer_id === "__walkin__" && !f.walk_in_name ? "Walk-in client name required" : !f.amount ? "Amount required" : null)}
       transformInsert={(f) => ({ ...f, amount: Number(f.amount), paid_at: f.paid_at ? new Date(f.paid_at).toISOString() : new Date().toISOString() })}
+      onCreate={(f) => createPayment({ data: f })}
       columns={[
         { header: "Reference", cell: (r: any) => <div><div className="font-semibold">{r.reference || "—"}</div><div className="text-xs text-muted-foreground">{r.method?.replace(/_/g, " ")}</div></div> },
         { header: "Customer", cell: (r: any) => <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link> },
@@ -43,9 +47,19 @@ function PaymentsPage() {
           <div className="col-span-2 space-y-2"><Label>Customer *</Label>
             <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent>{customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__walkin__">Walk-in client / cash customer</SelectItem>
+                {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
+          {form.customer_id === "__walkin__" && (
+            <>
+              <div className="space-y-2"><Label>Walk-in name *</Label><Input required value={form.walk_in_name} onChange={(e) => setForm({ ...form, walk_in_name: e.target.value })} placeholder="Client name" /></div>
+              <div className="space-y-2"><Label>Walk-in phone</Label><Input value={form.walk_in_phone} onChange={(e) => setForm({ ...form, walk_in_phone: e.target.value })} placeholder="Phone number" /></div>
+              <div className="col-span-2 space-y-2"><Label>Walk-in email</Label><Input type="email" value={form.walk_in_email} onChange={(e) => setForm({ ...form, walk_in_email: e.target.value })} placeholder="optional@email.com" /></div>
+            </>
+          )}
           <div className="space-y-2"><Label>Amount *</Label><Input type="number" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
           <div className="space-y-2"><Label>Currency</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} /></div>
           <div className="space-y-2"><Label>Method</Label>

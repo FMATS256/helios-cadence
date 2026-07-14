@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
 import { useAuth } from "@/hooks/use-auth";
-import { AppShell } from "@/components/app-shell";
 import { PageHeader, PageContainer, StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,53 +41,47 @@ function LaptopTrackingPage() {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <AppShell>
-        <PageContainer>
-          <div className="text-sm text-muted-foreground p-6">Loading…</div>
-        </PageContainer>
-      </AppShell>
+      <PageContainer>
+        <div className="text-sm text-muted-foreground p-6">Loading…</div>
+      </PageContainer>
     );
   }
   if (!user) {
     return (
-      <AppShell>
-        <PageContainer>
-          <PageHeader
-            eyebrow="IMT Trackx"
-            title="Laptop Tracking"
-            description="Sign in to manage client accounts, licenses, devices and billing."
-          />
-          <div className="rounded-xl border p-6 text-sm">
-            You must be signed in to access this page.{" "}
-            <a href="/auth" className="underline font-medium">Sign in →</a>
-          </div>
-        </PageContainer>
-      </AppShell>
-    );
-  }
-  return (
-    <AppShell>
       <PageContainer>
         <PageHeader
           eyebrow="IMT Trackx"
           title="Laptop Tracking"
-          description="Manage client accounts, licenses, devices and billing for the IMT laptop tracking service."
+          description="Sign in to manage client accounts, licenses, devices and billing."
         />
-        <StatsBar />
-        <Tabs defaultValue="accounts" className="w-full">
-          <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
-            <TabsTrigger value="accounts">Accounts</TabsTrigger>
-            <TabsTrigger value="licenses">Licenses</TabsTrigger>
-            <TabsTrigger value="devices">Devices</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-          </TabsList>
-          <TabsContent value="accounts" className="mt-6"><AccountsTab /></TabsContent>
-          <TabsContent value="licenses" className="mt-6"><LicensesTab /></TabsContent>
-          <TabsContent value="devices" className="mt-6"><DevicesTab /></TabsContent>
-          <TabsContent value="billing" className="mt-6"><BillingTab /></TabsContent>
-        </Tabs>
+        <div className="rounded-xl border p-6 text-sm">
+          You must be signed in to access this page.{" "}
+          <a href="/auth" className="underline font-medium">Sign in →</a>
+        </div>
       </PageContainer>
-    </AppShell>
+    );
+  }
+  return (
+    <PageContainer>
+      <PageHeader
+        eyebrow="IMT Trackx"
+        title="Laptop Tracking"
+        description="Manage client accounts, licenses, devices and billing for the IMT laptop tracking service."
+      />
+      <StatsBar />
+      <Tabs defaultValue="accounts" className="w-full">
+        <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
+          <TabsTrigger value="accounts">Accounts</TabsTrigger>
+          <TabsTrigger value="licenses">Licenses</TabsTrigger>
+          <TabsTrigger value="devices">Devices</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+        </TabsList>
+        <TabsContent value="accounts" className="mt-6"><AccountsTab /></TabsContent>
+        <TabsContent value="licenses" className="mt-6"><LicensesTab /></TabsContent>
+        <TabsContent value="devices" className="mt-6"><DevicesTab /></TabsContent>
+        <TabsContent value="billing" className="mt-6"><BillingTab /></TabsContent>
+      </Tabs>
+    </PageContainer>
   );
 }
 
@@ -241,6 +234,16 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     plan_name: "business", billing_cycle: "annual", device_count: 5,
     generate_license: true, duration_months: 12,
   });
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    const values = new Uint32Array(14);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(values);
+    else values.forEach((_, i) => { values[i] = Math.floor(Math.random() * chars.length); });
+    return Array.from(values, (v) => chars[v % chars.length]).join("");
+  };
+  useEffect(() => {
+    if (open && !form.password) setForm((current) => ({ ...current, password: generatePassword() }));
+  }, [open, form.password]);
   const create = useMutation({
     mutationFn: async () => {
       const acc = await call("create_account", {
@@ -278,7 +281,12 @@ function CreateAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         <DialogHeader><DialogTitle>Onboard new client</DialogTitle></DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Email *"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-          <Field label="Temporary password *"><Input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Temp#1234!" /></Field>
+          <Field label="Temporary password *">
+            <div className="flex gap-2">
+              <Input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <Button type="button" variant="outline" onClick={() => setForm({ ...form, password: generatePassword() })}>Generate</Button>
+            </div>
+          </Field>
           <Field label="Full name"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Phone"><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <Field label="Company" className="sm:col-span-2"><Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></Field>
