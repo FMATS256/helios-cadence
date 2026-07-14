@@ -10,13 +10,11 @@ const REGISTRY: Partial<Record<ProviderName, CloudProvider>> = {
 };
 
 export function listProviders(): { name: ProviderName; displayName: string; enabled: boolean }[] {
-  const all: ProviderName[] = [
-    "kamatera", "vultr", "contabo", "hetzner", "digitalocean", "aws", "azure", "gcp",
-  ];
-  return all.map((n) => ({
+  // Only expose providers that are actually wired.
+  return (Object.keys(REGISTRY) as ProviderName[]).map((n) => ({
     name: n,
     displayName: displayNameFor(n),
-    enabled: !!REGISTRY[n],
+    enabled: true,
   }));
 }
 

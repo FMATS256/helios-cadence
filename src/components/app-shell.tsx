@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, Search, ChevronDown,
-  FileText, CreditCard, Repeat, BookOpen, Laptop,
+  FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -39,6 +39,7 @@ const navGroups = [
       { title: "Cloud", url: "/cloud-ops", icon: Cloud },
       { title: "Assets", url: "/assets", icon: Server },
       { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
+      { title: "VoIP", url: "/voip", icon: PhoneCall },
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Projects", url: "/projects", icon: FolderKanban },
     ],
