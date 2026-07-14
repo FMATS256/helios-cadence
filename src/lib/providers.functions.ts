@@ -51,9 +51,11 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
     monthly_cost_usd?: number;
     notes?: string;
   }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { getProvider } = await import("./providers/registry.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { encryptSecret } = await import("./encryption.server");
+    const { randomBytes } = await import("crypto");
     const provider = getProvider(data.provider);
 
     let account_number: string | null = null;
@@ -62,6 +64,16 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
         .from("customers").select("account_number").eq("id", data.customer_id).single();
       account_number = c?.account_number ?? null;
     }
+
+    // Auto-generate a strong root password if none supplied
+    const genPassword = () => {
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*";
+      const bytes = randomBytes(20);
+      let out = "";
+      for (let i = 0; i < 20; i++) out += alphabet[bytes[i]! % alphabet.length];
+      return out;
+    };
+    const rootPassword = data.password?.trim() || genPassword();
 
     const req: any = {
       kind: "vm" as const,
@@ -73,7 +85,7 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       ram_mb: data.ram_mb,
       disk_gb: data.disk_gb,
       ssh_key: data.ssh_key,
-      password: data.password,
+      password: rootPassword,
       daily_backup: data.daily_backup,
       monitoring: data.monitoring,
       billing_cycle: data.billing_cycle,
@@ -105,9 +117,38 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
         billing_cycle: data.billing_cycle ?? "monthly",
         ssh_key: data.ssh_key ?? null,
         notes: data.notes ?? null,
+        created_by: context.userId,
       })
       .select().single();
     if (sErr || !server) throw new Error(sErr?.message ?? "Failed to create server record");
+
+    // Save root password to credentials vault immediately (encrypted)
+    try {
+      const enc = encryptSecret(rootPassword);
+      const { data: cred } = await supabaseAdmin.from("credentials").insert({
+        customer_id: data.customer_id ?? null,
+        account_number,
+        name: `${data.name} — root`,
+        credential_type: "server",
+        username: "root",
+        url: null,
+        notes: `Auto-generated at provisioning · provider ${data.provider} · region ${data.region}`,
+        ciphertext: enc.ciphertext,
+        iv: enc.iv,
+        auth_tag: enc.authTag,
+        key_id: enc.keyId,
+        linked_asset: server.id,
+        tags: ["auto", "server", data.provider],
+        created_by: context.userId,
+        owner_id: context.userId,
+      }).select("id").single();
+      if (cred?.id) {
+        await supabaseAdmin.from("cloud_servers")
+          .update({ root_password_ref: cred.id }).eq("id", server.id);
+      }
+    } catch (e: any) {
+      console.error("Failed to save root credential", e);
+    }
 
     try {
       const result = await provider.createServer(req);
@@ -122,19 +163,19 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       await supabaseAdmin.from("cloud_deployments").insert({
         server_id: server.id, action: "provision", status: "completed",
         provider_command_id: result.provider_server_id,
-        request_payload: data as any, provider_response: result.raw as any,
+        request_payload: { ...data, password: "***" } as any, provider_response: result.raw as any,
         started_at: new Date().toISOString(), completed_at: new Date().toISOString(),
       });
       await supabaseAdmin.from("cloud_activity").insert({
         server_id: server.id, action: "provision.completed",
-        detail: { provider: data.provider, region: data.region } as any,
+        detail: { provider: data.provider, region: data.region, root_credential_saved: true } as any,
       });
-      return { server_id: server.id, provider_server_id: result.provider_server_id };
+      return { server_id: server.id, provider_server_id: result.provider_server_id, root_password_saved: true };
     } catch (e: any) {
       await supabaseAdmin.from("cloud_servers").update({ status: "failed" }).eq("id", server.id);
       await supabaseAdmin.from("cloud_deployments").insert({
         server_id: server.id, action: "provision", status: "failed",
-        error: e.message, request_payload: data as any,
+        error: e.message, request_payload: { ...data, password: "***" } as any,
         completed_at: new Date().toISOString(),
       });
       throw e;
