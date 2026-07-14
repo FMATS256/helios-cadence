@@ -436,6 +436,61 @@ function ServerDetailPage() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {/* Handover dialog */}
+      <Dialog open={handoverOpen} onOpenChange={setHandoverOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Hand over server to customer</DialogTitle>
+            <DialogDescription>
+              We'll email the server details to the customer contact. Root password is optional — include it if the customer needs full access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Contact email</Label>
+              <Input
+                type="email"
+                value={handoverForm.contact_email}
+                onChange={(e) => setHandoverForm({ ...handoverForm, contact_email: e.target.value })}
+                placeholder="Leave empty to use primary contact on file"
+              />
+            </div>
+            <div>
+              <Label>Root password (optional, will be included in email)</Label>
+              <Input
+                type="text"
+                value={handoverForm.root_password}
+                onChange={(e) => setHandoverForm({ ...handoverForm, root_password: e.target.value })}
+                placeholder="Only include if the customer needs it"
+              />
+            </div>
+            <div>
+              <Label>Custom message (optional)</Label>
+              <Textarea
+                rows={3}
+                value={handoverForm.message}
+                onChange={(e) => setHandoverForm({ ...handoverForm, message: e.target.value })}
+                placeholder="Your server is ready. Here are the access details…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHandoverOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => sendHandover.mutate({
+                contact_email: handoverForm.contact_email || undefined,
+                root_password: handoverForm.root_password || undefined,
+                message: handoverForm.message || undefined,
+              })}
+              disabled={sendHandover.isPending}
+            >
+              <Send className="h-4 w-4 mr-1.5" />
+              {sendHandover.isPending ? "Sending…" : "Send handover email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
