@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader, PageContainer, StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
