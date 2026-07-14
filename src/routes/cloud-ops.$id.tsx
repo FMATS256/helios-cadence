@@ -124,22 +124,52 @@ function ServerDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handover = useMutation({
+    mutationFn: () => fnHandover({ data: {
+      server_id: id,
+      contact_email: handover.data ? undefined : (state as any).contact_email,
+    } }),
+    onSuccess: () => {},
+  });
+
+  // Local state for handover form is defined as `handover` above; the mutation collides in name.
+  // Use a distinct mutation object.
+  const sendHandover = useMutation({
+    mutationFn: (payload: { contact_email?: string; root_password?: string; message?: string }) =>
+      fnHandover({ data: { server_id: id, ...payload } }),
+    onSuccess: (r) => {
+      if (r.email_status === "sent") {
+        toast.success(`Handover email sent to ${r.to}`);
+      } else {
+        toast.warning(`Handover recorded. Email not sent: ${r.email_error ?? "email not configured"}`);
+      }
+      setHandoverOpen(false);
+      qc.invalidateQueries({ queryKey: ["cloud_server", id] });
+      qc.invalidateQueries({ queryKey: ["cloud_activity", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (server.isLoading) return <PageContainer><p className="p-8 text-center">Loading…</p></PageContainer>;
   if (!server.data) return <PageContainer><p className="p-8 text-center">Server not found.</p></PageContainer>;
 
   const s = server.data;
   const meta = (s.provider_meta ?? {}) as any;
   const on = s.power_state === "on";
+  const isProvisioning = s.status === "provisioning";
+  const isHandedOver = !!s.handed_over_at;
+  const latestDeployment = deployments.data?.[0];
+  const provisioningProgress = isProvisioning ? 45 : (s.status === "active" ? 100 : s.status === "failed" ? 100 : 20);
 
   return (
     <PageContainer>
       <div className="mb-3">
         <Link to="/cloud-ops" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud Ops
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud
         </Link>
       </div>
       <PageHeader
-        eyebrow={`Kamatera · ${s.datacenter ?? "—"}`}
+        eyebrow={`${(s.provider ?? "cloud").toString().toUpperCase()} · ${s.datacenter ?? "—"}`}
         title={s.name}
         description={s.customer ? `${s.customer.account_number} · ${s.customer.company_name}` : "Unassigned"}
         actions={
@@ -160,6 +190,14 @@ function ServerDetailPage() {
               </Button>
             )}
             <Button
+              variant="default" size="sm"
+              disabled={isProvisioning || !s.customer_id}
+              onClick={() => setHandoverOpen(true)}
+              title={!s.customer_id ? "Assign a customer first" : ""}
+            >
+              <Send className="h-4 w-4 mr-1.5" /> {isHandedOver ? "Re-send handover" : "Hand over to customer"}
+            </Button>
+            <Button
               variant="destructive" size="sm"
               onClick={() => { if (confirm(`Terminate ${s.name}? This cannot be undone.`)) terminate.mutate(); }}
               disabled={terminate.isPending}
@@ -170,13 +208,55 @@ function ServerDetailPage() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      {/* Provisioning progress banner */}
+      {isProvisioning && (
+        <Card className="mb-4 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Provisioning in progress</p>
+                <p className="text-xs text-muted-foreground">
+                  Contacting {s.provider} · this usually takes 1–3 minutes. This page auto-refreshes.
+                </p>
+              </div>
+              <span className="text-xs font-mono">{provisioningProgress}%</span>
+            </div>
+            <Progress value={provisioningProgress} className="h-2" />
+            {latestDeployment && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Last step: <span className="font-mono">{latestDeployment.action}</span> · {latestDeployment.status}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Handover status banner */}
+      {isHandedOver && !isProvisioning && (
+        <Card className="mb-4 border-emerald-500/40 bg-emerald-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <div className="text-sm">
+              <span className="font-semibold">Handed over</span> to{" "}
+              <span className="font-mono">{s.handed_over_to_email}</span>{" "}
+              <span className="text-muted-foreground">
+                · {formatDistanceToNow(new Date(s.handed_over_at), { addSuffix: true })}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
         <Stat label="Power" value={<StatusPill tone={on ? "success" : "neutral"}>{s.power_state}</StatusPill>} />
         <Stat label="Status" value={<StatusPill tone={s.status === "active" ? "success" : s.status === "failed" ? "danger" : "warning"}>{s.status}</StatusPill>} />
         <Stat label="Public IP" value={<span className="font-mono text-sm">{(s.public_ips ?? [])[0] ?? "—"}</span>} />
         <Stat label="Provider cost / mo" value={`$${Number(s.monthly_cost_usd || 0).toFixed(2)}`} />
         <Stat label="Selling price / mo" value={`$${Number(s.selling_price_usd || 0).toFixed(2)}`} />
+        <Stat label="Margin / mo" value={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)}`} />
       </div>
+
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
