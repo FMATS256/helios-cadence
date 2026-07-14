@@ -71,7 +71,7 @@ export const createVoipAccount = createServerFn({ method: "POST" })
       sipCredId = cred?.id ?? null;
     }
 
-    const { data: row, error } = await supabaseAdmin.from("voip_accounts").insert({
+    const { data: row, error } = await (supabaseAdmin.from("voip_accounts") as any).insert({
       customer_id: data.customer_id ?? null,
       voip_number: data.voip_number.trim(),
       dandemutande_account: data.dandemutande_account ?? null,
@@ -108,7 +108,7 @@ export const updateVoipAccount = createServerFn({ method: "POST" })
     if (data.low_balance_threshold_usd != null) patch.low_balance_threshold_usd = data.low_balance_threshold_usd;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.extensions) patch.extensions = data.extensions;
-    const { error } = await (supabaseAdmin.from("voip_accounts") as any).update(patch).eq("id", data.id);
+    const { error } = await ((supabaseAdmin.from("voip_accounts") as any) as any).update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -137,7 +137,7 @@ export const recordVoipRecharge = createServerFn({ method: "POST" })
     const balanceAfter = balanceBefore + data.amount_usd;
     const receiptNumber = `RCH-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`;
 
-    const { data: recharge, error: re } = await supabaseAdmin.from("voip_recharges").insert({
+    const { data: recharge, error: re } = await (supabaseAdmin.from("voip_recharges") as any).insert({
       voip_account_id: data.voip_account_id,
       customer_id: acct.customer_id,
       amount_usd: data.amount_usd,
@@ -155,7 +155,7 @@ export const recordVoipRecharge = createServerFn({ method: "POST" })
     if (re || !recharge) throw new Error(re?.message ?? "Recharge insert failed");
 
     // Optimistically update balance
-    await supabaseAdmin.from("voip_accounts").update({
+    await (supabaseAdmin.from("voip_accounts") as any).update({
       balance_usd: balanceAfter,
       balance_updated_at: new Date().toISOString(),
       last_successful_recharge_at: new Date().toISOString(),
@@ -189,7 +189,7 @@ export const recordVoipRecharge = createServerFn({ method: "POST" })
       }
     }
 
-    await supabaseAdmin.from("voip_recharges").update({
+    await (supabaseAdmin.from("voip_recharges") as any).update({
       email_status: emailStatus,
       email_error: emailError,
       status: emailStatus === "sent" ? "submitted" : "submitted",
@@ -263,13 +263,13 @@ export const syncVoipAccount = createServerFn({ method: "POST" })
         note: "Portal balance requires authenticated session — enter manually via 'Update balance'.",
       };
 
-      await supabaseAdmin.from("voip_sync_log").insert({
+      await (supabaseAdmin.from("voip_sync_log") as any).insert({
         voip_account_id: data.id, status: "ok", source: "firecrawl", extracted: extracted as any,
       });
-      await supabaseAdmin.from("voip_accounts").update({ last_synced_at: new Date().toISOString() }).eq("id", data.id);
+      await (supabaseAdmin.from("voip_accounts") as any).update({ last_synced_at: new Date().toISOString() }).eq("id", data.id);
       return { ok: true, extracted };
     } catch (e: any) {
-      await supabaseAdmin.from("voip_sync_log").insert({
+      await (supabaseAdmin.from("voip_sync_log") as any).insert({
         voip_account_id: data.id, status: "error", source: "firecrawl", error: e?.message ?? String(e),
       });
       throw e;
