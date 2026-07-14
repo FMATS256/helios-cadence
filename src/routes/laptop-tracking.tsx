@@ -460,10 +460,12 @@ function GenerateLicenseDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 function DevicesTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [userId, setUserId] = useState("");
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "devices", userId],
     queryFn: () => call("list_devices", userId ? { user_id: userId } : {}),
+    enabled: !!user,
   });
   const rows: any[] = data?.devices || data?.data || [];
   const del = useMutation({
