@@ -22,9 +22,6 @@ export const Route = createFileRoute("/laptop-tracking")({
   component: LaptopTrackingPage,
 });
 
-// Note: The file lives under top-level. Since the app already gates via _authenticated
-// via SidebarInset wrapper pattern, we keep the AppShell wrapper below.
-
 function fmtMoney(n: number, ccy = "USD") {
   if (typeof n !== "number") return "—";
   try { return new Intl.NumberFormat(undefined, { style: "currency", currency: ccy }).format(n); }
