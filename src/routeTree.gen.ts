@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -50,6 +51,11 @@ import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 
+const VoipRoute = VoipRouteImport.update({
+  id: '/voip',
+  path: '/voip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
@@ -279,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/voip': typeof VoipRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -320,6 +327,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/voip': typeof VoipRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -363,6 +371,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/voip': typeof VoipRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/tickets'
+    | '/voip'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/tickets'
+    | '/voip'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -490,6 +501,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/tickets'
+    | '/voip'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
+  VoipRoute: typeof VoipRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
@@ -548,6 +561,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voip': {
+      id: '/voip'
+      path: '/voip'
+      fullPath: '/voip'
+      preLoaderRoute: typeof VoipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tickets': {
       id: '/tickets'
       path: '/tickets'
@@ -905,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
+  VoipRoute: VoipRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
