@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader, PageContainer, StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
@@ -67,10 +68,12 @@ function LaptopTrackingPage() {
 /* ---------- Stats ---------- */
 function StatsBar() {
   const call = useTrackx();
+  const { user } = useAuth();
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["trackx", "stats"],
     queryFn: () => call("stats"),
     staleTime: 30_000,
+    enabled: !!user,
   });
   const s = data || {};
   const items = [
@@ -102,11 +105,13 @@ function StatsBar() {
 function AccountsTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [creating, setCreating] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "accounts"],
     queryFn: () => call("list_accounts", { per_page: 200 }),
+    enabled: !!user,
   });
   const rows: any[] = data?.accounts || data?.users || data?.data || [];
 
@@ -291,6 +296,7 @@ function Field({ label, children, className = "" }: { label: string; children: R
 function LicensesTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [status, setStatus] = useState<string>("");
   const [emailFilter, setEmailFilter] = useState("");
   const [gen, setGen] = useState(false);
@@ -298,6 +304,7 @@ function LicensesTab() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "licenses", status, emailFilter],
     queryFn: () => call("list_licenses", { ...(status ? { status } : {}), ...(emailFilter ? { email: emailFilter } : {}) }),
+    enabled: !!user,
   });
   const rows: any[] = data?.licenses || data?.data || [];
 
@@ -453,10 +460,12 @@ function GenerateLicenseDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 function DevicesTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [userId, setUserId] = useState("");
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "devices", userId],
     queryFn: () => call("list_devices", userId ? { user_id: userId } : {}),
+    enabled: !!user,
   });
   const rows: any[] = data?.devices || data?.data || [];
   const del = useMutation({
@@ -513,11 +522,13 @@ function DevicesTab() {
 function BillingTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [userId, setUserId] = useState("");
   const [rec, setRec] = useState(false);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "payments", userId],
     queryFn: () => call("list_payments", userId ? { user_id: userId } : {}),
+    enabled: !!user,
   });
   const rows: any[] = data?.payments || data?.data || [];
   return (
