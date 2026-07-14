@@ -82,6 +82,40 @@ async function load() {
   }
   const trendMax = Math.max(1, ...trend.map((x) => x.value));
 
+  // Sparklines: last 6 months buckets
+  const bucket6 = (rows: any[], dateKey: string) => {
+    const buckets: number[] = new Array(6).fill(0);
+    rows.forEach((r) => {
+      const raw = r[dateKey];
+      if (!raw) return;
+      const dt = new Date(raw);
+      const diff = (now.getFullYear() - dt.getFullYear()) * 12 + (now.getMonth() - dt.getMonth());
+      if (diff >= 0 && diff < 6) buckets[5 - diff] += 1;
+    });
+    return buckets;
+  };
+  const customersSpark = bucket6(c, "created_at");
+  const ticketsSpark = bucket6(t, "created_at");
+  const serversSpark = bucket6(servers, "created_at");
+  const mrrSpark = trend.map((x) => x.value);
+
+  // Ticket priority breakdown
+  const openByPriority = ["critical", "high", "medium", "low"].map((p) => ({
+    name: p,
+    value: open.filter((x: any) => (x.priority || "low") === p).length,
+  })).filter((x) => x.value > 0);
+
+  // Cloud spend by provider
+  const spendByProvider = Object.entries(
+    servers.reduce<Record<string, number>>((acc, x) => {
+      const k = x.provider ?? "unknown";
+      acc[k] = (acc[k] ?? 0) + Number(x.monthly_cost_usd || 0);
+      return acc;
+    }, {}),
+  ).map(([name, value]) => ({ name, value: Math.round(value) }));
+
+  const fleetHealth = servers.length > 0 ? Math.round((runningServers / servers.length) * 100) : 100;
+
   return {
     customerCount: c.length,
     openTickets: open.length,
@@ -104,6 +138,8 @@ async function load() {
     notifications: notifs,
     unread: notifs.filter((n) => !n.read_at).length,
     trend, trendMax,
+    customersSpark, ticketsSpark, serversSpark, mrrSpark,
+    openByPriority, spendByProvider, fleetHealth,
   };
 }
 
