@@ -38,7 +38,7 @@ function ServerDetailPage() {
 
   const fnHandover = useServerFn(sendServerHandover);
   const [handoverOpen, setHandoverOpen] = useState(false);
-  const [handover, setHandover] = useState({ contact_email: "", root_password: "", message: "" });
+  const [handoverForm, setHandoverForm] = useState({ contact_email: "", root_password: "", message: "" });
 
   const server = useQuery({
     queryKey: ["cloud_server", id],
