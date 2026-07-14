@@ -1974,6 +1974,206 @@ export type Database = {
         }
         Relationships: []
       }
+      voip_accounts: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          balance_updated_at: string | null
+          balance_usd: number
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          dandemutande_account: string | null
+          extensions: string[]
+          id: string
+          last_successful_recharge_at: string | null
+          last_synced_at: string | null
+          low_balance_threshold_usd: number
+          notes: string | null
+          sip_password_credential_id: string | null
+          sip_username: string | null
+          status: string
+          tags: string[]
+          updated_at: string
+          voip_number: string
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          balance_updated_at?: string | null
+          balance_usd?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          dandemutande_account?: string | null
+          extensions?: string[]
+          id?: string
+          last_successful_recharge_at?: string | null
+          last_synced_at?: string | null
+          low_balance_threshold_usd?: number
+          notes?: string | null
+          sip_password_credential_id?: string | null
+          sip_username?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          voip_number: string
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          balance_updated_at?: string | null
+          balance_usd?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          dandemutande_account?: string | null
+          extensions?: string[]
+          id?: string
+          last_successful_recharge_at?: string | null
+          last_synced_at?: string | null
+          low_balance_threshold_usd?: number
+          notes?: string | null
+          sip_password_credential_id?: string | null
+          sip_username?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          voip_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voip_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voip_accounts_sip_password_credential_id_fkey"
+            columns: ["sip_password_credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voip_recharges: {
+        Row: {
+          amount_usd: number
+          balance_after: number | null
+          balance_before: number | null
+          created_at: string
+          customer_id: string | null
+          email_error: string | null
+          email_status: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          pop_url: string | null
+          receipt_number: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+          voip_account_id: string
+        }
+        Insert: {
+          amount_usd: number
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          customer_id?: string | null
+          email_error?: string | null
+          email_status?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          pop_url?: string | null
+          receipt_number?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          voip_account_id: string
+        }
+        Update: {
+          amount_usd?: number
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          customer_id?: string | null
+          email_error?: string | null
+          email_status?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          pop_url?: string | null
+          receipt_number?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          voip_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voip_recharges_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voip_recharges_voip_account_id_fkey"
+            columns: ["voip_account_id"]
+            isOneToOne: false
+            referencedRelation: "voip_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voip_sync_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          extracted: Json | null
+          id: string
+          source: string
+          status: string
+          voip_account_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          extracted?: Json | null
+          id?: string
+          source?: string
+          status: string
+          voip_account_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          extracted?: Json | null
+          id?: string
+          source?: string
+          status?: string
+          voip_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voip_sync_log_voip_account_id_fkey"
+            columns: ["voip_account_id"]
+            isOneToOne: false
+            referencedRelation: "voip_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
