@@ -76,6 +76,10 @@ function ServerDetailPage() {
         .eq("server_id", id).order("created_at", { ascending: false }).limit(50);
       return (data ?? []) as any[];
     },
+    refetchInterval: (q) => {
+      const s = server.data as any;
+      return s && s.status === "provisioning" ? 3000 : false;
+    },
   });
 
   const credentials = useQuery({
