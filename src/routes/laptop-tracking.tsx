@@ -39,6 +39,33 @@ function useTrackx() {
 }
 
 function LaptopTrackingPage() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <AppShell>
+        <PageContainer>
+          <div className="text-sm text-muted-foreground p-6">Loading…</div>
+        </PageContainer>
+      </AppShell>
+    );
+  }
+  if (!user) {
+    return (
+      <AppShell>
+        <PageContainer>
+          <PageHeader
+            eyebrow="IMT Trackx"
+            title="Laptop Tracking"
+            description="Sign in to manage client accounts, licenses, devices and billing."
+          />
+          <div className="rounded-xl border p-6 text-sm">
+            You must be signed in to access this page.{" "}
+            <a href="/auth" className="underline font-medium">Sign in →</a>
+          </div>
+        </PageContainer>
+      </AppShell>
+    );
+  }
   return (
     <AppShell>
       <PageContainer>
