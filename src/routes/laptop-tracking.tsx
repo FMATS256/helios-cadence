@@ -296,6 +296,7 @@ function Field({ label, children, className = "" }: { label: string; children: R
 function LicensesTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [status, setStatus] = useState<string>("");
   const [emailFilter, setEmailFilter] = useState("");
   const [gen, setGen] = useState(false);
@@ -303,6 +304,7 @@ function LicensesTab() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "licenses", status, emailFilter],
     queryFn: () => call("list_licenses", { ...(status ? { status } : {}), ...(emailFilter ? { email: emailFilter } : {}) }),
+    enabled: !!user,
   });
   const rows: any[] = data?.licenses || data?.data || [];
 
