@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listCloudProviders, listProviderRegions, listProviderImages,
-  listProviderInstanceTypes, provisionOnProvider,
+  listProviderInstanceTypes, provisionOnProvider, estimateProviderPrice,
 } from "@/lib/providers.functions";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,6 +79,7 @@ function NewServerPage() {
   const fnImages = useServerFn(listProviderImages);
   const fnPlans = useServerFn(listProviderInstanceTypes);
   const fnProvision = useServerFn(provisionOnProvider);
+  const fnEstimate = useServerFn(estimateProviderPrice);
 
   const [provider, setProvider] = useState<ProviderName>("kamatera");
   const [form, setForm] = useState({
@@ -151,12 +152,24 @@ function NewServerPage() {
   const [planFamily, setPlanFamily] = useState<string>("");
   const activeFamily = planFamily || Object.keys(plansByFamily)[0] || "";
 
-  // Live pricing summary.
-  const monthly = activePlan?.monthly_usd ?? 0;
-  const backupCost = form.daily_backup ? monthly * 0.2 : 0;
-  const monitoringCost = form.monitoring ? 5 : 0;
+  // Live provider price (calls provider estimatePrice for current selection).
+  const priceEstimate = useQuery({
+    queryKey: [provider, "estimate", form.region, form.plan_id, form.daily_backup, form.monitoring],
+    enabled: !!form.region && !!form.plan_id,
+    queryFn: () => fnEstimate({ data: {
+      provider, region: form.region, plan_id: form.plan_id,
+      cpu_type: activePlan?.family, cpu_cores: activePlan?.cpu_cores,
+      ram_mb: activePlan?.ram_mb, disk_gb: activePlan?.disk_gb,
+      daily_backup: form.daily_backup, monitoring: form.monitoring,
+    } }),
+    staleTime: 60_000,
+  });
+
+  const monthly = priceEstimate.data?.monthly_usd ?? activePlan?.monthly_usd ?? 0;
+  const backupCost = priceEstimate.data ? 0 : (form.daily_backup ? monthly * 0.2 : 0);
+  const monitoringCost = priceEstimate.data ? 0 : (form.monitoring ? 5 : 0);
   const totalMonthly = round(monthly + backupCost + monitoringCost);
-  const totalHourly = round(totalMonthly / 730);
+  const totalHourly = priceEstimate.data?.hourly_usd ?? round(totalMonthly / 730);
   const margin = round(Number(form.selling_price_usd) - totalMonthly);
 
   const submit = useMutation({
@@ -423,7 +436,7 @@ function NewServerPage() {
             <div>
               <div className="text-xs uppercase text-muted-foreground tracking-wide">Order summary</div>
               <div className="text-2xl font-black mt-1">${totalMonthly}<span className="text-sm font-normal text-muted-foreground">/month</span></div>
-              <div className="text-xs text-muted-foreground">≈ ${totalHourly}/hour</div>
+              <div className="text-xs text-muted-foreground">≈ ${totalHourly}/hour {priceEstimate.isFetching ? "· updating…" : priceEstimate.data ? "· live" : ""}</div>
             </div>
             <div className="border-t pt-3 space-y-2 text-sm">
               <SummaryRow label="Provider" value={providerLabel(provider)} />
@@ -431,8 +444,18 @@ function NewServerPage() {
               <SummaryRow label="Image" value={form.image || "—"} truncate />
               <SummaryRow label="Plan" value={form.plan_id || "—"} truncate />
               {activePlan && <SummaryRow label="Specs" value={`${activePlan.cpu_cores} vCPU · ${Math.round(activePlan.ram_mb / 1024)}GB RAM · ${activePlan.disk_gb}GB`} />}
-              <SummaryRow label="Backup" value={form.daily_backup ? `+$${round(backupCost)}` : "no"} />
-              <SummaryRow label="Monitoring" value={form.monitoring ? `+$${monitoringCost}` : "no"} />
+              {priceEstimate.data?.breakdown?.length ? (
+                <div className="pt-1 border-t space-y-1">
+                  {priceEstimate.data.breakdown.map((b: any, i: number) => (
+                    <SummaryRow key={i} label={b.label} value={`$${b.monthly_usd}`} truncate />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <SummaryRow label="Backup" value={form.daily_backup ? `+$${round(backupCost)}` : "no"} />
+                  <SummaryRow label="Monitoring" value={form.monitoring ? `+$${monitoringCost}` : "no"} />
+                </>
+              )}
             </div>
             <div className="border-t pt-3 space-y-2">
               <Label className="text-xs">Customer price / month (USD)</Label>

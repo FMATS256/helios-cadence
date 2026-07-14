@@ -140,3 +140,110 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       throw e;
     }
   });
+
+/* ------------------------- Live price estimation ------------------------- */
+export const estimateProviderPrice = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    provider: ProviderName;
+    region: string;
+    plan_id?: string;
+    cpu_type?: string;
+    cpu_cores?: number;
+    ram_mb?: number;
+    disk_gb?: number;
+    daily_backup?: boolean;
+    monitoring?: boolean;
+  }) => d)
+  .handler(async ({ data }) => {
+    const { getProvider } = await import("./providers/registry.server");
+    const provider = getProvider(data.provider);
+    return provider.estimatePrice({
+      kind: "vm",
+      name: "estimate",
+      region: data.region,
+      cpu_type: data.cpu_type,
+      cpu_cores: data.cpu_cores,
+      ram_mb: data.ram_mb,
+      disk_gb: data.disk_gb,
+      daily_backup: data.daily_backup,
+      monitoring: data.monitoring,
+      template_params: data.plan_id ? { plan: data.plan_id } : {},
+    } as any);
+  });
+
+/* ------------------------- Handover to customer ------------------------- */
+export const sendServerHandover = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { server_id: string; contact_email?: string; root_password?: string; message?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: s, error } = await supabaseAdmin
+      .from("cloud_servers")
+      .select("id,name,provider,datacenter,image,public_ips,private_ips,cpu_cores,ram_mb,disk_sizes_gb,customer_id,account_number")
+      .eq("id", data.server_id).single();
+    if (error || !s) throw new Error(error?.message ?? "Server not found");
+
+    // Resolve recipient
+    let to = data.contact_email ?? null;
+    let contactName = "";
+    if (!to && s.customer_id) {
+      const { data: c } = await supabaseAdmin
+        .from("customer_contacts")
+        .select("email,name,is_primary")
+        .eq("customer_id", s.customer_id).is("archived_at", null)
+        .order("is_primary", { ascending: false })
+        .limit(1).maybeSingle();
+      to = c?.email ?? null;
+      contactName = c?.name ?? "";
+    }
+    if (!to) throw new Error("No customer contact email on file. Add a contact or pass one in.");
+
+    const ip = (s.public_ips as any[] | null)?.[0] ?? "—";
+    const subject = `Your new server "${s.name}" is ready`;
+    const html = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff;">
+  <h2 style="margin:0 0 12px">Your server is ready</h2>
+  <p>Hi ${contactName || "there"},</p>
+  <p>${data.message ?? "We've provisioned a new cloud server for you. Details below."}</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+    <tr><td style="padding:6px 0;color:#666">Name</td><td><strong>${s.name}</strong></td></tr>
+    <tr><td style="padding:6px 0;color:#666">Provider</td><td>${s.provider}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Datacenter</td><td>${s.datacenter ?? "—"}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">OS image</td><td>${s.image ?? "—"}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Specs</td><td>${s.cpu_cores ?? "?"} vCPU · ${((s.ram_mb ?? 0) / 1024).toFixed(0)} GB RAM · ${(s.disk_sizes_gb as number[] ?? []).join(" + ")} GB</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Public IP</td><td style="font-family:monospace"><strong>${ip}</strong></td></tr>
+    ${data.root_password ? `<tr><td style="padding:6px 0;color:#666">Root user</td><td style="font-family:monospace">root</td></tr><tr><td style="padding:6px 0;color:#666">Root password</td><td style="font-family:monospace">${data.root_password}</td></tr>` : ""}
+  </table>
+  <p style="color:#666;font-size:12px">Please change the root password on first login. Reply to this email for any assistance.</p>
+</div>`.trim();
+
+    let emailStatus: "sent" | "skipped" = "skipped";
+    let emailError: string | null = null;
+    try {
+      const { sendLovableEmail, EmailAPIError } = await import("@lovable.dev/email-js");
+      const fromDomain = process.env.EMAIL_SENDER_DOMAIN ?? process.env.SENDER_DOMAIN ?? "";
+      const from = fromDomain ? `IMT Cloud <noreply@${fromDomain}>` : "IMT Cloud <noreply@lovable.app>";
+      const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      await sendLovableEmail(
+        { from, to, subject, html, text },
+        { apiKey: process.env.LOVABLE_API_KEY!, idempotencyKey: `handover-${s.id}` },
+      );
+      emailStatus = "sent";
+    } catch (e: any) {
+      emailError = e?.message ?? String(e);
+    }
+
+    await supabaseAdmin.from("cloud_servers").update({
+      handed_over_at: new Date().toISOString(),
+      handed_over_by: context.userId,
+      handed_over_to_email: to,
+    } as any).eq("id", s.id);
+    await supabaseAdmin.from("cloud_activity").insert({
+      server_id: s.id,
+      action: emailStatus === "sent" ? "handover.email_sent" : "handover.recorded",
+      detail: { to, email_error: emailError } as any,
+    });
+
+    return { ok: true, to, email_status: emailStatus, email_error: emailError, packet: { subject, html } };
+  });
+

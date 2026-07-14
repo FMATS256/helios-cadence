@@ -1,16 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { refreshServer, serverPower, terminateServer } from "@/lib/kamatera.functions";
+import { sendServerHandover } from "@/lib/providers.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, RefreshCw, Power, PowerOff, RotateCw, Trash2, Server as ServerIcon,
   Cpu, HardDrive, Network, Shield, Save, Key, DollarSign, Rocket, Bell, ScrollText, Gauge,
+  Send, CheckCircle2, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -28,6 +36,10 @@ function ServerDetailPage() {
   const fnPower = useServerFn(serverPower);
   const fnTerminate = useServerFn(terminateServer);
 
+  const fnHandover = useServerFn(sendServerHandover);
+  const [handoverOpen, setHandoverOpen] = useState(false);
+  const [handoverForm, setHandoverForm] = useState({ contact_email: "", root_password: "", message: "" });
+
   const server = useQuery({
     queryKey: ["cloud_server", id],
     queryFn: async () => {
@@ -38,6 +50,11 @@ function ServerDetailPage() {
         .maybeSingle();
       if (error) throw error;
       return data as any;
+    },
+    // Auto-poll while provisioning
+    refetchInterval: (q) => {
+      const s = q.state.data as any;
+      return s && s.status === "provisioning" ? 3000 : false;
     },
   });
 
@@ -58,6 +75,10 @@ function ServerDetailPage() {
         .from("cloud_deployments" as any).select("*")
         .eq("server_id", id).order("created_at", { ascending: false }).limit(50);
       return (data ?? []) as any[];
+    },
+    refetchInterval: (q) => {
+      const s = server.data as any;
+      return s && s.status === "provisioning" ? 3000 : false;
     },
   });
 
@@ -103,22 +124,43 @@ function ServerDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // (handover mutation defined below as sendHandover)
+  const sendHandover = useMutation({
+    mutationFn: (payload: { contact_email?: string; root_password?: string; message?: string }) =>
+      fnHandover({ data: { server_id: id, ...payload } }),
+    onSuccess: (r) => {
+      if (r.email_status === "sent") {
+        toast.success(`Handover email sent to ${r.to}`);
+      } else {
+        toast.warning(`Handover recorded. Email not sent: ${r.email_error ?? "email not configured"}`);
+      }
+      setHandoverOpen(false);
+      qc.invalidateQueries({ queryKey: ["cloud_server", id] });
+      qc.invalidateQueries({ queryKey: ["cloud_activity", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (server.isLoading) return <PageContainer><p className="p-8 text-center">Loading…</p></PageContainer>;
   if (!server.data) return <PageContainer><p className="p-8 text-center">Server not found.</p></PageContainer>;
 
   const s = server.data;
   const meta = (s.provider_meta ?? {}) as any;
   const on = s.power_state === "on";
+  const isProvisioning = s.status === "provisioning";
+  const isHandedOver = !!s.handed_over_at;
+  const latestDeployment = deployments.data?.[0];
+  const provisioningProgress = isProvisioning ? 45 : (s.status === "active" ? 100 : s.status === "failed" ? 100 : 20);
 
   return (
     <PageContainer>
       <div className="mb-3">
         <Link to="/cloud-ops" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud Ops
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud
         </Link>
       </div>
       <PageHeader
-        eyebrow={`Kamatera · ${s.datacenter ?? "—"}`}
+        eyebrow={`${(s.provider ?? "cloud").toString().toUpperCase()} · ${s.datacenter ?? "—"}`}
         title={s.name}
         description={s.customer ? `${s.customer.account_number} · ${s.customer.company_name}` : "Unassigned"}
         actions={
@@ -139,6 +181,14 @@ function ServerDetailPage() {
               </Button>
             )}
             <Button
+              variant="default" size="sm"
+              disabled={isProvisioning || !s.customer_id}
+              onClick={() => setHandoverOpen(true)}
+              title={!s.customer_id ? "Assign a customer first" : ""}
+            >
+              <Send className="h-4 w-4 mr-1.5" /> {isHandedOver ? "Re-send handover" : "Hand over to customer"}
+            </Button>
+            <Button
               variant="destructive" size="sm"
               onClick={() => { if (confirm(`Terminate ${s.name}? This cannot be undone.`)) terminate.mutate(); }}
               disabled={terminate.isPending}
@@ -149,13 +199,55 @@ function ServerDetailPage() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      {/* Provisioning progress banner */}
+      {isProvisioning && (
+        <Card className="mb-4 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Provisioning in progress</p>
+                <p className="text-xs text-muted-foreground">
+                  Contacting {s.provider} · this usually takes 1–3 minutes. This page auto-refreshes.
+                </p>
+              </div>
+              <span className="text-xs font-mono">{provisioningProgress}%</span>
+            </div>
+            <Progress value={provisioningProgress} className="h-2" />
+            {latestDeployment && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Last step: <span className="font-mono">{latestDeployment.action}</span> · {latestDeployment.status}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Handover status banner */}
+      {isHandedOver && !isProvisioning && (
+        <Card className="mb-4 border-emerald-500/40 bg-emerald-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <div className="text-sm">
+              <span className="font-semibold">Handed over</span> to{" "}
+              <span className="font-mono">{s.handed_over_to_email}</span>{" "}
+              <span className="text-muted-foreground">
+                · {formatDistanceToNow(new Date(s.handed_over_at), { addSuffix: true })}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
         <Stat label="Power" value={<StatusPill tone={on ? "success" : "neutral"}>{s.power_state}</StatusPill>} />
         <Stat label="Status" value={<StatusPill tone={s.status === "active" ? "success" : s.status === "failed" ? "danger" : "warning"}>{s.status}</StatusPill>} />
         <Stat label="Public IP" value={<span className="font-mono text-sm">{(s.public_ips ?? [])[0] ?? "—"}</span>} />
         <Stat label="Provider cost / mo" value={`$${Number(s.monthly_cost_usd || 0).toFixed(2)}`} />
         <Stat label="Selling price / mo" value={`$${Number(s.selling_price_usd || 0).toFixed(2)}`} />
+        <Stat label="Margin / mo" value={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)}`} />
       </div>
+
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
@@ -344,6 +436,61 @@ function ServerDetailPage() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {/* Handover dialog */}
+      <Dialog open={handoverOpen} onOpenChange={setHandoverOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Hand over server to customer</DialogTitle>
+            <DialogDescription>
+              We'll email the server details to the customer contact. Root password is optional — include it if the customer needs full access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Contact email</Label>
+              <Input
+                type="email"
+                value={handoverForm.contact_email}
+                onChange={(e) => setHandoverForm({ ...handoverForm, contact_email: e.target.value })}
+                placeholder="Leave empty to use primary contact on file"
+              />
+            </div>
+            <div>
+              <Label>Root password (optional, will be included in email)</Label>
+              <Input
+                type="text"
+                value={handoverForm.root_password}
+                onChange={(e) => setHandoverForm({ ...handoverForm, root_password: e.target.value })}
+                placeholder="Only include if the customer needs it"
+              />
+            </div>
+            <div>
+              <Label>Custom message (optional)</Label>
+              <Textarea
+                rows={3}
+                value={handoverForm.message}
+                onChange={(e) => setHandoverForm({ ...handoverForm, message: e.target.value })}
+                placeholder="Your server is ready. Here are the access details…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHandoverOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => sendHandover.mutate({
+                contact_email: handoverForm.contact_email || undefined,
+                root_password: handoverForm.root_password || undefined,
+                message: handoverForm.message || undefined,
+              })}
+              disabled={sendHandover.isPending}
+            >
+              <Send className="h-4 w-4 mr-1.5" />
+              {sendHandover.isPending ? "Sending…" : "Send handover email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

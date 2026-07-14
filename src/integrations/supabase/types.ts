@@ -283,6 +283,9 @@ export type Database = {
           customer_id: string | null
           datacenter: string | null
           disk_sizes_gb: number[] | null
+          handed_over_at: string | null
+          handed_over_by: string | null
+          handed_over_to_email: string | null
           id: string
           image: string | null
           last_synced_at: string | null
@@ -315,6 +318,9 @@ export type Database = {
           customer_id?: string | null
           datacenter?: string | null
           disk_sizes_gb?: number[] | null
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          handed_over_to_email?: string | null
           id?: string
           image?: string | null
           last_synced_at?: string | null
@@ -347,6 +353,9 @@ export type Database = {
           customer_id?: string | null
           datacenter?: string | null
           disk_sizes_gb?: number[] | null
+          handed_over_at?: string | null
+          handed_over_by?: string | null
+          handed_over_to_email?: string | null
           id?: string
           image?: string | null
           last_synced_at?: string | null
