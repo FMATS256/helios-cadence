@@ -3,14 +3,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { ProviderName } from "./providers/types";
 
 export const listCloudProviders = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { listProviders } = await import("./providers/registry.server");
     return listProviders();
   });
 
 export const listProviderRegions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { provider: ProviderName }) => d)
   .handler(async ({ data }) => {
     const { getProvider } = await import("./providers/registry.server");
@@ -18,7 +16,6 @@ export const listProviderRegions = createServerFn({ method: "GET" })
   });
 
 export const listProviderImages = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { provider: ProviderName; region: string }) => d)
   .handler(async ({ data }) => {
     const { getProvider } = await import("./providers/registry.server");
@@ -26,7 +23,6 @@ export const listProviderImages = createServerFn({ method: "GET" })
   });
 
 export const listProviderInstanceTypes = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { provider: ProviderName; region: string }) => d)
   .handler(async ({ data }) => {
     const { getProvider } = await import("./providers/registry.server");
