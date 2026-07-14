@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { ensureMasterAdmin } from "@/lib/bootstrap.functions";
-import { KeyRound, LifeBuoy, Server, ShieldCheck, Copy } from "lucide-react";
+import { KeyRound, LifeBuoy, Server, ShieldCheck } from "lucide-react";
 
 
 export const Route = createFileRoute("/auth")({
@@ -28,7 +28,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [master, setMaster] = useState<{ email: string; password: string } | null>(null);
+  const [master, setMaster] = useState<{ email: string; ready: boolean } | null>(null);
   const bootstrap = useServerFn(ensureMasterAdmin);
 
   const goNext = () => { if (next) window.location.href = next; else navigate({ to: "/" }); };
@@ -64,7 +64,6 @@ function AuthPage() {
   const fillMaster = () => {
     if (!master) return;
     setEmail(master.email);
-    setPassword(master.password);
   };
 
 
@@ -189,29 +188,17 @@ function AuthPage() {
                 {busy ? "Signing in…" : "Sign in"}
               </Button>
 
-              {master && (
+              {master?.ready && (
                 <div className="rounded-xl border border-solar/30 bg-solar/5 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] uppercase tracking-widest font-semibold text-solar">Master Administrator</p>
                     <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={fillMaster}>
-                      Use these
+                      Use email
                     </Button>
                   </div>
-                  <div className="text-xs font-mono text-foreground/80 space-y-1 break-all">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground shrink-0">email:</span>
-                      <span>{master.email}</span>
-                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => { navigator.clipboard.writeText(master.email); toast.success("Email copied"); }}>
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground shrink-0">pass:</span>
-                      <span>{master.password}</span>
-                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => { navigator.clipboard.writeText(master.password); toast.success("Password copied"); }}>
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
+                  <div className="text-xs text-foreground/80 space-y-1 break-all">
+                    <div><span className="text-muted-foreground">email:</span> <span className="font-mono">{master.email}</span></div>
+                    <div className="text-muted-foreground">Master access is ready. Enter the secure password you provided.</div>
                   </div>
                 </div>
               )}

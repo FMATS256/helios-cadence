@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
   listVoipAccounts, listVoipRecharges, createVoipAccount, updateVoipAccount,
-  recordVoipRecharge, syncVoipAccount, voipSummary,
+  recordVoipRecharge, syncVoipAccount, voipSummary, lookupDandemutandeVoip,
 } from "@/lib/voip.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { PhoneCall, Plus, RefreshCw, Wallet, AlertTriangle, CheckCircle2, Ban, ReceiptText } from "lucide-react";
+import { PhoneCall, Plus, RefreshCw, Wallet, AlertTriangle, CheckCircle2, Ban, ReceiptText, Search } from "lucide-react";
 
 export const Route = createFileRoute("/voip")({
   head: () => ({ meta: [{ title: "VoIP Management — IMT Operations" }, { name: "description", content: "Manage Dandemutande VoIP customer accounts, balances, recharges and Proof of Payment." }] }),
@@ -43,6 +43,7 @@ function VoipPage() {
   const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }), enabled: authReady });
 
   const [addOpen, setAddOpen] = useState(false);
+  const [lookupOpen, setLookupOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
   const [balanceFor, setBalanceFor] = useState<any | null>(null);
 
@@ -76,14 +77,22 @@ function VoipPage() {
         title="Dandemutande VoIP"
         description="Manage VoIP numbers, monitor balances, log recharges and email Proof of Payment to Dandemutande support."
         actions={
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-                <Plus className="h-4 w-4 mr-1.5" /> Add VoIP number
-              </Button>
-            </DialogTrigger>
-            <AddVoipDialog onDone={() => { setAddOpen(false); accountsQ.refetch(); summaryQ.refetch(); }} />
-          </Dialog>
+          <div className="flex flex-wrap gap-2">
+            <Dialog open={lookupOpen} onOpenChange={setLookupOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline"><Search className="h-4 w-4 mr-1.5" /> Lookup number</Button>
+              </DialogTrigger>
+              <LookupDialog />
+            </Dialog>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                  <Plus className="h-4 w-4 mr-1.5" /> Add VoIP number
+                </Button>
+              </DialogTrigger>
+              <AddVoipDialog onDone={() => { setAddOpen(false); accountsQ.refetch(); summaryQ.refetch(); }} />
+            </Dialog>
+          </div>
         }
       />
 
@@ -345,6 +354,68 @@ function BalanceDialog({ account, onDone }: { account: any; onDone: () => void }
         </div>
       </div>
       <DialogFooter><Button onClick={() => m.mutate()} disabled={m.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>{m.isPending ? "Saving…" : "Save"}</Button></DialogFooter>
+    </DialogContent>
+  );
+}
+
+function LookupDialog() {
+  const [number, setNumber] = useState("");
+  const lookupFn = useServerFn(lookupDandemutandeVoip);
+  const lookup = useMutation({
+    mutationFn: () => lookupFn({ data: { voip_number: number } }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const result: any = lookup.data;
+  return (
+    <DialogContent className="max-w-3xl">
+      <DialogHeader><DialogTitle>Dandemutande public lookup</DialogTitle></DialogHeader>
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div className="space-y-1.5">
+            <Label>Number or account reference</Label>
+            <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Enter VoIP number" />
+          </div>
+          <Button className="self-end" onClick={() => lookup.mutate()} disabled={lookup.isPending || !number.trim()}>
+            <Search className="h-4 w-4 mr-1.5" /> {lookup.isPending ? "Searching…" : "Search"}
+          </Button>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+          This searches public Dandemutande pages and web results only. Balance and account-private data still require Dandemutande login credentials.
+        </div>
+        {result && (
+          <div className="max-h-[55vh] overflow-auto space-y-4 pr-1">
+            {result.error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{result.error}</div>}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Exact number matches</h3>
+              {result.matches?.length ? result.matches.map((m: any, i: number) => (
+                <a key={`${m.url}-${i}`} href={m.url} target="_blank" rel="noreferrer" className="block rounded-lg border p-3 hover:bg-muted/40 mb-2">
+                  <div className="font-medium">{m.title || m.url}</div>
+                  <div className="text-xs text-muted-foreground break-all">{m.url}</div>
+                  <p className="text-sm mt-1 line-clamp-3">{m.description || String(m.markdown || "").slice(0, 240)}</p>
+                </a>
+              )) : <p className="text-sm text-muted-foreground">No exact public match found for this number.</p>}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Dandemutande self-service page</h3>
+              <div className="rounded-lg border p-3 text-sm">
+                <div className="font-medium">{result.portal?.title || "VoIP self-service"}</div>
+                <p className="text-muted-foreground mt-1">{result.portal?.summary || result.portal?.markdown_preview || "No public summary available."}</p>
+                {(result.portal?.links ?? []).slice(0, 8).map((link: string) => <div key={link} className="text-xs font-mono break-all text-muted-foreground">{link}</div>)}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Other public search results</h3>
+              {result.search_results?.length ? result.search_results.map((m: any, i: number) => (
+                <a key={`${m.url}-result-${i}`} href={m.url} target="_blank" rel="noreferrer" className="block rounded-lg border p-3 hover:bg-muted/40 mb-2">
+                  <div className="font-medium">{m.title || m.url}</div>
+                  <div className="text-xs text-muted-foreground break-all">{m.url}</div>
+                  <p className="text-sm mt-1 line-clamp-3">{m.description || m.markdown_preview}</p>
+                </a>
+              )) : <p className="text-sm text-muted-foreground">No public results returned.</p>}
+            </div>
+          </div>
+        )}
+      </div>
     </DialogContent>
   );
 }

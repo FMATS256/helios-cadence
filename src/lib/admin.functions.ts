@@ -68,6 +68,28 @@ export const assignRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setUserActiveState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { user_id: string; active: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    await assertMaster(context);
+    if (data.user_id === context.userId && !data.active) throw new Error("You cannot deactivate your own master account");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      ban_duration: data.active ? "none" : "876000h",
+    });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("profiles").update({ status: data.active ? "active" : "inactive" }).eq("id", data.user_id);
+    await supabaseAdmin.from("audit_log").insert({
+      actor_id: context.userId,
+      action: data.active ? "user_reactivated" : "user_deactivated",
+      entity_type: "user",
+      entity_id: data.user_id,
+      new_value: { active: data.active },
+    });
+    return { ok: true };
+  });
+
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { email: string; full_name?: string; initial_role?: AppRole }) => input)

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
+import { createCloudServiceRecord } from "@/lib/ops.functions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/cloud")({
 
 function CloudPage() {
   const { data: customers = [] } = useCustomersLite();
+  const createService = useServerFn(createCloudServiceRecord);
   return (
     <ModulePage
       eyebrow="Services"
@@ -30,6 +33,7 @@ function CloudPage() {
       emptyForm={{ customer_id: "", service_type: "Microsoft 365", service_name: "", vendor: "", plan: "", seats: 0, monthly_cost: 0, status: "active", renewal_date: "", admin_url: "", notes: "" }}
       validateForm={(f) => (!f.customer_id ? "Customer is required" : !f.service_name ? "Service name is required" : null)}
       transformInsert={(f) => ({ ...f, renewal_date: f.renewal_date || null, seats: Number(f.seats) || 0, monthly_cost: Number(f.monthly_cost) || 0 })}
+      onCreate={(f) => createService({ data: f })}
       columns={[
         { header: "Service", cell: (r: any) => <div><div className="font-semibold">{r.service_name}</div><div className="text-xs text-muted-foreground">{r.vendor || r.service_type}</div></div> },
         { header: "Type", cell: (r: any) => <StatusPill tone="info">{r.service_type}</StatusPill> },

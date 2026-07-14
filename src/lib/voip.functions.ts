@@ -276,6 +276,91 @@ export const syncVoipAccount = createServerFn({ method: "POST" })
     }
   });
 
+export const lookupDandemutandeVoip = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { voip_number: string }) => d)
+  .handler(async ({ data }) => {
+    const number = data.voip_number?.trim();
+    if (!number) throw new Error("VoIP number is required");
+
+    const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    if (!firecrawlKey) throw new Error("Firecrawl connector is not configured");
+
+    const useGateway = !firecrawlKey.startsWith("fc-");
+    if (useGateway && !lovableKey) throw new Error("Lovable connector gateway key is not configured");
+
+    const baseUrl = useGateway
+      ? "https://connector-gateway.lovable.dev/firecrawl/v2"
+      : "https://api.firecrawl.dev/v2";
+    const headers: Record<string, string> = useGateway
+      ? {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": firecrawlKey,
+          "Content-Type": "application/json",
+        }
+      : { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" };
+
+    const callFirecrawl = async (path: string, payload: Record<string, unknown>) => {
+      const res = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text();
+      let body: any;
+      try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
+      if (!res.ok) throw new Error(body?.error || body?.message || `Firecrawl ${path} failed (${res.status})`);
+      return body;
+    };
+
+    const query = `site:dandemutande.africa ${number} OR ${number.replace(/\s+/g, "")}`;
+    const portalUrl = "https://dandemutande.africa/enterprise/self-service/voip-self-service/";
+    const [searchResult, portalResult] = await Promise.allSettled([
+      callFirecrawl("/search", {
+        query,
+        limit: 8,
+        scrapeOptions: { formats: ["markdown"] },
+      }),
+      callFirecrawl("/scrape", {
+        url: portalUrl,
+        formats: ["markdown", "links", "summary"],
+        onlyMainContent: true,
+      }),
+    ]);
+
+    const search = searchResult.status === "fulfilled" ? searchResult.value : { error: searchResult.reason?.message ?? String(searchResult.reason) };
+    const portal = portalResult.status === "fulfilled" ? portalResult.value : { error: portalResult.reason?.message ?? String(portalResult.reason) };
+    const searchRows = Array.isArray(search?.data) ? search.data : [];
+    const compactNumber = number.replace(/\D/g, "");
+    const matches = searchRows.filter((row: any) => {
+      const haystack = `${row.title ?? ""} ${row.description ?? ""} ${row.markdown ?? ""}`.replace(/\D/g, "");
+      return compactNumber && haystack.includes(compactNumber);
+    });
+
+    return {
+      voip_number: number,
+      searched_at: new Date().toISOString(),
+      query,
+      portal_url: portalUrl,
+      matches,
+      search_results: searchRows.map((row: any) => ({
+        url: row.url,
+        title: row.title,
+        description: row.description,
+        markdown_preview: String(row.markdown ?? "").slice(0, 1200),
+      })),
+      portal: {
+        title: portal?.metadata?.title ?? portal?.data?.metadata?.title ?? null,
+        summary: portal?.summary ?? portal?.data?.summary ?? null,
+        links: portal?.links ?? portal?.data?.links ?? [],
+        markdown_preview: String(portal?.markdown ?? portal?.data?.markdown ?? "").slice(0, 1600),
+        error: portal?.error ?? null,
+      },
+      error: search?.error ?? null,
+    };
+  });
+
 /* ---------------- Dashboard summary ---------------- */
 export const voipSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

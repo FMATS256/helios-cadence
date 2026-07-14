@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { createCustomerRecord } from "@/lib/ops.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,7 @@ function CustomersPage() {
   const { q } = Route.useSearch();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const createCustomer = useServerFn(createCustomerRecord);
   const [search, setSearch] = useState(q || "");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", status: "active", notes: "" });
@@ -46,8 +49,7 @@ function CustomersPage() {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.company_name.trim()) throw new Error("Company name is required");
-      const { error } = await supabase.from("customers").insert({ ...form, created_by: user?.id ?? null });
-      if (error) throw error;
+      await createCustomer({ data: form });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["customers"] }); setOpen(false); setForm({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", status: "active", notes: "" }); toast.success("Customer created"); },
     onError: (e: Error) => toast.error(e.message),

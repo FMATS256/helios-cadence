@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Shield, UserPlus, ScrollText, Users } from "lucide-react";
 import { useRoles } from "@/hooks/use-roles";
-import { listAllUsers, assignRole, inviteUser, recentAuditLog, ALL_ROLES, type AppRole } from "@/lib/admin.functions";
+import { listAllUsers, assignRole, inviteUser, recentAuditLog, setUserActiveState, ALL_ROLES, type AppRole } from "@/lib/admin.functions";
 import { invitePortalUser, listPortalUsers, unlinkPortalUser } from "@/lib/portal-admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,6 +118,7 @@ function UsersTab() {
   const listFn = useServerFn(listAllUsers);
   const inviteFn = useServerFn(inviteUser);
   const assignFn = useServerFn(assignRole);
+  const activeFn = useServerFn(setUserActiveState);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ email: "", full_name: "", initial_role: "read_only" as AppRole });
 
@@ -130,6 +131,11 @@ function UsersTab() {
   const toggle = useMutation({
     mutationFn: (p: { user_id: string; role: AppRole; action: "add" | "remove" }) => assignFn({ data: p }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const active = useMutation({
+    mutationFn: (p: { user_id: string; active: boolean }) => activeFn({ data: p }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Account updated"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -158,7 +164,7 @@ function UsersTab() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>User</TableHead><TableHead>Email</TableHead><TableHead>Roles</TableHead>
-            <TableHead>Last sign-in</TableHead><TableHead className="w-[180px]">Assign</TableHead>
+            <TableHead>Last sign-in</TableHead><TableHead className="w-[180px]">Assign</TableHead><TableHead className="text-right">Access</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {users.map((u: any) => (
@@ -174,6 +180,13 @@ function UsersTab() {
                     <SelectTrigger className="h-8"><SelectValue placeholder="Add role…" /></SelectTrigger>
                     <SelectContent>{ALL_ROLES.filter(r => !u.roles.includes(r)).map(r => <SelectItem key={r} value={r}>{r.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell className="text-right">
+                  {u.banned_until ? (
+                    <Button size="sm" variant="outline" onClick={() => active.mutate({ user_id: u.id, active: true })}>Reactivate</Button>
+                  ) : (
+                    <Button size="sm" variant="destructive" onClick={() => active.mutate({ user_id: u.id, active: false })}>Deactivate</Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
