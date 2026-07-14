@@ -102,7 +102,7 @@ export const updateVoipAccount = createServerFn({ method: "POST" })
   }) => d)
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     if (data.balance_usd != null) { patch.balance_usd = data.balance_usd; patch.balance_updated_at = new Date().toISOString(); }
     if (data.status) patch.status = data.status;
     if (data.low_balance_threshold_usd != null) patch.low_balance_threshold_usd = data.low_balance_threshold_usd;
