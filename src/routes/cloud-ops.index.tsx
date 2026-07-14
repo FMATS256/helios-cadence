@@ -6,13 +6,14 @@ import { verifyKamatera, syncServers } from "@/lib/kamatera.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin } from "lucide-react";
+import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/cloud-ops/")({
-  head: () => ({ meta: [{ title: "Cloud Operations — IMT" }] }),
+  head: () => ({ meta: [{ title: "Cloud — IMT" }] }),
   component: CloudOpsPage,
 });
 
@@ -42,6 +43,18 @@ function CloudOpsPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(10);
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ["cloud_services_list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cloud_services" as any)
+        .select("*")
+        .is("archived_at", null)
+        .order("created_at", { ascending: false });
       return (data ?? []) as any[];
     },
   });
@@ -85,9 +98,9 @@ function CloudOpsPage() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Cloud Ops"
+        eyebrow="Cloud"
         title="Cloud Operations"
-        description="Provision and manage Kamatera cloud servers for IMT customers."
+        description="Servers, managed services and cloud spend across all providers."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => sync.mutate()} disabled={sync.isPending}>
