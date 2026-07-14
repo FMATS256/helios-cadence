@@ -105,11 +105,13 @@ function StatsBar() {
 function AccountsTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [creating, setCreating] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "accounts"],
     queryFn: () => call("list_accounts", { per_page: 200 }),
+    enabled: !!user,
   });
   const rows: any[] = data?.accounts || data?.users || data?.data || [];
 
