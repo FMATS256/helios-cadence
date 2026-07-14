@@ -124,16 +124,7 @@ function ServerDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const handover = useMutation({
-    mutationFn: () => fnHandover({ data: {
-      server_id: id,
-      contact_email: handover.data ? undefined : (state as any).contact_email,
-    } }),
-    onSuccess: () => {},
-  });
-
-  // Local state for handover form is defined as `handover` above; the mutation collides in name.
-  // Use a distinct mutation object.
+  // (handover mutation defined below as sendHandover)
   const sendHandover = useMutation({
     mutationFn: (payload: { contact_email?: string; root_password?: string; message?: string }) =>
       fnHandover({ data: { server_id: id, ...payload } }),
