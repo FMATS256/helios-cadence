@@ -37,10 +37,10 @@ function VoipPage() {
   const summaryFn = useServerFn(voipSummary);
   const rechargesFn = useServerFn(listVoipRecharges);
 
-  const isSignedIn = !!user;
-  const accountsQ = useQuery({ queryKey: ["voip-accounts"], queryFn: () => listFn(), enabled: isSignedIn });
-  const summaryQ = useQuery({ queryKey: ["voip-summary"], queryFn: () => summaryFn(), refetchInterval: isSignedIn ? 30_000 : false, enabled: isSignedIn });
-  const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }), enabled: isSignedIn });
+  const authReady = !loading && !!user;
+  const accountsQ = useQuery({ queryKey: ["voip-accounts"], queryFn: () => listFn(), enabled: authReady });
+  const summaryQ = useQuery({ queryKey: ["voip-summary"], queryFn: () => summaryFn(), refetchInterval: authReady ? 30_000 : false, enabled: authReady });
+  const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }), enabled: authReady });
 
   const [addOpen, setAddOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
