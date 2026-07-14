@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const listVoipAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    const { data, error } = await (context.supabase as any)
       .from("voip_accounts")
       .select("*, customers(id,company_name,account_number,primary_email)")
       .is("archived_at", null)
@@ -18,7 +18,7 @@ export const listVoipRecharges = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { voip_account_id?: string; limit?: number }) => d)
   .handler(async ({ data, context }) => {
-    let q = context.supabase
+    let q = (context.supabase as any)
       .from("voip_recharges")
       .select("*, voip_accounts(voip_number,dandemutande_account)")
       .order("created_at", { ascending: false })
