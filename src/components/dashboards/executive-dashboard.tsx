@@ -2,6 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { HeroPanel, KpiCard, QuickAction, SectionCard } from "./shared";
+import {
+  GradientAreaChart,
+  DonutChart,
+  RadialGauge,
+  ChartLegend,
+  IMT_COLORS,
+  IMT_SERIES,
+} from "./charts";
 import { StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -74,6 +82,40 @@ async function load() {
   }
   const trendMax = Math.max(1, ...trend.map((x) => x.value));
 
+  // Sparklines: last 6 months buckets
+  const bucket6 = (rows: any[], dateKey: string) => {
+    const buckets: number[] = new Array(6).fill(0);
+    rows.forEach((r) => {
+      const raw = r[dateKey];
+      if (!raw) return;
+      const dt = new Date(raw);
+      const diff = (now.getFullYear() - dt.getFullYear()) * 12 + (now.getMonth() - dt.getMonth());
+      if (diff >= 0 && diff < 6) buckets[5 - diff] += 1;
+    });
+    return buckets;
+  };
+  const customersSpark = bucket6(c, "created_at");
+  const ticketsSpark = bucket6(t, "created_at");
+  const serversSpark = bucket6(servers, "created_at");
+  const mrrSpark = trend.map((x) => x.value);
+
+  // Ticket priority breakdown
+  const openByPriority = ["critical", "high", "medium", "low"].map((p) => ({
+    name: p,
+    value: open.filter((x: any) => (x.priority || "low") === p).length,
+  })).filter((x) => x.value > 0);
+
+  // Cloud spend by provider
+  const spendByProvider = Object.entries(
+    servers.reduce<Record<string, number>>((acc, x) => {
+      const k = x.provider ?? "unknown";
+      acc[k] = (acc[k] ?? 0) + Number(x.monthly_cost_usd || 0);
+      return acc;
+    }, {}),
+  ).map(([name, value]) => ({ name, value: Math.round(value) }));
+
+  const fleetHealth = servers.length > 0 ? Math.round((runningServers / servers.length) * 100) : 100;
+
   return {
     customerCount: c.length,
     openTickets: open.length,
@@ -96,6 +138,8 @@ async function load() {
     notifications: notifs,
     unread: notifs.filter((n) => !n.read_at).length,
     trend, trendMax,
+    customersSpark, ticketsSpark, serversSpark, mrrSpark,
+    openByPriority, spendByProvider, fleetHealth,
   };
 }
 
@@ -129,9 +173,9 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
 
       {/* Business KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" />
-        <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" />
-        <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" />
+        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} />
+        <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" spark={s?.ticketsSpark} />
+        <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" spark={s?.mrrSpark} />
         <KpiCard label="Unpaid AR" value={USD(s?.unpaid ?? 0)} icon={FileText} tone="warning" to="/billing" />
         <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
         <KpiCard label="Assets" value={s?.assetCount ?? 0} icon={Box} tone="info" to="/assets" />
@@ -139,7 +183,7 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
 
       {/* Cloud infra KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} />
+        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
         <KpiCard label="Cloud Spend / mo" value={USD(s?.cloudSpend ?? 0)} icon={DollarSign} tone="solar" to="/cloud-ops" />
         <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
         <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
@@ -158,47 +202,95 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
         </div>
       </SectionCard>
 
-      {/* Revenue trend + Provider spread */}
+      {/* Revenue trend + Provider spread + Fleet health */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <SectionCard className="xl:col-span-2" title="Revenue trend" description="Paid invoices, last 6 months (USD)">
-          <div className="flex items-end gap-3 h-40 pt-2">
-            {(s?.trend ?? []).map((b) => (
-              <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex-1 flex items-end">
-                  <div
-                    className="w-full rounded-t-md"
-                    style={{
-                      height: `${Math.max(4, (b.value / (s?.trendMax || 1)) * 100)}%`,
-                      background: "var(--gradient-solar)",
-                    }}
-                    title={USD(b.value)}
-                  />
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium">{b.label}</div>
-                <div className="text-[11px] font-semibold tabular-nums">{USD(b.value)}</div>
-              </div>
-            ))}
-          </div>
+        <SectionCard
+          className="xl:col-span-2"
+          title="Revenue trend"
+          description="Paid invoices, last 6 months (USD)"
+          action={
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">6-mo total</p>
+              <p className="font-display text-xl font-bold tabular-nums">
+                {USD((s?.trend ?? []).reduce((a, b) => a + b.value, 0))}
+              </p>
+            </div>
+          }
+        >
+          <GradientAreaChart
+            data={s?.trend ?? []}
+            height={240}
+            color={IMT_COLORS.solar}
+            colorEnd={IMT_COLORS.solarGlow}
+            formatter={(v) => USD(v)}
+          />
         </SectionCard>
 
-        <SectionCard title="Cloud provider spread" description="Servers by provider">
-          <div className="space-y-3">
-            {Object.entries(s?.providerCounts ?? {}).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No cloud servers yet</p>
-            )}
-            {Object.entries(s?.providerCounts ?? {}).map(([prov, count]) => {
-              const pct = Math.round(((count as number) / (s?.servers?.length || 1)) * 100);
-              return (
-                <div key={prov}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium capitalize">{prov}</span>
-                    <span className="text-muted-foreground tabular-nums">{count as number} · {pct}%</span>
-                  </div>
-                  <Progress value={pct} className="h-2" />
-                </div>
-              );
-            })}
+        <SectionCard title="Fleet health" description={`${s?.runningServers ?? 0} / ${s?.servers?.length ?? 0} servers running`}>
+          <RadialGauge
+            value={s?.fleetHealth ?? 100}
+            label="Uptime"
+            color={(s?.fleetHealth ?? 100) >= 90 ? IMT_COLORS.success : (s?.fleetHealth ?? 100) >= 60 ? IMT_COLORS.warning : IMT_COLORS.danger}
+            height={200}
+          />
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-lg border border-border p-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Monitors up</p>
+              <p className="font-display text-lg font-bold text-success tabular-nums">
+                {(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Incidents</p>
+              <p className={`font-display text-lg font-bold tabular-nums ${(s?.openIncidents?.length ?? 0) > 0 ? "text-destructive" : "text-success"}`}>
+                {s?.openIncidents?.length ?? 0}
+              </p>
+            </div>
           </div>
+        </SectionCard>
+      </div>
+
+      {/* Cloud spend by provider + Ticket priority breakdown */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <SectionCard title="Cloud spend by provider" description="Monthly cost distribution">
+          {(s?.spendByProvider ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">No cloud servers yet</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <DonutChart
+                data={s?.spendByProvider ?? []}
+                centerLabel="Total / mo"
+                centerValue={USD(s?.cloudSpend ?? 0)}
+                formatter={(v) => USD(v)}
+              />
+              <ChartLegend
+                items={(s?.spendByProvider ?? []).map((x) => ({
+                  name: x.name,
+                  value: USD(x.value),
+                  hint: `${Math.round((x.value / Math.max(1, s?.cloudSpend ?? 1)) * 100)}%`,
+                }))}
+              />
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Open ticket priorities" description="Where support attention is concentrated">
+          {(s?.openByPriority ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">Inbox zero ✨</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <DonutChart
+                data={s?.openByPriority ?? []}
+                centerLabel="Open"
+                centerValue={s?.openTickets ?? 0}
+                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
+              />
+              <ChartLegend
+                items={(s?.openByPriority ?? []).map((x) => ({ name: x.name, value: x.value }))}
+                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
+              />
+            </div>
+          )}
         </SectionCard>
       </div>
 
