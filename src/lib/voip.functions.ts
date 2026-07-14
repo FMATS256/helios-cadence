@@ -293,7 +293,7 @@ export const lookupDandemutandeVoip = createServerFn({ method: "POST" })
     const baseUrl = useGateway
       ? "https://connector-gateway.lovable.dev/firecrawl/v2"
       : "https://api.firecrawl.dev/v2";
-    const headers = useGateway
+    const headers: Record<string, string> = useGateway
       ? {
           Authorization: `Bearer ${lovableKey}`,
           "X-Connection-Api-Key": firecrawlKey,
