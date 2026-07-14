@@ -68,10 +68,12 @@ function LaptopTrackingPage() {
 /* ---------- Stats ---------- */
 function StatsBar() {
   const call = useTrackx();
+  const { user } = useAuth();
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["trackx", "stats"],
     queryFn: () => call("stats"),
     staleTime: 30_000,
+    enabled: !!user,
   });
   const s = data || {};
   const items = [
