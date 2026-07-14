@@ -21,7 +21,7 @@ type Customer = {
 };
 
 export const Route = createFileRoute("/customers")({
-  validateSearch: (s: Record<string, unknown>) => ({ q: typeof s.q === "string" ? s.q : "" }),
+  validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
   head: () => ({ meta: [{ title: "Customers — IMT Operations" }, { name: "description", content: "Customer directory with auto-assigned M-numbers." }] }),
   component: CustomersPage,
 });
