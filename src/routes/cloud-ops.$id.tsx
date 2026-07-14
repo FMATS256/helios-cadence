@@ -36,6 +36,10 @@ function ServerDetailPage() {
   const fnPower = useServerFn(serverPower);
   const fnTerminate = useServerFn(terminateServer);
 
+  const fnHandover = useServerFn(sendServerHandover);
+  const [handoverOpen, setHandoverOpen] = useState(false);
+  const [handover, setHandover] = useState({ contact_email: "", root_password: "", message: "" });
+
   const server = useQuery({
     queryKey: ["cloud_server", id],
     queryFn: async () => {
@@ -46,6 +50,11 @@ function ServerDetailPage() {
         .maybeSingle();
       if (error) throw error;
       return data as any;
+    },
+    // Auto-poll while provisioning
+    refetchInterval: (q) => {
+      const s = q.state.data as any;
+      return s && s.status === "provisioning" ? 3000 : false;
     },
   });
 
