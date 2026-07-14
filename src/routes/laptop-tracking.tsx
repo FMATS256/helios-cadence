@@ -522,11 +522,13 @@ function DevicesTab() {
 function BillingTab() {
   const qc = useQueryClient();
   const call = useTrackx();
+  const { user } = useAuth();
   const [userId, setUserId] = useState("");
   const [rec, setRec] = useState(false);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "payments", userId],
     queryFn: () => call("list_payments", userId ? { user_id: userId } : {}),
+    enabled: !!user,
   });
   const rows: any[] = data?.payments || data?.data || [];
   return (
