@@ -202,47 +202,95 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
         </div>
       </SectionCard>
 
-      {/* Revenue trend + Provider spread */}
+      {/* Revenue trend + Provider spread + Fleet health */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <SectionCard className="xl:col-span-2" title="Revenue trend" description="Paid invoices, last 6 months (USD)">
-          <div className="flex items-end gap-3 h-40 pt-2">
-            {(s?.trend ?? []).map((b) => (
-              <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex-1 flex items-end">
-                  <div
-                    className="w-full rounded-t-md"
-                    style={{
-                      height: `${Math.max(4, (b.value / (s?.trendMax || 1)) * 100)}%`,
-                      background: "var(--gradient-solar)",
-                    }}
-                    title={USD(b.value)}
-                  />
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium">{b.label}</div>
-                <div className="text-[11px] font-semibold tabular-nums">{USD(b.value)}</div>
-              </div>
-            ))}
-          </div>
+        <SectionCard
+          className="xl:col-span-2"
+          title="Revenue trend"
+          description="Paid invoices, last 6 months (USD)"
+          action={
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">6-mo total</p>
+              <p className="font-display text-xl font-bold tabular-nums">
+                {USD((s?.trend ?? []).reduce((a, b) => a + b.value, 0))}
+              </p>
+            </div>
+          }
+        >
+          <GradientAreaChart
+            data={s?.trend ?? []}
+            height={240}
+            color={IMT_COLORS.solar}
+            colorEnd={IMT_COLORS.solarGlow}
+            formatter={(v) => USD(v)}
+          />
         </SectionCard>
 
-        <SectionCard title="Cloud provider spread" description="Servers by provider">
-          <div className="space-y-3">
-            {Object.entries(s?.providerCounts ?? {}).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No cloud servers yet</p>
-            )}
-            {Object.entries(s?.providerCounts ?? {}).map(([prov, count]) => {
-              const pct = Math.round(((count as number) / (s?.servers?.length || 1)) * 100);
-              return (
-                <div key={prov}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium capitalize">{prov}</span>
-                    <span className="text-muted-foreground tabular-nums">{count as number} · {pct}%</span>
-                  </div>
-                  <Progress value={pct} className="h-2" />
-                </div>
-              );
-            })}
+        <SectionCard title="Fleet health" description={`${s?.runningServers ?? 0} / ${s?.servers?.length ?? 0} servers running`}>
+          <RadialGauge
+            value={s?.fleetHealth ?? 100}
+            label="Uptime"
+            color={(s?.fleetHealth ?? 100) >= 90 ? IMT_COLORS.success : (s?.fleetHealth ?? 100) >= 60 ? IMT_COLORS.warning : IMT_COLORS.danger}
+            height={200}
+          />
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-lg border border-border p-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Monitors up</p>
+              <p className="font-display text-lg font-bold text-success tabular-nums">
+                {(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Incidents</p>
+              <p className={`font-display text-lg font-bold tabular-nums ${(s?.openIncidents?.length ?? 0) > 0 ? "text-destructive" : "text-success"}`}>
+                {s?.openIncidents?.length ?? 0}
+              </p>
+            </div>
           </div>
+        </SectionCard>
+      </div>
+
+      {/* Cloud spend by provider + Ticket priority breakdown */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <SectionCard title="Cloud spend by provider" description="Monthly cost distribution">
+          {(s?.spendByProvider ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">No cloud servers yet</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <DonutChart
+                data={s?.spendByProvider ?? []}
+                centerLabel="Total / mo"
+                centerValue={USD(s?.cloudSpend ?? 0)}
+                formatter={(v) => USD(v)}
+              />
+              <ChartLegend
+                items={(s?.spendByProvider ?? []).map((x) => ({
+                  name: x.name,
+                  value: USD(x.value),
+                  hint: `${Math.round((x.value / Math.max(1, s?.cloudSpend ?? 1)) * 100)}%`,
+                }))}
+              />
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Open ticket priorities" description="Where support attention is concentrated">
+          {(s?.openByPriority ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">Inbox zero ✨</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <DonutChart
+                data={s?.openByPriority ?? []}
+                centerLabel="Open"
+                centerValue={s?.openTickets ?? 0}
+                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
+              />
+              <ChartLegend
+                items={(s?.openByPriority ?? []).map((x) => ({ name: x.name, value: x.value }))}
+                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
+              />
+            </div>
+          )}
         </SectionCard>
       </div>
 
