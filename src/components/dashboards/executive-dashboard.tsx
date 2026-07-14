@@ -2,6 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { HeroPanel, KpiCard, QuickAction, SectionCard } from "./shared";
+import {
+  GradientAreaChart,
+  DonutChart,
+  RadialGauge,
+  ChartLegend,
+  IMT_COLORS,
+  IMT_SERIES,
+} from "./charts";
 import { StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
