@@ -280,13 +280,13 @@ export const syncVoipAccount = createServerFn({ method: "POST" })
 export const voipSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: accts } = await context.supabase
+    const { data: accts } = await (context.supabase as any)
       .from("voip_accounts").select("id,status,balance_usd,low_balance_threshold_usd").is("archived_at", null);
-    const { data: rechargesRaw } = await context.supabase
+    const { data: rechargesRaw } = await (context.supabase as any)
       .from("voip_recharges").select("id,status,amount_usd,created_at").order("created_at", { ascending: false }).limit(10);
 
-    const rows = accts ?? [];
-    const recharges = rechargesRaw ?? [];
+    const rows = (accts ?? []) as Array<{ status: string; balance_usd: number; low_balance_threshold_usd: number }>;
+    const recharges = (rechargesRaw ?? []) as Array<{ id: string; status: string; amount_usd: number; created_at: string }>;
     return {
       total: rows.length,
       active: rows.filter((r) => r.status === "active").length,
