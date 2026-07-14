@@ -48,6 +48,7 @@ function CustomersPage() {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!user) throw new Error("You must be signed in to add customers");
       if (!form.company_name.trim()) throw new Error("Company name is required");
       await createCustomer({ data: form });
     },
