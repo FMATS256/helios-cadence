@@ -1416,7 +1416,10 @@ export type Database = {
           method: string | null
           notes: string | null
           paid_at: string
+          receipt_number: string | null
+          reconciliation_status: string
           reference: string | null
+          service_context: string | null
           status: string
           updated_at: string
         }
@@ -1432,7 +1435,10 @@ export type Database = {
           method?: string | null
           notes?: string | null
           paid_at?: string
+          receipt_number?: string | null
+          reconciliation_status?: string
           reference?: string | null
+          service_context?: string | null
           status?: string
           updated_at?: string
         }
@@ -1448,7 +1454,10 @@ export type Database = {
           method?: string | null
           notes?: string | null
           paid_at?: string
+          receipt_number?: string | null
+          reconciliation_status?: string
           reference?: string | null
+          service_context?: string | null
           status?: string
           updated_at?: string
         }
@@ -2338,6 +2347,10 @@ export type Database = {
       portal_customer_id: { Args: { _user_id: string }; Returns: string }
       recompute_invoice_status: {
         Args: { _invoice_id: string }
+        Returns: undefined
+      }
+      recompute_payment_reconciliation: {
+        Args: { _payment_id: string }
         Returns: undefined
       }
     }

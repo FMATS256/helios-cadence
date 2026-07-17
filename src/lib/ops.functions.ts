@@ -51,6 +51,8 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
     status?: string;
     paid_at?: string;
     notes?: string;
+    service_context?: string;
+    allocations?: Array<{ invoice_id: string; amount: number }>;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: hasRole, error: roleError } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
@@ -58,6 +60,10 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
     if (!hasRole) throw new Error("Your account needs a staff role before you can record payments.");
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be greater than zero");
+
+    const allocs = (data.allocations ?? []).filter((a) => a.invoice_id && Number(a.amount) > 0);
+    const allocSum = allocs.reduce((s, a) => s + Number(a.amount), 0);
+    if (allocSum > amount + 0.001) throw new Error(`Allocations (${allocSum}) exceed payment amount (${amount})`);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let customerId = data.customer_id || "";
@@ -104,13 +110,47 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
         status: data.status || "received",
         paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : new Date().toISOString(),
         notes: data.notes?.trim() || null,
+        service_context: data.service_context || null,
+        invoice_id: allocs.length === 1 ? allocs[0].invoice_id : null,
         created_by: context.userId,
-      })
+      } as any)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Auto-create allocations to invoices; triggers recompute invoice status + reconciliation
+    if (allocs.length > 0) {
+      const { error: allocError } = await supabaseAdmin.from("payment_allocations").insert(
+        allocs.map((a) => ({ payment_id: row.id, invoice_id: a.invoice_id, amount: Number(a.amount) })),
+      );
+      if (allocError) throw new Error(`Payment saved but allocation failed: ${allocError.message}`);
+    }
     return row;
   });
+
+export const getCustomerPaymentContext = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [customer, invoices, subscriptions, tickets, payments] = await Promise.all([
+      supabaseAdmin.from("customers").select("id,account_number,company_name,primary_email,primary_phone,status").eq("id", data.customer_id).single(),
+      supabaseAdmin.from("invoices").select("id,invoice_number,status,total,currency,issue_date,due_date").eq("customer_id", data.customer_id).is("archived_at", null).in("status", ["sent", "partial", "overdue", "draft"]).order("issue_date", { ascending: false }).limit(20),
+      supabaseAdmin.from("subscriptions").select("id,plan_name,status,amount,currency,next_renewal").eq("customer_id", data.customer_id).order("created_at", { ascending: false }).limit(10),
+      supabaseAdmin.from("tickets").select("id,ticket_number,subject,status,priority,created_at").eq("customer_id", data.customer_id).order("created_at", { ascending: false }).limit(5),
+      supabaseAdmin.from("payments").select("id,receipt_number,amount,currency,method,paid_at,status,reconciliation_status").eq("customer_id", data.customer_id).order("paid_at", { ascending: false }).limit(10),
+    ]);
+    return {
+      customer: customer.data,
+      openInvoices: invoices.data ?? [],
+      subscriptions: subscriptions.data ?? [],
+      recentTickets: tickets.data ?? [],
+      recentPayments: payments.data ?? [],
+    };
+  });
+
 
 export const createCloudServiceRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
