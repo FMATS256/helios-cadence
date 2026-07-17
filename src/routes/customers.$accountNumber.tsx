@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { KeyRound, LifeBuoy, FileText, MapPin, CreditCard, Receipt, Server, DollarSign, TrendingUp, Plus, FileCheck } from "lucide-react";
+import { KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp, Plus, FileCheck } from "lucide-react";
 import { getCustomer360, generateInvoiceForSubscription } from "@/lib/ops.functions";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
