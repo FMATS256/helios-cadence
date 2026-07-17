@@ -96,9 +96,11 @@ function AuthGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isConsent = pathname === "/.lovable/oauth/consent";
   const isPortalRoute = pathname === "/portal" || pathname.startsWith("/portal/");
+  const isPublic = pathname === "/services" || pathname.startsWith("/services/");
 
   if (pathname === "/auth") return <Outlet />;
   if (isConsent) return <Outlet />;
+  if (isPublic) return <Outlet />;
   if (isPortalRoute) return <PortalShell><Outlet /></PortalShell>;
   return <AppShell><Outlet /></AppShell>;
 }

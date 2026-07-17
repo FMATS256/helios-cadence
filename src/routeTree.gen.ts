@@ -13,6 +13,7 @@ import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
@@ -32,9 +33,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as ServicesSlugRouteImport } from './routes/services.$slug'
 import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
 import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
 import { Route as PortalAssetsRouteImport } from './routes/portal.assets'
@@ -69,6 +72,11 @@ const SubscriptionsRoute = SubscriptionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -166,6 +174,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesRoute,
+} as any)
 const PortalIndexRoute = PortalIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -180,6 +193,11 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => TicketsRoute,
+} as any)
+const ServicesSlugRoute = ServicesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ServicesRoute,
 } as any)
 const PortalTicketsRoute = PortalTicketsRouteImport.update({
   id: '/tickets',
@@ -282,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -296,9 +315,11 @@ export interface FileRoutesByFullPath {
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
+  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
@@ -338,9 +359,11 @@ export interface FileRoutesByTo {
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
+  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/services': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
@@ -368,6 +391,7 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -382,9 +406,11 @@ export interface FileRoutesById {
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
   '/portal/tickets': typeof PortalTicketsRoute
+  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
@@ -413,6 +439,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/services'
     | '/settings'
     | '/subscriptions'
     | '/tickets'
@@ -427,9 +454,11 @@ export interface FileRouteTypes {
     | '/portal/assets'
     | '/portal/invoices'
     | '/portal/tickets'
+    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/portal/'
+    | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
@@ -469,9 +498,11 @@ export interface FileRouteTypes {
     | '/portal/assets'
     | '/portal/invoices'
     | '/portal/tickets'
+    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops'
     | '/portal'
+    | '/services'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
@@ -498,6 +529,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/services'
     | '/settings'
     | '/subscriptions'
     | '/tickets'
@@ -512,9 +544,11 @@ export interface FileRouteTypes {
     | '/portal/assets'
     | '/portal/invoices'
     | '/portal/tickets'
+    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/portal/'
+    | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
@@ -542,6 +576,7 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
+  ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
@@ -587,6 +622,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -722,6 +764,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/': {
+      id: '/services/'
+      path: '/'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof ServicesRoute
+    }
     '/portal/': {
       id: '/portal/'
       path: '/'
@@ -742,6 +791,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tickets/$id'
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
+    }
+    '/services/$slug': {
+      id: '/services/$slug'
+      path: '/$slug'
+      fullPath: '/services/$slug'
+      preLoaderRoute: typeof ServicesSlugRouteImport
+      parentRoute: typeof ServicesRoute
     }
     '/portal/tickets': {
       id: '/portal/tickets'
@@ -891,6 +947,20 @@ const PortalRouteChildren: PortalRouteChildren = {
 const PortalRouteWithChildren =
   PortalRoute._addFileChildren(PortalRouteChildren)
 
+interface ServicesRouteChildren {
+  ServicesSlugRoute: typeof ServicesSlugRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
+}
+
+const ServicesRouteChildren: ServicesRouteChildren = {
+  ServicesSlugRoute: ServicesSlugRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
+}
+
+const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
+  ServicesRouteChildren,
+)
+
 interface TicketsRouteChildren {
   TicketsIdRoute: typeof TicketsIdRoute
 }
@@ -922,6 +992,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
+  ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
