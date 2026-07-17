@@ -313,3 +313,112 @@ export const syncSubscriptionsFromCloudServices = createServerFn({ method: "POST
 
     return { total: services?.length ?? 0, created, updated };
   });
+export const globalSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { q: string; limit?: number }) => input)
+  .handler(async ({ data, context }) => {
+    const q = (data.q || "").trim();
+    if (!q) return { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [] };
+    const limit = Math.min(data.limit ?? 6, 15);
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const like = `%${q}%`;
+    const [customers, invoices, payments, tickets, subscriptions, assets, credentials] = await Promise.all([
+      supabaseAdmin.from("customers").select("id,account_number,company_name,primary_email,primary_phone,status").is("archived_at", null).or(`company_name.ilike.${like},account_number.ilike.${like},primary_email.ilike.${like},primary_phone.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("invoices").select("id,invoice_number,customer_id,account_number,total,currency,status,issue_date").is("archived_at", null).or(`invoice_number.ilike.${like},account_number.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("payments").select("id,receipt_number,customer_id,account_number,amount,currency,method,paid_at,status,reference").or(`receipt_number.ilike.${like},reference.ilike.${like},account_number.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("tickets").select("id,ticket_number,subject,status,priority,customer_id,account_number").is("archived_at", null).or(`ticket_number.ilike.${like},subject.ilike.${like},account_number.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("subscriptions").select("id,plan_name,customer_id,account_number,amount,status,next_renewal").or(`plan_name.ilike.${like},account_number.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("assets").select("id,asset_tag,name,serial_number,status,customer_id,account_number").is("archived_at", null).or(`asset_tag.ilike.${like},name.ilike.${like},serial_number.ilike.${like},account_number.ilike.${like}`).limit(limit),
+      supabaseAdmin.from("credentials").select("id,name,credential_type,username,customer_id,account_number").is("archived_at", null).or(`name.ilike.${like},username.ilike.${like},account_number.ilike.${like}`).limit(limit),
+    ]);
+    return {
+      customers: customers.data ?? [],
+      invoices: invoices.data ?? [],
+      payments: payments.data ?? [],
+      tickets: tickets.data ?? [],
+      subscriptions: subscriptions.data ?? [],
+      assets: assets.data ?? [],
+      credentials: credentials.data ?? [],
+    };
+  });
+
+export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { subscription_id: string; issue_date?: string; due_days?: number; tax_rate?: number }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sub, error: subErr } = await supabaseAdmin.from("subscriptions").select("*").eq("id", data.subscription_id).single();
+    if (subErr || !sub) throw new Error(subErr?.message ?? "Subscription not found");
+    const issue = data.issue_date ? new Date(data.issue_date) : new Date();
+    const due = new Date(issue); due.setDate(due.getDate() + (data.due_days ?? 14));
+    const subtotal = Number(sub.amount) || 0;
+    const taxRate = data.tax_rate ?? 0;
+    const tax = +(subtotal * taxRate / 100).toFixed(2);
+    const total = +(subtotal + tax).toFixed(2);
+    const { data: invoice, error } = await supabaseAdmin.from("invoices").insert({
+      customer_id: sub.customer_id,
+      account_number: sub.account_number,
+      currency: sub.currency || "USD",
+      issue_date: issue.toISOString().slice(0, 10),
+      due_date: due.toISOString().slice(0, 10),
+      subtotal, tax, total,
+      status: "sent",
+      notes: `Auto-generated for subscription: ${sub.plan_name}`,
+      created_by: context.userId,
+    }).select("*").single();
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("invoice_line_items").insert({
+      invoice_id: invoice.id,
+      description: `${sub.plan_name}${sub.description ? ` — ${sub.description}` : ""} (${sub.billing_cycle})`,
+      quantity: 1,
+      unit_price: subtotal,
+      tax_rate: taxRate,
+      line_total: subtotal,
+      position: 0,
+    });
+    return invoice;
+  });
+
+export const getCustomer360 = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { account_number: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const acct = data.account_number.toUpperCase();
+    const { data: customer, error } = await supabaseAdmin.from("customers").select("*").eq("account_number", acct).is("archived_at", null).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!customer) return null;
+    const cid = customer.id;
+    const [services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline] = await Promise.all([
+      supabaseAdmin.from("cloud_services").select("id,service_name,service_type,vendor,plan,monthly_cost,status,renewal_date").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
+      supabaseAdmin.from("subscriptions").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
+      supabaseAdmin.from("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }).limit(50),
+      supabaseAdmin.from("payments").select("*").eq("customer_id", cid).order("paid_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("quotes").select("id,quote_number,title,status,total,currency,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
+      supabaseAdmin.from("tickets").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
+      supabaseAdmin.from("assets").select("id,asset_tag,name,status,serial_number").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
+    ]);
+    const openInvoiceTotal = (invoices.data ?? []).filter((i: any) => ["sent", "partial", "overdue"].includes(i.status)).reduce((s: number, i: any) => s + Number(i.total || 0), 0);
+    const mrr = (subscriptions.data ?? []).filter((s: any) => s.status === "active").reduce((sum: number, s: any) => sum + (s.billing_cycle === "yearly" ? Number(s.amount) / 12 : Number(s.amount) || 0), 0);
+    return {
+      customer,
+      services: services.data ?? [],
+      subscriptions: subscriptions.data ?? [],
+      invoices: invoices.data ?? [],
+      payments: payments.data ?? [],
+      quotes: quotes.data ?? [],
+      tickets: tickets.data ?? [],
+      assets: assets.data ?? [],
+      credentials: credentials.data ?? [],
+      timeline: timeline.data ?? [],
+      stats: { openInvoiceTotal, mrr, ticketCount: (tickets.data ?? []).length, activeServices: (services.data ?? []).filter((s: any) => s.status === "active").length },
+    };
+  });

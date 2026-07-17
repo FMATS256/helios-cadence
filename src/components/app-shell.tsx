@@ -2,7 +2,7 @@ import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
-  Warehouse, BarChart3, Bell, Settings, Shield, Plus, Search, ChevronDown,
+  Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
 } from "lucide-react";
 import {
@@ -10,7 +10,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
   SidebarProvider, SidebarTrigger, SidebarInset,
 } from "@/components/ui/sidebar";
-import { Input } from "@/components/ui/input";
+import { GlobalSearchTrigger } from "@/components/global-search";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -125,23 +125,10 @@ function AppSidebar() {
 }
 
 function TopBar() {
-  const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-3 sm:px-6">
       <SidebarTrigger className="text-foreground shrink-0" />
-      <form
-        className="relative flex-1 max-w-2xl min-w-0"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim();
-          if (!q) return;
-          if (/^M\d{4}$/i.test(q)) navigate({ to: "/customers/$accountNumber", params: { accountNumber: q.toUpperCase() } });
-          else navigate({ to: "/customers", search: { q } as any });
-        }}
-      >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input name="q" placeholder="Search M-number, tickets, assets…" className="pl-10 h-10 bg-muted/50 border-transparent focus-visible:bg-background" />
-      </form>
+      <GlobalSearchTrigger />
       <div className="flex items-center gap-1.5 sm:gap-3 ml-auto shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
