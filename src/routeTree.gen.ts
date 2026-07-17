@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -67,6 +68,11 @@ const TicketsRoute = TicketsRouteImport.update({
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StarlinkRoute = StarlinkRouteImport.update({
+  id: '/starlink',
+  path: '/starlink',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
@@ -393,6 +401,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
@@ -441,6 +450,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/services'
     | '/settings'
+    | '/starlink'
     | '/subscriptions'
     | '/tickets'
     | '/voip'
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/quotes'
     | '/reports'
     | '/settings'
+    | '/starlink'
     | '/subscriptions'
     | '/tickets'
     | '/voip'
@@ -531,6 +542,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/services'
     | '/settings'
+    | '/starlink'
     | '/subscriptions'
     | '/tickets'
     | '/voip'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
+  StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
@@ -615,6 +628,13 @@ declare module '@tanstack/react-router' {
       path: '/subscriptions'
       fullPath: '/subscriptions'
       preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/starlink': {
+      id: '/starlink'
+      path: '/starlink'
+      fullPath: '/starlink'
+      preLoaderRoute: typeof StarlinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -994,6 +1014,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
+  StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,

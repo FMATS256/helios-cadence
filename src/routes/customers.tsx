@@ -73,8 +73,8 @@ function CustomersPage() {
             <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>New customer</DialogTitle></DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-2"><Label>Company name *</Label><Input required value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} /></div>
+                <div className="grid grid-cols-1 gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
+                  <div className="space-y-2 md:col-span-2"><Label>Company name *</Label><Input required value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} placeholder="Registered or trading name" /></div>
                   <div className="space-y-2"><Label>Industry</Label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Status</Label>
                     <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
@@ -84,8 +84,8 @@ function CustomersPage() {
                   </div>
                   <div className="space-y-2"><Label>Primary email</Label><Input type="email" value={form.primary_email} onChange={(e) => setForm({ ...form, primary_email: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Primary phone</Label><Input value={form.primary_phone} onChange={(e) => setForm({ ...form, primary_phone: e.target.value })} /></div>
-                  <div className="col-span-2 space-y-2"><Label>Website</Label><Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} /></div>
-                  <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label>Website</Label><Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://company.co.zw" /></div>
+                  <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Billing preferences, contacts, branch notes…" /></div>
                 </div>
                 <DialogFooter><Button type="submit" disabled={create.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>{create.isPending ? "Creating…" : "Create customer"}</Button></DialogFooter>
               </form>

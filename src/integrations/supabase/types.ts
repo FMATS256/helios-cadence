@@ -1755,6 +1755,152 @@ export type Database = {
           },
         ]
       }
+      starlink_accounts: {
+        Row: {
+          account_number: string
+          archived_at: string | null
+          balance_usd: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          kit_serial: string | null
+          last_checked_at: string | null
+          monthly_price: number
+          notes: string | null
+          plan_type: string
+          provider_payload: Json | null
+          service_address: string | null
+          starlink_account_number: string | null
+          status: string
+          terminal_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          archived_at?: string | null
+          balance_usd?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          kit_serial?: string | null
+          last_checked_at?: string | null
+          monthly_price?: number
+          notes?: string | null
+          plan_type?: string
+          provider_payload?: Json | null
+          service_address?: string | null
+          starlink_account_number?: string | null
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          archived_at?: string | null
+          balance_usd?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          kit_serial?: string | null
+          last_checked_at?: string | null
+          monthly_price?: number
+          notes?: string | null
+          plan_type?: string
+          provider_payload?: Json | null
+          service_address?: string | null
+          starlink_account_number?: string | null
+          status?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starlink_recharges: {
+        Row: {
+          account_number: string
+          created_at: string
+          currency: string
+          customer_charge_usd: number
+          customer_id: string
+          external_company: string
+          external_payout_usd: number
+          external_status: string
+          id: string
+          margin_usd: number
+          notes: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          requested_by: string | null
+          starlink_account_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          created_at?: string
+          currency?: string
+          customer_charge_usd?: number
+          customer_id: string
+          external_company?: string
+          external_payout_usd?: number
+          external_status?: string
+          id?: string
+          margin_usd?: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          requested_by?: string | null
+          starlink_account_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          created_at?: string
+          currency?: string
+          customer_charge_usd?: number
+          customer_id?: string
+          external_company?: string
+          external_payout_usd?: number
+          external_status?: string
+          id?: string
+          margin_usd?: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          requested_by?: string | null
+          starlink_account_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_recharges_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starlink_recharges_starlink_account_id_fkey"
+            columns: ["starlink_account_id"]
+            isOneToOne: false
+            referencedRelation: "starlink_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           account_number: string

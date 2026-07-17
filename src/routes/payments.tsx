@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
 import { createPaymentRecord } from "@/lib/ops.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/payments")({
 function PaymentsPage() {
   const { data: customers = [] } = useCustomersLite();
   const createPayment = useServerFn(createPaymentRecord);
+  const { user } = useAuth();
   return (
     <ModulePage
       eyebrow="Business"
@@ -30,11 +32,15 @@ function PaymentsPage() {
       searchFields={["reference", "account_number", "method", "status"]}
       emptyLabel="No payments recorded yet."
       createTitle="Record payment"
+      createDescription="Capture the customer payment, walk-in details, receipt reference and reconciliation status."
       createLabel="Record payment"
       emptyForm={{ customer_id: "", walk_in_name: "", walk_in_email: "", walk_in_phone: "", amount: 0, currency: "USD", method: "cash", reference: "", status: "received", paid_at: new Date().toISOString().slice(0, 10), notes: "" }}
       validateForm={(f) => (!f.customer_id ? "Customer required" : f.customer_id === "__walkin__" && !f.walk_in_name ? "Walk-in client name required" : !f.amount ? "Amount required" : null)}
       transformInsert={(f) => ({ ...f, amount: Number(f.amount), paid_at: f.paid_at ? new Date(f.paid_at).toISOString() : new Date().toISOString() })}
-      onCreate={(f) => createPayment({ data: f })}
+      onCreate={(f) => {
+        if (!user) throw new Error("Please sign in before recording payments.");
+        return createPayment({ data: f });
+      }}
       columns={[
         { header: "Reference", cell: (r: any) => <div><div className="font-semibold">{r.reference || "—"}</div><div className="text-xs text-muted-foreground">{r.method?.replace(/_/g, " ")}</div></div> },
         { header: "Customer", cell: (r: any) => <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link> },
@@ -43,8 +49,8 @@ function PaymentsPage() {
         { header: "Paid at", cell: (r: any) => new Date(r.paid_at).toLocaleDateString() },
       ]}
       renderForm={(form, setForm) => (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 space-y-2"><Label>Customer *</Label>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2"><Label>Customer *</Label>
             <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
               <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
@@ -57,7 +63,7 @@ function PaymentsPage() {
             <>
               <div className="space-y-2"><Label>Walk-in name *</Label><Input required value={form.walk_in_name} onChange={(e) => setForm({ ...form, walk_in_name: e.target.value })} placeholder="Client name" /></div>
               <div className="space-y-2"><Label>Walk-in phone</Label><Input value={form.walk_in_phone} onChange={(e) => setForm({ ...form, walk_in_phone: e.target.value })} placeholder="Phone number" /></div>
-              <div className="col-span-2 space-y-2"><Label>Walk-in email</Label><Input type="email" value={form.walk_in_email} onChange={(e) => setForm({ ...form, walk_in_email: e.target.value })} placeholder="optional@email.com" /></div>
+              <div className="space-y-2 md:col-span-2"><Label>Walk-in email</Label><Input type="email" value={form.walk_in_email} onChange={(e) => setForm({ ...form, walk_in_email: e.target.value })} placeholder="optional@email.com" /></div>
             </>
           )}
           <div className="space-y-2"><Label>Amount *</Label><Input type="number" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
@@ -76,7 +82,7 @@ function PaymentsPage() {
           </div>
           <div className="space-y-2"><Label>Reference</Label><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="TXN-…" /></div>
           <div className="space-y-2"><Label>Paid at</Label><Input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value })} /></div>
-          <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
       )}
     />

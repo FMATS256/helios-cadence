@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, Search, ChevronDown,
-  FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall,
+  FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -36,7 +36,10 @@ const navGroups = [
   {
     label: "Services",
     items: [
-      { title: "Cloud", url: "/cloud-ops", icon: Cloud },
+      { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
+      { title: "Managed Services", url: "/cloud", icon: Server },
+      { title: "Starlink", url: "/starlink", icon: Satellite },
+      { title: "Service Pages", url: "/services", icon: BookOpen },
       { title: "Assets", url: "/assets", icon: Server },
       { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
@@ -150,6 +153,9 @@ function TopBar() {
             <DropdownMenuLabel>Create</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link to="/customers">New Customer</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/payments">Record Payment</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/starlink">New Starlink Account</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/cloud">New Managed Service</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/tickets">New Ticket</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/credentials">New Credential</Link></DropdownMenuItem>
           </DropdownMenuContent>
