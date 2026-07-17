@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { serviceCategories } from "@/components/services/marketing-shell";
+import { serviceCategories, type ServiceCategory, type ServicePackage } from "@/components/services/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
