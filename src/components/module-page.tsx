@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { PageContainer, PageHeader } from "@/components/page";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 export interface Column<T = any> {
@@ -33,12 +33,13 @@ interface ModulePageProps<T> {
   validateForm?: (f: any) => string | null;
   transformInsert?: (f: any) => any;
   onCreate?: (f: any) => Promise<unknown>;
+  createDescription?: string;
 }
 
 export function ModulePage<T extends { id: string }>({
   eyebrow, title, description, table, queryKey, orderBy = "created_at",
   columns, searchFields, emptyLabel, createTitle, createLabel = "New",
-  renderForm, emptyForm, validateForm, transformInsert, onCreate,
+  renderForm, emptyForm, validateForm, transformInsert, onCreate, createDescription,
 }: ModulePageProps<T>) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -98,11 +99,23 @@ export function ModulePage<T extends { id: string }>({
                 {createLabel}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>{createTitle}</DialogTitle></DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
-                {renderForm(form, setForm)}
-                <DialogFooter>
+            <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto p-0">
+              <DialogHeader className="sticky top-0 z-10 border-b bg-background/95 px-5 py-4 backdrop-blur">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <DialogTitle>{createTitle}</DialogTitle>
+                    {createDescription && <p className="mt-1 text-sm text-muted-foreground">{createDescription}</p>}
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </DialogHeader>
+              <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4 px-5 py-4">
+                <div className="rounded-xl border bg-muted/20 p-4">
+                  {renderForm(form, setForm)}
+                </div>
+                <DialogFooter className="sticky bottom-0 -mx-5 border-t bg-background/95 px-5 py-4 backdrop-blur">
                   <Button type="submit" disabled={create.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
                     {create.isPending ? "Saving…" : "Save"}
                   </Button>
@@ -114,8 +127,8 @@ export function ModulePage<T extends { id: string }>({
       />
 
       <Card><CardContent className="p-0">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="relative w-96">
+        <div className="flex flex-col gap-3 p-4 border-b sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search…" className="pl-10 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
