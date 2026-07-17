@@ -1,11 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { STARLINK_EXTERNAL_PAYOUT_USD, normalizeStarlinkPlan, starlinkPlanPrice } from "./starlink.shared";
 import {
-  STARLINK_EXTERNAL_PAYOUT_USD,
   buildStarlinkProviderPayload,
-  normalizeStarlinkPlan,
   sendExternalStarlinkRecharge,
-  starlinkPlanPrice,
 } from "./starlink.server";
 
 export const listStarlinkAccounts = createServerFn({ method: "GET" })
@@ -229,7 +227,7 @@ export const recordStarlinkRecharge = createServerFn({ method: "POST" })
     });
 
     let externalStatus = "queued";
-    let externalResponse: unknown = null;
+    let externalResponse: Record<string, any> | null = null;
     try {
       const external = await sendExternalStarlinkRecharge({
         rechargeId: recharge.id,
@@ -243,7 +241,7 @@ export const recordStarlinkRecharge = createServerFn({ method: "POST" })
         paymentReference: reference,
       });
       externalStatus = external.status;
-      externalResponse = external.response;
+      externalResponse = JSON.parse(JSON.stringify(external.response ?? null));
     } catch (e: any) {
       externalStatus = "failed";
       externalResponse = { error: e?.message ?? String(e) };

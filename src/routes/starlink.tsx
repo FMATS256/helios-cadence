@@ -11,7 +11,7 @@ import {
   listStarlinkRecharges,
   recordStarlinkRecharge,
 } from "@/lib/starlink.functions";
-import { STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS } from "@/lib/starlink.server";
+import { STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS } from "@/lib/starlink.shared";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -274,7 +274,7 @@ function RechargeDialog({ account, onDone }: { account: any; onDone: () => void 
   const margin = Number(form.customer_charge_usd || 0) - STARLINK_EXTERNAL_PAYOUT_USD;
   const recharge = useMutation({
     mutationFn: () => fn({ data: { starlink_account_id: account.id, customer_charge_usd: Number(form.customer_charge_usd), payment_method: form.payment_method, payment_reference: form.payment_reference || undefined, notes: form.notes || undefined } }),
-    onSuccess: (r) => { toast.success(`Recharge recorded · margin ${money(r.margin_usd)}`); onDone(); },
+    onSuccess: (r: any) => { toast.success(`Recharge recorded · margin ${money(r.margin_usd)}`); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
