@@ -76,12 +76,10 @@ function PaymentsPage() {
 
   const filtered = useMemo(() => {
     return rows.filter((r: any) => {
-      if (tab === "walkin" && r.customer_id && !(customers.find((c: any) => c.id === r.customer_id)?.industry === "Walk-in")) {
-        // Walk-in tab: match by industry — best-effort, since customers list doesn't join here
-      }
       if (tab === "unreconciled" && r.reconciliation_status === "matched") return false;
       if (tab === "refunded" && r.status !== "refunded") return false;
       if (tab === "pending" && r.status !== "pending") return false;
+
       if (methodFilter !== "all" && r.method !== methodFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (!search) return true;
