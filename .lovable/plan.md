@@ -1,87 +1,68 @@
-# Cloud Provisioning Agent — Phased Plan
+# Why this needs phasing
 
-Full spec (7 providers, 15 resource types, 18 templates, 20-step workflow) is a multi-week build. I'll ship it in phases, each independently useful. This turn covers **Phase 1 + 2**; Phases 3–5 land in follow-up turns.
+You asked for ~15 major features in one go: universal search + 360° workspace, payments platform overhaul, auto invoices/receipts, auto suspend/reactivate, hosting/cloud-storage/NAS modules, licenses, reports, finish provisioning agent, communications, Starlink AURA scraping, etc.
 
-## Architecture (locked once, reused by every phase)
+Each one alone is a full turn. Bundling them guarantees:
 
-```text
-API layer (TanStack server fns + /api/public/agent/* routes)
-        │
-Provisioning engine   ── validates, prices, picks provider/region, orchestrates workflow
-        │
-Provider abstraction  ── CloudProvider interface (createVM, power, terminate, listRegions, price…)
-        │      ├── kamatera/  (done)
-        │      ├── hetzner/   (Phase 3)
-        │      ├── digitalocean/, vultr/  (Phase 3)
-        │      └── aws/, azure/, gcp/     (Phase 5)
-        │
-Template engine       ── cloud-init user-data renderer, one file per stack
-        │
-Asset registry        ── writes to cloud_servers + assets + monitoring_checks
-        │
-Workflow runner       ── deployment_steps table, resumable, emits activity + notifications
-```
+- Half-working screens, broken RLS, and blank pages
+- Wasted credits fixing regressions
+- No verification per feature
 
-Common `CloudProvider` interface every adapter implements:  
-`listRegions`, `listImages`, `listInstanceTypes`, `estimatePrice`, `createServer`, `powerAction`, `terminate`, `getServer`, `attachFloatingIp`, `createFirewall`, `createBlockStorage`.
+I'll ship this in 4 tight phases. Each phase compiles, is verified, and unlocks the next.
 
-## Phase 1 — Foundation (this turn)
+---
 
-- `src/lib/providers/types.ts` — `CloudProvider` interface, shared types (`Region`, `InstanceType`, `ProvisionRequest`, `ProvisionResult`, `ResourceKind`).
-- `src/lib/providers/registry.ts` — provider registry + `getProvider(name)`.
-- `src/lib/providers/kamatera/adapter.ts` — wraps existing `kamatera.server.ts` behind the interface.
-- `src/lib/providers/kamatera/pricing.ts` — deterministic Kamatera monthly price estimator.
-- `src/lib/agent/validate.ts` — request validation (spec bounds, image/region compat, cost cap).
-- `src/lib/agent/select-provider.ts` — provider/region selector (policy → price → availability).
-- Migration: `deployment_workflows` + `deployment_steps` tables (workflow state, resumable) with GRANT + RLS.
+## Phase 1 — Payments platform + auto invoice/receipt (this turn)
 
-## Phase 2 — Provisioning engine + templates (this turn)
+Upgrade the existing `/payments` page in place (no new page):
 
-- `src/lib/agent/workflow.ts` — runs the 20-step workflow, writes each step to `deployment_steps`, emits `cloud_activity`, sends `notifications` on success/failure.
-- `src/lib/agent/templates/` — one cloud-init renderer per stack. Phase 2 ships: **wordpress, nextcloud, docker, docker-compose, nginx, nodejs, postgres, mysql, mariadb, monitoring-stack**. Others (`gitlab`, `jenkins`, `laravel`, `python`, `apache`, `freepbx`, `3cx`, `active-directory`) stubbed with `Not yet implemented` — added in Phase 4.
-- `src/lib/agent.functions.ts` — server functions: `provisionResource`, `getWorkflow`, `cancelWorkflow`, `estimateCost`, `listTemplates`, `listProviders`.
-- Public API route `src/routes/api/public/agent/provision.ts` — HMAC-signed webhook contract for Account Manager integration.
-- Auto-register in `assets` table + auto-create a `monitoring_checks` HTTP/ping check on success.
+- Header KPI cards: Today, This Week, This Month, Outstanding, Pending Reconciliation, Failed, Credit Balances, Refunds
+- Universal search input (account #, name, company, invoice #, receipt #, txn ref, phone, email, PPPoE)
+- Quick date filters (Today, 7d, 30d, This Month, Last Month) + status/method filters
+- Expanded table: receipt #, account, customer, company, method, amount, currency, txn ref, invoices paid, recorded by, date, reconciliation, service status, actions
+- Record Payment dialog upgraded: pick any billable service (subscription/invoice/one-off), full/partial/multi-invoice, walk-in, advance credit
+- On successful payment: auto-match to invoices, mark paid/partial, generate receipt row, log audit, mark subscription active
+- Customer quick-view drawer on row click: services, balance, outstanding, recent tickets, devices
+- CSV export
 
-## Phase 3 — Multi-provider (next turn)
+## Phase 2 — Universal Global Search + 360° Customer Workspace
 
-- Hetzner, DigitalOcean, Vultr adapters (all have simple REST APIs + cloud-init support).
-- Each requires a Lovable Cloud secret (I'll request via `add_secret` when we get there).
-- Region/price data hydrated on first call, cached in `provider_regions` table.
+- Global search bar in app shell (⌘K) that searches customers, invoices, payments, tickets, subscriptions, assets, credentials by account #, name, phone, email, invoice #, PPPoE, MAC, serial, etc.
+- New `/workspace/$accountNumber` route with sticky header + tabs: Overview, Services, Payments, Invoices, Quotes, Tickets, Network, Devices, Documents, Communications, Timeline, Audit
+- Quick actions bar: Record Payment, Generate Invoice, Suspend, Reactivate, Send Receipt, Add Note, Create Ticket
 
-## Phase 4 — Remaining templates + advanced resources (next turn)
+## Phase 3 — New modules + admin
 
-- Remaining 8 templates.
-- Block/object storage, load balancers, floating IPs, firewalls, DNS zones, SSL (Let's Encrypt via cloud-init).
+- Web Hosting module (cPanel accounts, deep-links, renewal dates)
+- Cloud Storage + Managed NAS modules (schema ready, awaiting your APIs)
+- Networking & Cybersecurity license tracker (manual add + renewal reminders)
+- Reports builder with CSV/PDF export
+- Auto-suspend/reactivate rules with grace period settings
 
-## Phase 5 — Hyperscalers (deferred)
+## Phase 4 — Finish provisioning agent + Starlink AURA scraping
 
-- AWS/Azure/GCP require IAM, VPC, SG, credentials management. Deferred because each is a project on its own — I'll ask you to confirm scope + provide credentials before starting.
+- Agent worker: retry loop, status polling cron via `/api/public/hooks/*`, cloud-init hardening, failure alerts
+- Starlink AURA scraping via Firecrawl for account/balance/usage using stored customer credentials
+- Communications log (email/SMS/WhatsApp) per customer
 
-## Explicitly out of scope (call out now)
-
-- **UI**: you said "focus is functionality, not UI." I'll expose everything via server fns + API. The existing Cloud Ops page keeps working; I won't redesign it in this stream.
-- **Kubernetes clusters** and **VPN/Backup/Database managed services**: these use *provider-managed* services (EKS, DOKS, Hetzner LB, DO Spaces). Ship in Phase 4 for providers that expose them; skip elsewhere.
-- **AD/3CX/FreePBX**: real installers, not cloud-init one-liners — Phase 4 will render the automation scripts but you'll need licenses/ISOs for 3CX.
+---
 
 ## Technical notes
 
-- Workflow is idempotent per `workflow_id` — re-running resumes at the last non-completed step. Steps write their own compensating action so failures can auto-rollback (`terminateServer` if `createServer` succeeded but init failed).
-- Templates render to cloud-init YAML passed as `user-data`. Kamatera doesn't expose `user-data` on all images, so for Kamatera we SSH-inject the script post-boot (needs SSH key at provision time — already supported in the wizard).
-- Cost estimator returns `{ monthly_usd, hourly_usd, breakdown[] }` and is called both before provision (dry-run) and stored on the row.
-- All `/api/public/agent/*` endpoints require HMAC signature (`X-Agent-Signature: sha256=…`) verified against `AGENT_WEBHOOK_SECRET` (I'll `generate_secret` it in Phase 1).
-- Notifications go through the existing `notifications` table + (later) email via the existing email pipeline.
+- All new tables get GRANT + RLS + owner policies in one migration
+- Server functions use `requireSupabaseAuth`; public reads use publishable-key client with narrow anon SELECT
+- KPI cards + charts reuse existing `dashboards/charts.tsx` primitives
+- No new pages for payments — upgrade `src/routes/payments.tsx` in place, per your instruction
+- Receipts: generated as an `invoices` row with `type = 'receipt'` OR a new `receipts` table (I'll pick receipts table for clean separation)
 
-## Deliverable this turn
+---
 
-Phase 1 + 2: Kamatera end-to-end through the new engine, 10 templates, workflow runner, public webhook API, cost estimator, asset auto-registration, monitoring auto-enablement.
+## What I need from you
 
-Reply **Approve** to build Phase 1 + 2, or tell me what to cut/add.
+**Confirm: start Phase 1 now?** Reply "yes phase 1" and I'll build it end-to-end this turn. Any other slice, tell me which phase to start with instead.
 
-&nbsp;
-
-Add the following to the specification:
+If you insist on everything at once, I'll do it — but expect broken screens and follow-up turns to repair each one. My strong recommendation is Phase 1 first.
 
 &nbsp;
 
-> The IMT Service Provisioning Agent is an internal technical execution engine used exclusively by IMT Solutions staff to automate the provisioning and deployment of client infrastructure and services. Before performing any work, it must analyze the request and automatically generate a comprehensive execution report that includes the proposed architecture, recommended integrated service provider (selected intelligently from configured providers based on pricing, availability, performance, region, and service compatibility), required resources, software stack, estimated cloud and licensing costs, projected operational costs, estimated provisioning and configuration time, deployment workflow, technical risks, dependencies, security considerations, and AI-driven optimization recommendations. The report must support a full dry-run simulation, showing every planned action and API call without creating any resources, allowing IMT engineers to review, modify, approve, or reject the plan. Only after approval should the agent begin provisioning, installing, configuring, validating, and documenting the infrastructure. Throughout execution it must display live progress, logs, warnings, and errors, automatically retry or roll back failed operations where appropriate, perform comprehensive post-deployment validation, register all deployed assets in the IMT Account Manager, securely store credentials, enable monitoring and backups, and generate complete deployment documentation before the finished service is handed over to the client.
+Yes phase 1
