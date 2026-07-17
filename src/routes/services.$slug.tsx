@@ -102,7 +102,7 @@ function ServiceDetail() {
             <p className="text-muted-foreground mt-2">Every package can be tailored — talk to us for combined bundles across services.</p>
           </div>
           <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {category.packages.map((p) => (
+            {category.packages.map((p: ServicePackage) => (
               <div key={p.name} className={`relative rounded-xl border bg-card p-6 flex flex-col ${p.highlight ? "border-solar shadow-lg" : "border-border"}`}>
                 {p.highlight && (
                   <span className="absolute -top-3 left-6 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
