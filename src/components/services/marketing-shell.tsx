@@ -135,7 +135,7 @@ export const serviceCategories: ServiceCategory[] = [
   },
 ];
 
-export type ServiceCategory = typeof serviceCategories[number];
+
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
