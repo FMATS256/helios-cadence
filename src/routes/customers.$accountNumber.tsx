@@ -378,6 +378,3 @@ function KpiTile({ icon: Icon, label, value, tone = "info" }: { icon: any; label
     </CardContent></Card>
   );
 }
-
-// keep this import to avoid tree-shake dropping the Repeat icon used elsewhere
-void Repeat;
