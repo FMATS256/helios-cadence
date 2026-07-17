@@ -58,7 +58,7 @@ function ServiceDetail() {
         <div className="md:col-span-2 space-y-6">
           <h2 className="font-display text-2xl font-bold">What's included</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {category.features.map((f) => (
+            {category.features.map((f: string) => (
               <li key={f} className="flex items-start gap-2 p-4 rounded-lg border border-border bg-card">
                 <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                 <span className="text-sm">{f}</span>
