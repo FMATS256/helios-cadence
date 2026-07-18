@@ -455,6 +455,139 @@ export type Database = {
           },
         ]
       }
+      cloud_storage_accounts: {
+        Row: {
+          access_url: string | null
+          account_number: string | null
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          id: string
+          monthly_cost: number | null
+          name: string
+          notes: string | null
+          provider: string | null
+          renewal_date: string | null
+          status: string | null
+          storage_tb: number | null
+          updated_at: string
+          used_tb: number | null
+        }
+        Insert: {
+          access_url?: string | null
+          account_number?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          id?: string
+          monthly_cost?: number | null
+          name: string
+          notes?: string | null
+          provider?: string | null
+          renewal_date?: string | null
+          status?: string | null
+          storage_tb?: number | null
+          updated_at?: string
+          used_tb?: number | null
+        }
+        Update: {
+          access_url?: string | null
+          account_number?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          id?: string
+          monthly_cost?: number | null
+          name?: string
+          notes?: string | null
+          provider?: string | null
+          renewal_date?: string | null
+          status?: string | null
+          storage_tb?: number | null
+          updated_at?: string
+          used_tb?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_storage_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          account_number: string | null
+          body: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          direction: string
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          recipient: string | null
+          sender: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          body?: string | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          direction?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient?: string | null
+          sender?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          body?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          direction?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient?: string | null
+          sender?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credential_access_log: {
         Row: {
           accessed_by: string | null
@@ -922,6 +1055,7 @@ export type Database = {
           plan_id: string | null
           progress: number
           provider: string
+          retry_count: number
           server_id: string | null
           started_at: string | null
           status: string
@@ -939,6 +1073,7 @@ export type Database = {
           plan_id?: string | null
           progress?: number
           provider: string
+          retry_count?: number
           server_id?: string | null
           started_at?: string | null
           status?: string
@@ -956,6 +1091,7 @@ export type Database = {
           plan_id?: string | null
           progress?: number
           provider?: string
+          retry_count?: number
           server_id?: string | null
           started_at?: string | null
           status?: string
@@ -1189,6 +1325,157 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      licenses: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          auto_renew: boolean | null
+          category: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          expiry_date: string | null
+          id: string
+          license_key: string | null
+          notes: string | null
+          product: string
+          purchase_date: string | null
+          seats: number | null
+          status: string | null
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          auto_renew?: boolean | null
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          license_key?: string | null
+          notes?: string | null
+          product: string
+          purchase_date?: string | null
+          seats?: number | null
+          status?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          auto_renew?: boolean | null
+          category?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          license_key?: string | null
+          notes?: string | null
+          product?: string
+          purchase_date?: string | null
+          seats?: number | null
+          status?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      managed_nas_accounts: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          capacity_tb: number | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          id: string
+          location: string | null
+          management_url: string | null
+          model: string | null
+          monthly_cost: number | null
+          name: string
+          notes: string | null
+          raid_level: string | null
+          renewal_date: string | null
+          serial_number: string | null
+          status: string | null
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          capacity_tb?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          id?: string
+          location?: string | null
+          management_url?: string | null
+          model?: string | null
+          monthly_cost?: number | null
+          name: string
+          notes?: string | null
+          raid_level?: string | null
+          renewal_date?: string | null
+          serial_number?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          capacity_tb?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          id?: string
+          location?: string | null
+          management_url?: string | null
+          model?: string | null
+          monthly_cost?: number | null
+          name?: string
+          notes?: string | null
+          raid_level?: string | null
+          renewal_date?: string | null
+          serial_number?: string | null
+          status?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_nas_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monitoring_checks: {
         Row: {
@@ -2325,6 +2612,83 @@ export type Database = {
             columns: ["voip_account_id"]
             isOneToOne: false
             referencedRelation: "voip_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_hosting_accounts: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          bandwidth_gb: number | null
+          control_panel: string | null
+          control_panel_url: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          disk_quota_gb: number | null
+          domain: string
+          id: string
+          monthly_cost: number | null
+          notes: string | null
+          plan: string | null
+          provider: string | null
+          renewal_date: string | null
+          status: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          bandwidth_gb?: number | null
+          control_panel?: string | null
+          control_panel_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          disk_quota_gb?: number | null
+          domain: string
+          id?: string
+          monthly_cost?: number | null
+          notes?: string | null
+          plan?: string | null
+          provider?: string | null
+          renewal_date?: string | null
+          status?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          bandwidth_gb?: number | null
+          control_panel?: string | null
+          control_panel_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          disk_quota_gb?: number | null
+          domain?: string
+          id?: string
+          monthly_cost?: number | null
+          notes?: string | null
+          plan?: string | null
+          provider?: string | null
+          renewal_date?: string | null
+          status?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_hosting_accounts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]

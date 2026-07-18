@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
@@ -23,11 +24,15 @@ import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ManagedNasRouteImport } from './routes/managed-nas'
+import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
+import { Route as CommunicationsRouteImport } from './routes/communications'
+import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
 import { Route as CloudRouteImport } from './routes/cloud'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -52,9 +57,15 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
+import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 
+const WebHostingRoute = WebHostingRouteImport.update({
+  id: '/web-hosting',
+  path: '/web-hosting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VoipRoute = VoipRouteImport.update({
   id: '/voip',
   path: '/voip',
@@ -125,6 +136,16 @@ const McpRoute = McpRouteImport.update({
   path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManagedNasRoute = ManagedNasRouteImport.update({
+  id: '/managed-nas',
+  path: '/managed-nas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LicensesRoute = LicensesRouteImport.update({
+  id: '/licenses',
+  path: '/licenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
   id: '/laptop-tracking',
   path: '/laptop-tracking',
@@ -148,6 +169,16 @@ const CustomersRoute = CustomersRouteImport.update({
 const CredentialsRoute = CredentialsRouteImport.update({
   id: '/credentials',
   path: '/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicationsRoute = CommunicationsRouteImport.update({
+  id: '/communications',
+  path: '/communications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudStorageRoute = CloudStorageRouteImport.update({
+  id: '/cloud-storage',
+  path: '/cloud-storage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudRoute = CloudRouteImport.update({
@@ -274,6 +305,12 @@ const ApiPublicHooksRemindersTickRoute =
     path: '/api/public/hooks/reminders-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProvisioningRetryRoute =
+  ApiPublicHooksProvisioningRetryRouteImport.update({
+    id: '/api/public/hooks/provisioning-retry',
+    path: '/api/public/hooks/provisioning-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksMonitoringTickRoute =
   ApiPublicHooksMonitoringTickRouteImport.update({
     id: '/api/public/hooks/monitoring-tick',
@@ -293,11 +330,15 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/cloud-storage': typeof CloudStorageRoute
+  '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/licenses': typeof LicensesRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -312,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
+  '/web-hosting': typeof WebHostingRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -331,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesByTo {
@@ -340,11 +383,15 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/cloud-storage': typeof CloudStorageRoute
+  '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/licenses': typeof LicensesRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -357,6 +404,7 @@ export interface FileRoutesByTo {
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
+  '/web-hosting': typeof WebHostingRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -376,6 +424,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesById {
@@ -386,11 +435,15 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/cloud-storage': typeof CloudStorageRoute
+  '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/licenses': typeof LicensesRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -405,6 +458,7 @@ export interface FileRoutesById {
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
+  '/web-hosting': typeof WebHostingRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -424,6 +478,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRouteTypes {
@@ -435,11 +490,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
+    | '/cloud-storage'
+    | '/communications'
     | '/credentials'
     | '/customers'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/licenses'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -454,6 +513,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/tickets'
     | '/voip'
+    | '/web-hosting'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -473,6 +533,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -482,11 +543,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
+    | '/cloud-storage'
+    | '/communications'
     | '/credentials'
     | '/customers'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/licenses'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -499,6 +564,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/tickets'
     | '/voip'
+    | '/web-hosting'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -518,6 +584,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   id:
     | '__root__'
@@ -527,11 +594,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/cloud'
+    | '/cloud-storage'
+    | '/communications'
     | '/credentials'
     | '/customers'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/licenses'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -546,6 +617,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/tickets'
     | '/voip'
+    | '/web-hosting'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -565,6 +637,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   fileRoutesById: FileRoutesById
 }
@@ -575,11 +648,15 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
   CloudRoute: typeof CloudRoute
+  CloudStorageRoute: typeof CloudStorageRoute
+  CommunicationsRoute: typeof CommunicationsRoute
   CredentialsRoute: typeof CredentialsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
+  LicensesRoute: typeof LicensesRoute
+  ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -594,6 +671,7 @@ export interface RootRouteChildren {
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
+  WebHostingRoute: typeof WebHostingRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
@@ -604,11 +682,19 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
+  ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/web-hosting': {
+      id: '/web-hosting'
+      path: '/web-hosting'
+      fullPath: '/web-hosting'
+      preLoaderRoute: typeof WebHostingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/voip': {
       id: '/voip'
       path: '/voip'
@@ -707,6 +793,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/managed-nas': {
+      id: '/managed-nas'
+      path: '/managed-nas'
+      fullPath: '/managed-nas'
+      preLoaderRoute: typeof ManagedNasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/licenses': {
+      id: '/licenses'
+      path: '/licenses'
+      fullPath: '/licenses'
+      preLoaderRoute: typeof LicensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/laptop-tracking': {
       id: '/laptop-tracking'
       path: '/laptop-tracking'
@@ -740,6 +840,20 @@ declare module '@tanstack/react-router' {
       path: '/credentials'
       fullPath: '/credentials'
       preLoaderRoute: typeof CredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communications': {
+      id: '/communications'
+      path: '/communications'
+      fullPath: '/communications'
+      preLoaderRoute: typeof CommunicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cloud-storage': {
+      id: '/cloud-storage'
+      path: '/cloud-storage'
+      fullPath: '/cloud-storage'
+      preLoaderRoute: typeof CloudStorageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cloud': {
@@ -910,6 +1024,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRemindersTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/provisioning-retry': {
+      id: '/api/public/hooks/provisioning-retry'
+      path: '/api/public/hooks/provisioning-retry'
+      fullPath: '/api/public/hooks/provisioning-retry'
+      preLoaderRoute: typeof ApiPublicHooksProvisioningRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/monitoring-tick': {
       id: '/api/public/hooks/monitoring-tick'
       path: '/api/public/hooks/monitoring-tick'
@@ -999,11 +1120,15 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
   CloudRoute: CloudRoute,
+  CloudStorageRoute: CloudStorageRoute,
+  CommunicationsRoute: CommunicationsRoute,
   CredentialsRoute: CredentialsRoute,
   CustomersRoute: CustomersRouteWithChildren,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
+  LicensesRoute: LicensesRoute,
+  ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
@@ -1018,6 +1143,7 @@ const rootRouteChildren: RootRouteChildren = {
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,
+  WebHostingRoute: WebHostingRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
@@ -1029,6 +1155,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
+  ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
 }
 export const routeTree = rootRouteImport

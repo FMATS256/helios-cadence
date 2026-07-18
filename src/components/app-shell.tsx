@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -39,6 +40,9 @@ const navGroups = [
       { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Managed Services", url: "/cloud", icon: Server },
       { title: "Starlink", url: "/starlink", icon: Satellite },
+      { title: "Web Hosting", url: "/web-hosting", icon: Globe },
+      { title: "Cloud Storage", url: "/cloud-storage", icon: HardDrive },
+      { title: "Managed NAS", url: "/managed-nas", icon: Database },
       { title: "Service Pages", url: "/services", icon: BookOpen },
       { title: "Assets", url: "/assets", icon: Server },
       { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
@@ -54,7 +58,9 @@ const navGroups = [
       { title: "Billing", url: "/billing", icon: Receipt },
       { title: "Payments", url: "/payments", icon: CreditCard },
       { title: "Subscriptions", url: "/subscriptions", icon: Repeat },
+      { title: "Licenses", url: "/licenses", icon: ShieldCheck },
       { title: "Inventory", url: "/inventory", icon: Warehouse },
+      { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Reports", url: "/reports", icon: BarChart3 },
     ],
   },

@@ -257,3 +257,39 @@ export const recordStarlinkRecharge = createServerFn({ method: "POST" })
 
     return { recharge_id: recharge.id, payment_reference: reference, external_status: externalStatus, external_response: externalResponse, margin_usd: margin };
   });
+// Scrape Starlink AURA portal via Firecrawl for public account snapshot.
+// Reads FIRECRAWL_API_KEY (connector-managed) at runtime. Best-effort:
+// returns raw markdown + extracted key/value pairs.
+export const scrapeAuraAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { account_number: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required.");
+    const key = process.env.FIRECRAWL_API_KEY;
+    if (!key) throw new Error("FIRECRAWL_API_KEY not configured");
+    if (!data.account_number) throw new Error("account_number required");
+
+    const url = `https://aura.starlink.com/account/${encodeURIComponent(data.account_number)}`;
+    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+    });
+    if (!res.ok) throw new Error(`Firecrawl failed [${res.status}]: ${await res.text()}`);
+    const body: any = await res.json();
+    const md: string = body?.data?.markdown ?? "";
+
+    const pick = (re: RegExp) => md.match(re)?.[1]?.trim() ?? null;
+    const facts = {
+      account_number: data.account_number,
+      plan: pick(/plan[:\s]+([^\n]+)/i),
+      status: pick(/status[:\s]+([^\n]+)/i),
+      balance: pick(/balance[:\s]+([^\n]+)/i),
+      next_billing: pick(/next\s+billing[:\s]+([^\n]+)/i),
+      data_used: pick(/data\s+used[:\s]+([^\n]+)/i),
+      terminal_id: pick(/terminal(?:\s+id)?[:\s]+([A-Za-z0-9-]+)/i),
+      service_address: pick(/service\s+address[:\s]+([^\n]+)/i),
+    };
+    return { url, facts, markdown: md.slice(0, 8000) };
+  });

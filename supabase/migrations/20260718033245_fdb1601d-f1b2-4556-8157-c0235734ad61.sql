@@ -1,0 +1,1 @@
+ALTER TABLE public.deployment_workflows ADD COLUMN IF NOT EXISTS retry_count integer NOT NULL DEFAULT 0;
