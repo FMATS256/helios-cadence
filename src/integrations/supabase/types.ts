@@ -1055,6 +1055,7 @@ export type Database = {
           plan_id: string | null
           progress: number
           provider: string
+          retry_count: number
           server_id: string | null
           started_at: string | null
           status: string
@@ -1072,6 +1073,7 @@ export type Database = {
           plan_id?: string | null
           progress?: number
           provider: string
+          retry_count?: number
           server_id?: string | null
           started_at?: string | null
           status?: string
@@ -1089,6 +1091,7 @@ export type Database = {
           plan_id?: string | null
           progress?: number
           provider?: string
+          retry_count?: number
           server_id?: string | null
           started_at?: string | null
           status?: string
