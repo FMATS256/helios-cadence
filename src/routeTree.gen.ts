@@ -57,6 +57,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
+import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 
@@ -304,6 +305,12 @@ const ApiPublicHooksRemindersTickRoute =
     path: '/api/public/hooks/reminders-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksProvisioningRetryRoute =
+  ApiPublicHooksProvisioningRetryRouteImport.update({
+    id: '/api/public/hooks/provisioning-retry',
+    path: '/api/public/hooks/provisioning-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksMonitoringTickRoute =
   ApiPublicHooksMonitoringTickRouteImport.update({
     id: '/api/public/hooks/monitoring-tick',
@@ -366,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesByTo {
@@ -416,6 +424,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRoutesById {
@@ -469,6 +478,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
+  '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
 }
 export interface FileRouteTypes {
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   id:
     | '__root__'
@@ -625,6 +637,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
+    | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
   fileRoutesById: FileRoutesById
 }
@@ -669,6 +682,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
+  ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
 }
 
@@ -1010,6 +1024,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRemindersTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/provisioning-retry': {
+      id: '/api/public/hooks/provisioning-retry'
+      path: '/api/public/hooks/provisioning-retry'
+      fullPath: '/api/public/hooks/provisioning-retry'
+      preLoaderRoute: typeof ApiPublicHooksProvisioningRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/monitoring-tick': {
       id: '/api/public/hooks/monitoring-tick'
       path: '/api/public/hooks/monitoring-tick'
@@ -1134,6 +1155,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
+  ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
 }
 export const routeTree = rootRouteImport
