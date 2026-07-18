@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
