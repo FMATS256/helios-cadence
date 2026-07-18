@@ -24,6 +24,7 @@ import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ManagedNasRouteImport } from './routes/managed-nas'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -130,6 +131,11 @@ const MonitoringRoute = MonitoringRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagedNasRoute = ManagedNasRouteImport.update({
+  id: '/managed-nas',
+  path: '/managed-nas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
@@ -459,6 +468,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/managed-nas'
     | '/mcp'
     | '/monitoring'
     | '/notifications'
@@ -605,6 +617,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
+  ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -738,6 +751,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/managed-nas': {
+      id: '/managed-nas'
+      path: '/managed-nas'
+      fullPath: '/managed-nas'
+      preLoaderRoute: typeof ManagedNasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/laptop-tracking': {
@@ -1045,6 +1065,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
+  ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
