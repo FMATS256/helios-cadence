@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { HeroPanel, KpiCard, QuickAction, SectionCard } from "./shared";
 import {
   GradientAreaChart,
+  GradientBarChart,
   DonutChart,
   RadialGauge,
   ChartLegend,
