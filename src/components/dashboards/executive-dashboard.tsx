@@ -164,20 +164,22 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
   return (
     <>
       <HeroPanel
-        eyebrow={new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" })}
-        title={`Command Center · ${displayName}`}
+        eyebrow={new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}
+        title={`Welcome back, ${displayName.split(" ")[0] || displayName} 👋`}
         subtitle={
           <>
-            Everything you run — customers, cloud, revenue, uptime — at a glance.
-            <span className="text-solar font-semibold"> {s?.customerCount ?? 0}</span> customers ·
-            <span className="text-solar font-semibold"> {s?.servers?.length ?? 0}</span> servers ·
-            <span className="text-solar font-semibold"> {USD(s?.mrr ?? 0)}</span> MRR
+            Your team has{" "}
+            <span className="text-solar font-semibold">{s?.pipeline?.[2]?.value ?? 0} deployments</span>{" "}
+            in flight and{" "}
+            <span className="text-solar font-semibold">{USD(s?.mrr ?? 0)}</span>{" "}
+            in active MRR across{" "}
+            <span className="text-solar font-semibold">{s?.customerCount ?? 0}</span> customers.
           </>
         }
         actions={
           <>
             <Button asChild variant="outline" className="bg-white/10 text-navy-foreground border-white/20 hover:bg-white/20 hover:text-navy-foreground">
-              <Link to="/cloud-ops">Cloud Ops</Link>
+              <Link to="/reports">View reports</Link>
             </Button>
             <Button asChild className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
               <Link to="/cloud-ops/new"><Rocket className="h-4 w-4 mr-1.5" />Provision</Link>
@@ -187,13 +189,12 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
       />
 
       {/* Business KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} hint={`${s?.pipeline?.[3]?.value ?? 0} live services`} />
         <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" spark={s?.ticketsSpark} />
         <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" spark={s?.mrrSpark} />
         <KpiCard label="Unpaid AR" value={USD(s?.unpaid ?? 0)} icon={FileText} tone="warning" to="/billing" />
-        <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
-        <KpiCard label="Assets" value={s?.assetCount ?? 0} icon={Box} tone="info" to="/assets" />
+        <KpiCard label="Cloud Spend" value={USD(s?.cloudSpend ?? 0)} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
       </div>
 
       {/* Cloud infra KPIs */}
