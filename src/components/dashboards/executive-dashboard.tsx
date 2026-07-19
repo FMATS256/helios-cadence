@@ -197,13 +197,6 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
         <KpiCard label="Cloud Spend" value={USD(s?.cloudSpend ?? 0)} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
       </div>
 
-      {/* Cloud infra KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
-        <KpiCard label="Cloud Spend / mo" value={USD(s?.cloudSpend ?? 0)} icon={DollarSign} tone="solar" to="/cloud-ops" />
-        <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
-        <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
-      </div>
 
       <SectionCard title="Quick actions" description="Kick off the most common workflows">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
