@@ -154,6 +154,7 @@ async function load() {
     trend, trendMax,
     customersSpark, ticketsSpark, serversSpark, mrrSpark,
     openByPriority, spendByProvider, fleetHealth,
+    pipeline, pipelineChart,
   };
 }
 
