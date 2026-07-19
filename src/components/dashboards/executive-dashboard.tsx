@@ -117,6 +117,19 @@ async function load() {
 
   const fleetHealth = servers.length > 0 ? Math.round((runningServers / servers.length) * 100) : 100;
 
+  // Ops pipeline: Draft -> Approved -> Deploying -> Live
+  const draftCount = pl.filter((p) => p.status === "draft" || p.status === "pending_approval").length;
+  const approvedCount = pl.filter((p) => p.status === "approved").length;
+  const deployingCount = wf.filter((w) => w.status === "running" || w.status === "pending").length;
+  const liveCount = runningServers;
+  const pipeline = [
+    { label: "Draft", value: draftCount, spend: draftCount * 25, tone: "info" as const },
+    { label: "Approved", value: approvedCount, spend: approvedCount * 45, tone: "warning" as const },
+    { label: "Deploying", value: deployingCount, spend: deployingCount * 60, tone: "solar" as const },
+    { label: "Live", value: liveCount, spend: Math.round(cloudSpend), tone: "success" as const },
+  ];
+  const pipelineChart = pipeline.map((p) => ({ label: p.label, value: p.spend }));
+
   return {
     customerCount: c.length,
     openTickets: open.length,
