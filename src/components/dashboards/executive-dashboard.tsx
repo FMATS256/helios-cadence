@@ -218,36 +218,84 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
         </div>
       </SectionCard>
 
-      {/* Revenue trend + Provider spread + Fleet health */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      {/* Revenue trend + Pipeline value */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <SectionCard
-          className="xl:col-span-2"
           title="Revenue trend"
-          description="Paid invoices, last 6 months (USD)"
+          description="Paid invoices, last 6 months"
           action={
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">6-mo total</p>
-              <p className="font-display text-xl font-bold tabular-nums">
-                {USD((s?.trend ?? []).reduce((a, b) => a + b.value, 0))}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold rounded-full px-2 py-1 bg-success/10 text-success">+{Math.round(((s?.trend?.[5]?.value ?? 0) / Math.max(1, s?.trend?.[4]?.value ?? 1) - 1) * 100)}% MoM</span>
             </div>
           }
         >
           <GradientAreaChart
             data={s?.trend ?? []}
-            height={240}
+            height={260}
             color={IMT_COLORS.solar}
             colorEnd={IMT_COLORS.solarGlow}
             formatter={(v) => USD(v)}
           />
         </SectionCard>
 
+        <SectionCard
+          title="Pipeline value"
+          description="Estimated monthly value by stage"
+          action={
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total</p>
+              <p className="font-display text-xl font-bold tabular-nums">
+                {USD((s?.pipelineChart ?? []).reduce((a: number, b: any) => a + b.value, 0))}
+              </p>
+            </div>
+          }
+        >
+          <GradientBarChart
+            data={s?.pipelineChart ?? []}
+            height={260}
+            color={IMT_COLORS.navy}
+            colorEnd={IMT_COLORS.solar}
+            formatter={(v) => USD(v)}
+          />
+        </SectionCard>
+      </div>
+
+      {/* Pipeline snapshot */}
+      <SectionCard
+        title="Ops pipeline"
+        description="Live snapshot across the provisioning funnel"
+        action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">Open board <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {(s?.pipeline ?? []).map((p: any) => {
+            const toneMap: any = {
+              info: "from-info/15 to-info/0 border-info/30 text-info",
+              warning: "from-warning/25 to-warning/0 border-warning/40 text-[oklch(0.45_0.13_75)]",
+              solar: "from-solar/20 to-solar/0 border-solar/40 text-solar",
+              success: "from-success/15 to-success/0 border-success/30 text-success",
+            };
+            return (
+              <div key={p.label} className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 ${toneMap[p.tone]}`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[2px] font-semibold">{p.label}</p>
+                  <span className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-card/70">{p.value}</span>
+                </div>
+                <p className="font-display text-3xl font-bold text-foreground mt-3 tabular-nums">{p.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">Est. {USD(p.spend)}/mo</p>
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      {/* Fleet health + Cloud infra KPIs */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <SectionCard title="Fleet health" description={`${s?.runningServers ?? 0} / ${s?.servers?.length ?? 0} servers running`}>
           <RadialGauge
             value={s?.fleetHealth ?? 100}
             label="Uptime"
             color={(s?.fleetHealth ?? 100) >= 90 ? IMT_COLORS.success : (s?.fleetHealth ?? 100) >= 60 ? IMT_COLORS.warning : IMT_COLORS.danger}
-            height={200}
+            height={180}
           />
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-lg border border-border p-2">
@@ -264,6 +312,12 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
             </div>
           </div>
         </SectionCard>
+        <div className="xl:col-span-2 grid grid-cols-2 gap-3">
+          <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
+          <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
+          <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
+          <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
+        </div>
       </div>
 
       {/* Cloud spend by provider + Ticket priority breakdown */}
