@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { HeroPanel, KpiCard, QuickAction, SectionCard } from "./shared";
 import {
   GradientAreaChart,
+  GradientBarChart,
   DonutChart,
   RadialGauge,
   ChartLegend,
@@ -116,6 +117,19 @@ async function load() {
 
   const fleetHealth = servers.length > 0 ? Math.round((runningServers / servers.length) * 100) : 100;
 
+  // Ops pipeline: Draft -> Approved -> Deploying -> Live
+  const draftCount = pl.filter((p) => p.status === "draft" || p.status === "pending_approval").length;
+  const approvedCount = pl.filter((p) => p.status === "approved").length;
+  const deployingCount = wf.filter((w) => w.status === "running" || w.status === "pending").length;
+  const liveCount = runningServers;
+  const pipeline = [
+    { label: "Draft", value: draftCount, spend: draftCount * 25, tone: "info" as const },
+    { label: "Approved", value: approvedCount, spend: approvedCount * 45, tone: "warning" as const },
+    { label: "Deploying", value: deployingCount, spend: deployingCount * 60, tone: "solar" as const },
+    { label: "Live", value: liveCount, spend: Math.round(cloudSpend), tone: "success" as const },
+  ];
+  const pipelineChart = pipeline.map((p) => ({ label: p.label, value: p.spend }));
+
   return {
     customerCount: c.length,
     openTickets: open.length,
@@ -140,6 +154,7 @@ async function load() {
     trend, trendMax,
     customersSpark, ticketsSpark, serversSpark, mrrSpark,
     openByPriority, spendByProvider, fleetHealth,
+    pipeline, pipelineChart,
   };
 }
 
@@ -149,20 +164,22 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
   return (
     <>
       <HeroPanel
-        eyebrow={new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" })}
-        title={`Command Center · ${displayName}`}
+        eyebrow={new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}
+        title={`Welcome back, ${displayName.split(" ")[0] || displayName} 👋`}
         subtitle={
           <>
-            Everything you run — customers, cloud, revenue, uptime — at a glance.
-            <span className="text-solar font-semibold"> {s?.customerCount ?? 0}</span> customers ·
-            <span className="text-solar font-semibold"> {s?.servers?.length ?? 0}</span> servers ·
-            <span className="text-solar font-semibold"> {USD(s?.mrr ?? 0)}</span> MRR
+            Your team has{" "}
+            <span className="text-solar font-semibold">{s?.pipeline?.[2]?.value ?? 0} deployments</span>{" "}
+            in flight and{" "}
+            <span className="text-solar font-semibold">{USD(s?.mrr ?? 0)}</span>{" "}
+            in active MRR across{" "}
+            <span className="text-solar font-semibold">{s?.customerCount ?? 0}</span> customers.
           </>
         }
         actions={
           <>
             <Button asChild variant="outline" className="bg-white/10 text-navy-foreground border-white/20 hover:bg-white/20 hover:text-navy-foreground">
-              <Link to="/cloud-ops">Cloud Ops</Link>
+              <Link to="/reports">View reports</Link>
             </Button>
             <Button asChild className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
               <Link to="/cloud-ops/new"><Rocket className="h-4 w-4 mr-1.5" />Provision</Link>
@@ -172,22 +189,14 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
       />
 
       {/* Business KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} hint={`${s?.pipeline?.[3]?.value ?? 0} live services`} />
         <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" spark={s?.ticketsSpark} />
         <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" spark={s?.mrrSpark} />
         <KpiCard label="Unpaid AR" value={USD(s?.unpaid ?? 0)} icon={FileText} tone="warning" to="/billing" />
-        <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
-        <KpiCard label="Assets" value={s?.assetCount ?? 0} icon={Box} tone="info" to="/assets" />
+        <KpiCard label="Cloud Spend" value={USD(s?.cloudSpend ?? 0)} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
       </div>
 
-      {/* Cloud infra KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
-        <KpiCard label="Cloud Spend / mo" value={USD(s?.cloudSpend ?? 0)} icon={DollarSign} tone="solar" to="/cloud-ops" />
-        <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
-        <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
-      </div>
 
       <SectionCard title="Quick actions" description="Kick off the most common workflows">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -202,36 +211,84 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
         </div>
       </SectionCard>
 
-      {/* Revenue trend + Provider spread + Fleet health */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      {/* Revenue trend + Pipeline value */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <SectionCard
-          className="xl:col-span-2"
           title="Revenue trend"
-          description="Paid invoices, last 6 months (USD)"
+          description="Paid invoices, last 6 months"
           action={
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">6-mo total</p>
-              <p className="font-display text-xl font-bold tabular-nums">
-                {USD((s?.trend ?? []).reduce((a, b) => a + b.value, 0))}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold rounded-full px-2 py-1 bg-success/10 text-success">+{Math.round(((s?.trend?.[5]?.value ?? 0) / Math.max(1, s?.trend?.[4]?.value ?? 1) - 1) * 100)}% MoM</span>
             </div>
           }
         >
           <GradientAreaChart
             data={s?.trend ?? []}
-            height={240}
+            height={260}
             color={IMT_COLORS.solar}
             colorEnd={IMT_COLORS.solarGlow}
             formatter={(v) => USD(v)}
           />
         </SectionCard>
 
+        <SectionCard
+          title="Pipeline value"
+          description="Estimated monthly value by stage"
+          action={
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total</p>
+              <p className="font-display text-xl font-bold tabular-nums">
+                {USD((s?.pipelineChart ?? []).reduce((a: number, b: any) => a + b.value, 0))}
+              </p>
+            </div>
+          }
+        >
+          <GradientBarChart
+            data={s?.pipelineChart ?? []}
+            height={260}
+            color={IMT_COLORS.navy}
+            colorEnd={IMT_COLORS.solar}
+            formatter={(v) => USD(v)}
+          />
+        </SectionCard>
+      </div>
+
+      {/* Pipeline snapshot */}
+      <SectionCard
+        title="Ops pipeline"
+        description="Live snapshot across the provisioning funnel"
+        action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">Open board <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {(s?.pipeline ?? []).map((p: any) => {
+            const toneMap: any = {
+              info: "from-info/15 to-info/0 border-info/30 text-info",
+              warning: "from-warning/25 to-warning/0 border-warning/40 text-[oklch(0.45_0.13_75)]",
+              solar: "from-solar/20 to-solar/0 border-solar/40 text-solar",
+              success: "from-success/15 to-success/0 border-success/30 text-success",
+            };
+            return (
+              <div key={p.label} className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 ${toneMap[p.tone]}`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[2px] font-semibold">{p.label}</p>
+                  <span className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-card/70">{p.value}</span>
+                </div>
+                <p className="font-display text-3xl font-bold text-foreground mt-3 tabular-nums">{p.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">Est. {USD(p.spend)}/mo</p>
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      {/* Fleet health + Cloud infra KPIs */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <SectionCard title="Fleet health" description={`${s?.runningServers ?? 0} / ${s?.servers?.length ?? 0} servers running`}>
           <RadialGauge
             value={s?.fleetHealth ?? 100}
             label="Uptime"
             color={(s?.fleetHealth ?? 100) >= 90 ? IMT_COLORS.success : (s?.fleetHealth ?? 100) >= 60 ? IMT_COLORS.warning : IMT_COLORS.danger}
-            height={200}
+            height={180}
           />
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-lg border border-border p-2">
@@ -248,6 +305,12 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
             </div>
           </div>
         </SectionCard>
+        <div className="xl:col-span-2 grid grid-cols-2 gap-3">
+          <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
+          <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
+          <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
+          <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
+        </div>
       </div>
 
       {/* Cloud spend by provider + Ticket priority breakdown */}

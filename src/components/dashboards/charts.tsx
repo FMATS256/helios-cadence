@@ -2,6 +2,8 @@ import { ReactNode, useMemo } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -252,6 +254,46 @@ export function ChartLegend({
           {it.hint && <span className="text-xs text-muted-foreground tabular-nums">{it.hint}</span>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Rounded vertical bar chart with gradient fill. */
+export function GradientBarChart({
+  data,
+  dataKey = "value",
+  xKey = "label",
+  height = 240,
+  color = IMT_COLORS.navy,
+  colorEnd = IMT_COLORS.solar,
+  formatter,
+}: {
+  data: any[];
+  dataKey?: string;
+  xKey?: string;
+  height?: number;
+  color?: string;
+  colorEnd?: string;
+  formatter?: (v: number) => string;
+}) {
+  const gradId = useMemo(() => `bar-${Math.random().toString(36).slice(2, 8)}`, []);
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={colorEnd} stopOpacity={1} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.85} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="oklch(0.92 0.01 255)" strokeDasharray="3 6" vertical={false} />
+          <XAxis dataKey={xKey} stroke="oklch(0.5 0.03 260)" fontSize={11} tickLine={false} axisLine={false} />
+          <YAxis stroke="oklch(0.5 0.03 260)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatter as any} width={48} />
+          <Tooltip content={<ChartTooltip formatter={formatter} />} cursor={{ fill: "oklch(0.95 0.01 255 / 0.5)" }} />
+          <Bar dataKey={dataKey} fill={`url(#${gradId})`} radius={[8, 8, 0, 0]} maxBarSize={56} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
