@@ -258,11 +258,11 @@ export const listWorkspaceAudit = createServerFn({ method: "POST" })
     await assertAccess(context, data.workspaceId, "viewer");
     const { data: rows } = await context.supabase
       .from("workspace_audit_log")
-      .select("*")
+      .select("id, workspace_id, actor_user_id, actor_kind, action, resource_kind, resource_id, detail, user_agent, created_at")
       .eq("workspace_id", data.workspaceId)
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 100);
-    return rows ?? [];
+    return (rows ?? []) as Array<Record<string, any>>;
   });
 
 // -------------------- Billing / support scoped views --------------------
