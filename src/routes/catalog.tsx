@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Archive } from "lucide-react";
+import { Plus, Pencil, Archive, Search } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/catalog")({
