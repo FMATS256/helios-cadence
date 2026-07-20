@@ -1,11 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getWorkspaceServer, workspaceServerPower, workspaceResetRootPassword, getWorkspaceContext } from "@/lib/portal.functions";
+import {
+  getWorkspaceServer,
+  workspaceServerPower,
+  workspaceResetRootPassword,
+  getWorkspaceContext,
+  listWorkspaceSshKeys,
+  addWorkspaceSshKey,
+  removeWorkspaceSshKey,
+} from "@/lib/portal.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Power, RotateCw, PowerOff, KeyRound, Terminal, ShieldCheck, Cpu, MemoryStick, HardDrive } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Power, RotateCw, PowerOff, KeyRound, Terminal, ShieldCheck,
+  Cpu, MemoryStick, HardDrive, Key, Trash2, Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
