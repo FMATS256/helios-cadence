@@ -2911,6 +2911,44 @@ export type Database = {
           },
         ]
       }
+      workspace_ssh_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fingerprint: string | null
+          id: string
+          name: string
+          public_key: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fingerprint?: string | null
+          id?: string
+          name: string
+          public_key: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fingerprint?: string | null
+          id?: string
+          name?: string
+          public_key?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_ssh_keys_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
