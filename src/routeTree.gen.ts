@@ -29,6 +29,7 @@ import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as EmailLogsRouteImport } from './routes/email-logs'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as CommunicationsRouteImport } from './routes/communications'
@@ -171,6 +172,11 @@ const KnowledgeRoute = KnowledgeRouteImport.update({
 const InventoryRoute = InventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailLogsRoute = EmailLogsRouteImport.update({
+  id: '/email-logs',
+  path: '/email-logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -413,6 +419,7 @@ export interface FileRoutesByFullPath {
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/email-logs': typeof EmailLogsRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -478,6 +485,7 @@ export interface FileRoutesByTo {
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/email-logs': typeof EmailLogsRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -541,6 +549,7 @@ export interface FileRoutesById {
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
   '/customers': typeof CustomersRouteWithChildren
+  '/email-logs': typeof EmailLogsRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -608,6 +617,7 @@ export interface FileRouteTypes {
     | '/communications'
     | '/credentials'
     | '/customers'
+    | '/email-logs'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/communications'
     | '/credentials'
     | '/customers'
+    | '/email-logs'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -735,6 +746,7 @@ export interface FileRouteTypes {
     | '/communications'
     | '/credentials'
     | '/customers'
+    | '/email-logs'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -801,6 +813,7 @@ export interface RootRouteChildren {
   CommunicationsRoute: typeof CommunicationsRoute
   CredentialsRoute: typeof CredentialsRoute
   CustomersRoute: typeof CustomersRouteWithChildren
+  EmailLogsRoute: typeof EmailLogsRoute
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
@@ -980,6 +993,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/inventory'
       preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-logs': {
+      id: '/email-logs'
+      path: '/email-logs'
+      fullPath: '/email-logs'
+      preLoaderRoute: typeof EmailLogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -1398,6 +1418,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommunicationsRoute: CommunicationsRoute,
   CredentialsRoute: CredentialsRoute,
   CustomersRoute: CustomersRouteWithChildren,
+  EmailLogsRoute: EmailLogsRoute,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
