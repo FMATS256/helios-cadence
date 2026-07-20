@@ -30,6 +30,7 @@ const navGroups = [
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Customers", url: "/customers", icon: Users },
+      { title: "Service Catalog", url: "/catalog", icon: Package },
       { title: "Support Desk", url: "/tickets", icon: LifeBuoy },
       { title: "Credential Vault", url: "/credentials", icon: KeyRound },
     ],
