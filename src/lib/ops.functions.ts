@@ -297,7 +297,7 @@ export const manageSubscription = createServerFn({ method: "POST" })
       patch.status = "active";
     }
 
-    const { data: updated, error } = await supabaseAdmin.from("subscriptions").update(patch).eq("id", data.subscription_id).select("*").single();
+    const { data: updated, error } = await supabaseAdmin.from("subscriptions").update(patch as any).eq("id", data.subscription_id).select("*").single();
     if (error) throw new Error(error.message);
 
     await supabaseAdmin.from("customer_timeline").insert({
