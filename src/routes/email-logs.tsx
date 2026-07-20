@@ -61,7 +61,7 @@ function EmailLogsPage() {
     }),
   });
 
-  if (authLoading || rolesLoading) {
+  if (authLoading) {
     return <div className="p-6"><Skeleton className="h-8 w-64" /></div>;
   }
   if (!user) {
