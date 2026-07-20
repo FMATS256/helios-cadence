@@ -337,6 +337,14 @@ function CloudOpsPage() {
         <TabsContent value="agent" className="mt-3">
           <AgentPanel />
         </TabsContent>
+
+        <TabsContent value="backups" className="mt-3">
+          <BackupsPanel servers={servers} />
+        </TabsContent>
+
+        <TabsContent value="budgets" className="mt-3">
+          <BudgetsPanel />
+        </TabsContent>
       </Tabs>
 
 
