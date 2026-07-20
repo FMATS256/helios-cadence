@@ -57,6 +57,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
@@ -305,6 +306,11 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CSlugWorkspaceKeyRoute,
+} as any)
 const ApiPublicHooksRemindersTickRoute =
   ApiPublicHooksRemindersTickRouteImport.update({
     id: '/api/public/hooks/reminders-tick',
@@ -377,11 +383,12 @@ export interface FileRoutesByFullPath {
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -429,11 +436,11 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -484,11 +491,12 @@ export interface FileRoutesById {
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -545,6 +553,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -592,11 +601,11 @@ export interface FileRouteTypes {
     | '/services'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
-    | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey'
   id:
     | '__root__'
     | '/'
@@ -651,6 +660,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -692,7 +702,7 @@ export interface RootRouteChildren {
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
-  CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRoute
+  CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
@@ -1037,6 +1047,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c/$slug/$workspaceKey/': {
+      id: '/c/$slug/$workspaceKey/'
+      path: '/'
+      fullPath: '/c/$slug/$workspaceKey/'
+      preLoaderRoute: typeof CSlugWorkspaceKeyIndexRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
     '/api/public/hooks/reminders-tick': {
       id: '/api/public/hooks/reminders-tick'
       path: '/api/public/hooks/reminders-tick'
@@ -1133,6 +1150,17 @@ const TicketsRouteChildren: TicketsRouteChildren = {
 const TicketsRouteWithChildren =
   TicketsRoute._addFileChildren(TicketsRouteChildren)
 
+interface CSlugWorkspaceKeyRouteChildren {
+  CSlugWorkspaceKeyIndexRoute: typeof CSlugWorkspaceKeyIndexRoute
+}
+
+const CSlugWorkspaceKeyRouteChildren: CSlugWorkspaceKeyRouteChildren = {
+  CSlugWorkspaceKeyIndexRoute: CSlugWorkspaceKeyIndexRoute,
+}
+
+const CSlugWorkspaceKeyRouteWithChildren =
+  CSlugWorkspaceKeyRoute._addFileChildren(CSlugWorkspaceKeyRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
@@ -1173,7 +1201,7 @@ const rootRouteChildren: RootRouteChildren = {
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
-  CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRoute,
+  CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
