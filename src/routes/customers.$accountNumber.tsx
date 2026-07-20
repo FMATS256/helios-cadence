@@ -17,7 +17,14 @@ import {
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
   Mail, Phone, ShieldCheck, Heart,
 } from "lucide-react";
-import { getCustomer360, generateInvoiceForSubscription } from "@/lib/ops.functions";
+import { getCustomer360, generateInvoiceForSubscription, manageSubscription } from "@/lib/ops.functions";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
