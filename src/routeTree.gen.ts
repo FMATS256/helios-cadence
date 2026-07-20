@@ -58,6 +58,8 @@ import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspa
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as CSlugWorkspaceKeyTeamRouteImport } from './routes/c.$slug.$workspaceKey.team'
 import { Route as CSlugWorkspaceKeySupportRouteImport } from './routes/c.$slug.$workspaceKey.support'
 import { Route as CSlugWorkspaceKeyServersRouteImport } from './routes/c.$slug.$workspaceKey.servers'
@@ -319,6 +321,16 @@ const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CSlugWorkspaceKeyRoute,
 } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CSlugWorkspaceKeyTeamRoute = CSlugWorkspaceKeyTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -450,6 +462,8 @@ export interface FileRoutesByFullPath {
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey/support': typeof CSlugWorkspaceKeySupportRoute
   '/c/$slug/$workspaceKey/team': typeof CSlugWorkspaceKeyTeamRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -510,6 +524,8 @@ export interface FileRoutesByTo {
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey/support': typeof CSlugWorkspaceKeySupportRoute
   '/c/$slug/$workspaceKey/team': typeof CSlugWorkspaceKeyTeamRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -574,6 +590,8 @@ export interface FileRoutesById {
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey/support': typeof CSlugWorkspaceKeySupportRoute
   '/c/$slug/$workspaceKey/team': typeof CSlugWorkspaceKeyTeamRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -639,6 +657,8 @@ export interface FileRouteTypes {
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/support'
     | '/c/$slug/$workspaceKey/team'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/c/$slug/$workspaceKey/'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesByTo: FileRoutesByTo
@@ -699,6 +719,8 @@ export interface FileRouteTypes {
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/support'
     | '/c/$slug/$workspaceKey/team'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/c/$slug/$workspaceKey'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   id:
@@ -762,6 +784,8 @@ export interface FileRouteTypes {
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/support'
     | '/c/$slug/$workspaceKey/team'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/c/$slug/$workspaceKey/'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesById: FileRoutesById
@@ -812,6 +836,8 @@ export interface RootRouteChildren {
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1159,6 +1185,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugWorkspaceKeyIndexRouteImport
       parentRoute: typeof CSlugWorkspaceKeyRoute
     }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/c/$slug/$workspaceKey/team': {
       id: '/c/$slug/$workspaceKey/team'
       path: '/team'
@@ -1394,6 +1434,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
