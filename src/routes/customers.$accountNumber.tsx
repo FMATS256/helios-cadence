@@ -120,13 +120,31 @@ function Customer360() {
     onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-contacts", accountNumber] }); toast.success("Contact added"); },
   });
 
-  const invoiceFromSub = useMutation({
-    mutationFn: async (subscription_id: string) => genInvoice({ data: { subscription_id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Invoice generated"); },
-    onError: (e: any) => toast.error(e?.message || "Could not generate invoice"),
+  const manageSub = useServerFn(manageSubscription);
+  const subAction = useMutation({
+    mutationFn: async (input: Parameters<typeof manageSubscription>[0]["data"]) => manageSub({ data: input }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] });
+      toast.success(`Subscription ${vars.action} applied`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Action failed"),
   });
 
+  const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
+  const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
+
   const health = useMemo(() => view ? computeHealth(view) : null, [view]);
+
+  function subHealth(s: any): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
+    if (s.status === "cancelled") return { label: "Cancelled", tone: "neutral" };
+    if (s.status === "paused") return { label: "Suspended", tone: "warning" };
+    const d = daysUntil(s.next_renewal);
+    if (d == null) return { label: "Active", tone: "success" };
+    if (d < 0) return { label: `Overdue ${Math.abs(d)}d`, tone: "danger" };
+    if (d <= 7) return { label: `Renews ${d}d`, tone: "danger" };
+    if (d <= 30) return { label: `Renews ${d}d`, tone: "warning" };
+    return { label: `Renews ${d}d`, tone: "success" };
+  }
 
   const renewals = useMemo(() => {
     if (!view) return [];
