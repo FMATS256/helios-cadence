@@ -5,6 +5,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyKamatera, syncServers } from "@/lib/kamatera.functions";
 import { listProvisioningPlans, approveProvisioningPlan, rejectProvisioningPlan, executeProvisioningPlan, deployFromPrompt } from "@/lib/agent.functions";
+import { listAllBackups, listBackupSchedules, createBackupNow, upsertBackupSchedule, deleteBackupSchedule, restoreBackup } from "@/lib/backups.functions";
+import { listCustomerBudgets, upsertCustomerBudget, deleteCustomerBudget, getCustomerSpendSnapshot, listBudgetAlerts } from "@/lib/budgets.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package, Bot, Check, X, Play, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package, Bot, Check, X, Play, Sparkles, HardDrive, Wallet, AlertTriangle, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
