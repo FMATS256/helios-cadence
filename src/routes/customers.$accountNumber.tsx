@@ -89,7 +89,7 @@ function Customer360() {
   if (isLoading) return <PageContainer><p className="text-sm text-muted-foreground">Loading…</p></PageContainer>;
   if (!customer || !view) return null;
 
-  const { services, subscriptions, invoices, payments, quotes, tickets, credentials, timeline, stats } = view;
+  const { services, subscriptions, invoices, payments, quotes, tickets, credentials, timeline, stats, packages = [] } = view as any;
 
   return (
     <PageContainer>
