@@ -273,9 +273,10 @@ export const workspaceInvoices = createServerFn({ method: "POST" })
     await assertAccess(context, data.workspaceId);
     const { data: ws } = await context.supabase
       .from("cloud_workspaces").select("customer_id").eq("id", data.workspaceId).single();
+    if (!ws) throw new Error("Workspace not found");
     const { data: rows } = await context.supabase
       .from("invoices").select("*").eq("customer_id", ws.customer_id).order("issued_on", { ascending: false });
-    return rows ?? [];
+    return (rows ?? []) as Array<Record<string, any>>;
   });
 
 export const workspaceTickets = createServerFn({ method: "POST" })
