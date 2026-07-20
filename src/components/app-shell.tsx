@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
-  Globe, HardDrive, Database, ShieldCheck, MessageSquare,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -70,6 +70,7 @@ const navGroups = [
       { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
       { title: "Notifications", url: "/notifications", icon: Bell },
       { title: "Master Admin", url: "/admin", icon: Shield, masterOnly: true },
+      { title: "Email Logs", url: "/email-logs", icon: Mail, masterOnly: true },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
