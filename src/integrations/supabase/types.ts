@@ -523,6 +523,50 @@ export type Database = {
           },
         ]
       }
+      cloud_workspaces: {
+        Row: {
+          branding: Json
+          created_at: string
+          customer_id: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+          workspace_key: string
+        }
+        Insert: {
+          branding?: Json
+          created_at?: string
+          customer_id: string
+          id?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+          workspace_key: string
+        }
+        Update: {
+          branding?: Json
+          created_at?: string
+          customer_id?: string
+          id?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+          workspace_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_workspaces_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communications: {
         Row: {
           account_number: string | null
@@ -2693,6 +2737,180 @@ export type Database = {
           },
         ]
       }
+      workspace_audit_log: {
+        Row: {
+          action: string
+          actor_kind: string
+          actor_user_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          ip: unknown
+          resource_id: string | null
+          resource_kind: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_kind?: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          ip?: unknown
+          resource_id?: string | null
+          resource_kind?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_kind?: string
+          actor_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          ip?: unknown
+          resource_id?: string | null
+          resource_kind?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["workspace_role"]
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          token: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          accepted_at: string | null
+          id: string
+          invited_at: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["workspace_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_servers: {
+        Row: {
+          created_at: string
+          customer_notes: string | null
+          display_name: string | null
+          id: string
+          server_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_notes?: string | null
+          display_name?: string | null
+          id?: string
+          server_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_notes?: string | null
+          display_name?: string | null
+          id?: string
+          server_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_servers_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: true
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_servers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2707,7 +2925,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_workspace_role: {
+        Args: {
+          _min: Database["public"]["Enums"]["workspace_role"]
+          _user: string
+          _workspace: string
+        }
+        Returns: boolean
+      }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_workspace_member: {
+        Args: { _user: string; _workspace: string }
+        Returns: boolean
+      }
       portal_customer_id: { Args: { _user_id: string }; Returns: string }
       recompute_invoice_status: {
         Args: { _invoice_id: string }
@@ -2716,6 +2946,10 @@ export type Database = {
       recompute_payment_reconciliation: {
         Args: { _payment_id: string }
         Returns: undefined
+      }
+      workspace_role_of: {
+        Args: { _user: string; _workspace: string }
+        Returns: Database["public"]["Enums"]["workspace_role"]
       }
     }
     Enums: {
@@ -2734,6 +2968,7 @@ export type Database = {
         | "customer_success"
         | "read_only"
         | "custom"
+      workspace_role: "owner" | "admin" | "developer" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2877,6 +3112,7 @@ export const Constants = {
         "read_only",
         "custom",
       ],
+      workspace_role: ["owner", "admin", "developer", "viewer"],
     },
   },
 } as const

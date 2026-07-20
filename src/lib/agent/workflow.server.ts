@@ -82,6 +82,18 @@ const STEPS: Omit<StepDef, "compensate">[] = [
     ctx.state.server_id = row.id;
     return { server_id: row.id };
   }},
+  { key: "provision_workspace", label: "Provision customer cloud workspace", run: async (ctx) => {
+    if (!ctx.state.server_id || !ctx.req.customer_id) return { skipped: true };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { linkServerToCustomerWorkspace } = await import("@/lib/portal.server");
+    const ws = await linkServerToCustomerWorkspace(supabaseAdmin as any, ctx.state.server_id, ctx.req.customer_id);
+    if (ws) {
+      ctx.state.workspace_id = ws.id;
+      ctx.state.workspace_url = `/c/${ws.slug}/${ws.workspace_key}`;
+      return { workspace_id: ws.id, workspace_url: ctx.state.workspace_url };
+    }
+    return { skipped: true };
+  }},
   { key: "enable_monitoring", label: "Enable monitoring", run: async (ctx) => {
     if (!ctx.state.public_ips?.[0]) return { skipped: "no public ip" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
