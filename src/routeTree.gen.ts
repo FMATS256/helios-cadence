@@ -58,6 +58,7 @@ import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspa
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
+import { Route as CSlugWorkspaceKeyServersRouteImport } from './routes/c.$slug.$workspaceKey.servers'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
@@ -311,6 +312,12 @@ const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CSlugWorkspaceKeyRoute,
 } as any)
+const CSlugWorkspaceKeyServersRoute =
+  CSlugWorkspaceKeyServersRouteImport.update({
+    id: '/servers',
+    path: '/servers',
+    getParentRoute: () => CSlugWorkspaceKeyRoute,
+  } as any)
 const ApiPublicHooksRemindersTickRoute =
   ApiPublicHooksRemindersTickRouteImport.update({
     id: '/api/public/hooks/reminders-tick',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRoutesByTo {
@@ -440,6 +448,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRoutesById {
@@ -496,6 +505,7 @@ export interface FileRoutesById {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
 }
 export interface FileRouteTypes {
@@ -553,6 +563,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -605,6 +616,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey'
   id:
     | '__root__'
@@ -660,6 +672,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/'
   fileRoutesById: FileRoutesById
 }
@@ -1054,6 +1067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugWorkspaceKeyIndexRouteImport
       parentRoute: typeof CSlugWorkspaceKeyRoute
     }
+    '/c/$slug/$workspaceKey/servers': {
+      id: '/c/$slug/$workspaceKey/servers'
+      path: '/servers'
+      fullPath: '/c/$slug/$workspaceKey/servers'
+      preLoaderRoute: typeof CSlugWorkspaceKeyServersRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
     '/api/public/hooks/reminders-tick': {
       id: '/api/public/hooks/reminders-tick'
       path: '/api/public/hooks/reminders-tick'
@@ -1151,10 +1171,12 @@ const TicketsRouteWithChildren =
   TicketsRoute._addFileChildren(TicketsRouteChildren)
 
 interface CSlugWorkspaceKeyRouteChildren {
+  CSlugWorkspaceKeyServersRoute: typeof CSlugWorkspaceKeyServersRoute
   CSlugWorkspaceKeyIndexRoute: typeof CSlugWorkspaceKeyIndexRoute
 }
 
 const CSlugWorkspaceKeyRouteChildren: CSlugWorkspaceKeyRouteChildren = {
+  CSlugWorkspaceKeyServersRoute: CSlugWorkspaceKeyServersRoute,
   CSlugWorkspaceKeyIndexRoute: CSlugWorkspaceKeyIndexRoute,
 }
 
