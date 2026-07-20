@@ -63,6 +63,7 @@ import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
+import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
 const WebHostingRoute = WebHostingRouteImport.update({
   id: '/web-hosting',
@@ -341,6 +342,12 @@ const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
   path: '/api/public/agent/provision',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CSlugWorkspaceKeyServersServerIdRoute =
+  CSlugWorkspaceKeyServersServerIdRouteImport.update({
+    id: '/$serverId',
+    path: '/$serverId',
+    getParentRoute: () => CSlugWorkspaceKeyServersRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -395,8 +402,9 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
-  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -448,8 +456,9 @@ export interface FileRoutesByTo {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
-  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
+  '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -505,8 +514,9 @@ export interface FileRoutesById {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
-  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRoute
+  '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/'
+    | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey'
+    | '/c/$slug/$workspaceKey/servers/$serverId'
   id:
     | '__root__'
     | '/'
@@ -674,6 +686,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/c/$slug/$workspaceKey/servers'
     | '/c/$slug/$workspaceKey/'
+    | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1102,6 +1115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c/$slug/$workspaceKey/servers/$serverId': {
+      id: '/c/$slug/$workspaceKey/servers/$serverId'
+      path: '/$serverId'
+      fullPath: '/c/$slug/$workspaceKey/servers/$serverId'
+      preLoaderRoute: typeof CSlugWorkspaceKeyServersServerIdRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyServersRoute
+    }
   }
 }
 
@@ -1170,13 +1190,28 @@ const TicketsRouteChildren: TicketsRouteChildren = {
 const TicketsRouteWithChildren =
   TicketsRoute._addFileChildren(TicketsRouteChildren)
 
+interface CSlugWorkspaceKeyServersRouteChildren {
+  CSlugWorkspaceKeyServersServerIdRoute: typeof CSlugWorkspaceKeyServersServerIdRoute
+}
+
+const CSlugWorkspaceKeyServersRouteChildren: CSlugWorkspaceKeyServersRouteChildren =
+  {
+    CSlugWorkspaceKeyServersServerIdRoute:
+      CSlugWorkspaceKeyServersServerIdRoute,
+  }
+
+const CSlugWorkspaceKeyServersRouteWithChildren =
+  CSlugWorkspaceKeyServersRoute._addFileChildren(
+    CSlugWorkspaceKeyServersRouteChildren,
+  )
+
 interface CSlugWorkspaceKeyRouteChildren {
-  CSlugWorkspaceKeyServersRoute: typeof CSlugWorkspaceKeyServersRoute
+  CSlugWorkspaceKeyServersRoute: typeof CSlugWorkspaceKeyServersRouteWithChildren
   CSlugWorkspaceKeyIndexRoute: typeof CSlugWorkspaceKeyIndexRoute
 }
 
 const CSlugWorkspaceKeyRouteChildren: CSlugWorkspaceKeyRouteChildren = {
-  CSlugWorkspaceKeyServersRoute: CSlugWorkspaceKeyServersRoute,
+  CSlugWorkspaceKeyServersRoute: CSlugWorkspaceKeyServersRouteWithChildren,
   CSlugWorkspaceKeyIndexRoute: CSlugWorkspaceKeyIndexRoute,
 }
 
