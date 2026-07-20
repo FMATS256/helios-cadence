@@ -66,6 +66,8 @@ import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
+import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
+import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
@@ -364,6 +366,18 @@ const ApiPublicHooksMonitoringTickRoute =
     path: '/api/public/hooks/monitoring-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBudgetTickRoute =
+  ApiPublicHooksBudgetTickRouteImport.update({
+    id: '/api/public/hooks/budget-tick',
+    path: '/api/public/hooks/budget-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksBackupsTickRoute =
+  ApiPublicHooksBackupsTickRouteImport.update({
+    id: '/api/public/hooks/backups-tick',
+    path: '/api/public/hooks/backups-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
   id: '/api/public/agent/provision',
   path: '/api/public/agent/provision',
@@ -426,6 +440,8 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -484,6 +500,8 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -546,6 +564,8 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -609,6 +629,8 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -667,6 +689,8 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -728,6 +752,8 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -781,6 +807,8 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
+  ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
+  ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
@@ -1187,6 +1215,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/budget-tick': {
+      id: '/api/public/hooks/budget-tick'
+      path: '/api/public/hooks/budget-tick'
+      fullPath: '/api/public/hooks/budget-tick'
+      preLoaderRoute: typeof ApiPublicHooksBudgetTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/backups-tick': {
+      id: '/api/public/hooks/backups-tick'
+      path: '/api/public/hooks/backups-tick'
+      fullPath: '/api/public/hooks/backups-tick'
+      preLoaderRoute: typeof ApiPublicHooksBackupsTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agent/provision': {
       id: '/api/public/agent/provision'
       path: '/api/public/agent/provision'
@@ -1347,6 +1389,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
+  ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
+  ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
