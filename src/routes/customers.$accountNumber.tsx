@@ -164,7 +164,7 @@ function Customer360() {
 
   const { services, subscriptions, invoices, payments, quotes, tickets, credentials, timeline, stats, packages = [], assets = [] } = view as any;
   const customerSince = customer.created_at ? new Date(customer.created_at) : null;
-  const tier = (customer.tier || (stats.mrr > 2000 ? "platinum" : stats.mrr > 500 ? "gold" : stats.mrr > 100 ? "silver" : "bronze")) as string;
+  const tier = ((customer as any).tier || (stats.mrr > 2000 ? "platinum" : stats.mrr > 500 ? "gold" : stats.mrr > 100 ? "silver" : "bronze")) as string;
   const tierTone = tier === "platinum" ? "solar" : tier === "gold" ? "warning" : tier === "silver" ? "info" : "neutral";
   const contractActive = subscriptions.some((s: any) => s.status === "active");
 
