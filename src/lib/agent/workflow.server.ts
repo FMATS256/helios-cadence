@@ -82,6 +82,26 @@ const STEPS: Omit<StepDef, "compensate">[] = [
     ctx.state.server_id = row.id;
     return { server_id: row.id };
   }},
+  { key: "store_credentials", label: "Securely store credentials", run: async (ctx) => {
+    if (!ctx.req.password) return { skipped: "no password" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { encryptSecret } = await import("@/lib/encryption.server");
+    const enc = encryptSecret(ctx.req.password);
+    const { data: row, error } = await supabaseAdmin.from("credentials").insert({
+      customer_id: ctx.req.customer_id ?? null,
+      name: `${ctx.req.name} — root (${ctx.provider})`,
+      credential_type: "server_root",
+      username: "root",
+      url: ctx.state.public_ips?.[0] ? `ssh://root@${ctx.state.public_ips[0]}` : null,
+      notes: `Auto-provisioned ${ctx.provider} server. Server ID: ${ctx.state.server_id ?? "-"}`,
+      ciphertext: enc.ciphertext, iv: enc.iv, auth_tag: enc.authTag, key_id: enc.keyId,
+      linked_asset: ctx.state.server_id ?? null,
+      tags: ["auto-provisioned", ctx.provider],
+    }).select("id").single();
+    if (error) throw error;
+    ctx.state.credential_id = row.id;
+    return { credential_id: row.id };
+  }},
   { key: "provision_workspace", label: "Provision customer cloud workspace", run: async (ctx) => {
     if (!ctx.state.server_id || !ctx.req.customer_id) return { skipped: true };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -94,6 +114,7 @@ const STEPS: Omit<StepDef, "compensate">[] = [
     }
     return { skipped: true };
   }},
+
   { key: "enable_monitoring", label: "Enable monitoring", run: async (ctx) => {
     if (!ctx.state.public_ips?.[0]) return { skipped: "no public ip" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
