@@ -176,7 +176,9 @@ function CloudOpsPage() {
           <TabsTrigger value="servers"><Server className="h-3.5 w-3.5 mr-1.5" />Servers ({servers.length})</TabsTrigger>
           <TabsTrigger value="services"><Package className="h-3.5 w-3.5 mr-1.5" />Managed services ({services.length})</TabsTrigger>
           <TabsTrigger value="providers"><CloudIcon className="h-3.5 w-3.5 mr-1.5" />Providers</TabsTrigger>
+          <TabsTrigger value="agent"><Bot className="h-3.5 w-3.5 mr-1.5" />Provisioning agent</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="servers" className="mt-3">
           <Card>
