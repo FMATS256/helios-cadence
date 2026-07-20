@@ -114,6 +114,7 @@ function CloudOpsPage() {
               <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
               Sync from Kamatera
             </Button>
+            <AiDeployButton />
             <Link to="/cloud-ops/new">
               <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
                 <Plus className="h-4 w-4 mr-1.5" />
