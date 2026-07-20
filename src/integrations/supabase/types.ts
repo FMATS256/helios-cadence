@@ -171,6 +171,97 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_schedules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          frequency: string
+          id: string
+          last_run_at: string | null
+          next_run_at: string
+          retention_days: number
+          server_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string
+          retention_days?: number
+          server_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string
+          retention_days?: number
+          server_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_schedules_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: true
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_alerts: {
+        Row: {
+          cap_usd: number
+          created_at: string
+          customer_id: string
+          id: string
+          level: string
+          month: string
+          pct: number
+          sent_at: string
+          spend_usd: number
+        }
+        Insert: {
+          cap_usd: number
+          created_at?: string
+          customer_id: string
+          id?: string
+          level: string
+          month: string
+          pct: number
+          sent_at?: string
+          spend_usd: number
+        }
+        Update: {
+          cap_usd?: number
+          created_at?: string
+          customer_id?: string
+          id?: string
+          level?: string
+          month?: string
+          pct?: number
+          sent_at?: string
+          spend_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_alerts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_activity: {
         Row: {
           action: string
@@ -833,6 +924,50 @@ export type Database = {
             foreignKeyName: "customer_branches_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_budgets: {
+        Row: {
+          alert_threshold_pct: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          enabled: boolean
+          id: string
+          monthly_cap_usd: number
+          notify_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_threshold_pct?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          enabled?: boolean
+          id?: string
+          monthly_cap_usd?: number
+          notify_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_threshold_pct?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          enabled?: boolean
+          id?: string
+          monthly_cap_usd?: number
+          notify_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_budgets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -2091,6 +2226,65 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      server_backups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          notes: string | null
+          provider: string | null
+          provider_snapshot_id: string | null
+          server_id: string
+          size_gb: number | null
+          status: string
+          taken_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          provider?: string | null
+          provider_snapshot_id?: string | null
+          server_id: string
+          size_gb?: number | null
+          status?: string
+          taken_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          provider?: string | null
+          provider_snapshot_id?: string | null
+          server_id?: string
+          size_gb?: number | null
+          status?: string
+          taken_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_backups_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
             referencedColumns: ["id"]
           },
         ]
