@@ -1,15 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyKamatera, syncServers } from "@/lib/kamatera.functions";
-import { listProvisioningPlans, approveProvisioningPlan, rejectProvisioningPlan, executeProvisioningPlan } from "@/lib/agent.functions";
+import { listProvisioningPlans, approveProvisioningPlan, rejectProvisioningPlan, executeProvisioningPlan, deployFromPrompt } from "@/lib/agent.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package, Bot, Check, X, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package, Bot, Check, X, Play, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -109,6 +114,7 @@ function CloudOpsPage() {
               <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
               Sync from Kamatera
             </Button>
+            <AiDeployButton />
             <Link to="/cloud-ops/new">
               <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
                 <Plus className="h-4 w-4 mr-1.5" />
@@ -569,4 +575,92 @@ function AgentPanel() {
     </div>
   );
 }
+
+function AiDeployButton() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [autoApprove, setAutoApprove] = useState(false);
+  const fn = useServerFn(deployFromPrompt);
+
+  const mut = useMutation({
+    mutationFn: () => fn({ data: { prompt, auto_approve: autoApprove } }),
+    onSuccess: (row: any) => {
+      toast.success(`Plan created for "${row.request?.name}" on ${row.provider} — $${Number(row.estimated_monthly_usd || 0).toFixed(2)}/mo`);
+      qc.invalidateQueries({ queryKey: ["provisioning_plans"] });
+      setOpen(false);
+      setPrompt("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const examples = [
+    "Deploy a small Ubuntu 22 server in Frankfurt with WordPress preinstalled",
+    "I need a medium Docker host for staging in the Netherlands",
+    "Provision a Windows 2022 VM, 4 cores, 8GB RAM for client remote-desktop",
+  ];
+
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
+        Deploy with AI
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Deploy a server with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe what you need in plain English. The agent picks the provider, region, size and
+              template, then creates a draft plan for review.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. Deploy a small WordPress site in Frankfurt for Client X"
+              rows={5}
+              autoFocus
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {examples.map((ex) => (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => setPrompt(ex)}
+                  className="text-xs px-2 py-1 rounded border hover:bg-muted transition text-left"
+                >
+                  {ex.length > 48 ? ex.slice(0, 45) + "…" : ex}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border rounded-lg p-3">
+              <div>
+                <Label htmlFor="auto-approve" className="text-sm">Auto-approve plan</Label>
+                <p className="text-xs text-muted-foreground">Skip review and mark as approved. Execute manually from the Agent tab.</p>
+              </div>
+              <Switch id="auto-approve" checked={autoApprove} onCheckedChange={setAutoApprove} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => mut.mutate()}
+              disabled={mut.isPending || !prompt.trim()}
+              className="text-solar-foreground"
+              style={{ background: "var(--gradient-solar)" }}
+            >
+              {mut.isPending ? "Generating plan…" : "Generate plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 
