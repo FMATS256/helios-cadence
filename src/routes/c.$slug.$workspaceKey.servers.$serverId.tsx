@@ -122,6 +122,8 @@ function ServerDetail() {
           <div><span className="text-muted-foreground">Private IPs: </span><span className="font-mono">{(s.private_ips ?? []).join(", ") || "—"}</span></div>
         </CardContent>
       </Card>
+
+      <SshKeysCard workspaceId={workspaceId} canManage={canManage} canAdmin={canAdmin} />
     </div>
   );
 }
@@ -132,5 +134,125 @@ function Spec({ icon, label, value }: any) {
       <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-widest">{icon}<span>{label}</span></div>
       <div className="mt-2 text-3xl font-display font-bold">{value}</div>
     </CardContent></Card>
+  );
+}
+
+function SshKeysCard({ workspaceId, canManage, canAdmin }: { workspaceId?: string; canManage: boolean; canAdmin: boolean }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listWorkspaceSshKeys);
+  const addFn = useServerFn(addWorkspaceSshKey);
+  const removeFn = useServerFn(removeWorkspaceSshKey);
+  const { data: keys, isLoading } = useQuery({
+    queryKey: ["ws-ssh-keys", workspaceId],
+    queryFn: () => listFn({ data: { workspaceId: workspaceId! } }),
+    enabled: !!workspaceId,
+  });
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+
+  const add = useMutation({
+    mutationFn: () => addFn({ data: { workspaceId: workspaceId!, name, publicKey } }),
+    onSuccess: () => {
+      toast.success("SSH key added");
+      setName(""); setPublicKey(""); setShowAdd(false);
+      qc.invalidateQueries({ queryKey: ["ws-ssh-keys", workspaceId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (keyId: string) => removeFn({ data: { workspaceId: workspaceId!, keyId } }),
+    onSuccess: () => {
+      toast.success("SSH key removed");
+      qc.invalidateQueries({ queryKey: ["ws-ssh-keys", workspaceId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Key className="h-4 w-4 text-solar" /> SSH Keys
+        </CardTitle>
+        {canManage && !showAdd && (
+          <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Add key
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {showAdd && (
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ssh-name">Key name</Label>
+              <Input id="ssh-name" placeholder="e.g. My laptop" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ssh-key">Public key</Label>
+              <Textarea
+                id="ssh-key"
+                rows={4}
+                placeholder="ssh-ed25519 AAAAC3Nz... user@host"
+                value={publicKey}
+                onChange={(e) => setPublicKey(e.target.value)}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Paste the contents of your <span className="font-mono">.pub</span> file. New keys apply to servers on next reinstall or via manual injection.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => add.mutate()} disabled={add.isPending || !name || !publicKey}>
+                {add.isPending ? "Adding…" : "Add key"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowAdd(false); setName(""); setPublicKey(""); }}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading keys…</p>
+        ) : !keys || keys.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No SSH keys yet. Add one to enable key-based access.</p>
+        ) : (
+          <ul className="divide-y">
+            {keys.map((k: any) => (
+              <li key={k.id} className="py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium truncate">{k.name}</span>
+                    {k.fingerprint && (
+                      <Badge variant="outline" className="font-mono text-[10px]">{k.fingerprint}</Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground break-all line-clamp-2">
+                    {k.public_key}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Added {new Date(k.created_at).toLocaleString()}
+                  </p>
+                </div>
+                {canAdmin && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => { if (confirm(`Remove SSH key "${k.name}"?`)) remove.mutate(k.id); }}
+                    disabled={remove.isPending}
+                    aria-label="Remove key"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
