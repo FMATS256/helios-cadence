@@ -395,7 +395,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!customer) return null;
     const cid = customer.id;
-    const [services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline] = await Promise.all([
+    const [services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline, packages] = await Promise.all([
       supabaseAdmin.from("cloud_services").select("id,service_name,service_type,vendor,plan,monthly_cost,status,renewal_date").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
       supabaseAdmin.from("subscriptions").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
       supabaseAdmin.from("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }).limit(50),
@@ -405,6 +405,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       supabaseAdmin.from("assets").select("id,asset_tag,name,status,serial_number").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("customer_services").select("id, quantity, unit_price, status, started_on, ends_on, notes, catalog:service_catalog(id, code, name, category, billing_cycle, currency)").eq("customer_id", cid).order("created_at", { ascending: false }),
     ]);
     const openInvoiceTotal = (invoices.data ?? []).filter((i: any) => ["sent", "partial", "overdue"].includes(i.status)).reduce((s: number, i: any) => s + Number(i.total || 0), 0);
     const mrr = (subscriptions.data ?? []).filter((s: any) => s.status === "active").reduce((sum: number, s: any) => sum + (s.billing_cycle === "yearly" ? Number(s.amount) / 12 : Number(s.amount) || 0), 0);
@@ -419,6 +420,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       assets: assets.data ?? [],
       credentials: credentials.data ?? [],
       timeline: timeline.data ?? [],
+      packages: packages.data ?? [],
       stats: { openInvoiceTotal, mrr, ticketCount: (tickets.data ?? []).length, activeServices: (services.data ?? []).filter((s: any) => s.status === "active").length },
     };
   });
