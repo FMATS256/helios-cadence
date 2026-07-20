@@ -141,3 +141,95 @@ export const estimateProvisionCost = createServerFn({ method: "POST" })
     const provider = data.provider ?? "kamatera";
     return getProvider(provider).estimatePrice(data.request);
   });
+
+// --- AI prompt → plan ---
+// Natural-language deployment: staff types a prompt, an LLM turns it into a
+// ProvisionRequest, and we generate + persist a draft plan for review.
+
+export const deployFromPrompt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { prompt: string; customer_id?: string | null; auto_approve?: boolean }) => d)
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+    if (!data.prompt?.trim()) throw new Error("Prompt is required");
+
+    const system = `You convert IT operations prompts into a JSON ProvisionRequest for a cloud provisioning agent.
+Return ONLY valid JSON matching this TypeScript shape (no prose, no markdown fences):
+{
+  "kind": "vm",
+  "name": string,                              // short server name, lowercase-with-dashes
+  "region": string,                            // provider region id, default "EU-FR" (Kamatera Frankfurt) if unspecified
+  "os": "ubuntu"|"debian"|"almalinux"|"rocky"|"windows",
+  "image": string,                             // e.g. "ubuntu_22.04_64-bit"
+  "cpu_cores": number,                         // 1..32
+  "ram_mb": number,                            // 1024..65536
+  "disk_gb": number,                           // 20..2000
+  "template"?: "wordpress"|"nginx"|"nodejs"|"docker"|"lamp",
+  "billing_cycle": "monthly"|"hourly",
+  "tags": string[],
+  "notes": string,
+  "provider": "kamatera"|"vultr"|"contabo"     // pick the best fit; default "kamatera"
+}
+Rules: infer sensible sizing from the workload described. If user says "small/basic" use 1vCPU/2GB/40GB.
+"medium" = 2vCPU/4GB/80GB. "large" = 4vCPU/8GB/160GB. Never invent fields not in the schema.`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: data.prompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      throw new Error(`AI gateway error ${resp.status}: ${t.slice(0, 200)}`);
+    }
+    const json: any = await resp.json();
+    const content = json?.choices?.[0]?.message?.content ?? "{}";
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { throw new Error("AI returned invalid JSON"); }
+
+    const provider = (parsed.provider ?? "kamatera") as ProviderName;
+    const request: ProvisionRequest = {
+      kind: "vm",
+      name: parsed.name || "ai-server",
+      region: parsed.region || "EU-FR",
+      os: parsed.os,
+      image: parsed.image,
+      cpu_cores: parsed.cpu_cores ?? 2,
+      ram_mb: parsed.ram_mb ?? 4096,
+      disk_gb: parsed.disk_gb ?? 40,
+      template: parsed.template,
+      billing_cycle: parsed.billing_cycle ?? "monthly",
+      tags: [...(parsed.tags ?? []), "ai-prompt"],
+      notes: parsed.notes || data.prompt.slice(0, 500),
+      customer_id: data.customer_id ?? null,
+    };
+
+    const { generatePlan } = await import("./agent/plan.server");
+    const report = await generatePlan({ ...request, provider });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const status = data.auto_approve ? "approved" : "draft";
+    const { data: row, error } = await supabaseAdmin.from("provisioning_plans").insert({
+      created_by: context.userId,
+      customer_id: request.customer_id ?? null,
+      request: request as any,
+      provider: report.architecture.provider,
+      region: report.architecture.region,
+      status,
+      report: report as any,
+      estimated_monthly_usd: report.costs.monthly_usd,
+      estimated_hourly_usd: report.costs.hourly_usd,
+      estimated_setup_minutes: report.estimated_setup_minutes,
+      approved_by: data.auto_approve ? context.userId : null,
+      approved_at: data.auto_approve ? new Date().toISOString() : null,
+    }).select("*").single();
+    if (error) throw error;
+    return { plan: row, request, report };
+  });
