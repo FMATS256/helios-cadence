@@ -677,4 +677,312 @@ function AiDeployButton() {
   );
 }
 
+// ================== Backups & DR panel ==================
+function BackupsPanel({ servers }: { servers: any[] }) {
+  const qc = useQueryClient();
+  const fnBackups = useServerFn(listAllBackups);
+  const fnScheds = useServerFn(listBackupSchedules);
+  const fnCreate = useServerFn(createBackupNow);
+  const fnUpsert = useServerFn(upsertBackupSchedule);
+  const fnDelete = useServerFn(deleteBackupSchedule);
+  const fnRestore = useServerFn(restoreBackup);
+
+  const [selectedServer, setSelectedServer] = useState<string>("");
+  const [freq, setFreq] = useState<"hourly" | "daily" | "weekly" | "monthly">("daily");
+  const [retention, setRetention] = useState(7);
+
+  const { data: backups = [] } = useQuery({ queryKey: ["server_backups_all"], queryFn: () => fnBackups(), refetchInterval: 30_000 });
+  const { data: schedules = [] } = useQuery({ queryKey: ["backup_schedules"], queryFn: () => fnScheds() });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["server_backups_all"] });
+    qc.invalidateQueries({ queryKey: ["backup_schedules"] });
+  };
+
+  const snapNow = useMutation({
+    mutationFn: (server_id: string) => fnCreate({ data: { server_id, retention_days: retention } }),
+    onSuccess: () => { toast.success("Backup recorded"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const saveSched = useMutation({
+    mutationFn: () => fnUpsert({ data: { server_id: selectedServer, frequency: freq, retention_days: retention, enabled: true } }),
+    onSuccess: () => { toast.success("Schedule saved"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const delSched = useMutation({
+    mutationFn: (server_id: string) => fnDelete({ data: { server_id } }),
+    onSuccess: () => { toast.success("Schedule removed"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const restore = useMutation({
+    mutationFn: (backup_id: string) => fnRestore({ data: { backup_id } }),
+    onSuccess: () => { toast.success("Restore initiated"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const serverName = (id: string) => servers.find((s) => s.id === id)?.name ?? id.slice(0, 8);
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><HardDrive className="h-4 w-4" />Configure schedule</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <div className="md:col-span-2">
+              <Label className="text-xs">Server</Label>
+              <Select value={selectedServer} onValueChange={setSelectedServer}>
+                <SelectTrigger><SelectValue placeholder="Choose server…" /></SelectTrigger>
+                <SelectContent>
+                  {servers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name} · {s.provider}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Frequency</Label>
+              <Select value={freq} onValueChange={(v) => setFreq(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Retention (days)</Label>
+              <Input type="number" min={1} max={365} value={retention} onChange={(e) => setRetention(Number(e.target.value) || 7)} />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => saveSched.mutate()} disabled={!selectedServer || saveSched.isPending} className="flex-1">Save schedule</Button>
+              <Button variant="outline" onClick={() => selectedServer && snapNow.mutate(selectedServer)} disabled={!selectedServer || snapNow.isPending}>
+                Snapshot now
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Active schedules ({schedules.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {schedules.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No schedules yet.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Server</TableHead><TableHead>Frequency</TableHead>
+                <TableHead>Retention</TableHead><TableHead>Last run</TableHead>
+                <TableHead>Next run</TableHead><TableHead></TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {schedules.map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-semibold">{serverName(s.server_id)}</TableCell>
+                    <TableCell><StatusPill tone="info">{s.frequency}</StatusPill></TableCell>
+                    <TableCell>{s.retention_days} days</TableCell>
+                    <TableCell className="text-xs">{s.last_run_at ? formatDistanceToNow(new Date(s.last_run_at), { addSuffix: true }) : "—"}</TableCell>
+                    <TableCell className="text-xs">{s.next_run_at ? formatDistanceToNow(new Date(s.next_run_at), { addSuffix: true }) : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={() => delSched.mutate(s.server_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Recent backups ({backups.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {backups.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No backups yet.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Server</TableHead><TableHead>Kind</TableHead>
+                <TableHead>Status</TableHead><TableHead>Taken</TableHead>
+                <TableHead>Expires</TableHead><TableHead className="text-right">Actions</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {backups.map((b: any) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-semibold">{serverName(b.server_id)}</TableCell>
+                    <TableCell className="text-xs uppercase">{b.kind}</TableCell>
+                    <TableCell>
+                      <StatusPill tone={b.status === "completed" ? "success" : b.status === "failed" ? "danger" : b.status === "expired" ? "neutral" : "warning"}>{b.status}</StatusPill>
+                    </TableCell>
+                    <TableCell className="text-xs">{b.taken_at ? formatDistanceToNow(new Date(b.taken_at), { addSuffix: true }) : "—"}</TableCell>
+                    <TableCell className="text-xs">{b.expires_at ? new Date(b.expires_at).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {b.status === "completed" && (
+                        <Button size="sm" variant="outline" onClick={() => restore.mutate(b.id)} disabled={restore.isPending}>
+                          <RotateCcw className="h-3.5 w-3.5 mr-1" />Restore
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ================== Budgets & alerts panel ==================
+function BudgetsPanel() {
+  const qc = useQueryClient();
+  const fnList = useServerFn(listCustomerBudgets);
+  const fnUpsert = useServerFn(upsertCustomerBudget);
+  const fnDelete = useServerFn(deleteCustomerBudget);
+  const fnSnap = useServerFn(getCustomerSpendSnapshot);
+  const fnAlerts = useServerFn(listBudgetAlerts);
+
+  const { data: budgets = [] } = useQuery({ queryKey: ["customer_budgets"], queryFn: () => fnList() });
+  const { data: snap } = useQuery({ queryKey: ["spend_snapshot"], queryFn: () => fnSnap(), refetchInterval: 60_000 });
+  const { data: alerts = [] } = useQuery({ queryKey: ["budget_alerts"], queryFn: () => fnAlerts(), refetchInterval: 60_000 });
+  const { data: customers = [] } = useQuery({
+    queryKey: ["customers_for_budget"],
+    queryFn: async () => {
+      const { data } = await supabase.from("customers" as any).select("id, name, account_number").order("name");
+      return (data ?? []) as any[];
+    },
+  });
+
+  const [customerId, setCustomerId] = useState("");
+  const [cap, setCap] = useState(500);
+  const [threshold, setThreshold] = useState(80);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["customer_budgets"] });
+    qc.invalidateQueries({ queryKey: ["spend_snapshot"] });
+  };
+
+  const save = useMutation({
+    mutationFn: () => fnUpsert({ data: { customer_id: customerId, monthly_cap_usd: cap, alert_threshold_pct: threshold, enabled: true } }),
+    onSuccess: () => { toast.success("Budget saved"); invalidate(); setCustomerId(""); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (cid: string) => fnDelete({ data: { customer_id: cid } }),
+    onSuccess: () => { toast.success("Budget removed"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4" />Set customer budget</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <div className="md:col-span-2">
+              <Label className="text-xs">Customer</Label>
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger><SelectValue placeholder="Choose customer…" /></SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name} ({c.account_number})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Monthly cap (USD)</Label>
+              <Input type="number" min={0} value={cap} onChange={(e) => setCap(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label className="text-xs">Alert at (%)</Label>
+              <Input type="number" min={1} max={100} value={threshold} onChange={(e) => setThreshold(Number(e.target.value) || 80)} />
+            </div>
+            <Button onClick={() => save.mutate()} disabled={!customerId || save.isPending}>Save budget</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Customer spend vs budget</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {budgets.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No budgets set yet.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Customer</TableHead><TableHead>Cap</TableHead>
+                <TableHead>Spend (this month)</TableHead><TableHead>Usage</TableHead>
+                <TableHead>Threshold</TableHead><TableHead></TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {budgets.map((b: any) => {
+                  const spend = Number(snap?.totals?.[b.customer_id]?.revenue ?? snap?.totals?.[b.customer_id]?.cost ?? 0);
+                  const cap = Number(b.monthly_cap_usd || 0);
+                  const pct = cap > 0 ? (spend / cap) * 100 : 0;
+                  const tone = pct >= 100 ? "danger" : pct >= b.alert_threshold_pct ? "warning" : "success";
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-semibold">{b.customers?.name ?? "—"} <span className="text-xs text-muted-foreground font-mono">{b.customers?.account_number}</span></TableCell>
+                      <TableCell className="font-mono">${cap.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono">${spend.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-24 bg-muted rounded overflow-hidden">
+                            <div className={`h-full ${tone === "danger" ? "bg-red-500" : tone === "warning" ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                          </div>
+                          <StatusPill tone={tone}>{pct.toFixed(0)}%</StatusPill>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">{b.alert_threshold_pct}%</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => remove.mutate(b.customer_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Recent alerts</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {alerts.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">No alerts fired.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>When</TableHead><TableHead>Customer</TableHead>
+                <TableHead>Level</TableHead><TableHead>Spend / Cap</TableHead><TableHead>%</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {alerts.map((a: any) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="text-xs">{formatDistanceToNow(new Date(a.sent_at), { addSuffix: true })}</TableCell>
+                    <TableCell>{a.customers?.name ?? "—"}</TableCell>
+                    <TableCell><StatusPill tone={a.level === "breach" ? "danger" : "warning"}>{a.level}</StatusPill></TableCell>
+                    <TableCell className="font-mono text-xs">${Number(a.spend_usd).toFixed(2)} / ${Number(a.cap_usd).toFixed(2)}</TableCell>
+                    <TableCell className="font-mono text-xs">{Number(a.pct).toFixed(0)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
 
