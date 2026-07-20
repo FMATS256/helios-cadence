@@ -258,6 +258,60 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
     return row;
   });
 
+export const manageSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    subscription_id: string;
+    action: "suspend" | "resume" | "cancel" | "renew" | "upgrade" | "downgrade";
+    plan_name?: string;
+    description?: string;
+    amount?: number;
+    billing_cycle?: string;
+    note?: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sub, error: subErr } = await supabaseAdmin.from("subscriptions").select("*").eq("id", data.subscription_id).single();
+    if (subErr || !sub) throw new Error(subErr?.message ?? "Subscription not found");
+
+    const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (data.action === "suspend") patch.status = "paused";
+    else if (data.action === "resume") patch.status = "active";
+    else if (data.action === "cancel") { patch.status = "cancelled"; patch.auto_renew = false; }
+    else if (data.action === "renew") {
+      const base = sub.next_renewal ? new Date(sub.next_renewal) : new Date();
+      const cycle = (data.billing_cycle || sub.billing_cycle || "monthly").toLowerCase();
+      if (cycle === "yearly" || cycle === "annual") base.setFullYear(base.getFullYear() + 1);
+      else if (cycle === "quarterly") base.setMonth(base.getMonth() + 3);
+      else if (cycle === "weekly") base.setDate(base.getDate() + 7);
+      else base.setMonth(base.getMonth() + 1);
+      patch.next_renewal = base.toISOString().slice(0, 10);
+      patch.status = "active";
+    } else if (data.action === "upgrade" || data.action === "downgrade") {
+      if (data.plan_name) patch.plan_name = data.plan_name.trim();
+      if (data.description !== undefined) patch.description = data.description?.trim() || null;
+      if (data.amount != null) patch.amount = Number(data.amount);
+      if (data.billing_cycle) patch.billing_cycle = data.billing_cycle;
+      patch.status = "active";
+    }
+
+    const { data: updated, error } = await supabaseAdmin.from("subscriptions").update(patch as any).eq("id", data.subscription_id).select("*").single();
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin.from("customer_timeline").insert({
+      customer_id: sub.customer_id,
+      account_number: sub.account_number,
+      event_type: `subscription_${data.action}`,
+      title: `Subscription ${data.action}: ${updated.plan_name}`,
+      description: data.note || null,
+      created_by: context.userId,
+    } as any);
+
+    return updated;
+  });
+
 export const syncSubscriptionsFromCloudServices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

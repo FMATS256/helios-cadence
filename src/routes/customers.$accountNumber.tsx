@@ -17,7 +17,14 @@ import {
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
   Mail, Phone, ShieldCheck, Heart,
 } from "lucide-react";
-import { getCustomer360, generateInvoiceForSubscription } from "@/lib/ops.functions";
+import { getCustomer360, generateInvoiceForSubscription, manageSubscription } from "@/lib/ops.functions";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
@@ -119,7 +126,31 @@ function Customer360() {
     onError: (e: any) => toast.error(e?.message || "Could not generate invoice"),
   });
 
+  const manageSub = useServerFn(manageSubscription);
+  const subAction = useMutation({
+    mutationFn: async (input: Parameters<typeof manageSubscription>[0]["data"]) => manageSub({ data: input }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] });
+      toast.success(`Subscription ${vars.action} applied`);
+    },
+    onError: (e: any) => toast.error(e?.message || "Action failed"),
+  });
+
+  const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
+  const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
+
   const health = useMemo(() => view ? computeHealth(view) : null, [view]);
+
+  function subHealth(s: any): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
+    if (s.status === "cancelled") return { label: "Cancelled", tone: "neutral" };
+    if (s.status === "paused") return { label: "Suspended", tone: "warning" };
+    const d = daysUntil(s.next_renewal);
+    if (d == null) return { label: "Active", tone: "success" };
+    if (d < 0) return { label: `Overdue ${Math.abs(d)}d`, tone: "danger" };
+    if (d <= 7) return { label: `Renews ${d}d`, tone: "danger" };
+    if (d <= 30) return { label: `Renews ${d}d`, tone: "warning" };
+    return { label: `Renews ${d}d`, tone: "success" };
+  }
 
   const renewals = useMemo(() => {
     if (!view) return [];
@@ -229,6 +260,7 @@ function Customer360() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
+          <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -354,6 +386,147 @@ function Customer360() {
             ))}
           </CardContent></Card>
         </TabsContent>
+
+        <TabsContent value="services-mgmt" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-display flex items-center gap-2"><Settings2 className="h-4 w-4 text-solar" />Services Management</CardTitle>
+              <span className="text-xs text-muted-foreground">{subscriptions.length} subscription{subscriptions.length === 1 ? "" : "s"}</span>
+            </CardHeader>
+            <CardContent className="p-0">
+              {subscriptions.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-12">
+                  No services yet. <Link to="/subscriptions" className="text-solar font-semibold">Add one →</Link>
+                </p>
+              )}
+              {subscriptions.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground border-b">
+                      <tr>
+                        <th className="text-left px-4 py-2">Service</th>
+                        <th className="text-left px-4 py-2">Cycle</th>
+                        <th className="text-left px-4 py-2">Started</th>
+                        <th className="text-left px-4 py-2">Renews</th>
+                        <th className="text-right px-4 py-2">Amount</th>
+                        <th className="text-left px-4 py-2">Health</th>
+                        <th className="text-left px-4 py-2">Status</th>
+                        <th className="text-right px-4 py-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {subscriptions.map((s: any) => {
+                        const h = subHealth(s);
+                        const active = s.status === "active";
+                        const suspended = s.status === "paused";
+                        const cancelled = s.status === "cancelled";
+                        return (
+                          <tr key={s.id} className="hover:bg-muted/30">
+                            <td className="px-4 py-3">
+                              <p className="font-semibold">{s.plan_name}</p>
+                              {s.description && <p className="text-xs text-muted-foreground">{s.description}</p>}
+                            </td>
+                            <td className="px-4 py-3 capitalize">{s.billing_cycle || "—"}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{s.started_on || "—"}</td>
+                            <td className="px-4 py-3 text-xs">{s.next_renewal || "—"}</td>
+                            <td className="px-4 py-3 text-right font-mono">{money(s.amount, s.currency)}</td>
+                            <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label}</StatusPill></td>
+                            <td className="px-4 py-3"><StatusPill tone={active ? "success" : suspended ? "warning" : cancelled ? "danger" : "neutral"}>{s.status}</StatusPill></td>
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end gap-1">
+                                <Button size="sm" variant="outline" onClick={() => invoiceFromSub.mutate(s.id)} disabled={invoiceFromSub.isPending || cancelled}>
+                                  <Receipt className="h-3.5 w-3.5 mr-1" />Invoice
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => subAction.mutate({ subscription_id: s.id, action: "renew" })} disabled={subAction.isPending || cancelled}>
+                                  <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="outline"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { setEditForm({ plan_name: s.plan_name, description: s.description || "", amount: Number(s.amount) || 0, billing_cycle: s.billing_cycle || "monthly" }); setEditSub({ sub: s, mode: "upgrade" }); }}>
+                                      <ArrowUpCircle className="h-4 w-4 mr-2 text-success" />Upgrade
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setEditForm({ plan_name: s.plan_name, description: s.description || "", amount: Number(s.amount) || 0, billing_cycle: s.billing_cycle || "monthly" }); setEditSub({ sub: s, mode: "downgrade" }); }}>
+                                      <ArrowDownCircle className="h-4 w-4 mr-2 text-warning" />Downgrade
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {suspended ? (
+                                      <DropdownMenuItem onClick={() => subAction.mutate({ subscription_id: s.id, action: "resume" })}>
+                                        <PlayCircle className="h-4 w-4 mr-2 text-success" />Resume
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem onClick={() => subAction.mutate({ subscription_id: s.id, action: "suspend" })} disabled={cancelled}>
+                                        <PauseCircle className="h-4 w-4 mr-2 text-warning" />Suspend
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => { if (confirm(`Cancel subscription "${s.plan_name}"?`)) subAction.mutate({ subscription_id: s.id, action: "cancel" }); }}
+                                      disabled={cancelled}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-2" />Cancel
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={!!editSub} onOpenChange={(o) => !o && setEditSub(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="capitalize flex items-center gap-2">
+                  {editSub?.mode === "upgrade" ? <ArrowUpCircle className="h-4 w-4 text-success" /> : <ArrowDownCircle className="h-4 w-4 text-warning" />}
+                  {editSub?.mode} — {editSub?.sub?.plan_name}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Plan name</Label><Input value={editForm.plan_name} onChange={(e) => setEditForm({ ...editForm, plan_name: e.target.value })} /></div>
+                <div className="space-y-1"><Label>Description</Label><Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label>Amount</Label><Input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: Number(e.target.value) })} /></div>
+                  <div className="space-y-1"><Label>Billing cycle</Label>
+                    <select className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm" value={editForm.billing_cycle} onChange={(e) => setEditForm({ ...editForm, billing_cycle: e.target.value })}>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditSub(null)}>Cancel</Button>
+                <Button
+                  className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}
+                  onClick={() => {
+                    if (!editSub) return;
+                    subAction.mutate({
+                      subscription_id: editSub.sub.id,
+                      action: editSub.mode,
+                      plan_name: editForm.plan_name,
+                      description: editForm.description,
+                      amount: editForm.amount,
+                      billing_cycle: editForm.billing_cycle,
+                    });
+                    setEditSub(null);
+                  }}
+                >Apply {editSub?.mode}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+
 
         <TabsContent value="packages" className="mt-4">
           <Card><CardContent className="p-0 divide-y">
