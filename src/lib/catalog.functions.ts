@@ -99,6 +99,7 @@ export const assignServices = createServerFn({ method: "POST" })
       // create subscription first
       const { data: sub, error: subErr } = await context.supabase.from("subscriptions").insert({
         customer_id: data.customer_id,
+        account_number: "", // filled by trigger fill_account_number_from_customer
         plan_name: cat.name,
         description: cat.description || cat.code,
         amount: unitPrice * qty,
@@ -109,7 +110,7 @@ export const assignServices = createServerFn({ method: "POST" })
         auto_renew: true,
         notes: item.notes || null,
         created_by: context.userId,
-      }).select("id").single();
+      } as any).select("id").single();
       if (subErr) throw new Error(subErr.message);
 
       const { error: csErr } = await context.supabase.from("customer_services").insert({
