@@ -115,7 +115,7 @@ function CatalogPage() {
               {canManage && <TableHead className="w-[100px]" />}
             </TableRow></TableHeader>
             <TableBody>
-              {items.map((it) => (
+              {filtered.map((it) => (
                 <TableRow key={it.id}>
                   <TableCell className="font-mono text-xs">{it.code}</TableCell>
                   <TableCell><div className="font-semibold">{it.name}</div>{it.description && <div className="text-xs text-muted-foreground max-w-md truncate">{it.description}</div>}</TableCell>
