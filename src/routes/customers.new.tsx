@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -41,20 +41,33 @@ function OnboardingWizard() {
   const [company, setCompany] = useState({ company_name: "", industry: "", website: "", status: "active", notes: "" });
   const [contact, setContact] = useState({ full_name: "", email: "", phone: "", role: "Primary contact" });
   const [selected, setSelected] = useState<Record<string, { qty: number; price?: number }>>({});
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [cycleFilter, setCycleFilter] = useState<string>("all");
 
   const { data: catalog = [] } = useQuery({
     queryKey: ["catalog-active"],
     queryFn: async () => (await catalogFn()) as CatalogItem[],
   });
   const activeCatalog = catalog.filter((c) => c.is_active);
+  const allCategories = useMemo(() => Array.from(new Set(activeCatalog.map((c) => c.category))).sort(), [activeCatalog]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return activeCatalog.filter((c) => {
+      if (catFilter !== "all" && c.category !== catFilter) return false;
+      if (cycleFilter !== "all" && c.billing_cycle !== cycleFilter) return false;
+      if (!q) return true;
+      return c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
+    });
+  }, [activeCatalog, search, catFilter, cycleFilter]);
   const byCategory = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
-    for (const c of activeCatalog) {
+    for (const c of filtered) {
       if (!map.has(c.category)) map.set(c.category, []);
       map.get(c.category)!.push(c);
     }
     return Array.from(map.entries()).sort();
-  }, [activeCatalog]);
+  }, [filtered]);
 
   const selectedItems = activeCatalog
     .filter((c) => selected[c.id])
@@ -172,9 +185,32 @@ function OnboardingWizard() {
 
           {step === 2 && (
             <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by code (e.g. VPS-BASIC), name, category…" className="pl-9" />
+                </div>
+                <Select value={catFilter} onValueChange={setCatFilter}>
+                  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {allCategories.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={cycleFilter} onValueChange={setCycleFilter}>
+                  <SelectTrigger><SelectValue placeholder="Cycle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any cycle</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                    <SelectItem value="one-time">One-time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-xs text-muted-foreground">{filtered.length} of {activeCatalog.length} packages</div>
               {byCategory.length === 0 && (
-                <div className="text-sm text-muted-foreground">
-                  No catalog items yet. <Link to="/catalog" className="text-solar underline">Set up the service catalog</Link>, then come back.
+                <div className="text-sm text-muted-foreground rounded-xl border border-dashed p-8 text-center">
+                  No packages match your filters. <Link to="/catalog" className="text-solar underline">Manage catalog</Link>
                 </div>
               )}
               {byCategory.map(([cat, items]) => (

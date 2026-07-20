@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Archive } from "lucide-react";
+import { Plus, Pencil, Archive, Search } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/catalog")({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/catalog")({
 type Item = { id: string; code: string; name: string; category: string; description: string | null; unit_price: number; currency: string; billing_cycle: string; is_active: boolean };
 
 const CYCLES = ["monthly", "quarterly", "annual", "one-time"];
-const CATEGORIES = ["connectivity", "cloud", "hosting", "productivity", "security", "backup", "support", "hardware", "licensing", "general"];
+const CATEGORIES = ["cloud-storage", "managed-nas", "vps", "cloud", "hosting", "email-hosting", "m365", "productivity", "cybersecurity", "security", "security-addon", "addon", "bundle", "domain", "connectivity", "backup", "support", "hardware", "licensing", "general"];
 
 function CatalogPage() {
   const qc = useQueryClient();
@@ -38,11 +39,24 @@ function CatalogPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [form, setForm] = useState({ code: "", name: "", category: "general", description: "", unit_price: 0, billing_cycle: "monthly", is_active: true });
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["catalog"],
     queryFn: async () => (await listFn()) as Item[],
   });
+  const allCategories = useMemo(() => Array.from(new Set(items.map((i) => i.category))).sort(), [items]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => {
+      if (!showArchived && !i.is_active) return false;
+      if (catFilter !== "all" && i.category !== catFilter) return false;
+      if (!q) return true;
+      return i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) || (i.description || "").toLowerCase().includes(q) || i.category.toLowerCase().includes(q);
+    });
+  }, [items, search, catFilter, showArchived]);
 
   const openNew = () => { setEditing(null); setForm({ code: "", name: "", category: "general", description: "", unit_price: 0, billing_cycle: "monthly", is_active: true }); setOpen(true); };
   const openEdit = (it: Item) => { setEditing(it); setForm({ code: it.code, name: it.name, category: it.category, description: it.description || "", unit_price: Number(it.unit_price), billing_cycle: it.billing_cycle, is_active: it.is_active }); setOpen(true); };
@@ -71,9 +85,24 @@ function CatalogPage() {
         )}
       />
 
-      <Card><CardContent className="p-0">
-        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div> : items.length === 0 ? (
-          <div className="p-12 text-center text-sm text-muted-foreground">No catalog items yet.</div>
+      <Card><CardContent className="p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px_auto] gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by code, name, category, description…" className="pl-9" />
+          </div>
+          <Select value={catFilter} onValueChange={setCatFilter}>
+            <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {allCategories.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>{showArchived ? "Hide archived" : "Show archived"}</Button>
+        </div>
+        <div className="text-xs text-muted-foreground">{filtered.length} of {items.length} items</div>
+        {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div> : filtered.length === 0 ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">No items match your filters.</div>
         ) : (
           <Table>
             <TableHeader><TableRow>
@@ -86,7 +115,7 @@ function CatalogPage() {
               {canManage && <TableHead className="w-[100px]" />}
             </TableRow></TableHeader>
             <TableBody>
-              {items.map((it) => (
+              {filtered.map((it) => (
                 <TableRow key={it.id}>
                   <TableCell className="font-mono text-xs">{it.code}</TableCell>
                   <TableCell><div className="font-semibold">{it.name}</div>{it.description && <div className="text-xs text-muted-foreground max-w-md truncate">{it.description}</div>}</TableCell>
