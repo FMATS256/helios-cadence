@@ -26,7 +26,7 @@ export const Route = createFileRoute("/catalog")({
 type Item = { id: string; code: string; name: string; category: string; description: string | null; unit_price: number; currency: string; billing_cycle: string; is_active: boolean };
 
 const CYCLES = ["monthly", "quarterly", "annual", "one-time"];
-const CATEGORIES = ["connectivity", "cloud", "hosting", "productivity", "security", "backup", "support", "hardware", "licensing", "general"];
+const CATEGORIES = ["cloud-storage", "managed-nas", "vps", "cloud", "hosting", "email-hosting", "m365", "productivity", "cybersecurity", "security", "security-addon", "addon", "bundle", "domain", "connectivity", "backup", "support", "hardware", "licensing", "general"];
 
 function CatalogPage() {
   const qc = useQueryClient();
