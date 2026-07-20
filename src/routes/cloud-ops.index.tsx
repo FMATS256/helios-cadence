@@ -576,3 +576,91 @@ function AgentPanel() {
   );
 }
 
+function AiDeployButton() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [autoApprove, setAutoApprove] = useState(false);
+  const fn = useServerFn(deployFromPrompt);
+
+  const mut = useMutation({
+    mutationFn: () => fn({ data: { prompt, auto_approve: autoApprove } }),
+    onSuccess: (row: any) => {
+      toast.success(`Plan created for "${row.request?.name}" on ${row.provider} — $${Number(row.estimated_monthly_usd || 0).toFixed(2)}/mo`);
+      qc.invalidateQueries({ queryKey: ["provisioning_plans"] });
+      setOpen(false);
+      setPrompt("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const examples = [
+    "Deploy a small Ubuntu 22 server in Frankfurt with WordPress preinstalled",
+    "I need a medium Docker host for staging in the Netherlands",
+    "Provision a Windows 2022 VM, 4 cores, 8GB RAM for client remote-desktop",
+  ];
+
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
+        Deploy with AI
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Deploy a server with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe what you need in plain English. The agent picks the provider, region, size and
+              template, then creates a draft plan for review.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. Deploy a small WordPress site in Frankfurt for Client X"
+              rows={5}
+              autoFocus
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {examples.map((ex) => (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => setPrompt(ex)}
+                  className="text-xs px-2 py-1 rounded border hover:bg-muted transition text-left"
+                >
+                  {ex.length > 48 ? ex.slice(0, 45) + "…" : ex}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border rounded-lg p-3">
+              <div>
+                <Label htmlFor="auto-approve" className="text-sm">Auto-approve plan</Label>
+                <p className="text-xs text-muted-foreground">Skip review and mark as approved. Execute manually from the Agent tab.</p>
+              </div>
+              <Switch id="auto-approve" checked={autoApprove} onCheckedChange={setAutoApprove} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => mut.mutate()}
+              disabled={mut.isPending || !prompt.trim()}
+              className="text-solar-foreground"
+              style={{ background: "var(--gradient-solar)" }}
+            >
+              {mut.isPending ? "Generating plan…" : "Generate plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+
