@@ -3,14 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyKamatera, syncServers } from "@/lib/kamatera.functions";
+import { listProvisioningPlans, approveProvisioningPlan, rejectProvisioningPlan, executeProvisioningPlan } from "@/lib/agent.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package } from "lucide-react";
+import { Plus, Server, RefreshCw, ShieldCheck, ShieldAlert, Activity, DollarSign, MapPin, Cloud as CloudIcon, Package, Bot, Check, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+
 
 export const Route = createFileRoute("/cloud-ops/")({
   head: () => ({ meta: [{ title: "Cloud — IMT" }] }),
@@ -174,7 +176,9 @@ function CloudOpsPage() {
           <TabsTrigger value="servers"><Server className="h-3.5 w-3.5 mr-1.5" />Servers ({servers.length})</TabsTrigger>
           <TabsTrigger value="services"><Package className="h-3.5 w-3.5 mr-1.5" />Managed services ({services.length})</TabsTrigger>
           <TabsTrigger value="providers"><CloudIcon className="h-3.5 w-3.5 mr-1.5" />Providers</TabsTrigger>
+          <TabsTrigger value="agent"><Bot className="h-3.5 w-3.5 mr-1.5" />Provisioning agent</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="servers" className="mt-3">
           <Card>
@@ -317,7 +321,12 @@ function CloudOpsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="agent" className="mt-3">
+          <AgentPanel />
+        </TabsContent>
       </Tabs>
+
 
 
       {/* Recent activity */}
@@ -390,3 +399,174 @@ function AgendaCard({
     </Card>
   );
 }
+
+function AgentPanel() {
+  const qc = useQueryClient();
+  const fnList = useServerFn(listProvisioningPlans);
+  const fnApprove = useServerFn(approveProvisioningPlan);
+  const fnReject = useServerFn(rejectProvisioningPlan);
+  const fnExecute = useServerFn(executeProvisioningPlan);
+
+  const { data: plans = [], isLoading } = useQuery({
+    queryKey: ["provisioning_plans"],
+    queryFn: () => fnList(),
+    refetchInterval: 10_000,
+  });
+
+  const { data: workflows = [] } = useQuery({
+    queryKey: ["deployment_workflows"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("deployment_workflows" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(15);
+      return (data ?? []) as any[];
+    },
+    refetchInterval: 5_000,
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["provisioning_plans"] });
+    qc.invalidateQueries({ queryKey: ["deployment_workflows"] });
+    qc.invalidateQueries({ queryKey: ["cloud_servers"] });
+  };
+
+  const approve = useMutation({
+    mutationFn: (id: string) => fnApprove({ data: { id } }),
+    onSuccess: () => { toast.success("Plan approved"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const reject = useMutation({
+    mutationFn: (id: string) => fnReject({ data: { id, reason: "Rejected from Cloud Ops" } }),
+    onSuccess: () => { toast.success("Plan rejected"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const execute = useMutation({
+    mutationFn: (id: string) => fnExecute({ data: { plan_id: id } }),
+    onSuccess: () => { toast.success("Workflow started"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Provisioning plans</CardTitle>
+          </div>
+          <Link to="/cloud-ops/new">
+            <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" />New plan</Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : plans.length === 0 ? (
+            <div className="p-10 text-center">
+              <Bot className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No provisioning plans yet.</p>
+              <Link to="/cloud-ops/new"><Button size="sm" className="mt-3">Generate first plan</Button></Link>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Request</TableHead><TableHead>Provider</TableHead>
+                <TableHead>Region</TableHead><TableHead>Est. cost</TableHead>
+                <TableHead>Status</TableHead><TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {plans.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-semibold">{p.request?.name ?? "—"}</TableCell>
+                    <TableCell className="text-xs uppercase">{p.provider}</TableCell>
+                    <TableCell>{p.region ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">${Number(p.estimated_monthly_usd || 0).toFixed(2)}/mo</TableCell>
+                    <TableCell>
+                      <StatusPill tone={
+                        p.status === "executed" ? "success" :
+                        p.status === "approved" ? "info" :
+                        p.status === "rejected" || p.status === "failed" ? "danger" : "warning"
+                      }>{p.status}</StatusPill>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        {p.status === "draft" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => approve.mutate(p.id)} disabled={approve.isPending}>
+                              <Check className="h-3.5 w-3.5 mr-1" />Approve
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => reject.mutate(p.id)} disabled={reject.isPending}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        {p.status === "approved" && (
+                          <Button size="sm" onClick={() => execute.mutate(p.id)} disabled={execute.isPending}>
+                            <Play className="h-3.5 w-3.5 mr-1" />Execute
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center gap-2">
+          <Activity className="h-4 w-4" />
+          <CardTitle className="text-sm">Active workflows</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {workflows.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No workflows yet.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Provider</TableHead><TableHead>Status</TableHead>
+                <TableHead>Current step</TableHead><TableHead>Progress</TableHead>
+                <TableHead>Started</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {workflows.map((w: any) => (
+                  <TableRow key={w.id}>
+                    <TableCell className="text-xs uppercase">{w.provider}</TableCell>
+                    <TableCell>
+                      <StatusPill tone={
+                        w.status === "completed" ? "success" :
+                        w.status === "failed" ? "danger" :
+                        w.status === "running" ? "info" : "warning"
+                      }>{w.status}</StatusPill>
+                    </TableCell>
+                    <TableCell className="text-xs">{w.current_step ?? "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-24 bg-muted rounded overflow-hidden">
+                          <div className="h-full bg-primary" style={{ width: `${w.progress ?? 0}%` }} />
+                        </div>
+                        <span className="text-xs font-mono">{w.progress ?? 0}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {w.started_at ? formatDistanceToNow(new Date(w.started_at), { addSuffix: true }) : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
