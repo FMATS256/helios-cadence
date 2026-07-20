@@ -185,9 +185,32 @@ function OnboardingWizard() {
 
           {step === 2 && (
             <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by code (e.g. VPS-BASIC), name, category…" className="pl-9" />
+                </div>
+                <Select value={catFilter} onValueChange={setCatFilter}>
+                  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {allCategories.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={cycleFilter} onValueChange={setCycleFilter}>
+                  <SelectTrigger><SelectValue placeholder="Cycle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any cycle</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                    <SelectItem value="one-time">One-time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-xs text-muted-foreground">{filtered.length} of {activeCatalog.length} packages</div>
               {byCategory.length === 0 && (
-                <div className="text-sm text-muted-foreground">
-                  No catalog items yet. <Link to="/catalog" className="text-solar underline">Set up the service catalog</Link>, then come back.
+                <div className="text-sm text-muted-foreground rounded-xl border border-dashed p-8 text-center">
+                  No packages match your filters. <Link to="/catalog" className="text-solar underline">Manage catalog</Link>
                 </div>
               )}
               {byCategory.map(([cat, items]) => (
