@@ -35,6 +35,7 @@ import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as CommunicationsRouteImport } from './routes/communications'
 import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
 import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
@@ -203,6 +204,11 @@ const CloudStorageRoute = CloudStorageRouteImport.update({
 const CloudRoute = CloudRouteImport.update({
   id: '/cloud',
   path: '/cloud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BillingRoute = BillingRouteImport.update({
@@ -420,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -487,6 +494,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -621,6 +630,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -820,6 +832,7 @@ export interface RootRouteChildren {
   AssetsRoute: typeof AssetsRouteWithChildren
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
+  CatalogRoute: typeof CatalogRoute
   CloudRoute: typeof CloudRoute
   CloudStorageRoute: typeof CloudStorageRoute
   CommunicationsRoute: typeof CommunicationsRoute
@@ -1047,6 +1060,13 @@ declare module '@tanstack/react-router' {
       path: '/cloud'
       fullPath: '/cloud'
       preLoaderRoute: typeof CloudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/billing': {
@@ -1434,6 +1454,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssetsRoute: AssetsRouteWithChildren,
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
+  CatalogRoute: CatalogRoute,
   CloudRoute: CloudRoute,
   CloudStorageRoute: CloudStorageRoute,
   CommunicationsRoute: CommunicationsRoute,
