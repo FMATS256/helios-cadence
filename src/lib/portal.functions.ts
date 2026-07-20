@@ -312,5 +312,6 @@ export const staffEnsureWorkspaceForCustomer = createServerFn({ method: "POST" }
     const { data: isStaff } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
     if (!isStaff) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return ensureWorkspace(supabaseAdmin, data.customerId);
+    const { ensureWorkspace } = await import("@/lib/portal.server");
+    return ensureWorkspace(supabaseAdmin as any, data.customerId);
   });
