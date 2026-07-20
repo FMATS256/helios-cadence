@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
