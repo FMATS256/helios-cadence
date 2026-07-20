@@ -41,20 +41,33 @@ function OnboardingWizard() {
   const [company, setCompany] = useState({ company_name: "", industry: "", website: "", status: "active", notes: "" });
   const [contact, setContact] = useState({ full_name: "", email: "", phone: "", role: "Primary contact" });
   const [selected, setSelected] = useState<Record<string, { qty: number; price?: number }>>({});
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [cycleFilter, setCycleFilter] = useState<string>("all");
 
   const { data: catalog = [] } = useQuery({
     queryKey: ["catalog-active"],
     queryFn: async () => (await catalogFn()) as CatalogItem[],
   });
   const activeCatalog = catalog.filter((c) => c.is_active);
+  const allCategories = useMemo(() => Array.from(new Set(activeCatalog.map((c) => c.category))).sort(), [activeCatalog]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return activeCatalog.filter((c) => {
+      if (catFilter !== "all" && c.category !== catFilter) return false;
+      if (cycleFilter !== "all" && c.billing_cycle !== cycleFilter) return false;
+      if (!q) return true;
+      return c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
+    });
+  }, [activeCatalog, search, catFilter, cycleFilter]);
   const byCategory = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
-    for (const c of activeCatalog) {
+    for (const c of filtered) {
       if (!map.has(c.category)) map.set(c.category, []);
       map.get(c.category)!.push(c);
     }
     return Array.from(map.entries()).sort();
-  }, [activeCatalog]);
+  }, [filtered]);
 
   const selectedItems = activeCatalog
     .filter((c) => selected[c.id])
