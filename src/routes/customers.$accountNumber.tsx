@@ -120,6 +120,12 @@ function Customer360() {
     onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-contacts", accountNumber] }); toast.success("Contact added"); },
   });
 
+  const invoiceFromSub = useMutation({
+    mutationFn: async (subscription_id: string) => genInvoice({ data: { subscription_id } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Invoice generated"); },
+    onError: (e: any) => toast.error(e?.message || "Could not generate invoice"),
+  });
+
   const manageSub = useServerFn(manageSubscription);
   const subAction = useMutation({
     mutationFn: async (input: Parameters<typeof manageSubscription>[0]["data"]) => manageSub({ data: input }),
