@@ -320,8 +320,11 @@ function CloudOpsPage() {
               </div>
             </CardContent>
           </Card>
+        <TabsContent value="agent" className="mt-3">
+          <AgentPanel />
         </TabsContent>
       </Tabs>
+
 
 
       {/* Recent activity */}
