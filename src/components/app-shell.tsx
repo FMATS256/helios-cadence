@@ -2,7 +2,7 @@ import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
-  Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown,
+  Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
   Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail,
 } from "lucide-react";
@@ -30,6 +30,7 @@ const navGroups = [
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Customers", url: "/customers", icon: Users },
+      { title: "Service Catalog", url: "/catalog", icon: Package },
       { title: "Support Desk", url: "/tickets", icon: LifeBuoy },
       { title: "Credential Vault", url: "/credentials", icon: KeyRound },
     ],

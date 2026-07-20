@@ -35,6 +35,7 @@ import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as CommunicationsRouteImport } from './routes/communications'
 import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
 import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
@@ -49,6 +50,7 @@ import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
 import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
 import { Route as PortalAssetsRouteImport } from './routes/portal.assets'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
+import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
@@ -204,6 +206,11 @@ const CloudRoute = CloudRouteImport.update({
   path: '/cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BillingRoute = BillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -273,6 +280,11 @@ const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersNewRoute = CustomersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CustomersRoute,
 } as any)
 const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
   id: '/$accountNumber',
@@ -414,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -446,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
@@ -480,6 +494,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -510,6 +525,7 @@ export interface FileRoutesByTo {
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
@@ -544,6 +560,7 @@ export interface FileRoutesById {
   '/assets': typeof AssetsRouteWithChildren
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
+  '/catalog': typeof CatalogRoute
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -576,6 +593,7 @@ export interface FileRoutesById {
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
+  '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/portal/assets': typeof PortalAssetsRoute
   '/portal/invoices': typeof PortalInvoicesRoute
@@ -612,6 +630,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -644,6 +663,7 @@ export interface FileRouteTypes {
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
+    | '/customers/new'
     | '/invoices/$id'
     | '/portal/assets'
     | '/portal/invoices'
@@ -678,6 +698,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -708,6 +729,7 @@ export interface FileRouteTypes {
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
+    | '/customers/new'
     | '/invoices/$id'
     | '/portal/assets'
     | '/portal/invoices'
@@ -741,6 +763,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/billing'
+    | '/catalog'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -773,6 +796,7 @@ export interface FileRouteTypes {
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
+    | '/customers/new'
     | '/invoices/$id'
     | '/portal/assets'
     | '/portal/invoices'
@@ -808,6 +832,7 @@ export interface RootRouteChildren {
   AssetsRoute: typeof AssetsRouteWithChildren
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
+  CatalogRoute: typeof CatalogRoute
   CloudRoute: typeof CloudRoute
   CloudStorageRoute: typeof CloudStorageRoute
   CommunicationsRoute: typeof CommunicationsRoute
@@ -1037,6 +1062,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/billing': {
       id: '/billing'
       path: '/billing'
@@ -1134,6 +1166,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invoices/$id'
       preLoaderRoute: typeof InvoicesIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/customers/new': {
+      id: '/customers/new'
+      path: '/new'
+      fullPath: '/customers/new'
+      preLoaderRoute: typeof CustomersNewRouteImport
+      parentRoute: typeof CustomersRoute
     }
     '/customers/$accountNumber': {
       id: '/customers/$accountNumber'
@@ -1319,10 +1358,12 @@ const AssetsRouteWithChildren =
 
 interface CustomersRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
+  CustomersNewRoute: typeof CustomersNewRoute
 }
 
 const CustomersRouteChildren: CustomersRouteChildren = {
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
+  CustomersNewRoute: CustomersNewRoute,
 }
 
 const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
@@ -1413,6 +1454,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssetsRoute: AssetsRouteWithChildren,
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
+  CatalogRoute: CatalogRoute,
   CloudRoute: CloudRoute,
   CloudStorageRoute: CloudStorageRoute,
   CommunicationsRoute: CommunicationsRoute,

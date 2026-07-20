@@ -1067,6 +1067,82 @@ export type Database = {
           },
         ]
       }
+      customer_services: {
+        Row: {
+          assigned_by: string | null
+          billing_cycle: string
+          catalog_id: string
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          next_renewal: string | null
+          notes: string | null
+          quantity: number
+          started_on: string
+          status: string
+          subscription_id: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          billing_cycle?: string
+          catalog_id: string
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          quantity?: number
+          started_on?: string
+          status?: string
+          subscription_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          billing_cycle?: string
+          catalog_id?: string
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          next_renewal?: string | null
+          notes?: string | null
+          quantity?: number
+          started_on?: string
+          status?: string
+          subscription_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_services_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_services_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_services_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_timeline: {
         Row: {
           account_number: string
@@ -2288,6 +2364,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_catalog: {
+        Row: {
+          billing_cycle: string
+          category: string
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          category?: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       starlink_accounts: {
         Row: {
