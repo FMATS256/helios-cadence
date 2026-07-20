@@ -39,7 +39,7 @@ const EVENT_VARIANT: Record<string, { label: string; className: string }> = {
 
 function EmailLogsPage() {
   const { user, loading: authLoading } = useAuth();
-  const { isMaster, loading: rolesLoading } = useRoles();
+  const { isMaster } = useRoles();
   const fetchLogs = useServerFn(fetchEmailLogs);
 
   const [recipient, setRecipient] = useState("");
