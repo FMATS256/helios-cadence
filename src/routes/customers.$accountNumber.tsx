@@ -200,6 +200,36 @@ function Customer360() {
           </CardContent></Card>
         </TabsContent>
 
+        <TabsContent value="packages" className="mt-4">
+          <Card><CardContent className="p-0 divide-y">
+            {packages.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-12">
+                No packages assigned yet. Assign from the <Link to="/catalog" className="text-solar underline">catalog</Link> or during onboarding.
+              </p>
+            )}
+            {packages.map((p: any) => {
+              const cat = p.catalog || {};
+              const line = Number(p.quantity || 1) * Number(p.unit_price || 0);
+              return (
+                <div key={p.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-semibold text-solar bg-solar/10 px-2 py-0.5 rounded">{cat.code || "—"}</span>
+                      <span className="font-semibold truncate">{cat.name || "Package"}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 capitalize">{cat.category || "—"} · {cat.billing_cycle || "monthly"} · qty {p.quantity}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-mono">{money(line, cat.currency || "USD")}</span>
+                    <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status}</StatusPill>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent></Card>
+        </TabsContent>
+
+
         <TabsContent value="subscriptions" className="mt-4">
           <Card><CardContent className="p-0 divide-y">
             {subscriptions.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No subscriptions.</p>}
