@@ -39,11 +39,24 @@ function CatalogPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [form, setForm] = useState({ code: "", name: "", category: "general", description: "", unit_price: 0, billing_cycle: "monthly", is_active: true });
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["catalog"],
     queryFn: async () => (await listFn()) as Item[],
   });
+  const allCategories = useMemo(() => Array.from(new Set(items.map((i) => i.category))).sort(), [items]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => {
+      if (!showArchived && !i.is_active) return false;
+      if (catFilter !== "all" && i.category !== catFilter) return false;
+      if (!q) return true;
+      return i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) || (i.description || "").toLowerCase().includes(q) || i.category.toLowerCase().includes(q);
+    });
+  }, [items, search, catFilter, showArchived]);
 
   const openNew = () => { setEditing(null); setForm({ code: "", name: "", category: "general", description: "", unit_price: 0, billing_cycle: "monthly", is_active: true }); setOpen(true); };
   const openEdit = (it: Item) => { setEditing(it); setForm({ code: it.code, name: it.name, category: it.category, description: it.description || "", unit_price: Number(it.unit_price), billing_cycle: it.billing_cycle, is_active: it.is_active }); setOpen(true); };
