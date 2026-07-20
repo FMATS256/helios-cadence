@@ -231,5 +231,5 @@ Rules: infer sensible sizing from the workload described. If user says "small/ba
       approved_at: data.auto_approve ? new Date().toISOString() : null,
     }).select("*").single();
     if (error) throw error;
-    return { plan: row, request, report };
+    return row;
   });
