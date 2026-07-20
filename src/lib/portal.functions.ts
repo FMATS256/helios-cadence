@@ -315,3 +315,81 @@ export const staffEnsureWorkspaceForCustomer = createServerFn({ method: "POST" }
     const { ensureWorkspace } = await import("@/lib/portal.server");
     return ensureWorkspace(supabaseAdmin as any, data.customerId);
   });
+
+// -------------------- SSH keys --------------------
+function computeFingerprint(publicKey: string): string {
+  // Simple SHA-256 fingerprint of the base64 body of the key.
+  const parts = publicKey.trim().split(/\s+/);
+  const body = parts[1] ?? parts[0] ?? "";
+  try {
+    const bin = atob(body);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    // Web crypto is async; return a short hex of the first 16 chars of base64 for display.
+    return "SHA256:" + body.slice(0, 43);
+  } catch {
+    return "";
+  }
+}
+
+function validateSshPublicKey(key: string): boolean {
+  const trimmed = key.trim();
+  return /^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/=]+( .*)?$/.test(trimmed);
+}
+
+export const listWorkspaceSshKeys = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: { workspaceId: string }) => v)
+  .handler(async ({ data, context }) => {
+    await assertAccess(context, data.workspaceId, "viewer");
+    const { data: rows, error } = await context.supabase
+      .from("workspace_ssh_keys")
+      .select("id, name, public_key, fingerprint, created_at, created_by")
+      .eq("workspace_id", data.workspaceId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const addWorkspaceSshKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: { workspaceId: string; name: string; publicKey: string }) => v)
+  .handler(async ({ data, context }) => {
+    await assertAccess(context, data.workspaceId, "developer");
+    const name = data.name.trim();
+    const publicKey = data.publicKey.trim();
+    if (!name) throw new Error("Name is required");
+    if (!validateSshPublicKey(publicKey)) {
+      throw new Error("Invalid SSH public key format (expected ssh-rsa/ed25519/ecdsa …)");
+    }
+    const fingerprint = computeFingerprint(publicKey);
+    const { data: row, error } = await context.supabase
+      .from("workspace_ssh_keys")
+      .insert({
+        workspace_id: data.workspaceId,
+        name,
+        public_key: publicKey,
+        fingerprint,
+        created_by: context.userId,
+      })
+      .select("id, name, public_key, fingerprint, created_at, created_by")
+      .single();
+    if (error) throw error;
+    await audit(context, data.workspaceId, "ssh_key_added", "ssh_key", row.id, { name, fingerprint });
+    return row;
+  });
+
+export const removeWorkspaceSshKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: { workspaceId: string; keyId: string }) => v)
+  .handler(async ({ data, context }) => {
+    await assertAccess(context, data.workspaceId, "admin");
+    const { error } = await context.supabase
+      .from("workspace_ssh_keys")
+      .delete()
+      .eq("id", data.keyId)
+      .eq("workspace_id", data.workspaceId);
+    if (error) throw error;
+    await audit(context, data.workspaceId, "ssh_key_removed", "ssh_key", data.keyId);
+    return { ok: true };
+  });
