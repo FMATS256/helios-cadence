@@ -54,6 +54,7 @@ import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
 import { Route as AssetsIdRouteImport } from './routes/assets.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
@@ -288,6 +289,11 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
+  id: '/c/$slug/$workspaceKey',
+  path: '/c/$slug/$workspaceKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -371,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -422,6 +429,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -476,6 +484,7 @@ export interface FileRoutesById {
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -531,6 +540,7 @@ export interface FileRouteTypes {
     | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -635,6 +646,7 @@ export interface FileRouteTypes {
     | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/c/$slug/$workspaceKey'
     | '/api/public/agent/provision'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -680,6 +692,7 @@ export interface RootRouteChildren {
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
@@ -1003,6 +1016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c/$slug/$workspaceKey': {
+      id: '/c/$slug/$workspaceKey'
+      path: '/c/$slug/$workspaceKey'
+      fullPath: '/c/$slug/$workspaceKey'
+      preLoaderRoute: typeof CSlugWorkspaceKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -1153,6 +1173,7 @@ const rootRouteChildren: RootRouteChildren = {
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
