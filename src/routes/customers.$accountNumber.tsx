@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,9 +15,12 @@ import { toast } from "sonner";
 import {
   KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp,
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
-  Mail, Phone, ShieldCheck, Heart,
+  Mail, Phone, ShieldCheck, Heart, Pencil, PowerOff, Send, Bell,
 } from "lucide-react";
-import { getCustomer360, generateInvoiceForSubscription, manageSubscription } from "@/lib/ops.functions";
+import {
+  getCustomer360, generateInvoiceForSubscription, manageSubscription,
+  updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder,
+} from "@/lib/ops.functions";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -28,6 +31,8 @@ import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
+  validateSearch: (s: Record<string, unknown>): { tab?: string } =>
+    (typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
   component: Customer360,
   notFoundComponent: () => (
     <PageContainer><PageHeader title="Customer not found" description="That M-number doesn't exist." /></PageContainer>
@@ -96,10 +101,24 @@ function toCsv(rows: Array<Record<string, any>>): string {
 
 function Customer360() {
   const { accountNumber } = Route.useParams();
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const activeTab = tab || "overview";
+  const setActiveTab = (v: string) => {
+    navigate({
+      to: "/customers/$accountNumber",
+      params: { accountNumber },
+      search: v === "overview" ? {} : { tab: v },
+      replace: true,
+    });
+  };
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetch360 = useServerFn(getCustomer360);
   const genInvoice = useServerFn(generateInvoiceForSubscription);
+  const updateCust = useServerFn(updateCustomerRecord);
+  const lifecycle = useServerFn(setCustomerLifecycle);
+  const remind = useServerFn(sendPaymentReminder);
 
   const { data: view, isLoading } = useQuery({
     queryKey: ["customer-360", accountNumber],
@@ -170,6 +189,24 @@ function Customer360() {
 
   const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
+
+  const [editCustOpen, setEditCustOpen] = useState(false);
+  const [custForm, setCustForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", billing_address: "" });
+  const editCustomer = useMutation({
+    mutationFn: async () => updateCust({ data: { customer_id: view!.customer.id, ...custForm } }),
+    onSuccess: () => { setEditCustOpen(false); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Customer updated"); },
+    onError: (e: any) => toast.error(e?.message || "Update failed"),
+  });
+  const toggleLifecycle = useMutation({
+    mutationFn: async (action: "suspend" | "resume") => lifecycle({ data: { customer_id: view!.customer.id, action } }),
+    onSuccess: (_d, action) => { qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success(action === "suspend" ? "Customer suspended" : "Customer resumed"); },
+    onError: (e: any) => toast.error(e?.message || "Action failed"),
+  });
+  const sendReminder = useMutation({
+    mutationFn: async () => remind({ data: { customer_id: view!.customer.id } }),
+    onSuccess: (r: any) => toast.success(`Reminder${r?.sent > 1 ? "s" : ""} sent (${r?.sent ?? 1})`),
+    onError: (e: any) => toast.error(e?.message || "Could not send reminder"),
+  });
 
   const [svcFilters, setSvcFilters] = useState({
     q: "",
@@ -341,11 +378,50 @@ function Customer360() {
           )}
         </div>
 
-        {/* Quick actions bar */}
+        {/* Customer-level actions */}
         <div className="relative mt-6 flex flex-wrap gap-2">
-          <Button asChild size="sm" className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
-            <Link to="/payments"><CreditCard className="h-4 w-4 mr-1.5" />Record Payment</Link>
+          <Button
+            size="sm"
+            className="text-solar-foreground border-0"
+            style={{ background: "var(--gradient-solar)" }}
+            onClick={() => {
+              setCustForm({
+                company_name: customer.company_name || "",
+                industry: customer.industry || "",
+                primary_email: customer.primary_email || "",
+                primary_phone: customer.primary_phone || "",
+                website: customer.website || "",
+                billing_address: (customer as any).billing_address || "",
+              });
+              setEditCustOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4 mr-1.5" />Edit details
           </Button>
+          {customer.status === "suspended" ? (
+            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => toggleLifecycle.mutate("resume")} disabled={toggleLifecycle.isPending}>
+              <PlayCircle className="h-4 w-4 mr-1.5" />Resume account
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => { if (confirm(`Suspend ${customer.company_name}? All active subscriptions will be paused.`)) toggleLifecycle.mutate("suspend"); }} disabled={toggleLifecycle.isPending}>
+              <PowerOff className="h-4 w-4 mr-1.5" />Suspend account
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20"
+            onClick={() => sendReminder.mutate()}
+            disabled={sendReminder.isPending || stats.openInvoiceTotal <= 0}
+            title={stats.openInvoiceTotal <= 0 ? "No outstanding invoices" : "Email reminder for open invoices"}
+          >
+            <Bell className="h-4 w-4 mr-1.5" />Send reminder
+          </Button>
+        </div>
+
+        {/* Quick actions bar */}
+        <div className="relative mt-3 flex flex-wrap gap-2">
+          <QuickBtn to="/payments" icon={CreditCard}>Record Payment</QuickBtn>
           <QuickBtn to="/billing" icon={Receipt}>Invoice</QuickBtn>
           <QuickBtn to="/quotes" icon={FileCheck}>Quote</QuickBtn>
           <QuickBtn to="/catalog" icon={Plus}>Add Service</QuickBtn>
@@ -366,13 +442,35 @@ function Customer360() {
         <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
       </div>
 
-      <Tabs defaultValue="overview">
+      {/* Edit customer dialog */}
+      <Dialog open={editCustOpen} onOpenChange={setEditCustOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit customer · {customer.company_name}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1"><Label>Company name</Label><Input value={custForm.company_name} onChange={(e) => setCustForm({ ...custForm, company_name: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Industry</Label><Input value={custForm.industry} onChange={(e) => setCustForm({ ...custForm, industry: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Website</Label><Input value={custForm.website} onChange={(e) => setCustForm({ ...custForm, website: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Primary email</Label><Input type="email" value={custForm.primary_email} onChange={(e) => setCustForm({ ...custForm, primary_email: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Primary phone</Label><Input value={custForm.primary_phone} onChange={(e) => setCustForm({ ...custForm, primary_phone: e.target.value })} /></div>
+            <div className="col-span-2 space-y-1"><Label>Billing address</Label><Textarea rows={2} value={custForm.billing_address} onChange={(e) => setCustForm({ ...custForm, billing_address: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCustOpen(false)}>Cancel</Button>
+            <Button onClick={() => editCustomer.mutate()} disabled={editCustomer.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+              {editCustomer.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="quotes">Quotes</TabsTrigger>
@@ -741,6 +839,38 @@ function Customer360() {
                 </div>
               </div>
             ))}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="transactions" className="mt-4">
+          <Card><CardContent className="p-0 divide-y">
+            {(() => {
+              const events: Array<{ id: string; date: string; kind: "invoice" | "payment"; ref: string; label: string; amount: number; currency?: string; status: string; to?: string }> = [];
+              for (const i of invoices as any[]) events.push({ id: `i-${i.id}`, date: i.issue_date || i.created_at, kind: "invoice", ref: i.invoice_number, label: `Invoice · ${i.notes || i.status}`, amount: Number(i.total || 0), currency: i.currency, status: i.status, to: `/invoices/${i.id}` });
+              for (const p of payments as any[]) events.push({ id: `p-${p.id}`, date: p.paid_at || p.created_at, kind: "payment", ref: p.receipt_number || p.reference || "—", label: `Payment · ${p.method || "—"}`, amount: -Number(p.amount || 0), currency: p.currency, status: p.reconciliation_status || p.status });
+              events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              if (events.length === 0) return <p className="text-sm text-muted-foreground text-center py-12">No transactions yet.</p>;
+              return events.map((e) => {
+                const Row = (
+                  <div key={e.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`h-9 w-9 rounded-md flex items-center justify-center ${e.kind === "invoice" ? "bg-warning/15 text-warning" : "bg-success/15 text-success"}`}>
+                        {e.kind === "invoice" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-semibold truncate">{e.ref}</p>
+                        <p className="text-xs text-muted-foreground truncate">{e.label} · {e.date ? new Date(e.date).toLocaleDateString() : "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`font-mono text-sm ${e.amount < 0 ? "text-success" : ""}`}>{money(Math.abs(e.amount), e.currency)}</span>
+                      <StatusPill tone={e.status === "paid" || e.status === "matched" || e.status === "received" ? "success" : e.status === "overdue" ? "danger" : "info"}>{e.status}</StatusPill>
+                    </div>
+                  </div>
+                );
+                return e.to ? <Link key={e.id} to={"/invoices/$id"} params={{ id: e.to.split("/").pop()! }} className="block">{Row}</Link> : Row;
+              });
+            })()}
           </CardContent></Card>
         </TabsContent>
 
