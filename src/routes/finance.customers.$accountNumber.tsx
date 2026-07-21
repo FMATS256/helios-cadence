@@ -51,15 +51,17 @@ async function loadProfile(accountNumber: string) {
     .select("*")
     .eq("account_number", accountNumber)
     .maybeSingle();
-  if (!customer) return { customer: null, invoices: [], payments: [], subs: [], quotes: [], timeline: [] };
+  if (!customer) return { customer: null, invoices: [], payments: [], subs: [], quotes: [], timeline: [], contacts: [], comms: [] };
 
   const cid = customer.id;
-  const [inv, pay, sub, quo, tl] = await Promise.all([
+  const [inv, pay, sub, quo, tl, contacts, comms] = await Promise.all([
     (supabase.from as any)("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }),
     (supabase.from as any)("payments").select("*").eq("customer_id", cid).is("archived_at", null).order("paid_at", { ascending: false }),
     (supabase.from as any)("subscriptions").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
     (supabase.from as any)("quotes").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
     (supabase.from as any)("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
+    (supabase.from as any)("customer_contacts").select("*").eq("customer_id", cid).is("archived_at", null),
+    (supabase.from as any)("communications").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
   ]);
   return {
     customer,
@@ -68,8 +70,11 @@ async function loadProfile(accountNumber: string) {
     subs: (sub.data ?? []) as any[],
     quotes: (quo.data ?? []) as any[],
     timeline: (tl.data ?? []) as any[],
+    contacts: (contacts.data ?? []) as any[],
+    comms: (comms.data ?? []) as any[],
   };
 }
+
 
 function PaymentProfile() {
   const { accountNumber } = Route.useParams();
