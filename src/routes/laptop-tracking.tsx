@@ -654,3 +654,188 @@ function RecordPaymentDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     </Dialog>
   );
 }
+
+/* ---------- Account details (get_account) ---------- */
+function AccountDetailDialog({ userId, onOpenChange }: { userId: string | null; onOpenChange: (v: boolean) => void }) {
+  const call = useTrackx();
+  const open = !!userId;
+  const { data, isLoading } = useQuery({
+    queryKey: ["trackx", "account", userId],
+    queryFn: () => call("get_account", { user_id: userId }),
+    enabled: open,
+  });
+  const a: any = data?.account || data?.user || data || {};
+  const licenses: any[] = data?.licenses || a?.licenses || [];
+  const devices: any[] = data?.devices || a?.devices || [];
+  const payments: any[] = data?.payments || a?.payments || [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{a.email || "Account details"}</DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground py-6">Loading…</div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              <Info label="User ID" value={a.id || a.user_id} mono />
+              <Info label="Name" value={a.name || a.full_name} />
+              <Info label="Phone" value={a.phone} />
+              <Info label="Company" value={a.company} />
+              <Info label="Plan" value={a.plan_name || a.plan} />
+              <Info label="Billing" value={a.billing_cycle} />
+              <Info label="Devices" value={a.device_count ?? a.max_devices} />
+              <Info label="Created" value={fmtDate(a.created_at)} />
+              <Info label="Status" value={a.status} />
+            </div>
+
+            <Section title={`Licenses (${licenses.length})`}>
+              {licenses.length === 0 ? <Empty /> : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Key</TableHead><TableHead>Plan</TableHead><TableHead>Status</TableHead><TableHead>Expires</TableHead></TableRow></TableHeader>
+                  <TableBody>{licenses.map((l) => (
+                    <TableRow key={l.id || l.license_key}>
+                      <TableCell className="font-mono text-xs">{l.license_key}</TableCell>
+                      <TableCell className="capitalize">{l.plan_name || "—"}</TableCell>
+                      <TableCell>{l.status}</TableCell>
+                      <TableCell>{fmtDate(l.expires_at)}</TableCell>
+                    </TableRow>))}</TableBody>
+                </Table>
+              )}
+            </Section>
+
+            <Section title={`Devices (${devices.length})`}>
+              {devices.length === 0 ? <Empty /> : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Hostname</TableHead><TableHead>OS</TableHead><TableHead>Last seen</TableHead></TableRow></TableHeader>
+                  <TableBody>{devices.map((d) => (
+                    <TableRow key={d.id || d.device_id}>
+                      <TableCell>{d.hostname || d.name || d.device_id}</TableCell>
+                      <TableCell>{d.os || d.platform || "—"}</TableCell>
+                      <TableCell>{fmtDate(d.last_seen || d.updated_at)}</TableCell>
+                    </TableRow>))}</TableBody>
+                </Table>
+              )}
+            </Section>
+
+            <Section title={`Payments (${payments.length})`}>
+              {payments.length === 0 ? <Empty /> : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Invoice</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+                  <TableBody>{payments.map((p) => (
+                    <TableRow key={p.id || p.invoice_number}>
+                      <TableCell className="font-mono text-xs">{p.invoice_number || p.id}</TableCell>
+                      <TableCell>{fmtMoney(Number(p.amount), p.currency || "USD")}</TableCell>
+                      <TableCell>{p.status}</TableCell>
+                      <TableCell>{fmtDate(p.created_at)}</TableCell>
+                    </TableRow>))}</TableBody>
+                </Table>
+              )}
+            </Section>
+          </div>
+        )}
+        <DialogFooter><Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Info({ label, value, mono }: { label: string; value: any; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className={`mt-0.5 ${mono ? "font-mono text-xs" : ""}`}>{value ?? "—"}</div>
+    </div>
+  );
+}
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">{title}</div>
+      <div className="rounded-lg border overflow-x-auto">{children}</div>
+    </div>
+  );
+}
+function Empty() { return <div className="p-4 text-sm text-muted-foreground">None</div>; }
+
+/* ---------- Edit license (update_license) ---------- */
+function EditLicenseDialog({ license, onOpenChange }: { license: any | null; onOpenChange: (v: boolean) => void }) {
+  const qc = useQueryClient();
+  const call = useTrackx();
+  const open = !!license;
+  const [f, setF] = useState({ max_devices: 0, plan_name: "", billing_cycle: "", expires_at: "", status: "" });
+  useEffect(() => {
+    if (license) setF({
+      max_devices: Number(license.max_devices ?? 0),
+      plan_name: license.plan_name || "business",
+      billing_cycle: license.billing_cycle || "annual",
+      expires_at: license.expires_at ? new Date(license.expires_at).toISOString().slice(0, 10) : "",
+      status: license.status || "active",
+    });
+  }, [license]);
+  const m = useMutation({
+    mutationFn: () => call("update_license", {
+      license_key: license.license_key,
+      max_devices: Number(f.max_devices),
+      plan_name: f.plan_name,
+      billing_cycle: f.billing_cycle,
+      status: f.status,
+      ...(f.expires_at ? { expires_at: new Date(f.expires_at).toISOString() } : {}),
+    }),
+    onSuccess: () => { toast.success("License updated"); qc.invalidateQueries({ queryKey: ["trackx", "licenses"] }); onOpenChange(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit license</DialogTitle></DialogHeader>
+        {license && (
+          <>
+            <div className="text-xs text-muted-foreground font-mono mb-2">{license.license_key}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Max devices"><Input type="number" min={1} value={f.max_devices} onChange={(e) => setF({ ...f, max_devices: Number(e.target.value) })} /></Field>
+              <Field label="Expires"><Input type="date" value={f.expires_at} onChange={(e) => setF({ ...f, expires_at: e.target.value })} /></Field>
+              <Field label="Plan">
+                <Select value={f.plan_name} onValueChange={(v) => setF({ ...f, plan_name: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter">Starter</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                    <SelectItem value="enterprise">Enterprise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Billing cycle">
+                <Select value={f.billing_cycle} onValueChange={(v) => setF({ ...f, billing_cycle: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="annual">Annual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Status" className="sm:col-span-2">
+                <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="revoked">Revoked</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={() => m.mutate()} disabled={m.isPending}>{m.isPending ? "Saving…" : "Save changes"}</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
