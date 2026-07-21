@@ -78,9 +78,10 @@ function CloudOpsPage() {
   });
 
   const sync = useMutation({
-    mutationFn: () => fnSync(),
+    mutationFn: () => fnSync({ data: { provider: "kamatera" } }),
     onSuccess: (r) => {
-      toast.success(`Synced ${r.total} servers (${r.created} new, ${r.updated} updated)`);
+      const res = r as { total: number; created: number; updated: number; note?: string };
+      toast.success(res.note ? `Sync: ${res.note}` : `Synced ${res.total} servers (${res.created} new, ${res.updated} updated)`);
       qc.invalidateQueries({ queryKey: ["cloud_servers"] });
     },
     onError: (e: Error) => toast.error(e.message),
