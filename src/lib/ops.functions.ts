@@ -467,6 +467,22 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
       line_total: subtotal,
       position: 0,
     });
+
+    // Invoice-issued email
+    const { data: cust } = await supabaseAdmin
+      .from("customers").select("primary_email,company_name").eq("id", sub.customer_id).maybeSingle();
+    if (cust?.primary_email) {
+      const { notify } = await import("./notify.server");
+      void notify("invoice", cust.primary_email, {
+        companyName: cust.company_name,
+        invoiceNumber: (invoice as any).invoice_number,
+        issueDate: invoice.issue_date,
+        dueDate: invoice.due_date,
+        currency: invoice.currency,
+        subtotal, tax, total,
+        items: [{ description: `${sub.plan_name} (${sub.billing_cycle})`, quantity: 1, unit_price: subtotal, line_total: subtotal }],
+      }, `invoice-${invoice.id}`);
+    }
     return invoice;
   });
 
