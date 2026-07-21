@@ -81,7 +81,7 @@ function NewServerPage() {
   const fnProvision = useServerFn(provisionOnProvider);
   const fnEstimate = useServerFn(estimateProviderPrice);
 
-  const [provider, setProvider] = useState<ProviderName>("kamatera");
+  const [provider, setProvider] = useState<ProviderName>("vultr");
   const [form, setForm] = useState({
     customer_id: "", name: "",
     region: "", image: "", plan_id: "",
