@@ -313,7 +313,7 @@ export const refreshProviderServer = createServerFn({ method: "POST" })
         provider_meta: raw as any,
         last_synced_at: new Date().toISOString(),
       }).eq("id", srv.id);
-      return { ok: true, info };
+      return { ok: true, status: info.status, power_state: info.power_state };
     } catch (e: any) {
       // If the provider API is unreachable, still record the attempt.
       await supabaseAdmin.from("cloud_servers").update({
