@@ -418,6 +418,7 @@ function LicensesTab() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditing(l)}><Pencil className="h-4 w-4 mr-2" />Edit…</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
                         const m = Number(prompt("Extend by how many months?", "12") || 0);
                         if (m > 0) extend.mutate({ license_key: l.license_key, months: m });
