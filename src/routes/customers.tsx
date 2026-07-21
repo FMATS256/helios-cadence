@@ -101,10 +101,17 @@ function CustomersPage() {
 
       <Card><CardContent className="p-0">
         <div className="flex items-center justify-between p-4 border-b gap-3">
-          <div className="relative w-96">
+          <form
+            className="relative w-96 max-w-full"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const first = filtered[0];
+              if (first) navigate({ to: "/customers/$accountNumber", params: { accountNumber: first.account_number } });
+            }}
+          >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search M-number, company, industry…" className="pl-10 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+          </form>
           <p className="text-sm text-muted-foreground">{filtered.length} of {rows.length}</p>
         </div>
         {isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
