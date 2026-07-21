@@ -59,6 +59,7 @@ import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
 import { Route as AssetsIdRouteImport } from './routes/assets.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as FinanceCustomersAccountNumberRouteImport } from './routes/finance.customers.$accountNumber'
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -332,6 +333,12 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const FinanceCustomersAccountNumberRoute =
+  FinanceCustomersAccountNumberRouteImport.update({
+    id: '/customers/$accountNumber',
+    path: '/customers/$accountNumber',
+    getParentRoute: () => FinanceRoute,
+  } as any)
 const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
   id: '/c/$slug/$workspaceKey',
   path: '/c/$slug/$workspaceKey',
@@ -459,7 +466,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
-  '/finance': typeof FinanceRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -500,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
@@ -531,7 +539,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
-  '/finance': typeof FinanceRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -569,6 +577,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
+  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
@@ -601,7 +610,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
-  '/finance': typeof FinanceRoute
+  '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -642,6 +651,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
@@ -716,6 +726,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
@@ -785,6 +796,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
+    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
@@ -857,6 +869,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
@@ -889,7 +902,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRouteWithChildren
   EmailLogsRoute: typeof EmailLogsRoute
   EmailStudioRoute: typeof EmailStudioRoute
-  FinanceRoute: typeof FinanceRoute
+  FinanceRoute: typeof FinanceRouteWithChildren
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
@@ -1283,6 +1296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance/customers/$accountNumber': {
+      id: '/finance/customers/$accountNumber'
+      path: '/customers/$accountNumber'
+      fullPath: '/finance/customers/$accountNumber'
+      preLoaderRoute: typeof FinanceCustomersAccountNumberRouteImport
+      parentRoute: typeof FinanceRoute
+    }
     '/c/$slug/$workspaceKey': {
       id: '/c/$slug/$workspaceKey'
       path: '/c/$slug/$workspaceKey'
@@ -1451,6 +1471,17 @@ const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
   CustomersRouteChildren,
 )
 
+interface FinanceRouteChildren {
+  FinanceCustomersAccountNumberRoute: typeof FinanceCustomersAccountNumberRoute
+}
+
+const FinanceRouteChildren: FinanceRouteChildren = {
+  FinanceCustomersAccountNumberRoute: FinanceCustomersAccountNumberRoute,
+}
+
+const FinanceRouteWithChildren =
+  FinanceRoute._addFileChildren(FinanceRouteChildren)
+
 interface PortalRouteChildren {
   PortalAssetsRoute: typeof PortalAssetsRoute
   PortalInvoicesRoute: typeof PortalInvoicesRoute
@@ -1543,7 +1574,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRouteWithChildren,
   EmailLogsRoute: EmailLogsRoute,
   EmailStudioRoute: EmailStudioRoute,
-  FinanceRoute: FinanceRoute,
+  FinanceRoute: FinanceRouteWithChildren,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
