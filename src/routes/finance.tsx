@@ -614,11 +614,11 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
       {results.customers.map((c: any) => (
-        <button key={c.id} onClick={() => onPickCustomer(c.id)} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
+        <Link key={c.id} to="/finance/customers/$accountNumber" params={{ accountNumber: c.account_number }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3 w-3" />Customer</div>
           <div className="text-sm font-semibold truncate">{c.company_name}</div>
           <div className="text-xs text-muted-foreground">{c.account_number}</div>
-        </button>
+        </Link>
       ))}
       {results.invoices.map((i: any) => (
         <Link key={i.id} to="/invoices/$id" params={{ id: i.id }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
