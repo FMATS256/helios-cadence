@@ -349,7 +349,7 @@ function SearchPanel({
     if (!data || term.length < 2) return null;
     const match = (v: any) => String(v ?? "").toLowerCase().includes(term);
     return {
-      customers: (data.customers ?? []).filter((c: any) => match(c.name) || match(c.account_number)).slice(0, 5),
+      customers: (data.customers ?? []).filter((c: any) => match(c.company_name) || match(c.account_number)).slice(0, 5),
       invoices: (data.invoices ?? []).filter((i: any) => match(i.invoice_number) || match(i.account_number)).slice(0, 5),
       payments: (data.payments ?? []).filter((p: any) => match(p.receipt_number) || match(p.account_number)).slice(0, 5),
       subs: (data.subs ?? []).filter((s: any) => match(s.plan_name) || match(s.account_number)).slice(0, 5),
@@ -376,7 +376,7 @@ function SearchPanel({
             {results.customers.map((c: any) => (
               <button key={c.id} onClick={() => onPickCustomer(c.id)} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3 w-3" />Customer</div>
-                <div className="text-sm font-semibold truncate">{c.name}</div>
+                <div className="text-sm font-semibold truncate">{c.company_name}</div>
                 <div className="text-xs text-muted-foreground">{c.account_number}</div>
               </button>
             ))}
@@ -469,7 +469,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
       feed.push({
         id: `c-${c.id}`, when: (c as any).created_at ?? new Date().toISOString(),
         icon: Users, tone: "info",
-        title: `Customer · ${c.name}`,
+        title: `Customer · ${c.company_name}`,
         sub: `${c.account_number ?? "—"} · ${c.status ?? ""}`,
         customerId: c.id,
       });
@@ -593,7 +593,7 @@ function CustomerPanel({
     <Sheet open={!!customerId} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{c?.name ?? "Customer"}</SheetTitle>
+          <SheetTitle>{c?.company_name ?? "Customer"}</SheetTitle>
           <SheetDescription>{c?.account_number ?? ""} · {c?.status ?? ""}</SheetDescription>
         </SheetHeader>
 
