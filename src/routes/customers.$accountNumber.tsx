@@ -378,11 +378,50 @@ function Customer360() {
           )}
         </div>
 
-        {/* Quick actions bar */}
+        {/* Customer-level actions */}
         <div className="relative mt-6 flex flex-wrap gap-2">
-          <Button asChild size="sm" className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
-            <Link to="/payments"><CreditCard className="h-4 w-4 mr-1.5" />Record Payment</Link>
+          <Button
+            size="sm"
+            className="text-solar-foreground border-0"
+            style={{ background: "var(--gradient-solar)" }}
+            onClick={() => {
+              setCustForm({
+                company_name: customer.company_name || "",
+                industry: customer.industry || "",
+                primary_email: customer.primary_email || "",
+                primary_phone: customer.primary_phone || "",
+                website: customer.website || "",
+                billing_address: (customer as any).billing_address || "",
+              });
+              setEditCustOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4 mr-1.5" />Edit details
           </Button>
+          {customer.status === "suspended" ? (
+            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => toggleLifecycle.mutate("resume")} disabled={toggleLifecycle.isPending}>
+              <PlayCircle className="h-4 w-4 mr-1.5" />Resume account
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => { if (confirm(`Suspend ${customer.company_name}? All active subscriptions will be paused.`)) toggleLifecycle.mutate("suspend"); }} disabled={toggleLifecycle.isPending}>
+              <PowerOff className="h-4 w-4 mr-1.5" />Suspend account
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20"
+            onClick={() => sendReminder.mutate()}
+            disabled={sendReminder.isPending || stats.openInvoiceTotal <= 0}
+            title={stats.openInvoiceTotal <= 0 ? "No outstanding invoices" : "Email reminder for open invoices"}
+          >
+            <Bell className="h-4 w-4 mr-1.5" />Send reminder
+          </Button>
+        </div>
+
+        {/* Quick actions bar */}
+        <div className="relative mt-3 flex flex-wrap gap-2">
+          <QuickBtn to="/payments" icon={CreditCard}>Record Payment</QuickBtn>
           <QuickBtn to="/billing" icon={Receipt}>Invoice</QuickBtn>
           <QuickBtn to="/quotes" icon={FileCheck}>Quote</QuickBtn>
           <QuickBtn to="/catalog" icon={Plus}>Add Service</QuickBtn>
@@ -403,7 +442,28 @@ function Customer360() {
         <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
       </div>
 
-      <Tabs defaultValue="overview">
+      {/* Edit customer dialog */}
+      <Dialog open={editCustOpen} onOpenChange={setEditCustOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit customer · {customer.company_name}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1"><Label>Company name</Label><Input value={custForm.company_name} onChange={(e) => setCustForm({ ...custForm, company_name: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Industry</Label><Input value={custForm.industry} onChange={(e) => setCustForm({ ...custForm, industry: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Website</Label><Input value={custForm.website} onChange={(e) => setCustForm({ ...custForm, website: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Primary email</Label><Input type="email" value={custForm.primary_email} onChange={(e) => setCustForm({ ...custForm, primary_email: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Primary phone</Label><Input value={custForm.primary_phone} onChange={(e) => setCustForm({ ...custForm, primary_phone: e.target.value })} /></div>
+            <div className="col-span-2 space-y-1"><Label>Billing address</Label><Textarea rows={2} value={custForm.billing_address} onChange={(e) => setCustForm({ ...custForm, billing_address: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCustOpen(false)}>Cancel</Button>
+            <Button onClick={() => editCustomer.mutate()} disabled={editCustomer.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+              {editCustomer.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
