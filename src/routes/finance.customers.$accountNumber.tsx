@@ -135,8 +135,8 @@ function PaymentProfile() {
               <span className="font-mono">{c.account_number}</span>
               {c.status && <Badge variant="outline" className="border-white/30 text-navy-foreground">{c.status}</Badge>}
               {c.primary_email && <span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{c.primary_email}</span>}
-              {c.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{c.phone}</span>}
-              {c.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{c.city}</span>}
+              {(c as any).phone && <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{(c as any).phone}</span>}
+              {(c as any).billing_address && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{(c as any).billing_address}</span>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
