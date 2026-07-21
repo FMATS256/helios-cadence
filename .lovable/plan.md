@@ -1,552 +1,88 @@
-# Finance Workspace — single-page consolidation
+# Customer 360 Workspace – Unification & Enhancement Plan
 
-Merge the current split finance pages (`/billing`, `/payments`, `/quotes`, `/subscriptions`, `/reports`, plus receivables/payables/banking/procurement/inventory/assets/ledger views) into one enterprise workspace at `/finance`. Existing IMT branding, shadcn components, and design tokens stay unchanged — only layout, composition, and navigation change.
+Enhancement-only. Preserves every existing module, permission, integration, and route. No rebuilds, no design overhaul.
 
-## Scope
+## Current state (verified)
 
-- Presentation and composition only. No new database tables, no new business logic, no changes to existing server functions or RLS. Reuse current queries and server fns already used by the individual pages.
-- Modules not yet backed by tables (Suppliers, Purchase Orders, Bank Accounts, Journal Entries, Tax) render as **empty-state panels** inside their tab with a "Not yet connected" note, so the workspace shell is complete but doesn't fabricate data. Wiring real data for those is out of scope for this pass and can be a follow-up.
-- Old routes (`/billing`, `/payments`, `/quotes`, `/subscriptions`, `/reports`) stay in place as **redirects to `/finance?tab=...**` so existing links, emails, and deep-links keep working. Menu entries collapse into a single **Finance** item.
+- **Two customer profile routes exist** — a duplicate the spec forbids:
+  - `/customers/$accountNumber` — 979-line master C360 with 16 tabs (Overview, Services, Services Mgmt, Packages, Subscriptions, Invoices, Payments, Quotes, Assets, Tickets, Renewals, Contacts, Credentials, Communications, Timeline, Notes).
+  - `/finance/customers/$accountNumber` — 1064-line finance-focused profile with Zoho-style tabs (Overview, Comments, Transactions, Mails, Statement, Contact Persons, Payment Methods, Invoices, Payments, Subscriptions, Quotes) and finance actions (Edit details, Suspend/Resume, Send reminder, Create Invoice, Record Payment).
+- **Link audit:** 20 modules deep-link into `/customers/$accountNumber`; only `src/routes/finance.tsx` (2 places) links into `/finance/customers/$accountNumber`.
+- **Global search (`src/components/global-search.tsx`, ⌘K):** already searches customers, invoices, payments, tickets, subscriptions, assets, credentials via `globalSearch` server fn. No recents, no keyboard scoping, no domain/IP/serial/username fields.
 
-## Route + shell
+## Strategy
 
-New file: `src/routes/finance.tsx`
+1. **Merge** the finance profile's unique capabilities into the main `/customers/$accountNumber` — no second profile page.
+2. **Redirect** `/finance/customers/$accountNumber` → `/customers/$accountNumber?tab=transactions` so existing finance-module links keep working with no duplicate UI.
+3. **Add** the modules the spec lists that don't exist yet as new tabs on the single profile.
+4. **Enhance** global search with recents and more indexed fields.
+5. Everything else the spec lists already exists and stays as-is (services mgmt filtering, package assignment, contacts, comments, statement CSV, payment-method history, lifecycle actions, RBAC, email notifications, etc.).
 
-- Uses existing `PageContainer`, `HeroPanel`-style header, and dashboards/shared primitives (`KpiCard`, `SectionCard`, `QuickAction`).
-- URL-driven state via `validateSearch` (`@tanstack/zod-adapter` + `fallback`):
-  - `tab` (overview | customers | suppliers | invoices | payments | subscriptions | products | revenue | expenses | procurement | inventory | assets | banking | ledger | journals | reports | tax | audit | settings)
-  - `q` (universal search)
-  - `customerId` (opens the Customer Financial Panel drawer)
-  - `from`, `to` (date range), `currency`, `period`
-- Tab switching updates search params only — one route, no navigation.
+## Changes
 
-## Header strip
+### 1. Single Customer 360 (`src/routes/customers.$accountNumber.tsx`)
 
-Sticky top bar inside the workspace:
+Merge in from the finance profile:
 
-- Company selector (single-tenant today → shows "IMT Solutions" static; component present for future multi-entity).
-- Financial period + date range (`from`/`to`) — presets: Today, MTD, QTD, YTD, Last 12m, Custom.
-- Currency selector (USD / ZWL / GBP display toggle — display-only conversion using existing values, no FX table).
-- Universal Finance Search input (see below).
-- Quick Actions dropdown: Create Invoice, Record Payment, Create Customer, Add Product, Add Subscription, Create Purchase Order (disabled), Record Expense (disabled), Add Supplier (disabled), Journal Entry (disabled). Each opens the existing dialog/route as a modal where one already exists; disabled ones show a tooltip "Coming soon".
-- Notifications bell reusing the existing `notifications` query.
+- **Sticky header additions:** Available Credit, Last Payment date, Next Renewal, Service Health pill (compute from existing subs), Assigned Account Manager. MRR/Outstanding/Customer-Since already present.
+- **Top-level customer actions row:** Edit Details dialog, Suspend/Resume all services toggle, Send Reminder, Quick Create Invoice, Quick Record Payment — wire to the existing `updateCustomerRecord`, `setCustomerLifecycle`, `sendPaymentReminder`, `QuickCreateInvoice`, `QuickRecordPayment` already in `src/lib/ops.functions.ts` and the finance route.
+- **New tabs (kept alongside existing 16):**
+  - `Transactions` — merged invoice+payment chronological feed (lift from finance route).
+  - `Statement` — full statement view with CSV export (lift from finance route).
+  - `Payment Methods` — grouped payment-method history + preferred method (lift from finance route).
+  - `Devices` — filtered `assets` view where category = device (computer/router/switch/firewall/UPS/printer/TrackX).
+  - `Cloud Resources` — read `cloud_servers`, `cloud_services`, `cloud_storage_accounts`, `managed_nas_accounts`, `web_hosting_accounts`, `voip_accounts`, `starlink_accounts`, `licenses` filtered by `customer_id`. Read-only listing, groups by type.
+  - `Domains / Hosting / M365` — subset view of `web_hosting_accounts` + `licenses` where type = M365, with domain column surfaced. Prepared for future API integrations (no new API work).
+  - `Documents` — list + upload from a new `customer_documents` table (see §3). Preview/download/version fields.
+  - `Audit Log` — read-only view of `audit_log` filtered by this customer.
+- **Notes:** split existing Notes tab tabs into Sales / Finance / Technical / Management sub-tabs (uses existing `customer_notes.category` field if present, otherwise a new `category` column — see §3).
+- **Persistent Quick Actions rail** (right-side sticky panel): Add Service, Create Invoice, Record Payment, Generate Quote, Open Ticket, Assign Device, Suspend/Resume, Renew, Upload Document, Send Email, View Statement. Each button opens the existing dialog or scrolls to the relevant tab — no new workflows.
+- **URL tab sync:** support `?tab=<name>` so redirects from finance and other modules can land on a specific tab.
 
-## KPI band
+### 2. Redirect legacy finance profile (`src/routes/finance.customers.$accountNumber.tsx`)
 
-Grid of `KpiCard`s driven by one aggregate query (extends the current `loadFinance` in `src/components/dashboards/finance-dashboard.tsx`). Each card is clickable and sets `tab` + a canned filter in search params.
+Replace the 1064-line page with a thin route that renders `<Navigate to="/customers/$accountNumber" params search={{ tab: "transactions" }} replace />`. Update the 2 links in `src/routes/finance.tsx` to point directly at `/customers/$accountNumber?tab=transactions`. All other 20+ modules already point at the correct URL.
 
-Cards: Today's Revenue, MTD Revenue, YTD Revenue, MRR, ARR, Cash Available*, Bank Balance*, AR, AP*, Outstanding Invoices, Paid Invoices, Draft Invoices, Customer Credits*, Deposits*, Outstanding Customer Balances, Outstanding Supplier Balances*, Monthly Expenses*, Gross Profit*, Net Profit*, Profit Margin*, Inventory Value, Asset Value, Tax Payable*, Tax Receivable*, Deferred Revenue*, Active Customers, Active Subscriptions, Total Products.
+### 3. Global search upgrade (`src/components/global-search.tsx` + `globalSearch` in `src/lib/ops.functions.ts`)
 
-Cards marked `*` render with a "—" placeholder + subtle "connect data" hint when their source table isn't wired yet, so the grid is complete without inventing numbers.
+- **Recents & frequents:** localStorage-backed list of last 10 opened customers, shown when the palette is empty.
+- **Extra indexed fields on the server fn:** domain (from `web_hosting_accounts`), IP/VPS name (from `cloud_servers`), serial (from `assets.serial_number`), username (from `credentials.username`). Add to existing SQL `.or()` filters; keep RLS.
+- **Keyboard nav & fuzzy** are already handled by `cmdk` — no change needed; add group headings for the new fields.
+- All results continue to open `/customers/$accountNumber` (invoice/ticket/asset drilldowns keep their current deep links).
 
-## Universal Finance Search
+### 4. Minor schema additions (single migration)
 
-- Debounced input in the header.
-- Reuses the existing `global-search` command palette logic (`src/components/global-search.tsx`) but rendered inline as a results dropdown scoped to finance entities: customers, invoices, payments, receipts, subscriptions, quotes, products (service_catalog), assets, cloud services (Starlink / VoIP / VPS / hosting / NAS accounts by identifier).
-- Selecting a result either sets `customerId` (customers) or opens the relevant drawer/tab pre-filtered.
+- `customer_documents` table: `id, customer_id, name, category, file_url, uploaded_by, version, created_at, updated_at` + RLS + GRANTs (authenticated read/write scoped by role, service_role all).
+- `customer_notes.category` column (if not already present) — enum-like text with values `sales | finance | technical | management`. Default `sales`.
+- Storage bucket `customer-documents` (private) for uploads.
 
-## Customer Financial Panel
+No changes to auth, existing tables' shape, or existing policies.
 
-Right-side `Sheet` drawer, opens when `customerId` is set. Reuses queries already used by `src/routes/customers.$accountNumber.tsx` — no new server fns. Sections: summary, balances, credits/deposits (placeholder where missing), revenue & profit (from invoices/payments), active services, subscriptions, invoices, payments, statement, ledger, recent activity, upcoming renewals. All read-only inside the drawer; "Open full 360" button links to the existing customer route.
+## Out of scope (already done, preserved as-is)
 
-## Tabs
-
-All rendered inside the same route via a `<Tabs>` component keyed off `tab` search param.
-
-- **Overview** — KPI band + Financial Activity Feed + AR/AP summary + top renewals.
-- **Customers** — table (reuses `customers` list); row-click opens Customer Financial Panel drawer.
-- **Suppliers** — empty-state placeholder.
-- **Invoices** — extracts existing `/billing` table + create dialog.
-- **Payments** — extracts existing `/payments` platform UI.
-- **Subscriptions** — existing `/subscriptions` UI.
-- **Products** — existing `service_catalog` UI from `/catalog`, read-only inside finance.
-- **Revenue** — charts from existing invoices/payments/subscriptions data: recurring vs one-time, by category (service_catalog category), by product, by customer, trend, top customers, top products.
-- **Expenses / Procurement / Inventory / Assets / Banking / Ledger / Journals / Tax** — shell panels with the described sub-sections as empty states (Assets/Inventory reuse existing `assets` + `inventory_items` queries where available).
-- **Reports** — server-rendered PDF/CSV/Excel export buttons for Balance Sheet, P&L, Cash Flow, Trial Balance, GL, Customer/Supplier Statements, Revenue, Expenses, Tax. In this pass: wire CSV export for reports whose data already exists (Customer Statements, Revenue, AR aging); others show "Data source not connected".
-- **Audit Logs** — table over existing `audit_log` filtered to finance-relevant tables (invoices, payments, subscriptions, quotes, customers).
-- **Settings** — currency/period defaults, saved to `system_settings`.
-
-## Financial Activity Feed
-
-Single feed on Overview + filterable full view on Activity section. Sourced from existing tables via `union`-style client-side merge: recent rows from `invoices`, `payments`, `subscriptions`, `customers`, `quotes`, `cloud_servers`, `cloud_services`, `starlink_recharges`, `voip_recharges`, `assets`. Each event has icon + label + link that sets the appropriate tab/drawer. Refetched every 30s via `useQuery` `refetchInterval`; realtime upgrade (postgres_changes) is a follow-up.
-
-## Accounts Receivable / Payable sections
-
-Rendered inside Overview and Customers/Suppliers tabs:
-
-- AR: aging buckets (0-30/31-60/61-90/90+) computed from `invoices.due_date`, statements link, credits (placeholder), collections list = overdue invoices.
-- AP: empty-state until suppliers/bills exist.
-
-## Menu + redirects
-
-- `src/components/app-shell.tsx`: replace Billing/Payments/Quotes/Subscriptions/Reports items with a single **Finance** item pointing to `/finance`.
-- Convert `src/routes/billing.tsx`, `payments.tsx`, `quotes.tsx`, `subscriptions.tsx`, `reports.tsx` into thin redirect routes (`throw redirect({ to: "/finance", search: { tab: "invoices" } })` etc.) so bookmarks/emails still land in the workspace.
-- `/invoices/$id` stays as-is (invoice detail view is a valid deep-link).
-- Portal routes (`/portal/invoices`, `/c/...`) are untouched.
-
-## Head metadata
-
-`src/routes/finance.tsx` gets a dedicated `head()`: title "Finance Workspace — IMT Operations", finance-specific description, og:title/description, twitter:card. Redirect stubs don't need metadata.
+RBAC matrix, service catalog, package assignment, subscription lifecycle actions, invoice/receipt auto-numbering, email templates & studio, dashboards, VoIP/Starlink/TrackX integrations, provisioning agent, backups/budgets, communications timeline, contacts CRUD.
 
 ## Technical notes
 
-- All data reads reuse existing server functions and Supabase queries; no schema migrations.
-- Heavy tab bodies are code-split with `React.lazy` and wrapped in `Suspense` so the initial workspace payload stays light.
-- Every KPI/section respects the header's `from`/`to`/`currency` filters via a shared `useFinanceFilters()` hook that reads the route search.
-- Currency selector applies display formatting only; underlying `amount`/`currency` fields are unchanged.
-- Tests: type-check + a manual pass on `/finance` (tab switching, KPI click-through, customer drawer, universal search, quick action modals, CSV export on Revenue).
+- Merge is a **copy of components**, not a rewrite — the finance profile's `TransactionsView`, `StatementTable`, `PaymentMethodsView`, `QuickCreateInvoice`, `QuickRecordPayment` are lifted into `src/routes/customers.$accountNumber.tsx` (or a shared `src/components/customer/` folder) and re-used.
+- All new tabs are lazy — data queries `enabled` only when the tab is active, so the profile keeps its current load speed.
+- No changes to `src/routeTree.gen.ts` (generated) or `src/integrations/supabase/*` (managed).
+- Final file structure: **one** customer profile route, **one** finance redirect, **one** enhanced search palette, **one** migration.
 
-## Out of scope (call out to user)
-
-- Suppliers, Purchase Orders, Bank Accounts, Journal Entries, Tax, Expenses tables — schema + CRUD.
-- Real-time postgres_changes wiring for the activity feed.
-- Multi-entity / multi-company data model.
-- FX rate tables for real currency conversion.
-
-These are natural follow-ups once the shell is approved.
+Approve to switch to build mode and implement.
 
 &nbsp;
 
-Finance Workspace Revision
+Implementation Note (Critical)
 
 &nbsp;
 
-Do NOT merge all finance functionality into a single page.
+Before implementing any change, inspect the existing codebase and reuse or enhance existing components, pages, routes, queries, and workflows wherever possible. Do not duplicate functionality or create alternative customer profile pages.
 
 &nbsp;
 
-Do NOT remove or replace the existing finance pages.
+The Customer 360 Workspace must be the single source of truth for every customer. Any customer selected from the Dashboard, Global Search, Customers, Finance, Invoices, Payments, Quotes, Services, Subscriptions, Assets, Devices, Tickets, Reports, or any other module must always open the same Customer 360 Workspace.
 
 &nbsp;
 
-Keep all existing pages, routes, components, and functionality exactly as they are.
-
-&nbsp;
-
-Examples:
-
-&nbsp;
-
-- Billing
-
-- Payments
-
-- Quotes
-
-- Subscriptions
-
-- Reports
-
-- Products
-
-- Revenue
-
-- Banking
-
-- Inventory
-
-- Assets
-
-- Customers
-
-- Any other existing finance-related pages
-
-&nbsp;
-
-These pages must remain fully functional and continue to be accessible through direct URLs and deep links.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Build a Finance Workspace Instead
-
-&nbsp;
-
-Create a new Finance Workspace at "/finance".
-
-&nbsp;
-
-This page becomes the landing page for the Finance module.
-
-&nbsp;
-
-Think of it as the home dashboard of an enterprise accounting system like Zoho Books or QuickBooks.
-
-&nbsp;
-
-It provides a complete financial overview but does not replace the underlying modules.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Navigation
-
-&nbsp;
-
-The left navigation should contain a single Finance menu item.
-
-&nbsp;
-
-Opening Finance displays the Finance Workspace.
-
-&nbsp;
-
-Within the workspace, users can navigate to:
-
-&nbsp;
-
-- Dashboard
-
-- Customers
-
-- Suppliers
-
-- Products & Services
-
-- Quotations
-
-- Sales Orders
-
-- Invoices
-
-- Payments
-
-- Customer Credits
-
-- Subscriptions
-
-- Revenue
-
-- Banking
-
-- Accounts Receivable
-
-- Accounts Payable
-
-- General Ledger
-
-- Journal Entries
-
-- Expenses
-
-- Procurement
-
-- Inventory
-
-- Assets
-
-- Tax
-
-- Financial Reports
-
-- Audit Logs
-
-- Settings
-
-&nbsp;
-
-Each section should open its existing page or module.
-
-&nbsp;
-
-Do not embed every module into one page.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Finance Dashboard
-
-&nbsp;
-
-The dashboard should display executive financial information using KPI cards.
-
-&nbsp;
-
-Examples:
-
-&nbsp;
-
-- Today's Revenue
-
-- Monthly Revenue
-
-- Annual Revenue
-
-- Monthly Recurring Revenue
-
-- Annual Recurring Revenue
-
-- Cash Available
-
-- Bank Balance
-
-- Accounts Receivable
-
-- Accounts Payable
-
-- Outstanding Invoices
-
-- Paid Invoices
-
-- Draft Invoices
-
-- Customer Credits
-
-- Deposits
-
-- Outstanding Customer Balances
-
-- Outstanding Supplier Balances
-
-- Monthly Expenses
-
-- Gross Profit
-
-- Net Profit
-
-- Profit Margin
-
-- Inventory Value
-
-- Asset Value
-
-- Tax Payable
-
-- Tax Receivable
-
-- Deferred Revenue
-
-- Active Customers
-
-- Active Subscriptions
-
-- Total Products
-
-&nbsp;
-
-Each KPI card should be clickable and open the relevant existing module.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Universal Finance Search
-
-&nbsp;
-
-The Finance Workspace must include a global search that searches across every finance module.
-
-&nbsp;
-
-Users should be able to search by:
-
-&nbsp;
-
-- Customer
-
-- Account Number
-
-- Invoice Number
-
-- Payment
-
-- Subscription
-
-- Product
-
-- Supplier
-
-- Purchase Order
-
-- Quote
-
-- Journal Entry
-
-- Bank Transaction
-
-- Asset
-
-- VPS
-
-- Domain
-
-- Microsoft Tenant
-
-- Starlink Account
-
-- Fibre Service
-
-- Email
-
-- Phone Number
-
-&nbsp;
-
-Selecting a result opens the appropriate existing page or record.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Quick Actions
-
-&nbsp;
-
-Provide quick actions without replacing existing workflows.
-
-&nbsp;
-
-Examples:
-
-&nbsp;
-
-- Create Invoice
-
-- Record Payment
-
-- Create Customer
-
-- Add Product
-
-- Create Quote
-
-- Create Subscription
-
-- Record Expense
-
-- Create Purchase Order
-
-- Add Supplier
-
-- Create Journal Entry
-
-&nbsp;
-
-These should launch the existing dialogs or pages already used by the system.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Financial Activity Feed
-
-&nbsp;
-
-Display a live financial activity timeline on the dashboard.
-
-&nbsp;
-
-Examples:
-
-&nbsp;
-
-- Invoice Created
-
-- Payment Recorded
-
-- Subscription Renewed
-
-- Customer Registered
-
-- Purchase Order Approved
-
-- Expense Recorded
-
-- Supplier Paid
-
-- Credit Applied
-
-- Refund Issued
-
-- VPS Provisioned
-
-- Microsoft License Purchased
-
-- Starlink Activated
-
-&nbsp;
-
-Selecting an activity opens the relevant existing module.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Customer Financial Panel
-
-&nbsp;
-
-When a customer is selected, show a financial summary panel with:
-
-&nbsp;
-
-- Current Balance
-
-- Outstanding Balance
-
-- Available Credit
-
-- Revenue Generated
-
-- Profit Generated
-
-- Active Services
-
-- Active Subscriptions
-
-- Invoices
-
-- Payments
-
-- Statement
-
-- Customer Ledger
-
-- Recent Activity
-
-- Upcoming Renewals
-
-&nbsp;
-
-A button should open the customer's existing full profile.
-
-&nbsp;
-
----
-
-&nbsp;
-
-Keep Existing Modules
-
-&nbsp;
-
-Do not merge, delete, or replace any finance modules.
-
-&nbsp;
-
-Each module should continue operating independently.
-
-&nbsp;
-
-The Finance Workspace simply provides a central dashboard that links to them and summarizes their information.
-
-&nbsp;
-
-This approach preserves scalability, keeps deep links intact, and provides an enterprise accounting experience similar to Zoho Books while allowing each financial area to remain a dedicated, fully featured module.
+If a feature already exists, polish and extend it instead of rebuilding it. Only create new components, tabs, database objects, or workflows where functionality is genuinely missing. Maintain backward compatibility, preserve all existing business logic, permissions, APIs, integrations, and routes, and ensure all customer data stays synchronized across the platform.
