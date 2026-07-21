@@ -180,12 +180,18 @@ function PaymentProfile() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="mails">Mails ({comms.length})</TabsTrigger>
+          <TabsTrigger value="statement">Statement</TabsTrigger>
+          <TabsTrigger value="contacts">Contact Persons ({contacts.length})</TabsTrigger>
+          <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
           <TabsTrigger value="invoices">Invoices ({invs.length})</TabsTrigger>
           <TabsTrigger value="payments">Payments ({pays.length})</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions ({subs.length})</TabsTrigger>
           <TabsTrigger value="quotes">Quotes ({quotes.length})</TabsTrigger>
-          <TabsTrigger value="statement">Statement</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
