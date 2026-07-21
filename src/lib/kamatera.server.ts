@@ -136,7 +136,7 @@ export async function powerAction(idOrName: string, action: "poweron" | "powerof
       if (e?.message?.toLowerCase().includes("not found")) break;
     }
   }
-  throw err ?? new Error(`Kultr ${action} failed for ${idOrName}`);
+  throw err ?? new Error(`Kamatera ${action} failed for ${idOrName}`);
 }
 
 export async function terminateServer(idOrName: string, force = true) {
