@@ -590,11 +590,13 @@ function Customer360() {
                               <p className="font-semibold">{s.plan_name}</p>
                               {s.description && <p className="text-xs text-muted-foreground">{s.description}</p>}
                             </td>
+                            <td className="px-4 py-3"><StatusPill tone={s._tier === "platinum" ? "solar" : s._tier === "gold" ? "warning" : s._tier === "silver" ? "info" : "neutral"}>{s._tier}</StatusPill></td>
                             <td className="px-4 py-3 capitalize">{s.billing_cycle || "—"}</td>
                             <td className="px-4 py-3 text-xs text-muted-foreground">{s.started_on || "—"}</td>
                             <td className="px-4 py-3 text-xs">{s.next_renewal || "—"}</td>
                             <td className="px-4 py-3 text-right font-mono">{money(s.amount, s.currency)}</td>
-                            <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label}</StatusPill></td>
+                            <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label} · {s._score}</StatusPill></td>
+
                             <td className="px-4 py-3"><StatusPill tone={active ? "success" : suspended ? "warning" : cancelled ? "danger" : "neutral"}>{s.status}</StatusPill></td>
                             <td className="px-4 py-3">
                               <div className="flex justify-end gap-1">
