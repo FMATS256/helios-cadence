@@ -34,6 +34,21 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Fire-and-forget welcome email
+    if (row.primary_email) {
+      const { notify } = await import("./notify.server");
+      const { data: manager } = await supabaseAdmin
+        .from("profiles").select("full_name, email, phone").eq("id", context.userId).maybeSingle();
+      void notify("welcome", row.primary_email, {
+        companyName: row.company_name,
+        accountNumber: row.account_number,
+        accountManagerName: (manager as any)?.full_name,
+        accountManagerEmail: (manager as any)?.email,
+        accountManagerPhone: (manager as any)?.phone,
+        services: [],
+      }, `welcome-${row.id}`);
+    }
     return row;
   });
 
@@ -124,6 +139,24 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
         allocs.map((a) => ({ payment_id: row.id, invoice_id: a.invoice_id, amount: Number(a.amount) })),
       );
       if (allocError) throw new Error(`Payment saved but allocation failed: ${allocError.message}`);
+    }
+
+    // Receipt email
+    const recipient = data.walk_in_email?.trim() || (await supabaseAdmin
+      .from("customers").select("primary_email,company_name").eq("id", customerId).maybeSingle()).data;
+    const custInfo = typeof recipient === "string" ? { primary_email: recipient, company_name: data.walk_in_name } : (recipient as any);
+    if (custInfo?.primary_email) {
+      const { notify } = await import("./notify.server");
+      void notify("receipt", custInfo.primary_email, {
+        companyName: custInfo.company_name,
+        receiptNumber: (row as any).receipt_number,
+        amount: row.amount,
+        currency: row.currency,
+        method: row.method,
+        reference: row.reference,
+        paidAt: row.paid_at ? String(row.paid_at).slice(0, 10) : null,
+        serviceContext: row.service_context,
+      }, `receipt-${row.id}`);
     }
     return row;
   });
@@ -309,6 +342,27 @@ export const manageSubscription = createServerFn({ method: "POST" })
       created_by: context.userId,
     } as any);
 
+    // Renewal-confirmation email
+    if (data.action === "renew") {
+      const { data: cust } = await supabaseAdmin
+        .from("customers").select("primary_email,company_name").eq("id", sub.customer_id).maybeSingle();
+      if (cust?.primary_email) {
+        const { notify } = await import("./notify.server");
+        const daysUntil = updated.next_renewal
+          ? Math.max(0, Math.round((new Date(updated.next_renewal).getTime() - Date.now()) / 86400000))
+          : 30;
+        void notify("renewal-reminder", cust.primary_email, {
+          companyName: cust.company_name,
+          planName: updated.plan_name,
+          renewalDate: updated.next_renewal,
+          daysUntilRenewal: daysUntil,
+          amount: updated.amount,
+          currency: updated.currency,
+          billingCycle: updated.billing_cycle,
+        }, `renewal-${updated.id}-${updated.next_renewal}`);
+      }
+    }
+
     return updated;
   });
 
@@ -434,6 +488,22 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
       line_total: subtotal,
       position: 0,
     });
+
+    // Invoice-issued email
+    const { data: cust } = await supabaseAdmin
+      .from("customers").select("primary_email,company_name").eq("id", sub.customer_id).maybeSingle();
+    if (cust?.primary_email) {
+      const { notify } = await import("./notify.server");
+      void notify("invoice", cust.primary_email, {
+        companyName: cust.company_name,
+        invoiceNumber: (invoice as any).invoice_number,
+        issueDate: invoice.issue_date,
+        dueDate: invoice.due_date,
+        currency: invoice.currency,
+        subtotal, tax, total,
+        items: [{ description: `${sub.plan_name} (${sub.billing_cycle})`, quantity: 1, unit_price: subtotal, line_total: subtotal }],
+      }, `invoice-${invoice.id}`);
+    }
     return invoice;
   });
 
