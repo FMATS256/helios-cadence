@@ -107,7 +107,10 @@ function ServerDetailPage() {
   });
 
   const power = useMutation({
-    mutationFn: (action: "poweron" | "poweroff" | "reboot") => fnPower({ data: { server_id: id, action } }),
+    mutationFn: (action: "poweron" | "poweroff" | "reboot") => {
+      const map = { poweron: "on", poweroff: "off", reboot: "reboot" } as const;
+      return fnPower({ data: { server_id: id, action: map[action] } });
+    },
     onSuccess: (_, action) => {
       toast.success(`Command sent: ${action}`);
       qc.invalidateQueries({ queryKey: ["cloud_server", id] });
