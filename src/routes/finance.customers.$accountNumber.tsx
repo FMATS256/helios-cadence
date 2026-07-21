@@ -91,7 +91,10 @@ function PaymentProfile() {
   const pays = data?.payments ?? [];
   const subs = data?.subs ?? [];
   const quotes = data?.quotes ?? [];
+  const contacts = data?.contacts ?? [];
+  const comms = data?.comms ?? [];
   const currency = (invs[0]?.currency || pays[0]?.currency || "USD") as string;
+
 
   const stats = useMemo(() => {
     const today = new Date();
