@@ -41,7 +41,7 @@ async function loadFinanceOverview() {
     (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("subscriptions").select("id,plan_name,amount,mrr,status,billing_cycle,renews_at,next_renewal,account_number,customer_id,created_at").is("archived_at", null),
     (supabase.from as any)("quotes").select("id,quote_number,total,currency,status,valid_until,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(50),
-    supabase.from("customers").select("id,name,account_number,status").is("archived_at", null),
+    supabase.from("customers").select("id,company_name,account_number,status,created_at").is("archived_at", null),
     (supabase.from as any)("service_catalog").select("id,name,category,price"),
     (supabase.from as any)("assets").select("id,purchase_price,status").is("archived_at", null),
     (supabase.from as any)("inventory_items").select("id,quantity,unit_cost").is("archived_at", null),
