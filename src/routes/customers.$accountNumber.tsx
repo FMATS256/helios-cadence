@@ -62,6 +62,38 @@ function computeHealth(view: any): { score: number; label: string; tone: "succes
   return { score, label, tone };
 }
 
+function tierOf(amount: number, cycle?: string): "platinum" | "gold" | "silver" | "bronze" {
+  const monthly = (cycle || "monthly").toLowerCase() === "yearly" || (cycle || "").toLowerCase() === "annual"
+    ? Number(amount || 0) / 12
+    : (cycle || "").toLowerCase() === "quarterly" ? Number(amount || 0) / 3 : Number(amount || 0);
+  if (monthly >= 1000) return "platinum";
+  if (monthly >= 300) return "gold";
+  if (monthly >= 50) return "silver";
+  return "bronze";
+}
+
+function subHealthScore(s: any): number {
+  if (s.status === "cancelled") return 0;
+  if (s.status === "paused") return 40;
+  const d = (s.next_renewal ? Math.round((new Date(s.next_renewal).getTime() - Date.now()) / 86400000) : null);
+  if (d == null) return 80;
+  if (d < 0) return Math.max(5, 30 + d); // overdue drops fast
+  if (d <= 7) return 55;
+  if (d <= 30) return 75;
+  return 95;
+}
+
+function toCsv(rows: Array<Record<string, any>>): string {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]);
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
+}
+
+
 function Customer360() {
   const { accountNumber } = Route.useParams();
   const { user } = useAuth();
@@ -139,7 +171,21 @@ function Customer360() {
   const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
 
+  const [svcFilters, setSvcFilters] = useState({
+    q: "",
+    status: "all" as "all" | "active" | "paused" | "cancelled",
+    tier: "all" as "all" | "platinum" | "gold" | "silver" | "bronze",
+    startFrom: "",
+    startTo: "",
+    renewFrom: "",
+    renewTo: "",
+    minHealth: 0,
+    sortBy: "next_renewal" as "next_renewal" | "started_on" | "amount" | "plan_name" | "health",
+    sortDir: "asc" as "asc" | "desc",
+  });
+
   const health = useMemo(() => view ? computeHealth(view) : null, [view]);
+
 
   function subHealth(s: any): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
     if (s.status === "cancelled") return { label: "Cancelled", tone: "neutral" };
@@ -198,6 +244,70 @@ function Customer360() {
   const tier = ((customer as any).tier || (stats.mrr > 2000 ? "platinum" : stats.mrr > 500 ? "gold" : stats.mrr > 100 ? "silver" : "bronze")) as string;
   const tierTone = tier === "platinum" ? "solar" : tier === "gold" ? "warning" : tier === "silver" ? "info" : "neutral";
   const contractActive = subscriptions.some((s: any) => s.status === "active");
+
+  const enrichedSubs = (subscriptions as any[]).map((s) => ({
+    ...s,
+    _tier: tierOf(Number(s.amount) || 0, s.billing_cycle),
+    _score: subHealthScore(s),
+  }));
+  const inRange = (d: string | null | undefined, from: string, to: string) => {
+    if (!from && !to) return true;
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (from && t < new Date(from).getTime()) return false;
+    if (to && t > new Date(to).getTime() + 86399999) return false;
+    return true;
+  };
+  const visibleSubs = enrichedSubs
+    .filter((s) => {
+      if (svcFilters.q) {
+        const q = svcFilters.q.toLowerCase();
+        if (!`${s.plan_name ?? ""} ${s.description ?? ""}`.toLowerCase().includes(q)) return false;
+      }
+      if (svcFilters.status !== "all" && s.status !== svcFilters.status) return false;
+      if (svcFilters.tier !== "all" && s._tier !== svcFilters.tier) return false;
+      if (!inRange(s.started_on, svcFilters.startFrom, svcFilters.startTo)) return false;
+      if (!inRange(s.next_renewal, svcFilters.renewFrom, svcFilters.renewTo)) return false;
+      if (s._score < svcFilters.minHealth) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dir = svcFilters.sortDir === "asc" ? 1 : -1;
+      const k = svcFilters.sortBy;
+      if (k === "health") return (a._score - b._score) * dir;
+      if (k === "amount") return ((Number(a.amount) || 0) - (Number(b.amount) || 0)) * dir;
+      if (k === "plan_name") return String(a.plan_name ?? "").localeCompare(String(b.plan_name ?? "")) * dir;
+      const av = a[k] ? new Date(a[k]).getTime() : Number.POSITIVE_INFINITY;
+      const bv = b[k] ? new Date(b[k]).getTime() : Number.POSITIVE_INFINITY;
+      return (av - bv) * dir;
+    });
+
+  const exportSubsCsv = () => {
+    const rows = visibleSubs.map((s) => ({
+      plan_name: s.plan_name ?? "",
+      description: s.description ?? "",
+      status: s.status ?? "",
+      tier: s._tier,
+      billing_cycle: s.billing_cycle ?? "",
+      started_on: s.started_on ?? "",
+      next_renewal: s.next_renewal ?? "",
+      amount: Number(s.amount) || 0,
+      currency: s.currency ?? "USD",
+      health_score: s._score,
+    }));
+    const csv = toCsv(rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${customer.account_number}-services-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? "" : "s"}`);
+  };
+
 
   return (
     <PageContainer>
@@ -389,22 +499,75 @@ function Customer360() {
 
         <TabsContent value="services-mgmt" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
               <CardTitle className="font-display flex items-center gap-2"><Settings2 className="h-4 w-4 text-solar" />Services Management</CardTitle>
-              <span className="text-xs text-muted-foreground">{subscriptions.length} subscription{subscriptions.length === 1 ? "" : "s"}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{visibleSubs.length} of {subscriptions.length}</span>
+                <Button size="sm" variant="outline" onClick={exportSubsCsv} disabled={visibleSubs.length === 0}>
+                  <FileText className="h-3.5 w-3.5 mr-1" />Export CSV
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
+              {subscriptions.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 px-4 py-3 border-b bg-muted/20">
+                  <Input placeholder="Search plan…" value={svcFilters.q} onChange={(e) => setSvcFilters({ ...svcFilters, q: e.target.value })} className="h-8 col-span-2" />
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.status} onChange={(e) => setSvcFilters({ ...svcFilters, status: e.target.value as any })}>
+                    <option value="all">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="paused">Suspended</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.tier} onChange={(e) => setSvcFilters({ ...svcFilters, tier: e.target.value as any })}>
+                    <option value="all">All tiers</option>
+                    <option value="platinum">Platinum</option>
+                    <option value="gold">Gold</option>
+                    <option value="silver">Silver</option>
+                    <option value="bronze">Bronze</option>
+                  </select>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground">Start</span>
+                    <Input type="date" value={svcFilters.startFrom} onChange={(e) => setSvcFilters({ ...svcFilters, startFrom: e.target.value })} className="h-8 text-xs" />
+                    <Input type="date" value={svcFilters.startTo} onChange={(e) => setSvcFilters({ ...svcFilters, startTo: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground">Renew</span>
+                    <Input type="date" value={svcFilters.renewFrom} onChange={(e) => setSvcFilters({ ...svcFilters, renewFrom: e.target.value })} className="h-8 text-xs" />
+                    <Input type="date" value={svcFilters.renewTo} onChange={(e) => setSvcFilters({ ...svcFilters, renewTo: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground whitespace-nowrap">Min health {svcFilters.minHealth}</span>
+                    <input type="range" min={0} max={100} step={5} value={svcFilters.minHealth} onChange={(e) => setSvcFilters({ ...svcFilters, minHealth: Number(e.target.value) })} className="w-full" />
+                  </div>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.sortBy} onChange={(e) => setSvcFilters({ ...svcFilters, sortBy: e.target.value as any })}>
+                    <option value="next_renewal">Sort: Renews</option>
+                    <option value="started_on">Sort: Started</option>
+                    <option value="amount">Sort: Amount</option>
+                    <option value="health">Sort: Health</option>
+                    <option value="plan_name">Sort: Name</option>
+                  </select>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.sortDir} onChange={(e) => setSvcFilters({ ...svcFilters, sortDir: e.target.value as any })}>
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSvcFilters({ q: "", status: "all", tier: "all", startFrom: "", startTo: "", renewFrom: "", renewTo: "", minHealth: 0, sortBy: "next_renewal", sortDir: "asc" })}>Reset</Button>
+                </div>
+              )}
               {subscriptions.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-12">
                   No services yet. <Link to="/subscriptions" className="text-solar font-semibold">Add one →</Link>
                 </p>
               )}
-              {subscriptions.length > 0 && (
+              {subscriptions.length > 0 && visibleSubs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-12">No services match the current filters.</p>
+              )}
+              {visibleSubs.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="text-xs uppercase text-muted-foreground border-b">
                       <tr>
                         <th className="text-left px-4 py-2">Service</th>
+                        <th className="text-left px-4 py-2">Tier</th>
                         <th className="text-left px-4 py-2">Cycle</th>
                         <th className="text-left px-4 py-2">Started</th>
                         <th className="text-left px-4 py-2">Renews</th>
@@ -415,7 +578,8 @@ function Customer360() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {subscriptions.map((s: any) => {
+                      {visibleSubs.map((s: any) => {
+
                         const h = subHealth(s);
                         const active = s.status === "active";
                         const suspended = s.status === "paused";
@@ -426,11 +590,13 @@ function Customer360() {
                               <p className="font-semibold">{s.plan_name}</p>
                               {s.description && <p className="text-xs text-muted-foreground">{s.description}</p>}
                             </td>
+                            <td className="px-4 py-3"><StatusPill tone={s._tier === "platinum" ? "solar" : s._tier === "gold" ? "warning" : s._tier === "silver" ? "info" : "neutral"}>{s._tier}</StatusPill></td>
                             <td className="px-4 py-3 capitalize">{s.billing_cycle || "—"}</td>
                             <td className="px-4 py-3 text-xs text-muted-foreground">{s.started_on || "—"}</td>
                             <td className="px-4 py-3 text-xs">{s.next_renewal || "—"}</td>
                             <td className="px-4 py-3 text-right font-mono">{money(s.amount, s.currency)}</td>
-                            <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label}</StatusPill></td>
+                            <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label} · {s._score}</StatusPill></td>
+
                             <td className="px-4 py-3"><StatusPill tone={active ? "success" : suspended ? "warning" : cancelled ? "danger" : "neutral"}>{s.status}</StatusPill></td>
                             <td className="px-4 py-3">
                               <div className="flex justify-end gap-1">
