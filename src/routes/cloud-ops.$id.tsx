@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { refreshServer, serverPower, terminateServer } from "@/lib/kamatera.functions";
-import { sendServerHandover } from "@/lib/providers.functions";
+import {
+  refreshProviderServer, powerProviderServer, terminateProviderServer, sendServerHandover,
+} from "@/lib/providers.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
