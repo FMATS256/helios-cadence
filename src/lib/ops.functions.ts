@@ -34,6 +34,21 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Fire-and-forget welcome email
+    if (row.primary_email) {
+      const { notify } = await import("./notify.server");
+      const { data: manager } = await supabaseAdmin
+        .from("profiles").select("full_name, email, phone").eq("id", context.userId).maybeSingle();
+      void notify("welcome", row.primary_email, {
+        companyName: row.company_name,
+        accountNumber: row.account_number,
+        accountManagerName: (manager as any)?.full_name,
+        accountManagerEmail: (manager as any)?.email,
+        accountManagerPhone: (manager as any)?.phone,
+        services: [],
+      }, `welcome-${row.id}`);
+    }
     return row;
   });
 
