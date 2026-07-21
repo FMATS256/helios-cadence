@@ -1376,6 +1376,167 @@ export type Database = {
           },
         ]
       }
+      email_template_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          html_content: string | null
+          id: string
+          mode: string
+          note: string | null
+          sample_data: Json | null
+          subject: string | null
+          template_id: string
+          template_name: string
+          unlayer_design: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          html_content?: string | null
+          id?: string
+          mode: string
+          note?: string | null
+          sample_data?: Json | null
+          subject?: string | null
+          template_id: string
+          template_name: string
+          unlayer_design?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          html_content?: string | null
+          id?: string
+          mode?: string
+          note?: string | null
+          sample_data?: Json | null
+          subject?: string | null
+          template_id?: string
+          template_name?: string
+          unlayer_design?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          display_name: string
+          from_name: string | null
+          html_content: string | null
+          id: string
+          is_active: boolean
+          mode: string
+          preview_text: string | null
+          sample_data: Json | null
+          subject: string | null
+          template_name: string
+          unlayer_design: Json | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          from_name?: string | null
+          html_content?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          preview_text?: string | null
+          sample_data?: Json | null
+          subject?: string | null
+          template_name: string
+          unlayer_design?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          from_name?: string | null
+          html_content?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          preview_text?: string | null
+          sample_data?: Json | null
+          subject?: string | null
+          template_name?: string
+          unlayer_design?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      email_theme: {
+        Row: {
+          address: string
+          brand_name: string
+          color_accent: string
+          color_background: string
+          color_body: string
+          color_ink: string
+          color_primary: string
+          font_family: string
+          id: string
+          logo_url: string | null
+          singleton: boolean
+          site_url: string
+          support_email: string
+          support_phone: string
+          tagline: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string
+          brand_name?: string
+          color_accent?: string
+          color_background?: string
+          color_body?: string
+          color_ink?: string
+          color_primary?: string
+          font_family?: string
+          id?: string
+          logo_url?: string | null
+          singleton?: boolean
+          site_url?: string
+          support_email?: string
+          support_phone?: string
+          tagline?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string
+          brand_name?: string
+          color_accent?: string
+          color_background?: string
+          color_body?: string
+          color_ink?: string
+          color_primary?: string
+          font_family?: string
+          id?: string
+          logo_url?: string | null
+          singleton?: boolean
+          site_url?: string
+          support_email?: string
+          support_phone?: string
+          tagline?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           archived_at: string | null
