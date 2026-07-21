@@ -337,6 +337,7 @@ function LicensesTab() {
   const [status, setStatus] = useState<string>("");
   const [emailFilter, setEmailFilter] = useState("");
   const [gen, setGen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "licenses", status, emailFilter],
