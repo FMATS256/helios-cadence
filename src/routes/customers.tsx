@@ -32,6 +32,7 @@ function CustomersPage() {
   const { q } = Route.useSearch();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const createCustomer = useServerFn(createCustomerRecord);
   const [search, setSearch] = useState(q || "");
   const [open, setOpen] = useState(false);
