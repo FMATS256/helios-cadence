@@ -258,27 +258,31 @@ export const recordStarlinkRecharge = createServerFn({ method: "POST" })
     return { recharge_id: recharge.id, payment_reference: reference, external_status: externalStatus, external_response: externalResponse, margin_usd: margin };
   });
 // Scrape Starlink AURA portal via Firecrawl for public account snapshot.
-// Reads FIRECRAWL_API_KEY (connector-managed) at runtime. Best-effort:
-// returns raw markdown + extracted key/value pairs.
+// Uses the Lovable connector gateway (gateway-backed Firecrawl connection).
 export const scrapeAuraAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { account_number: string }) => input)
   .handler(async ({ data, context }) => {
     const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
     if (!hasRole) throw new Error("Staff role required.");
-    const key = process.env.FIRECRAWL_API_KEY;
-    if (!key) throw new Error("FIRECRAWL_API_KEY not configured");
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const fcKey = process.env.FIRECRAWL_API_KEY;
+    if (!lovableKey || !fcKey) throw new Error("Firecrawl connector not configured");
     if (!data.account_number) throw new Error("account_number required");
 
     const url = `https://aura.starlink.com/account/${encodeURIComponent(data.account_number)}`;
-    const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    const res = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/scrape", {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": fcKey,
+      },
       body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
     });
     if (!res.ok) throw new Error(`Firecrawl failed [${res.status}]: ${await res.text()}`);
     const body: any = await res.json();
-    const md: string = body?.data?.markdown ?? "";
+    const md: string = body?.markdown ?? body?.data?.markdown ?? "";
 
     const pick = (re: RegExp) => md.match(re)?.[1]?.trim() ?? null;
     const facts = {

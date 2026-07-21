@@ -285,21 +285,14 @@ export const lookupDandemutandeVoip = createServerFn({ method: "POST" })
 
     const firecrawlKey = process.env.FIRECRAWL_API_KEY;
     const lovableKey = process.env.LOVABLE_API_KEY;
-    if (!firecrawlKey) throw new Error("Firecrawl connector is not configured");
+    if (!firecrawlKey || !lovableKey) throw new Error("Firecrawl connector is not configured");
 
-    const useGateway = !firecrawlKey.startsWith("fc-");
-    if (useGateway && !lovableKey) throw new Error("Lovable connector gateway key is not configured");
-
-    const baseUrl = useGateway
-      ? "https://connector-gateway.lovable.dev/firecrawl/v2"
-      : "https://api.firecrawl.dev/v2";
-    const headers: Record<string, string> = useGateway
-      ? {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": firecrawlKey,
-          "Content-Type": "application/json",
-        }
-      : { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" };
+    const baseUrl = "https://connector-gateway.lovable.dev/firecrawl/v2";
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": firecrawlKey,
+      "Content-Type": "application/json",
+    };
 
     const callFirecrawl = async (path: string, payload: Record<string, unknown>) => {
       const res = await fetch(`${baseUrl}${path}`, {
