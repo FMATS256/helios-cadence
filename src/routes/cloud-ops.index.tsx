@@ -32,7 +32,7 @@ export const Route = createFileRoute("/cloud-ops/")({
 function CloudOpsPage() {
   const qc = useQueryClient();
   const fnVerify = useServerFn(verifyKamatera);
-  const fnSync = useServerFn(syncServers);
+  const fnSync = useServerFn(syncProviderServers);
 
   const { data: servers = [], isLoading } = useQuery({
     queryKey: ["cloud_servers"],
