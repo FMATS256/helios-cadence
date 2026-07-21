@@ -55,6 +55,7 @@ const navGroups = [
   {
     label: "Business",
     items: [
+      { title: "Finance", url: "/finance", icon: Wallet },
       { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Billing", url: "/billing", icon: Receipt },
       { title: "Payments", url: "/payments", icon: CreditCard },
