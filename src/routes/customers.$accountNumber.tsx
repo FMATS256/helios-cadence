@@ -139,7 +139,21 @@ function Customer360() {
   const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
 
+  const [svcFilters, setSvcFilters] = useState({
+    q: "",
+    status: "all" as "all" | "active" | "paused" | "cancelled",
+    tier: "all" as "all" | "platinum" | "gold" | "silver" | "bronze",
+    startFrom: "",
+    startTo: "",
+    renewFrom: "",
+    renewTo: "",
+    minHealth: 0,
+    sortBy: "next_renewal" as "next_renewal" | "started_on" | "amount" | "plan_name" | "health",
+    sortDir: "asc" as "asc" | "desc",
+  });
+
   const health = useMemo(() => view ? computeHealth(view) : null, [view]);
+
 
   function subHealth(s: any): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
     if (s.status === "cancelled") return { label: "Cancelled", tone: "neutral" };
