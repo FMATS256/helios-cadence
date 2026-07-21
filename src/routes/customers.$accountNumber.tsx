@@ -470,6 +470,7 @@ function Customer360() {
           <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="quotes">Quotes</TabsTrigger>
@@ -838,6 +839,38 @@ function Customer360() {
                 </div>
               </div>
             ))}
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="transactions" className="mt-4">
+          <Card><CardContent className="p-0 divide-y">
+            {(() => {
+              const events: Array<{ id: string; date: string; kind: "invoice" | "payment"; ref: string; label: string; amount: number; currency?: string; status: string; to?: string }> = [];
+              for (const i of invoices as any[]) events.push({ id: `i-${i.id}`, date: i.issue_date || i.created_at, kind: "invoice", ref: i.invoice_number, label: `Invoice · ${i.notes || i.status}`, amount: Number(i.total || 0), currency: i.currency, status: i.status, to: `/invoices/${i.id}` });
+              for (const p of payments as any[]) events.push({ id: `p-${p.id}`, date: p.paid_at || p.created_at, kind: "payment", ref: p.receipt_number || p.reference || "—", label: `Payment · ${p.method || "—"}`, amount: -Number(p.amount || 0), currency: p.currency, status: p.reconciliation_status || p.status });
+              events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              if (events.length === 0) return <p className="text-sm text-muted-foreground text-center py-12">No transactions yet.</p>;
+              return events.map((e) => {
+                const Row = (
+                  <div key={e.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`h-9 w-9 rounded-md flex items-center justify-center ${e.kind === "invoice" ? "bg-warning/15 text-warning" : "bg-success/15 text-success"}`}>
+                        {e.kind === "invoice" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-semibold truncate">{e.ref}</p>
+                        <p className="text-xs text-muted-foreground truncate">{e.label} · {e.date ? new Date(e.date).toLocaleDateString() : "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`font-mono text-sm ${e.amount < 0 ? "text-success" : ""}`}>{money(Math.abs(e.amount), e.currency)}</span>
+                      <StatusPill tone={e.status === "paid" || e.status === "matched" || e.status === "received" ? "success" : e.status === "overdue" ? "danger" : "info"}>{e.status}</StatusPill>
+                    </div>
+                  </div>
+                );
+                return e.to ? <Link key={e.id} to={"/invoices/$id"} params={{ id: e.to.split("/").pop()! }} className="block">{Row}</Link> : Row;
+              });
+            })()}
           </CardContent></Card>
         </TabsContent>
 
