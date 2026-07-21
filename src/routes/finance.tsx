@@ -614,11 +614,11 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
       {results.customers.map((c: any) => (
-        <button key={c.id} onClick={() => onPickCustomer(c.id)} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
+        <Link key={c.id} to="/finance/customers/$accountNumber" params={{ accountNumber: c.account_number }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3 w-3" />Customer</div>
           <div className="text-sm font-semibold truncate">{c.company_name}</div>
           <div className="text-xs text-muted-foreground">{c.account_number}</div>
-        </button>
+        </Link>
       ))}
       {results.invoices.map((i: any) => (
         <Link key={i.id} to="/invoices/$id" params={{ id: i.id }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
@@ -663,14 +663,14 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
 function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id: string) => void }) {
   const events = useMemo(() => {
     if (!data) return [];
-    const feed: Array<{ id: string; when: string; icon: any; tone: string; title: string; sub: string; customerId?: string; to?: string }> = [];
+    const feed: Array<{ id: string; when: string; icon: any; tone: string; title: string; sub: string; accountNumber?: string; to?: string }> = [];
     for (const i of (data.invoices ?? []).slice(0, 20)) {
       feed.push({
         id: `inv-${i.id}`, when: i.created_at || i.issue_date,
         icon: Receipt, tone: "warning",
         title: `Invoice ${i.invoice_number} · ${i.status}`,
         sub: `${i.account_number ?? "—"} · ${money(Number(i.amount_total ?? i.total ?? 0))}`,
-        customerId: i.customer_id, to: `/invoices/${i.id}`,
+        accountNumber: i.account_number, to: `/invoices/${i.id}`,
       });
     }
     for (const p of (data.payments ?? []).slice(0, 20)) {
@@ -679,7 +679,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         icon: DollarSign, tone: "success",
         title: `Payment ${p.receipt_number ?? ""} recorded`,
         sub: `${p.account_number ?? "—"} · ${money(Number(p.amount || 0))} · ${p.method ?? ""}`,
-        customerId: p.customer_id, to: "/payments",
+        accountNumber: p.account_number,
       });
     }
     for (const s of (data.subs ?? []).slice(0, 10)) {
@@ -688,7 +688,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         icon: Repeat, tone: "solar",
         title: `Subscription · ${s.plan_name}`,
         sub: `${s.account_number ?? "—"} · ${s.status} · ${money(Number(s.amount ?? s.mrr ?? 0))}/${s.billing_cycle ?? "mo"}`,
-        customerId: s.customer_id, to: "/subscriptions",
+        accountNumber: s.account_number,
       });
     }
     for (const q of (data.quotes ?? []).slice(0, 10)) {
@@ -697,7 +697,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         icon: FileText, tone: "info",
         title: `Quote ${q.quote_number} · ${q.status}`,
         sub: `${q.account_number ?? "—"} · ${money(Number(q.total || 0))}`,
-        customerId: q.customer_id, to: "/quotes",
+        accountNumber: q.account_number,
       });
     }
     return feed
@@ -730,11 +730,11 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
             <span className="text-[11px] text-muted-foreground shrink-0">{new Date(e.when).toLocaleDateString()}</span>
           </div>
         );
-        if (e.customerId) {
+        if (e.accountNumber) {
           return (
-            <button key={e.id} onClick={() => onPickCustomer(e.customerId!)} className="w-full text-left">
+            <Link key={e.id} to="/finance/customers/$accountNumber" params={{ accountNumber: e.accountNumber }}>
               {Row}
-            </button>
+            </Link>
           );
         }
         if (e.to) return <Link key={e.id} to={e.to as any}>{Row}</Link>;
