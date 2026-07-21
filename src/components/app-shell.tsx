@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
-  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -55,6 +55,7 @@ const navGroups = [
   {
     label: "Business",
     items: [
+      { title: "Finance", url: "/finance", icon: Wallet },
       { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Billing", url: "/billing", icon: Receipt },
       { title: "Payments", url: "/payments", icon: CreditCard },
