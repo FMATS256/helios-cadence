@@ -62,6 +62,38 @@ function computeHealth(view: any): { score: number; label: string; tone: "succes
   return { score, label, tone };
 }
 
+function tierOf(amount: number, cycle?: string): "platinum" | "gold" | "silver" | "bronze" {
+  const monthly = (cycle || "monthly").toLowerCase() === "yearly" || (cycle || "").toLowerCase() === "annual"
+    ? Number(amount || 0) / 12
+    : (cycle || "").toLowerCase() === "quarterly" ? Number(amount || 0) / 3 : Number(amount || 0);
+  if (monthly >= 1000) return "platinum";
+  if (monthly >= 300) return "gold";
+  if (monthly >= 50) return "silver";
+  return "bronze";
+}
+
+function subHealthScore(s: any): number {
+  if (s.status === "cancelled") return 0;
+  if (s.status === "paused") return 40;
+  const d = (s.next_renewal ? Math.round((new Date(s.next_renewal).getTime() - Date.now()) / 86400000) : null);
+  if (d == null) return 80;
+  if (d < 0) return Math.max(5, 30 + d); // overdue drops fast
+  if (d <= 7) return 55;
+  if (d <= 30) return 75;
+  return 95;
+}
+
+function toCsv(rows: Array<Record<string, any>>): string {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]);
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
+}
+
+
 function Customer360() {
   const { accountNumber } = Route.useParams();
   const { user } = useAuth();
