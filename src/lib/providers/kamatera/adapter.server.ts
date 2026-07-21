@@ -29,12 +29,9 @@ export const kamateraAdapter: CloudProvider = {
   async listImages(region: string) {
     const { listImages } = await import("@/lib/kamatera.server");
     const images = await listImages(region);
-    return (images ?? []).map((img: any) => ({
-      id: img.id,
-      name: img.name ?? img.id,
-      os: detectOs(img.name ?? img.id),
-    }));
+    return classifyKamateraImages(images ?? []);
   },
+
 
   async listInstanceTypes(region: string): Promise<InstanceType[]> {
     const { getCapabilities } = await import("@/lib/kamatera.server");
@@ -126,12 +123,63 @@ export const kamateraAdapter: CloudProvider = {
   },
 };
 
-function detectOs(name: string): "ubuntu" | "debian" | "almalinux" | "rocky" | "windows" | undefined {
-  const n = name.toLowerCase();
-  if (n.includes("ubuntu")) return "ubuntu";
-  if (n.includes("debian")) return "debian";
-  if (n.includes("almalinux") || n.includes("alma")) return "almalinux";
-  if (n.includes("rocky")) return "rocky";
-  if (n.includes("windows")) return "windows";
+function detectOs(desc: string): "ubuntu" | "debian" | "almalinux" | "rocky" | "windows" | undefined {
+  const n = desc.toLowerCase();
+  if (n.startsWith("ubuntu")) return "ubuntu";
+  if (n.startsWith("debian")) return "debian";
+  if (n.startsWith("almalinux") || n.startsWith("alma")) return "almalinux";
+  if (n.startsWith("rockylinux") || n.startsWith("rocky")) return "rocky";
+  if (n.startsWith("windows")) return "windows";
   return undefined;
 }
+
+// Kamatera returns 200+ images per datacenter mixing public OS, marketplace
+// apps, desktop variants and private images. Only surface the standard public
+// OS catalog by default; keep the rest categorised for future tabs.
+function humanizeDescription(desc: string): string {
+  // ubuntu_server_22.04_64-bit → Ubuntu Server 22.04 (64-bit)
+  return desc
+    .replace(/_/g, " ")
+    .replace(/\b64-bit\b/i, "(64-bit)")
+    .replace(/\b(ubuntu|debian|almalinux|rockylinux|centos|fedora|freebsd|windows)\b/gi, (m) =>
+      m[0].toUpperCase() + m.slice(1).toLowerCase(),
+    )
+    .replace(/\brockylinux\b/i, "Rocky Linux")
+    .replace(/\bserver\b/gi, "Server")
+    .replace(/\bdesktop\b/gi, "Desktop")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const OS_ORDER = ["ubuntu", "debian", "almalinux", "rocky", "windows"] as const;
+
+function classifyKamateraImages(images: any[]) {
+  const osRe = /^(ubuntu|debian|almalinux|rockylinux|centos|windows_server|freebsd|fedora)_/i;
+  const desktopRe = /_desktop_/i;
+  const appRe = /^(apps|service)_/i;
+
+  const mapped = images.map((img: any) => {
+    const desc: string = img.description ?? img.name ?? img.id ?? "";
+    let category: "os" | "app" | "desktop" | "private" = "private";
+    if (appRe.test(desc)) category = "app";
+    else if (desktopRe.test(desc)) category = "desktop";
+    else if (osRe.test(desc)) category = "os";
+    return {
+      id: img.id as string,
+      name: desc ? humanizeDescription(desc) : (img.id as string),
+      os: detectOs(desc),
+      category,
+    };
+  });
+
+  // Default view: public OS only, ordered by family then version desc.
+  const osOnly = mapped.filter((i) => i.category === "os");
+  osOnly.sort((a, b) => {
+    const ai = a.os ? OS_ORDER.indexOf(a.os as any) : 99;
+    const bi = b.os ? OS_ORDER.indexOf(b.os as any) : 99;
+    if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return b.name.localeCompare(a.name, undefined, { numeric: true });
+  });
+  return osOnly;
+}
+
