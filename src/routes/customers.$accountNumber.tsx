@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,9 +15,12 @@ import { toast } from "sonner";
 import {
   KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp,
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
-  Mail, Phone, ShieldCheck, Heart,
+  Mail, Phone, ShieldCheck, Heart, Pencil, PowerOff, Send, Bell,
 } from "lucide-react";
-import { getCustomer360, generateInvoiceForSubscription, manageSubscription } from "@/lib/ops.functions";
+import {
+  getCustomer360, generateInvoiceForSubscription, manageSubscription,
+  updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder,
+} from "@/lib/ops.functions";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -28,6 +31,8 @@ import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
+  validateSearch: (s: Record<string, unknown>): { tab?: string } =>
+    (typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
   component: Customer360,
   notFoundComponent: () => (
     <PageContainer><PageHeader title="Customer not found" description="That M-number doesn't exist." /></PageContainer>
