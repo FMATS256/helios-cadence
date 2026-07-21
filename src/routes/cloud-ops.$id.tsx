@@ -33,9 +33,9 @@ function ServerDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const fnRefresh = useServerFn(refreshServer);
-  const fnPower = useServerFn(serverPower);
-  const fnTerminate = useServerFn(terminateServer);
+  const fnRefresh = useServerFn(refreshProviderServer);
+  const fnPower = useServerFn(powerProviderServer);
+  const fnTerminate = useServerFn(terminateProviderServer);
 
   const fnHandover = useServerFn(sendServerHandover);
   const [handoverOpen, setHandoverOpen] = useState(false);
