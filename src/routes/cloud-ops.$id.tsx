@@ -289,11 +289,13 @@ function ServerDetailPage() {
 
         <TabsContent value="monitoring" className="mt-4">
           <InfoCard title="Live provider data">
+            <Row k="Provider" v={s.provider ?? "unknown"} />
             <Row k="Power" v={s.power_state ?? "unknown"} />
-            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? "—"} />
+            <Row k="Status" v={s.status ?? "unknown"} />
+            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? meta.cpu ?? "—"} />
             <Row k="Uptime" v={meta.uptime ?? "—"} />
-            <Row k="Traffic used" v={meta.traffic_used ?? "—"} />
-            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from Kamatera.</p>
+            <Row k="Traffic used" v={meta.traffic_used ?? meta.traffic ?? "—"} />
+            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from {s.provider ?? "provider"}.</p>
           </InfoCard>
         </TabsContent>
 
