@@ -614,7 +614,7 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
       {results.customers.map((c: any) => (
-        <Link key={c.id} to="/finance/customers/$accountNumber" params={{ accountNumber: c.account_number }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
+        <Link key={c.id} to="/customers/$accountNumber" params={{ accountNumber: c.account_number }} search={{ tab: "transactions" }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="h-3 w-3" />Customer</div>
           <div className="text-sm font-semibold truncate">{c.company_name}</div>
           <div className="text-xs text-muted-foreground">{c.account_number}</div>
@@ -732,7 +732,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         );
         if (e.accountNumber) {
           return (
-            <Link key={e.id} to="/finance/customers/$accountNumber" params={{ accountNumber: e.accountNumber }}>
+            <Link key={e.id} to="/customers/$accountNumber" params={{ accountNumber: e.accountNumber }} search={{ tab: "transactions" }}>
               {Row}
             </Link>
           );
