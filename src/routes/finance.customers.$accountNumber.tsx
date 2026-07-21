@@ -297,6 +297,27 @@ function PaymentProfile() {
         <TabsContent value="statement">
           <StatementView customer={c} invoices={invs} payments={pays} currency={currency} />
         </TabsContent>
+
+        <TabsContent value="comments">
+          <CommentsView customerId={c.id} timeline={data?.timeline ?? []} onDone={refetch} />
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionsView invoices={invs} payments={pays} currency={currency} onRefresh={refetch} />
+        </TabsContent>
+
+        <TabsContent value="mails">
+          <MailsView customer={c} comms={comms} invoices={invs} />
+        </TabsContent>
+
+        <TabsContent value="contacts">
+          <ContactsView customer={c} contacts={contacts} onRefresh={refetch} />
+        </TabsContent>
+
+        <TabsContent value="payment-methods">
+          <PaymentMethodsView customer={c} payments={pays} currency={currency} onRefresh={refetch} />
+        </TabsContent>
+
       </Tabs>
     </PageContainer>
   );
