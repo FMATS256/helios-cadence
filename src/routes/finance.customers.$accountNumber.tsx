@@ -22,8 +22,10 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, DollarSign, Receipt, FileText, Repeat,
   AlertTriangle, Plus, Send, Ban, PlayCircle, PauseCircle, RefreshCw, MoreHorizontal,
-  TrendingUp, CheckCircle2, Clock, Download, ExternalLink, User,
+  TrendingUp, CheckCircle2, Clock, Download, ExternalLink, User, Pencil, CreditCard,
+  Users as UsersIcon, MessageSquare, Bell,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/finance/customers/$accountNumber")({
   head: ({ params }) => ({
