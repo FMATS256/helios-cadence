@@ -342,6 +342,27 @@ export const manageSubscription = createServerFn({ method: "POST" })
       created_by: context.userId,
     } as any);
 
+    // Renewal-confirmation email
+    if (data.action === "renew") {
+      const { data: cust } = await supabaseAdmin
+        .from("customers").select("primary_email,company_name").eq("id", sub.customer_id).maybeSingle();
+      if (cust?.primary_email) {
+        const { notify } = await import("./notify.server");
+        const daysUntil = updated.next_renewal
+          ? Math.max(0, Math.round((new Date(updated.next_renewal).getTime() - Date.now()) / 86400000))
+          : 30;
+        void notify("renewal-reminder", cust.primary_email, {
+          companyName: cust.company_name,
+          planName: updated.plan_name,
+          renewalDate: updated.next_renewal,
+          daysUntilRenewal: daysUntil,
+          amount: updated.amount,
+          currency: updated.currency,
+          billingCycle: updated.billing_cycle,
+        }, `renewal-${updated.id}-${updated.next_renewal}`);
+      }
+    }
+
     return updated;
   });
 
