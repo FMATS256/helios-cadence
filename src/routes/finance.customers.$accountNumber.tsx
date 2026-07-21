@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { manageSubscription } from "@/lib/ops.functions";
+import { manageSubscription, updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder } from "@/lib/ops.functions";
+
 import { PageContainer } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,10 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, DollarSign, Receipt, FileText, Repeat,
   AlertTriangle, Plus, Send, Ban, PlayCircle, PauseCircle, RefreshCw, MoreHorizontal,
-  TrendingUp, CheckCircle2, Clock, Download, ExternalLink, User,
+  TrendingUp, CheckCircle2, Clock, Download, ExternalLink, User, Pencil, CreditCard,
+  Users as UsersIcon, MessageSquare, Bell,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/finance/customers/$accountNumber")({
   head: ({ params }) => ({
@@ -48,15 +51,17 @@ async function loadProfile(accountNumber: string) {
     .select("*")
     .eq("account_number", accountNumber)
     .maybeSingle();
-  if (!customer) return { customer: null, invoices: [], payments: [], subs: [], quotes: [], timeline: [] };
+  if (!customer) return { customer: null, invoices: [], payments: [], subs: [], quotes: [], timeline: [], contacts: [], comms: [] };
 
   const cid = customer.id;
-  const [inv, pay, sub, quo, tl] = await Promise.all([
+  const [inv, pay, sub, quo, tl, contacts, comms] = await Promise.all([
     (supabase.from as any)("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }),
     (supabase.from as any)("payments").select("*").eq("customer_id", cid).is("archived_at", null).order("paid_at", { ascending: false }),
     (supabase.from as any)("subscriptions").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
     (supabase.from as any)("quotes").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
     (supabase.from as any)("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
+    (supabase.from as any)("customer_contacts").select("*").eq("customer_id", cid).is("archived_at", null),
+    (supabase.from as any)("communications").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
   ]);
   return {
     customer,
@@ -65,8 +70,11 @@ async function loadProfile(accountNumber: string) {
     subs: (sub.data ?? []) as any[],
     quotes: (quo.data ?? []) as any[],
     timeline: (tl.data ?? []) as any[],
+    contacts: (contacts.data ?? []) as any[],
+    comms: (comms.data ?? []) as any[],
   };
 }
+
 
 function PaymentProfile() {
   const { accountNumber } = Route.useParams();
@@ -83,7 +91,10 @@ function PaymentProfile() {
   const pays = data?.payments ?? [];
   const subs = data?.subs ?? [];
   const quotes = data?.quotes ?? [];
+  const contacts = data?.contacts ?? [];
+  const comms = data?.comms ?? [];
   const currency = (invs[0]?.currency || pays[0]?.currency || "USD") as string;
+
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -142,6 +153,9 @@ function PaymentProfile() {
           <div className="flex flex-wrap gap-2">
             <QuickCreateInvoice customer={c} onDone={() => { refetch(); qc.invalidateQueries({ queryKey: ["finance-profile"] }); }} />
             <QuickRecordPayment customer={c} invoices={invs} onDone={() => { refetch(); qc.invalidateQueries({ queryKey: ["finance-profile"] }); }} />
+            <SendReminderAction customer={c} invoices={invs} />
+            <EditCustomerDialog customer={c} onDone={refetch} />
+            <LifecycleAction customer={c} onDone={refetch} />
             <Button asChild size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20">
               <Link to="/customers/$accountNumber" params={{ accountNumber: c.account_number }}>
                 <ExternalLink className="h-4 w-4 mr-1.5" />Full 360
@@ -150,6 +164,7 @@ function PaymentProfile() {
           </div>
         </div>
       </div>
+
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -165,12 +180,18 @@ function PaymentProfile() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="mails">Mails ({comms.length})</TabsTrigger>
+          <TabsTrigger value="statement">Statement</TabsTrigger>
+          <TabsTrigger value="contacts">Contact Persons ({contacts.length})</TabsTrigger>
+          <TabsTrigger value="payment-methods">Payment Methods</TabsTrigger>
           <TabsTrigger value="invoices">Invoices ({invs.length})</TabsTrigger>
           <TabsTrigger value="payments">Payments ({pays.length})</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions ({subs.length})</TabsTrigger>
           <TabsTrigger value="quotes">Quotes ({quotes.length})</TabsTrigger>
-          <TabsTrigger value="statement">Statement</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -276,6 +297,27 @@ function PaymentProfile() {
         <TabsContent value="statement">
           <StatementView customer={c} invoices={invs} payments={pays} currency={currency} />
         </TabsContent>
+
+        <TabsContent value="comments">
+          <CommentsView customerId={c.id} timeline={data?.timeline ?? []} onDone={refetch} />
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionsView invoices={invs} payments={pays} currency={currency} onRefresh={refetch} />
+        </TabsContent>
+
+        <TabsContent value="mails">
+          <MailsView customer={c} comms={comms} invoices={invs} />
+        </TabsContent>
+
+        <TabsContent value="contacts">
+          <ContactsView customer={c} contacts={contacts} onRefresh={refetch} />
+        </TabsContent>
+
+        <TabsContent value="payment-methods">
+          <PaymentMethodsView customer={c} payments={pays} currency={currency} onRefresh={refetch} />
+        </TabsContent>
+
       </Tabs>
     </PageContainer>
   );
@@ -673,3 +715,350 @@ function StatementView({ customer, invoices, payments, currency }: { customer: a
     </CardContent></Card>
   );
 }
+
+/* ------------ Header action components ------------ */
+
+function EditCustomerDialog({ customer, onDone }: { customer: any; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const update = useServerFn(updateCustomerRecord);
+  const [form, setForm] = useState({
+    company_name: customer.company_name ?? "",
+    industry: customer.industry ?? "",
+    primary_email: customer.primary_email ?? "",
+    primary_phone: customer.primary_phone ?? customer.phone ?? "",
+    website: customer.website ?? "",
+    billing_address: customer.billing_address ?? "",
+    status: customer.status ?? "active",
+    notes: customer.notes ?? "",
+  });
+  const save = useMutation({
+    mutationFn: () => update({ data: { customer_id: customer.id, ...form } }),
+    onSuccess: () => { toast.success("Customer updated"); setOpen(false); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20">
+          <Pencil className="h-4 w-4 mr-1.5" />Edit details
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit customer · {customer.account_number}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2"><Label>Company name</Label><Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} /></div>
+          <div><Label>Industry</Label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
+          <div><Label>Status</Label>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{["active","suspended","prospect","churned"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Primary email</Label><Input type="email" value={form.primary_email} onChange={(e) => setForm({ ...form, primary_email: e.target.value })} /></div>
+          <div><Label>Primary phone</Label><Input value={form.primary_phone} onChange={(e) => setForm({ ...form, primary_phone: e.target.value })} /></div>
+          <div className="col-span-2"><Label>Website</Label><Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} /></div>
+          <div className="col-span-2"><Label>Billing address</Label><Textarea rows={2} value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} /></div>
+          <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>{save.isPending ? "Saving…" : "Save changes"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function LifecycleAction({ customer, onDone }: { customer: any; onDone: () => void }) {
+  const setLifecycle = useServerFn(setCustomerLifecycle);
+  const run = useMutation({
+    mutationFn: (action: "suspend" | "resume") => setLifecycle({ data: { customer_id: customer.id, action } }),
+    onSuccess: (_d, action) => { toast.success(action === "suspend" ? "Customer suspended" : "Customer resumed"); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const suspended = customer.status === "suspended";
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20"
+      disabled={run.isPending}
+      onClick={() => run.mutate(suspended ? "resume" : "suspend")}
+    >
+      {suspended ? <><PlayCircle className="h-4 w-4 mr-1.5" />Resume</> : <><PauseCircle className="h-4 w-4 mr-1.5" />Suspend</>}
+    </Button>
+  );
+}
+
+function SendReminderAction({ customer, invoices }: { customer: any; invoices: any[] }) {
+  const send = useServerFn(sendPaymentReminder);
+  const overdue = invoices.filter((i: any) => i.status !== "paid" && i.status !== "void");
+  const run = useMutation({
+    mutationFn: () => send({ data: { customer_id: customer.id } }),
+    onSuccess: (r: any) => toast.success(`Sent ${r.sent} reminder(s)`),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20"
+      disabled={run.isPending || overdue.length === 0}
+      onClick={() => run.mutate()}
+      title={overdue.length === 0 ? "No outstanding invoices" : `Reminds ${overdue.length} invoice(s)`}
+    >
+      <Bell className="h-4 w-4 mr-1.5" />Send reminder
+    </Button>
+  );
+}
+
+/* ------------ Zoho-style tab views ------------ */
+
+function CommentsView({ customerId, timeline, onDone }: { customerId: string; timeline: any[]; onDone: () => void }) {
+  const [text, setText] = useState("");
+  const add = useMutation({
+    mutationFn: async () => {
+      if (!text.trim()) throw new Error("Enter a comment");
+      const { error } = await (supabase.from as any)("customer_timeline").insert({
+        customer_id: customerId,
+        kind: "comment",
+        title: "Comment",
+        body: text.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Comment added"); setText(""); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Card><CardContent className="p-4 space-y-3">
+      <div className="flex gap-2">
+        <Textarea rows={2} placeholder="Add a comment for the team…" value={text} onChange={(e) => setText(e.target.value)} />
+        <Button onClick={() => add.mutate()} disabled={add.isPending}><MessageSquare className="h-4 w-4 mr-1.5" />Post</Button>
+      </div>
+      <div className="space-y-2">
+        {timeline.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No activity yet</p>}
+        {timeline.map((t: any) => (
+          <div key={t.id} className="border-l-2 border-solar/60 pl-3 py-1.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="capitalize font-medium">{t.kind ?? "event"}</span>
+              <span>·</span>
+              <span>{t.created_at ? new Date(t.created_at).toLocaleString() : ""}</span>
+            </div>
+            <p className="text-sm font-semibold">{t.title}</p>
+            {t.body && <p className="text-sm text-muted-foreground">{t.body}</p>}
+          </div>
+        ))}
+      </div>
+    </CardContent></Card>
+  );
+}
+
+function TransactionsView({ invoices, payments, currency, onRefresh }: { invoices: any[]; payments: any[]; currency: string; onRefresh: () => void }) {
+  const rows = useMemo(() => {
+    const items = [
+      ...invoices.map((i: any) => ({ id: `i-${i.id}`, date: i.issue_date || i.created_at, kind: "Invoice", ref: i.invoice_number, status: i.status, amount: Number(i.amount_total ?? i.total ?? 0), _raw: i, isInv: true })),
+      ...payments.map((p: any) => ({ id: `p-${p.id}`, date: p.paid_at || p.created_at, kind: "Payment", ref: p.receipt_number || "—", status: p.reconciliation_status || p.status, amount: -Number(p.amount || 0), _raw: p, isInv: false })),
+    ];
+    items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return items;
+  }, [invoices, payments]);
+  return (
+    <Card><CardContent className="p-0">
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead>Reference</TableHead>
+          <TableHead>Status</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-16"></TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="text-sm">{r.date ? new Date(r.date).toLocaleDateString() : "—"}</TableCell>
+              <TableCell className="text-sm">{r.kind}</TableCell>
+              <TableCell className="font-mono text-sm">{r.ref}</TableCell>
+              <TableCell><StatusBadge status={r.status} /></TableCell>
+              <TableCell className={cn("text-right font-mono font-semibold", r.amount < 0 && "text-success")}>{money(Math.abs(r.amount), currency)}</TableCell>
+              <TableCell>{r.isInv && <InvoiceActions invoice={r._raw} onRefresh={onRefresh} />}</TableCell>
+            </TableRow>
+          ))}
+          {rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No transactions</TableCell></TableRow>}
+        </TableBody>
+      </Table>
+    </CardContent></Card>
+  );
+}
+
+function MailsView({ customer, comms, invoices }: { customer: any; comms: any[]; invoices: any[] }) {
+  const send = useServerFn(sendPaymentReminder);
+  const [selInvoice, setSelInvoice] = useState<string>("");
+  const overdue = invoices.filter((i: any) => i.status !== "paid" && i.status !== "void");
+  const run = useMutation({
+    mutationFn: () => send({ data: { customer_id: customer.id, invoice_id: selInvoice || undefined } }),
+    onSuccess: (r: any) => toast.success(`Sent ${r.sent} reminder(s)`),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="space-y-3">
+      <Card><CardContent className="p-4 flex flex-col md:flex-row md:items-end gap-3">
+        <div className="flex-1">
+          <Label>Send a payment reminder</Label>
+          <Select value={selInvoice || "all"} onValueChange={(v) => setSelInvoice(v === "all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="All outstanding invoices" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All outstanding invoices</SelectItem>
+              {overdue.map((i: any) => <SelectItem key={i.id} value={i.id}>{i.invoice_number}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => run.mutate()} disabled={run.isPending || overdue.length === 0 || !customer.primary_email}>
+          <Send className="h-4 w-4 mr-1.5" />Send now
+        </Button>
+      </CardContent></Card>
+
+      <Card><CardContent className="p-0">
+        <div className="px-5 pt-4"><h3 className="font-display font-semibold">Communications history</h3></div>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Date</TableHead><TableHead>Channel</TableHead><TableHead>Subject</TableHead><TableHead>Direction</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {comms.map((m: any) => (
+              <TableRow key={m.id}>
+                <TableCell className="text-sm">{m.created_at ? new Date(m.created_at).toLocaleString() : "—"}</TableCell>
+                <TableCell className="text-sm capitalize">{m.channel || m.kind || "email"}</TableCell>
+                <TableCell className="text-sm">{m.subject || m.title || "—"}</TableCell>
+                <TableCell className="text-sm capitalize">{m.direction || "outbound"}</TableCell>
+              </TableRow>
+            ))}
+            {comms.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No mail on file</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
+    </div>
+  );
+}
+
+function ContactsView({ customer, contacts, onRefresh }: { customer: any; contacts: any[]; onRefresh: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", role: "", is_primary: false });
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!form.name.trim()) throw new Error("Name is required");
+      const { error } = await (supabase.from as any)("customer_contacts").insert({
+        customer_id: customer.id,
+        account_number: customer.account_number,
+        ...form,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Contact added"); setOpen(false); setForm({ name: "", email: "", phone: "", role: "", is_primary: false }); onRefresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Card><CardContent className="p-0">
+      <div className="flex items-center justify-between px-5 pt-4">
+        <h3 className="font-display font-semibold">Contact persons</h3>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />Add contact</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>New contact person</DialogTitle></DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div className="col-span-2"><Label>Role / title</Label><Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>
+            </div>
+            <DialogFooter><Button onClick={() => create.mutate()} disabled={create.isPending}>{create.isPending ? "Saving…" : "Save"}</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Role</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {contacts.map((c: any) => (
+            <TableRow key={c.id}>
+              <TableCell className="font-medium">{c.name} {c.is_primary && <Badge variant="outline" className="ml-1 text-[10px]">Primary</Badge>}</TableCell>
+              <TableCell className="text-sm">{c.email || "—"}</TableCell>
+              <TableCell className="text-sm">{c.phone || "—"}</TableCell>
+              <TableCell className="text-sm">{c.role || "—"}</TableCell>
+            </TableRow>
+          ))}
+          {contacts.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No contact persons</TableCell></TableRow>}
+        </TableBody>
+      </Table>
+    </CardContent></Card>
+  );
+}
+
+function PaymentMethodsView({ customer, payments, currency, onRefresh }: { customer: any; payments: any[]; currency: string; onRefresh: () => void }) {
+  const update = useServerFn(updateCustomerRecord);
+  const grouped = useMemo(() => {
+    const map = new Map<string, { count: number; total: number; last?: string }>();
+    for (const p of payments) {
+      const k = (p.method || "other").toString();
+      const cur = map.get(k) || { count: 0, total: 0 };
+      cur.count++;
+      cur.total += Number(p.amount || 0);
+      if (!cur.last || (p.paid_at && p.paid_at > cur.last)) cur.last = p.paid_at;
+      map.set(k, cur);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total);
+  }, [payments]);
+
+  // Preferred method persisted in customer.notes as "PREFERRED_METHOD: xxx" marker line.
+  const marker = "PREFERRED_METHOD:";
+  const existingPref = (customer.notes || "").split("\n").find((l: string) => l.startsWith(marker))?.slice(marker.length).trim() || "";
+  const [pref, setPref] = useState(existingPref);
+  const savePref = useMutation({
+    mutationFn: async () => {
+      const otherLines = (customer.notes || "").split("\n").filter((l: string) => !l.startsWith(marker));
+      const notes = [...otherLines, `${marker} ${pref}`].filter(Boolean).join("\n");
+      await update({ data: { customer_id: customer.id, notes } });
+    },
+    onSuccess: () => { toast.success("Preferred method saved"); onRefresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-3">
+      <Card><CardContent className="p-4 flex flex-col md:flex-row md:items-end gap-3">
+        <div className="flex-1">
+          <Label>Preferred payment method</Label>
+          <Select value={pref || "unset"} onValueChange={(v) => setPref(v === "unset" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unset">Not set</SelectItem>
+              {["bank_transfer","cash","card","mobile_money","cheque","other"].map((m) => (
+                <SelectItem key={m} value={m}>{m.replace(/_/g, " ")}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => savePref.mutate()} disabled={savePref.isPending}><CreditCard className="h-4 w-4 mr-1.5" />Save</Button>
+      </CardContent></Card>
+
+      <Card><CardContent className="p-0">
+        <div className="px-5 pt-4"><h3 className="font-display font-semibold">Methods used</h3><p className="text-xs text-muted-foreground">Summary from full payment history</p></div>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Method</TableHead><TableHead className="text-right">Payments</TableHead>
+            <TableHead className="text-right">Total received</TableHead><TableHead>Last used</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {grouped.map(([k, v]) => (
+              <TableRow key={k}>
+                <TableCell className="capitalize font-medium">{k.replace(/_/g, " ")}</TableCell>
+                <TableCell className="text-right font-mono">{v.count}</TableCell>
+                <TableCell className="text-right font-mono font-semibold text-success">{money(v.total, currency)}</TableCell>
+                <TableCell className="text-sm">{v.last ? new Date(v.last).toLocaleDateString() : "—"}</TableCell>
+              </TableRow>
+            ))}
+            {grouped.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No payments recorded</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
+    </div>
+  );
+}
+

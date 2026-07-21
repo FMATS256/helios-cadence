@@ -548,3 +548,97 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       stats: { openInvoiceTotal, mrr, ticketCount: (tickets.data ?? []).length, activeServices: (services.data ?? []).filter((s: any) => s.status === "active").length },
     };
   });
+
+/**
+ * Update basic customer details (name, contact, address, status, notes).
+ */
+export const updateCustomerRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    customer_id: string;
+    company_name?: string;
+    industry?: string;
+    primary_email?: string;
+    primary_phone?: string;
+    website?: string;
+    status?: string;
+    billing_address?: string;
+    notes?: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Your account needs a staff role to edit customers.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: any = {};
+    for (const k of ["company_name","industry","primary_email","primary_phone","website","status","billing_address","notes"] as const) {
+      if (data[k] !== undefined) patch[k] = (data[k] as any) === "" ? null : data[k];
+    }
+    const { data: row, error } = await supabaseAdmin
+      .from("customers").update(patch).eq("id", data.customer_id).select("*").single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+/**
+ * Suspend or resume ALL of a customer's active subscriptions and services in one call.
+ * status: "suspended" pauses everything; "active" resumes paused entries.
+ */
+export const setCustomerLifecycle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string; action: "suspend" | "resume" | "activate" | "deactivate" }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Your account needs a staff role.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const custStatus = data.action === "suspend" || data.action === "deactivate" ? "suspended"
+      : "active";
+    const subStatus  = data.action === "suspend" ? "paused" : data.action === "resume" ? "active" : custStatus;
+
+    await supabaseAdmin.from("customers").update({ status: custStatus }).eq("id", data.customer_id);
+    if (data.action === "suspend") {
+      await supabaseAdmin.from("subscriptions").update({ status: "paused" }).eq("customer_id", data.customer_id).eq("status", "active");
+    } else if (data.action === "resume") {
+      await supabaseAdmin.from("subscriptions").update({ status: "active" }).eq("customer_id", data.customer_id).eq("status", "paused");
+    }
+    return { ok: true, status: custStatus, subStatus };
+  });
+
+/**
+ * Send a payment reminder email for a specific invoice (or all overdue).
+ */
+export const sendPaymentReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string; invoice_id?: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Your account needs a staff role.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cust } = await supabaseAdmin
+      .from("customers").select("id, company_name, primary_email, account_number").eq("id", data.customer_id).maybeSingle();
+    if (!cust?.primary_email) throw new Error("Customer has no email on file.");
+
+    let q = supabaseAdmin.from("invoices").select("*").eq("customer_id", data.customer_id).not("status", "in", "(paid,void)");
+    if (data.invoice_id) q = q.eq("id", data.invoice_id);
+    const { data: invs } = await q;
+    if (!invs || invs.length === 0) throw new Error("No outstanding invoices to remind.");
+
+    const { notify } = await import("./notify.server");
+    let sent = 0;
+    for (const i of invs as any[]) {
+      const dueDate = i.due_date ? new Date(i.due_date) : null;
+      const days = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400_000) : 0;
+      await notify("payment-reminder", cust.primary_email, {
+        companyName: cust.company_name,
+        invoiceNumber: i.invoice_number,
+        amountDue: Number(i.amount_total ?? i.total ?? 0),
+        currency: i.currency || "USD",
+        dueDate: i.due_date,
+        daysUntilDue: days,
+        invoiceUrl: `${process.env.SITE_URL ?? ""}/invoices/${i.id}`,
+      }, `reminder-${i.id}-${Date.now()}`);
+      sent++;
+    }
+    return { ok: true, sent };
+  });
+
