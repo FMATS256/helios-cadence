@@ -131,29 +131,55 @@ function CloudOpsPage() {
         }
       />
 
-      {/* Integration status banner */}
-      <Card className="mb-4">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {verify.data?.ok ? (
+      {/* Provider recommendation + integration status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <ShieldCheck className="h-5 w-5 text-emerald-600" />
-            ) : (
-              <ShieldAlert className="h-5 w-5 text-red-600" />
-            )}
-            <div>
-              <p className="text-sm font-semibold">Kamatera integration</p>
-              <p className="text-xs text-muted-foreground">
-                {verify.isLoading
-                  ? "Checking credentials…"
-                  : verify.data?.ok
-                    ? `Connected — ${verify.data.datacenterCount} datacenters reachable`
-                    : `Not connected: ${verify.data?.error ?? "Unknown error"}`}
-              </p>
+              <div>
+                <p className="text-sm font-semibold">Recommended provider: Vultr</p>
+                <p className="text-xs text-muted-foreground">
+                  Fixed plans, predictable pricing, and the simplest API for reselling. Choose a region + package and deploy.
+                </p>
+              </div>
             </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => verify.refetch()}>Re-check</Button>
-        </CardContent>
-      </Card>
+            <Link to="/cloud-ops/new">
+              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                <Plus className="h-4 w-4 mr-1.5" /> Deploy
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {verify.data?.ok ? (
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <ShieldAlert className="h-5 w-5 text-red-600" />
+              )}
+              <div>
+                <p className="text-sm font-semibold">Kamatera integration</p>
+                <p className="text-xs text-muted-foreground">
+                  {verify.isLoading
+                    ? "Checking credentials…"
+                    : verify.data?.ok
+                      ? `Connected — ${verify.data.datacenterCount} datacenters reachable`
+                      : `Not connected: ${verify.data?.error ?? "Unknown error"}`}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
+                <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} /> Sync
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => verify.refetch()}>Re-check</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Top KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
