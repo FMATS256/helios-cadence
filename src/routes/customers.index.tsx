@@ -22,7 +22,7 @@ type Customer = {
   status: string; primary_email: string | null; primary_phone: string | null; tags: string[]; created_at: string;
 };
 
-export const Route = createFileRoute("/customers")({
+export const Route = createFileRoute("/customers/")({
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
   head: () => ({ meta: [{ title: "Customers — IMT Operations" }, { name: "description", content: "Customer directory with auto-assigned M-numbers." }] }),
   component: CustomersPage,

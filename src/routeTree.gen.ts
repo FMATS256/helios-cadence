@@ -32,7 +32,6 @@ import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as EmailStudioRouteImport } from './routes/email-studio'
 import { Route as EmailLogsRouteImport } from './routes/email-logs'
-import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as CommunicationsRouteImport } from './routes/communications'
 import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
@@ -45,6 +44,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
 import { Route as ServicesSlugRouteImport } from './routes/services.$slug'
@@ -196,11 +196,6 @@ const EmailLogsRoute = EmailLogsRouteImport.update({
   path: '/email-logs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CustomersRoute = CustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CredentialsRoute = CredentialsRouteImport.update({
   id: '/credentials',
   path: '/credentials',
@@ -261,6 +256,11 @@ const PortalIndexRoute = PortalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PortalRoute,
 } as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
   id: '/cloud-ops/',
   path: '/cloud-ops/',
@@ -297,14 +297,14 @@ const InvoicesIdRoute = InvoicesIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersNewRoute = CustomersNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => CustomersRoute,
+  id: '/customers/new',
+  path: '/customers/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
-  id: '/$accountNumber',
-  path: '/$accountNumber',
-  getParentRoute: () => CustomersRoute,
+  id: '/customers/$accountNumber',
+  path: '/customers/$accountNumber',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CloudOpsNewRoute = CloudOpsNewRouteImport.update({
   id: '/cloud-ops/new',
@@ -463,7 +463,6 @@ export interface FileRoutesByFullPath {
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
-  '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/finance': typeof FinanceRouteWithChildren
@@ -501,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -536,7 +536,6 @@ export interface FileRoutesByTo {
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
-  '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/finance': typeof FinanceRouteWithChildren
@@ -572,6 +571,7 @@ export interface FileRoutesByTo {
   '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
+  '/customers': typeof CustomersIndexRoute
   '/portal': typeof PortalIndexRoute
   '/services': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -607,7 +607,6 @@ export interface FileRoutesById {
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
   '/credentials': typeof CredentialsRoute
-  '/customers': typeof CustomersRouteWithChildren
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/finance': typeof FinanceRouteWithChildren
@@ -645,6 +644,7 @@ export interface FileRoutesById {
   '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -682,7 +682,6 @@ export interface FileRouteTypes {
     | '/cloud-storage'
     | '/communications'
     | '/credentials'
-    | '/customers'
     | '/email-logs'
     | '/email-studio'
     | '/finance'
@@ -720,6 +719,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
+    | '/customers/'
     | '/portal/'
     | '/services/'
     | '/.lovable/oauth/consent'
@@ -755,7 +755,6 @@ export interface FileRouteTypes {
     | '/cloud-storage'
     | '/communications'
     | '/credentials'
-    | '/customers'
     | '/email-logs'
     | '/email-studio'
     | '/finance'
@@ -791,6 +790,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops'
+    | '/customers'
     | '/portal'
     | '/services'
     | '/.lovable/oauth/consent'
@@ -825,7 +825,6 @@ export interface FileRouteTypes {
     | '/cloud-storage'
     | '/communications'
     | '/credentials'
-    | '/customers'
     | '/email-logs'
     | '/email-studio'
     | '/finance'
@@ -863,6 +862,7 @@ export interface FileRouteTypes {
     | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
+    | '/customers/'
     | '/portal/'
     | '/services/'
     | '/.lovable/oauth/consent'
@@ -899,7 +899,6 @@ export interface RootRouteChildren {
   CloudStorageRoute: typeof CloudStorageRoute
   CommunicationsRoute: typeof CommunicationsRoute
   CredentialsRoute: typeof CredentialsRoute
-  CustomersRoute: typeof CustomersRouteWithChildren
   EmailLogsRoute: typeof EmailLogsRoute
   EmailStudioRoute: typeof EmailStudioRoute
   FinanceRoute: typeof FinanceRouteWithChildren
@@ -927,8 +926,11 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
   CloudOpsNewRoute: typeof CloudOpsNewRoute
+  CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
+  CustomersNewRoute: typeof CustomersNewRoute
   InvoicesIdRoute: typeof InvoicesIdRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicTestEmailsRoute: typeof ApiPublicTestEmailsRoute
@@ -1107,13 +1109,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailLogsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customers': {
-      id: '/customers'
-      path: '/customers'
-      fullPath: '/customers'
-      preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/credentials': {
       id: '/credentials'
       path: '/credentials'
@@ -1198,6 +1193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalIndexRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cloud-ops/': {
       id: '/cloud-ops/'
       path: '/cloud-ops'
@@ -1249,17 +1251,17 @@ declare module '@tanstack/react-router' {
     }
     '/customers/new': {
       id: '/customers/new'
-      path: '/new'
+      path: '/customers/new'
       fullPath: '/customers/new'
       preLoaderRoute: typeof CustomersNewRouteImport
-      parentRoute: typeof CustomersRoute
+      parentRoute: typeof rootRouteImport
     }
     '/customers/$accountNumber': {
       id: '/customers/$accountNumber'
-      path: '/$accountNumber'
+      path: '/customers/$accountNumber'
       fullPath: '/customers/$accountNumber'
       preLoaderRoute: typeof CustomersAccountNumberRouteImport
-      parentRoute: typeof CustomersRoute
+      parentRoute: typeof rootRouteImport
     }
     '/cloud-ops/new': {
       id: '/cloud-ops/new'
@@ -1457,20 +1459,6 @@ const AssetsRouteChildren: AssetsRouteChildren = {
 const AssetsRouteWithChildren =
   AssetsRoute._addFileChildren(AssetsRouteChildren)
 
-interface CustomersRouteChildren {
-  CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
-  CustomersNewRoute: typeof CustomersNewRoute
-}
-
-const CustomersRouteChildren: CustomersRouteChildren = {
-  CustomersAccountNumberRoute: CustomersAccountNumberRoute,
-  CustomersNewRoute: CustomersNewRoute,
-}
-
-const CustomersRouteWithChildren = CustomersRoute._addFileChildren(
-  CustomersRouteChildren,
-)
-
 interface FinanceRouteChildren {
   FinanceCustomersAccountNumberRoute: typeof FinanceCustomersAccountNumberRoute
 }
@@ -1571,7 +1559,6 @@ const rootRouteChildren: RootRouteChildren = {
   CloudStorageRoute: CloudStorageRoute,
   CommunicationsRoute: CommunicationsRoute,
   CredentialsRoute: CredentialsRoute,
-  CustomersRoute: CustomersRouteWithChildren,
   EmailLogsRoute: EmailLogsRoute,
   EmailStudioRoute: EmailStudioRoute,
   FinanceRoute: FinanceRouteWithChildren,
@@ -1600,8 +1587,11 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   CloudOpsIdRoute: CloudOpsIdRoute,
   CloudOpsNewRoute: CloudOpsNewRoute,
+  CustomersAccountNumberRoute: CustomersAccountNumberRoute,
+  CustomersNewRoute: CustomersNewRoute,
   InvoicesIdRoute: InvoicesIdRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicTestEmailsRoute: ApiPublicTestEmailsRoute,
