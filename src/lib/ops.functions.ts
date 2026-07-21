@@ -140,6 +140,24 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
       );
       if (allocError) throw new Error(`Payment saved but allocation failed: ${allocError.message}`);
     }
+
+    // Receipt email
+    const recipient = data.walk_in_email?.trim() || (await supabaseAdmin
+      .from("customers").select("primary_email,company_name").eq("id", customerId).maybeSingle()).data;
+    const custInfo = typeof recipient === "string" ? { primary_email: recipient, company_name: data.walk_in_name } : (recipient as any);
+    if (custInfo?.primary_email) {
+      const { notify } = await import("./notify.server");
+      void notify("receipt", custInfo.primary_email, {
+        companyName: custInfo.company_name,
+        receiptNumber: (row as any).receipt_number,
+        amount: row.amount,
+        currency: row.currency,
+        method: row.method,
+        reference: row.reference,
+        paidAt: row.paid_at ? String(row.paid_at).slice(0, 10) : null,
+        serviceContext: row.service_context,
+      }, `receipt-${row.id}`);
+    }
     return row;
   });
 
