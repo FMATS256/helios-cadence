@@ -112,19 +112,44 @@ export async function listServers() {
 
 export async function getServerInfo(idOrName: string) {
   // The `serversInfo` endpoint returns an array of matches for id/name.
-  const body = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
-  return kamateraRequest<any>("/service/server/info", { method: "POST", body });
+  // Kamatera server IDs are often prefixed (e.g., "EU-ML:6000C29...") so they
+  // are NOT 36-char UUIDs. Try as id first, then fall back to name.
+  let err: Error | undefined;
+  for (const body of [{ id: idOrName }, { name: idOrName }]) {
+    try {
+      return await kamateraRequest<any>("/service/server/info", { method: "POST", body });
+    } catch (e: any) {
+      err = e;
+      if (e?.message?.toLowerCase().includes("not found")) break;
+    }
+  }
+  throw err ?? new Error(`Kamatera server info failed for ${idOrName}`);
 }
 
 export async function powerAction(idOrName: string, action: "poweron" | "poweroff" | "reboot") {
-  const body = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
-  return kamateraRequest<any>(`/service/server/${action}`, { method: "POST", body });
+  let err: Error | undefined;
+  for (const body of [{ id: idOrName }, { name: idOrName }]) {
+    try {
+      return await kamateraRequest<any>(`/service/server/${action}`, { method: "POST", body });
+    } catch (e: any) {
+      err = e;
+      if (e?.message?.toLowerCase().includes("not found")) break;
+    }
+  }
+  throw err ?? new Error(`Kamatera ${action} failed for ${idOrName}`);
 }
 
 export async function terminateServer(idOrName: string, force = true) {
-  const body: any = idOrName.length === 36 ? { id: idOrName } : { name: idOrName };
-  body.force = force ? "yes" : "no";
-  return kamateraRequest<any>(`/service/server/terminate`, { method: "POST", body });
+  let err: Error | undefined;
+  for (const body of [{ id: idOrName, force: force ? "yes" : "no" }, { name: idOrName, force: force ? "yes" : "no" }]) {
+    try {
+      return await kamateraRequest<any>("/service/server/terminate", { method: "POST", body });
+    } catch (e: any) {
+      err = e;
+      if (e?.message?.toLowerCase().includes("not found")) break;
+    }
+  }
+  throw err ?? new Error(`Kamatera terminate failed for ${idOrName}`);
 }
 
 export async function ping() {

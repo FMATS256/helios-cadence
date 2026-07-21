@@ -81,7 +81,7 @@ function NewServerPage() {
   const fnProvision = useServerFn(provisionOnProvider);
   const fnEstimate = useServerFn(estimateProviderPrice);
 
-  const [provider, setProvider] = useState<ProviderName>("kamatera");
+  const [provider, setProvider] = useState<ProviderName>("vultr");
   const [form, setForm] = useState({
     customer_id: "", name: "",
     region: "", image: "", plan_id: "",
@@ -234,8 +234,11 @@ function NewServerPage() {
                   }}
                 >
                   <Cloud className="h-6 w-6 mb-2 text-primary" />
-                  <div className="font-semibold text-sm">{p.displayName}</div>
-                  <div className="text-xs text-muted-foreground">{p.enabled ? "Available" : "Coming soon"}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-semibold text-sm">{p.displayName}</div>
+                    {p.recommended && <Badge className="text-[9px] px-1 py-0 h-auto bg-emerald-500 hover:bg-emerald-500 text-white">RECOMMENDED</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{p.note || (p.enabled ? "Available" : "Coming soon")}</div>
                 </Tile>
               ))}
             </div>

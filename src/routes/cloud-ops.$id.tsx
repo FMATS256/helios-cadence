@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { refreshServer, serverPower, terminateServer } from "@/lib/kamatera.functions";
-import { sendServerHandover } from "@/lib/providers.functions";
+import {
+  refreshProviderServer, powerProviderServer, terminateProviderServer, sendServerHandover,
+} from "@/lib/providers.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,9 @@ function ServerDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const fnRefresh = useServerFn(refreshServer);
-  const fnPower = useServerFn(serverPower);
-  const fnTerminate = useServerFn(terminateServer);
+  const fnRefresh = useServerFn(refreshProviderServer);
+  const fnPower = useServerFn(powerProviderServer);
+  const fnTerminate = useServerFn(terminateProviderServer);
 
   const fnHandover = useServerFn(sendServerHandover);
   const [handoverOpen, setHandoverOpen] = useState(false);
@@ -106,7 +107,10 @@ function ServerDetailPage() {
   });
 
   const power = useMutation({
-    mutationFn: (action: "poweron" | "poweroff" | "reboot") => fnPower({ data: { server_id: id, action } }),
+    mutationFn: (action: "poweron" | "poweroff" | "reboot") => {
+      const map = { poweron: "on", poweroff: "off", reboot: "reboot" } as const;
+      return fnPower({ data: { server_id: id, action: map[action] } });
+    },
     onSuccess: (_, action) => {
       toast.success(`Command sent: ${action}`);
       qc.invalidateQueries({ queryKey: ["cloud_server", id] });
@@ -285,11 +289,13 @@ function ServerDetailPage() {
 
         <TabsContent value="monitoring" className="mt-4">
           <InfoCard title="Live provider data">
+            <Row k="Provider" v={s.provider ?? "unknown"} />
             <Row k="Power" v={s.power_state ?? "unknown"} />
-            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? "—"} />
+            <Row k="Status" v={s.status ?? "unknown"} />
+            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? meta.cpu ?? "—"} />
             <Row k="Uptime" v={meta.uptime ?? "—"} />
-            <Row k="Traffic used" v={meta.traffic_used ?? "—"} />
-            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from Kamatera.</p>
+            <Row k="Traffic used" v={meta.traffic_used ?? meta.traffic ?? "—"} />
+            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from {s.provider ?? "provider"}.</p>
           </InfoCard>
         </TabsContent>
 
