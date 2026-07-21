@@ -101,10 +101,24 @@ function toCsv(rows: Array<Record<string, any>>): string {
 
 function Customer360() {
   const { accountNumber } = Route.useParams();
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const activeTab = tab || "overview";
+  const setActiveTab = (v: string) => {
+    navigate({
+      to: "/customers/$accountNumber",
+      params: { accountNumber },
+      search: v === "overview" ? {} : { tab: v },
+      replace: true,
+    });
+  };
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetch360 = useServerFn(getCustomer360);
   const genInvoice = useServerFn(generateInvoiceForSubscription);
+  const updateCust = useServerFn(updateCustomerRecord);
+  const lifecycle = useServerFn(setCustomerLifecycle);
+  const remind = useServerFn(sendPaymentReminder);
 
   const { data: view, isLoading } = useQuery({
     queryKey: ["customer-360", accountNumber],
@@ -175,6 +189,24 @@ function Customer360() {
 
   const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
+
+  const [editCustOpen, setEditCustOpen] = useState(false);
+  const [custForm, setCustForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", billing_address: "" });
+  const editCustomer = useMutation({
+    mutationFn: async () => updateCust({ data: { customer_id: view!.customer.id, ...custForm } }),
+    onSuccess: () => { setEditCustOpen(false); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Customer updated"); },
+    onError: (e: any) => toast.error(e?.message || "Update failed"),
+  });
+  const toggleLifecycle = useMutation({
+    mutationFn: async (action: "suspend" | "resume") => lifecycle({ data: { customer_id: view!.customer.id, action } }),
+    onSuccess: (_d, action) => { qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success(action === "suspend" ? "Customer suspended" : "Customer resumed"); },
+    onError: (e: any) => toast.error(e?.message || "Action failed"),
+  });
+  const sendReminder = useMutation({
+    mutationFn: async () => remind({ data: { customer_id: view!.customer.id } }),
+    onSuccess: (r: any) => toast.success(`Reminder${r?.sent > 1 ? "s" : ""} sent (${r?.sent ?? 1})`),
+    onError: (e: any) => toast.error(e?.message || "Could not send reminder"),
+  });
 
   const [svcFilters, setSvcFilters] = useState({
     q: "",
