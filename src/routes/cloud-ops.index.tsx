@@ -116,10 +116,6 @@ function CloudOpsPage() {
         description="Servers, managed services and cloud spend across all providers."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => sync.mutate()} disabled={sync.isPending}>
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
-              Sync from Kamatera
-            </Button>
             <AiDeployButton />
             <Link to="/cloud-ops/new">
               <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
