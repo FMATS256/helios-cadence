@@ -124,6 +124,7 @@ function AccountsTab() {
   const call = useTrackx();
   const { user } = useAuth();
   const [creating, setCreating] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["trackx", "accounts"],
