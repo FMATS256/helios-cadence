@@ -499,22 +499,75 @@ function Customer360() {
 
         <TabsContent value="services-mgmt" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
               <CardTitle className="font-display flex items-center gap-2"><Settings2 className="h-4 w-4 text-solar" />Services Management</CardTitle>
-              <span className="text-xs text-muted-foreground">{subscriptions.length} subscription{subscriptions.length === 1 ? "" : "s"}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{visibleSubs.length} of {subscriptions.length}</span>
+                <Button size="sm" variant="outline" onClick={exportSubsCsv} disabled={visibleSubs.length === 0}>
+                  <FileText className="h-3.5 w-3.5 mr-1" />Export CSV
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
+              {subscriptions.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 px-4 py-3 border-b bg-muted/20">
+                  <Input placeholder="Search plan…" value={svcFilters.q} onChange={(e) => setSvcFilters({ ...svcFilters, q: e.target.value })} className="h-8 col-span-2" />
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.status} onChange={(e) => setSvcFilters({ ...svcFilters, status: e.target.value as any })}>
+                    <option value="all">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="paused">Suspended</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.tier} onChange={(e) => setSvcFilters({ ...svcFilters, tier: e.target.value as any })}>
+                    <option value="all">All tiers</option>
+                    <option value="platinum">Platinum</option>
+                    <option value="gold">Gold</option>
+                    <option value="silver">Silver</option>
+                    <option value="bronze">Bronze</option>
+                  </select>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground">Start</span>
+                    <Input type="date" value={svcFilters.startFrom} onChange={(e) => setSvcFilters({ ...svcFilters, startFrom: e.target.value })} className="h-8 text-xs" />
+                    <Input type="date" value={svcFilters.startTo} onChange={(e) => setSvcFilters({ ...svcFilters, startTo: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground">Renew</span>
+                    <Input type="date" value={svcFilters.renewFrom} onChange={(e) => setSvcFilters({ ...svcFilters, renewFrom: e.target.value })} className="h-8 text-xs" />
+                    <Input type="date" value={svcFilters.renewTo} onChange={(e) => setSvcFilters({ ...svcFilters, renewTo: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <span className="text-[10px] uppercase text-muted-foreground whitespace-nowrap">Min health {svcFilters.minHealth}</span>
+                    <input type="range" min={0} max={100} step={5} value={svcFilters.minHealth} onChange={(e) => setSvcFilters({ ...svcFilters, minHealth: Number(e.target.value) })} className="w-full" />
+                  </div>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.sortBy} onChange={(e) => setSvcFilters({ ...svcFilters, sortBy: e.target.value as any })}>
+                    <option value="next_renewal">Sort: Renews</option>
+                    <option value="started_on">Sort: Started</option>
+                    <option value="amount">Sort: Amount</option>
+                    <option value="health">Sort: Health</option>
+                    <option value="plan_name">Sort: Name</option>
+                  </select>
+                  <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={svcFilters.sortDir} onChange={(e) => setSvcFilters({ ...svcFilters, sortDir: e.target.value as any })}>
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSvcFilters({ q: "", status: "all", tier: "all", startFrom: "", startTo: "", renewFrom: "", renewTo: "", minHealth: 0, sortBy: "next_renewal", sortDir: "asc" })}>Reset</Button>
+                </div>
+              )}
               {subscriptions.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-12">
                   No services yet. <Link to="/subscriptions" className="text-solar font-semibold">Add one →</Link>
                 </p>
               )}
-              {subscriptions.length > 0 && (
+              {subscriptions.length > 0 && visibleSubs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-12">No services match the current filters.</p>
+              )}
+              {visibleSubs.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="text-xs uppercase text-muted-foreground border-b">
                       <tr>
                         <th className="text-left px-4 py-2">Service</th>
+                        <th className="text-left px-4 py-2">Tier</th>
                         <th className="text-left px-4 py-2">Cycle</th>
                         <th className="text-left px-4 py-2">Started</th>
                         <th className="text-left px-4 py-2">Renews</th>
@@ -525,7 +578,8 @@ function Customer360() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {subscriptions.map((s: any) => {
+                      {visibleSubs.map((s: any) => {
+
                         const h = subHealth(s);
                         const active = s.status === "active";
                         const suspended = s.status === "paused";
