@@ -245,6 +245,70 @@ function Customer360() {
   const tierTone = tier === "platinum" ? "solar" : tier === "gold" ? "warning" : tier === "silver" ? "info" : "neutral";
   const contractActive = subscriptions.some((s: any) => s.status === "active");
 
+  const enrichedSubs = (subscriptions as any[]).map((s) => ({
+    ...s,
+    _tier: tierOf(Number(s.amount) || 0, s.billing_cycle),
+    _score: subHealthScore(s),
+  }));
+  const inRange = (d: string | null | undefined, from: string, to: string) => {
+    if (!from && !to) return true;
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (from && t < new Date(from).getTime()) return false;
+    if (to && t > new Date(to).getTime() + 86399999) return false;
+    return true;
+  };
+  const visibleSubs = enrichedSubs
+    .filter((s) => {
+      if (svcFilters.q) {
+        const q = svcFilters.q.toLowerCase();
+        if (!`${s.plan_name ?? ""} ${s.description ?? ""}`.toLowerCase().includes(q)) return false;
+      }
+      if (svcFilters.status !== "all" && s.status !== svcFilters.status) return false;
+      if (svcFilters.tier !== "all" && s._tier !== svcFilters.tier) return false;
+      if (!inRange(s.started_on, svcFilters.startFrom, svcFilters.startTo)) return false;
+      if (!inRange(s.next_renewal, svcFilters.renewFrom, svcFilters.renewTo)) return false;
+      if (s._score < svcFilters.minHealth) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dir = svcFilters.sortDir === "asc" ? 1 : -1;
+      const k = svcFilters.sortBy;
+      if (k === "health") return (a._score - b._score) * dir;
+      if (k === "amount") return ((Number(a.amount) || 0) - (Number(b.amount) || 0)) * dir;
+      if (k === "plan_name") return String(a.plan_name ?? "").localeCompare(String(b.plan_name ?? "")) * dir;
+      const av = a[k] ? new Date(a[k]).getTime() : Number.POSITIVE_INFINITY;
+      const bv = b[k] ? new Date(b[k]).getTime() : Number.POSITIVE_INFINITY;
+      return (av - bv) * dir;
+    });
+
+  const exportSubsCsv = () => {
+    const rows = visibleSubs.map((s) => ({
+      plan_name: s.plan_name ?? "",
+      description: s.description ?? "",
+      status: s.status ?? "",
+      tier: s._tier,
+      billing_cycle: s.billing_cycle ?? "",
+      started_on: s.started_on ?? "",
+      next_renewal: s.next_renewal ?? "",
+      amount: Number(s.amount) || 0,
+      currency: s.currency ?? "USD",
+      health_score: s._score,
+    }));
+    const csv = toCsv(rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${customer.account_number}-services-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? "" : "s"}`);
+  };
+
+
   return (
     <PageContainer>
       {/* Sticky hero header */}
