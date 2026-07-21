@@ -153,6 +153,9 @@ function PaymentProfile() {
           <div className="flex flex-wrap gap-2">
             <QuickCreateInvoice customer={c} onDone={() => { refetch(); qc.invalidateQueries({ queryKey: ["finance-profile"] }); }} />
             <QuickRecordPayment customer={c} invoices={invs} onDone={() => { refetch(); qc.invalidateQueries({ queryKey: ["finance-profile"] }); }} />
+            <SendReminderAction customer={c} invoices={invs} />
+            <EditCustomerDialog customer={c} onDone={refetch} />
+            <LifecycleAction customer={c} onDone={refetch} />
             <Button asChild size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20">
               <Link to="/customers/$accountNumber" params={{ accountNumber: c.account_number }}>
                 <ExternalLink className="h-4 w-4 mr-1.5" />Full 360
@@ -161,6 +164,7 @@ function PaymentProfile() {
           </div>
         </div>
       </div>
+
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
