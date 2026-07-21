@@ -206,6 +206,7 @@ function AccountsTab() {
       </CardContent>
 
       <CreateAccountDialog open={creating} onOpenChange={setCreating} />
+      <AccountDetailDialog userId={viewingId} onOpenChange={(v) => !v && setViewingId(null)} />
     </Card>
   );
 }
