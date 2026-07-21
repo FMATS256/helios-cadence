@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { manageSubscription } from "@/lib/ops.functions";
+import { manageSubscription, updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder } from "@/lib/ops.functions";
+
 import { PageContainer } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
