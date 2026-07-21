@@ -29,12 +29,9 @@ export const kamateraAdapter: CloudProvider = {
   async listImages(region: string) {
     const { listImages } = await import("@/lib/kamatera.server");
     const images = await listImages(region);
-    return (images ?? []).map((img: any) => ({
-      id: img.id,
-      name: img.name ?? img.id,
-      os: detectOs(img.name ?? img.id),
-    }));
+    return classifyKamateraImages(images ?? []);
   },
+
 
   async listInstanceTypes(region: string): Promise<InstanceType[]> {
     const { getCapabilities } = await import("@/lib/kamatera.server");

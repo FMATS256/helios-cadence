@@ -1,88 +1,33 @@
-# Customer 360 Workspace – Unification & Enhancement Plan
+## Problem
 
-Enhancement-only. Preserves every existing module, permission, integration, and route. No rebuilds, no design overhaul.
+The Kamatera images endpoint returns 226 images per datacenter (public OS, marketplace apps, private images), but the wizard shows almost nothing usable — tiles display raw IDs and all OSes read "custom".
 
-## Current state (verified)
+Root cause in `src/lib/providers/kamatera/adapter.server.ts`:
+- The API returns each image with a `description` field (e.g. `ubuntu_server_22.04_64-bit`), not `name`.
+- The adapter maps `img.name ?? img.id`, so `name` is always undefined and it falls back to the raw ID.
+- `detectOs(img.name ?? img.id)` then runs against undefined/ID and returns `undefined`, so every tile labels as "custom".
+- Nothing filters out marketplace apps (`apps_*`, `service_*`) or private images, so the standard OS catalog is buried and hard to find.
 
-- **Two customer profile routes exist** — a duplicate the spec forbids:
-  - `/customers/$accountNumber` — 979-line master C360 with 16 tabs (Overview, Services, Services Mgmt, Packages, Subscriptions, Invoices, Payments, Quotes, Assets, Tickets, Renewals, Contacts, Credentials, Communications, Timeline, Notes).
-  - `/finance/customers/$accountNumber` — 1064-line finance-focused profile with Zoho-style tabs (Overview, Comments, Transactions, Mails, Statement, Contact Persons, Payment Methods, Invoices, Payments, Subscriptions, Quotes) and finance actions (Edit details, Suspend/Resume, Send reminder, Create Invoice, Record Payment).
-- **Link audit:** 20 modules deep-link into `/customers/$accountNumber`; only `src/routes/finance.tsx` (2 places) links into `/finance/customers/$accountNumber`.
-- **Global search (`src/components/global-search.tsx`, ⌘K):** already searches customers, invoices, payments, tickets, subscriptions, assets, credentials via `globalSearch` server fn. No recents, no keyboard scoping, no domain/IP/serial/username fields.
+## Fix (single file: `src/lib/providers/kamatera/adapter.server.ts`)
 
-## Strategy
+In `listImages`:
 
-1. **Merge** the finance profile's unique capabilities into the main `/customers/$accountNumber` — no second profile page.
-2. **Redirect** `/finance/customers/$accountNumber` → `/customers/$accountNumber?tab=transactions` so existing finance-module links keep working with no duplicate UI.
-3. **Add** the modules the spec lists that don't exist yet as new tabs on the single profile.
-4. **Enhance** global search with recents and more indexed fields.
-5. Everything else the spec lists already exists and stays as-is (services mgmt filtering, package assignment, contacts, comments, statement CSV, payment-method history, lifecycle actions, RBAC, email notifications, etc.).
+1. Map from the correct field:
+   - `name` ← `img.description || img.name || img.id`
+   - Also derive a human `label` from the description (e.g. `ubuntu_server_22.04_64-bit` → `Ubuntu Server 22.04 (64-bit)`).
+2. Classify each image:
+   - **OS**: description matches `^(ubuntu|debian|almalinux|rockylinux|centos|windows_server|freebsd|fedora)_` — this is the standard public OS catalog.
+   - **App**: starts with `apps_` or `service_` — marketplace/preconfigured apps.
+   - **Desktop**: matches `*_desktop_*` — desktop images.
+   - **Private**: id does not start with the datacenter prefix's public UUID shape (Kamatera public OS IDs start with `6000C29`); everything else is private/custom.
+3. Return only OS images by default so the selector is populated with Ubuntu, Debian, AlmaLinux, Rocky Linux, Windows Server, etc. Attach `category: "os" | "app" | "desktop" | "private"` so we can expose the other tabs later without another round-trip.
+4. Extend `detectOs` to recognize `rockylinux`, `windows_server`, `centos`, `freebsd`, `fedora` so the correct icon renders.
+5. Sort: OS family (Ubuntu → Debian → AlmaLinux → Rocky → Windows Server → others), then version descending.
 
-## Changes
+No UI or types changes required — the wizard already renders `im.name` / `im.os`, and `filteredImages` will now search against real names. The Kamatera adapter is the only place that needed changing; Vultr/Contabo adapters are untouched.
 
-### 1. Single Customer 360 (`src/routes/customers.$accountNumber.tsx`)
+## Verification
 
-Merge in from the finance profile:
-
-- **Sticky header additions:** Available Credit, Last Payment date, Next Renewal, Service Health pill (compute from existing subs), Assigned Account Manager. MRR/Outstanding/Customer-Since already present.
-- **Top-level customer actions row:** Edit Details dialog, Suspend/Resume all services toggle, Send Reminder, Quick Create Invoice, Quick Record Payment — wire to the existing `updateCustomerRecord`, `setCustomerLifecycle`, `sendPaymentReminder`, `QuickCreateInvoice`, `QuickRecordPayment` already in `src/lib/ops.functions.ts` and the finance route.
-- **New tabs (kept alongside existing 16):**
-  - `Transactions` — merged invoice+payment chronological feed (lift from finance route).
-  - `Statement` — full statement view with CSV export (lift from finance route).
-  - `Payment Methods` — grouped payment-method history + preferred method (lift from finance route).
-  - `Devices` — filtered `assets` view where category = device (computer/router/switch/firewall/UPS/printer/TrackX).
-  - `Cloud Resources` — read `cloud_servers`, `cloud_services`, `cloud_storage_accounts`, `managed_nas_accounts`, `web_hosting_accounts`, `voip_accounts`, `starlink_accounts`, `licenses` filtered by `customer_id`. Read-only listing, groups by type.
-  - `Domains / Hosting / M365` — subset view of `web_hosting_accounts` + `licenses` where type = M365, with domain column surfaced. Prepared for future API integrations (no new API work).
-  - `Documents` — list + upload from a new `customer_documents` table (see §3). Preview/download/version fields.
-  - `Audit Log` — read-only view of `audit_log` filtered by this customer.
-- **Notes:** split existing Notes tab tabs into Sales / Finance / Technical / Management sub-tabs (uses existing `customer_notes.category` field if present, otherwise a new `category` column — see §3).
-- **Persistent Quick Actions rail** (right-side sticky panel): Add Service, Create Invoice, Record Payment, Generate Quote, Open Ticket, Assign Device, Suspend/Resume, Renew, Upload Document, Send Email, View Statement. Each button opens the existing dialog or scrolls to the relevant tab — no new workflows.
-- **URL tab sync:** support `?tab=<name>` so redirects from finance and other modules can land on a specific tab.
-
-### 2. Redirect legacy finance profile (`src/routes/finance.customers.$accountNumber.tsx`)
-
-Replace the 1064-line page with a thin route that renders `<Navigate to="/customers/$accountNumber" params search={{ tab: "transactions" }} replace />`. Update the 2 links in `src/routes/finance.tsx` to point directly at `/customers/$accountNumber?tab=transactions`. All other 20+ modules already point at the correct URL.
-
-### 3. Global search upgrade (`src/components/global-search.tsx` + `globalSearch` in `src/lib/ops.functions.ts`)
-
-- **Recents & frequents:** localStorage-backed list of last 10 opened customers, shown when the palette is empty.
-- **Extra indexed fields on the server fn:** domain (from `web_hosting_accounts`), IP/VPS name (from `cloud_servers`), serial (from `assets.serial_number`), username (from `credentials.username`). Add to existing SQL `.or()` filters; keep RLS.
-- **Keyboard nav & fuzzy** are already handled by `cmdk` — no change needed; add group headings for the new fields.
-- All results continue to open `/customers/$accountNumber` (invoice/ticket/asset drilldowns keep their current deep links).
-
-### 4. Minor schema additions (single migration)
-
-- `customer_documents` table: `id, customer_id, name, category, file_url, uploaded_by, version, created_at, updated_at` + RLS + GRANTs (authenticated read/write scoped by role, service_role all).
-- `customer_notes.category` column (if not already present) — enum-like text with values `sales | finance | technical | management`. Default `sales`.
-- Storage bucket `customer-documents` (private) for uploads.
-
-No changes to auth, existing tables' shape, or existing policies.
-
-## Out of scope (already done, preserved as-is)
-
-RBAC matrix, service catalog, package assignment, subscription lifecycle actions, invoice/receipt auto-numbering, email templates & studio, dashboards, VoIP/Starlink/TrackX integrations, provisioning agent, backups/budgets, communications timeline, contacts CRUD.
-
-## Technical notes
-
-- Merge is a **copy of components**, not a rewrite — the finance profile's `TransactionsView`, `StatementTable`, `PaymentMethodsView`, `QuickCreateInvoice`, `QuickRecordPayment` are lifted into `src/routes/customers.$accountNumber.tsx` (or a shared `src/components/customer/` folder) and re-used.
-- All new tabs are lazy — data queries `enabled` only when the tab is active, so the profile keeps its current load speed.
-- No changes to `src/routeTree.gen.ts` (generated) or `src/integrations/supabase/*` (managed).
-- Final file structure: **one** customer profile route, **one** finance redirect, **one** enhanced search palette, **one** migration.
-
-Approve to switch to build mode and implement.
-
-&nbsp;
-
-Implementation Note (Critical)
-
-&nbsp;
-
-Before implementing any change, inspect the existing codebase and reuse or enhance existing components, pages, routes, queries, and workflows wherever possible. Do not duplicate functionality or create alternative customer profile pages.
-
-&nbsp;
-
-The Customer 360 Workspace must be the single source of truth for every customer. Any customer selected from the Dashboard, Global Search, Customers, Finance, Invoices, Payments, Quotes, Services, Subscriptions, Assets, Devices, Tickets, Reports, or any other module must always open the same Customer 360 Workspace.
-
-&nbsp;
-
-If a feature already exists, polish and extend it instead of rebuilding it. Only create new components, tabs, database objects, or workflows where functionality is genuinely missing. Maintain backward compatibility, preserve all existing business logic, permissions, APIs, integrations, and routes, and ensure all customer data stays synchronized across the platform.
+- Re-open the wizard, pick Kamatera + EU-ML: expect ~20 tiles including `Ubuntu Server 22.04/24.04`, `Debian 11/12/13`, `AlmaLinux 8/9/10`, `Rocky Linux 8/9/10`, `Windows Server 2016/2019/2022/2025`.
+- Search "ubuntu" narrows to Ubuntu entries.
+- Selecting one and continuing provisions with a public image ID (no more `EU-ML:6000C296263f732e69fc1ce13e9ad43e` custom-only result).
