@@ -6,26 +6,29 @@ import {
   Heading,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Section,
   Text,
 } from '@react-email/components'
 
-// Kaspersky-inspired branded shell for all IMT transactional emails.
-// Teal accent + white body + navy header, boxed content cards.
+// Stripe / Linear / Vercel–inspired minimal transactional shell.
+// White canvas, generous whitespace, single teal accent, hairline dividers,
+// typographic hierarchy instead of coloured hero blocks.
 
 export const BRAND = {
   name: 'IMT Solutions',
   tagline: 'Cloud · Cybersecurity · Managed IT',
-  teal: '#00A88E',
-  tealDark: '#008E78',
+  teal: '#0F9F87',
+  tealDark: '#0B806D',
   navy: '#0B1E3F',
-  ink: '#0f172a',
-  mute: '#64748b',
-  soft: '#f6f8fb',
-  border: '#e5e9f0',
+  ink: '#0B1220',
+  body: '#3B4658',
+  mute: '#6B7280',
+  faint: '#9AA3B2',
+  soft: '#F7F8FA',
+  border: '#E6E8EC',
+  hair: '#EFF1F5',
   supportEmail: 'support@imtsolutions.co.zw',
   supportPhone: '+263 (0) 8677 000 000',
   address: 'IMT Solutions, Harare, Zimbabwe',
@@ -33,69 +36,139 @@ export const BRAND = {
   logoUrl: 'https://management.imtsolutions.co.zw/favicon.ico',
 }
 
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+
 export const styles = {
-  main: { backgroundColor: '#ffffff', fontFamily: 'Arial, Helvetica, sans-serif', margin: 0, padding: 0 },
-  container: { maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff' },
-  header: {
-    backgroundColor: BRAND.navy,
-    padding: '18px 28px',
+  main: { backgroundColor: '#F4F5F7', fontFamily: FONT, margin: 0, padding: '32px 0' },
+  container: {
+    maxWidth: '560px',
+    margin: '0 auto',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    border: `1px solid ${BRAND.border}`,
+    overflow: 'hidden' as const,
   },
-  headerBrand: { color: '#ffffff', fontSize: '18px', fontWeight: 700 as const, letterSpacing: '0.5px', margin: 0 },
-  headerTag: { color: '#9db1d3', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' as const, margin: '4px 0 0' },
-  hero: {
-    background: `linear-gradient(135deg, ${BRAND.teal} 0%, ${BRAND.tealDark} 100%)`,
-    padding: '44px 32px 40px',
-    color: '#ffffff',
+
+  // Header — thin wordmark bar, no colour block
+  header: { padding: '28px 40px 8px' },
+  headerBrand: {
+    color: BRAND.ink,
+    fontSize: '15px',
+    fontWeight: 700 as const,
+    letterSpacing: '-0.01em',
+    margin: 0,
   },
+  headerAccent: {
+    display: 'inline-block',
+    width: '22px',
+    height: '3px',
+    backgroundColor: BRAND.teal,
+    borderRadius: '2px',
+    margin: '14px 0 0',
+  },
+
+  // Hero — typographic only, on white
+  hero: { padding: '20px 40px 8px' },
   heroKicker: {
     fontSize: '11px',
-    letterSpacing: '3px',
+    letterSpacing: '0.14em',
     textTransform: 'uppercase' as const,
-    color: 'rgba(255,255,255,0.85)',
-    margin: '0 0 10px',
+    color: BRAND.teal,
+    fontWeight: 700 as const,
+    margin: '0 0 14px',
   },
-  heroTitle: { fontSize: '30px', lineHeight: '36px', fontWeight: 700 as const, margin: 0, color: '#ffffff' },
-  heroSub: { marginTop: '10px', fontSize: '14px', color: 'rgba(255,255,255,0.92)', lineHeight: '20px' },
-  content: { padding: '32px 32px 8px' },
-  h2: { fontSize: '18px', fontWeight: 700 as const, color: BRAND.ink, margin: '0 0 12px' },
-  text: { fontSize: '14px', color: '#334155', lineHeight: '22px', margin: '0 0 14px' },
+  heroTitle: {
+    fontSize: '26px',
+    lineHeight: '34px',
+    fontWeight: 700 as const,
+    letterSpacing: '-0.02em',
+    color: BRAND.ink,
+    margin: 0,
+  },
+  heroSub: {
+    marginTop: '10px',
+    fontSize: '15px',
+    color: BRAND.mute,
+    lineHeight: '24px',
+  },
+
+  content: { padding: '20px 40px 8px' },
+  h2: { fontSize: '15px', fontWeight: 600 as const, color: BRAND.ink, margin: '0 0 10px' },
+  text: { fontSize: '15px', color: BRAND.body, lineHeight: '24px', margin: '0 0 16px' },
+
+  // Card — subtle hairline, no fill
   card: {
-    border: `1px solid ${BRAND.border}`,
+    border: `1px solid ${BRAND.hair}`,
     borderRadius: '10px',
-    padding: '18px 20px',
-    margin: '10px 0 22px',
-    backgroundColor: BRAND.soft,
+    padding: '4px 20px',
+    margin: '8px 0 24px',
+    backgroundColor: '#ffffff',
   },
-  cardTitle: { fontSize: '12px', fontWeight: 700 as const, letterSpacing: '1px', textTransform: 'uppercase' as const, color: BRAND.mute, margin: '0 0 12px' },
-  row: { fontSize: '14px', color: BRAND.ink, margin: '0 0 8px', lineHeight: '20px' },
-  rowLabel: { color: BRAND.mute, display: 'inline-block', minWidth: '140px' },
-  rowValue: { color: BRAND.ink, fontWeight: 600 as const },
+  cardTitle: {
+    fontSize: '11px',
+    fontWeight: 700 as const,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as const,
+    color: BRAND.faint,
+    margin: '16px 0 4px',
+  },
+
+  // Detail rows — inline, right-aligned value (Stripe receipt style)
+  row: {
+    fontSize: '14px',
+    color: BRAND.ink,
+    margin: 0,
+    padding: '12px 0',
+    borderBottom: `1px solid ${BRAND.hair}`,
+    lineHeight: '20px',
+  },
+  rowLabel: { color: BRAND.mute, display: 'inline-block', minWidth: '140px', fontWeight: 400 as const },
+  rowValue: { color: BRAND.ink, fontWeight: 500 as const },
+
+  // Button — solid teal, small radius, tight padding
   button: {
-    backgroundColor: BRAND.teal,
+    backgroundColor: BRAND.ink,
     color: '#ffffff',
     fontSize: '14px',
-    fontWeight: 700 as const,
+    fontWeight: 500 as const,
     borderRadius: '8px',
-    padding: '14px 28px',
+    padding: '11px 20px',
     textDecoration: 'none',
     display: 'inline-block',
   },
+  buttonPrimary: {
+    backgroundColor: BRAND.teal,
+    color: '#ffffff',
+    fontSize: '14px',
+    fontWeight: 500 as const,
+    borderRadius: '8px',
+    padding: '11px 20px',
+    textDecoration: 'none',
+    display: 'inline-block',
+  },
+
+  // Code / activation box
   codeBox: {
-    border: `2px solid ${BRAND.teal}`,
+    border: `1px dashed ${BRAND.border}`,
     borderRadius: '10px',
-    padding: '22px',
+    padding: '20px',
     textAlign: 'center' as const,
-    margin: '18px 0',
-    backgroundColor: '#ffffff',
-    fontSize: '22px',
-    fontWeight: 700 as const,
-    letterSpacing: '2px',
+    margin: '8px 0 20px',
+    backgroundColor: BRAND.soft,
+    fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
+    fontSize: '18px',
+    fontWeight: 600 as const,
+    letterSpacing: '3px',
     color: BRAND.ink,
   },
-  divider: { borderColor: BRAND.border, margin: '24px 0' },
-  footer: { padding: '24px 32px 32px', backgroundColor: BRAND.soft },
-  footerText: { fontSize: '12px', color: BRAND.mute, lineHeight: '18px', margin: '0 0 6px' },
-  footerLink: { color: BRAND.teal, textDecoration: 'none' },
+
+  divider: { borderColor: BRAND.hair, margin: '24px 0 0', borderTop: `1px solid ${BRAND.hair}` },
+
+  // Footer
+  footer: { padding: '24px 40px 32px' },
+  footerText: { fontSize: '12px', color: BRAND.mute, lineHeight: '20px', margin: '0 0 4px' },
+  footerLink: { color: BRAND.ink, textDecoration: 'underline' },
+  footerLegal: { fontSize: '11px', color: BRAND.faint, lineHeight: '18px', margin: '14px 0 0' },
 }
 
 export function EmailShell({
@@ -119,7 +192,7 @@ export function EmailShell({
         <Container style={styles.container}>
           <Section style={styles.header}>
             <Text style={styles.headerBrand}>{BRAND.name}</Text>
-            <Text style={styles.headerTag}>{BRAND.tagline}</Text>
+            <span style={styles.headerAccent as React.CSSProperties} />
           </Section>
           <Section style={styles.hero}>
             {kicker && <Text style={styles.heroKicker}>{kicker}</Text>}
@@ -130,17 +203,19 @@ export function EmailShell({
           <Hr style={styles.divider} />
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
-              Need help? Email{' '}
+              Questions? Reply to this email, write to{' '}
               <Link href={`mailto:${BRAND.supportEmail}`} style={styles.footerLink}>
                 {BRAND.supportEmail}
               </Link>{' '}
               or call {BRAND.supportPhone}.
             </Text>
             <Text style={styles.footerText}>
-              {BRAND.address} · <Link href={BRAND.siteUrl} style={styles.footerLink}>{BRAND.siteUrl.replace('https://', '')}</Link>
+              <Link href={BRAND.siteUrl} style={styles.footerLink}>
+                {BRAND.siteUrl.replace('https://', '')}
+              </Link>
             </Text>
-            <Text style={{ ...styles.footerText, marginTop: '10px' }}>
-              © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+            <Text style={styles.footerLegal}>
+              {BRAND.address} · © {new Date().getFullYear()} {BRAND.name}. {BRAND.tagline}.
             </Text>
           </Section>
         </Container>
@@ -154,7 +229,7 @@ export function DetailRow({ label, value }: { label: string; value?: string | nu
   return (
     <Text style={styles.row}>
       <span style={styles.rowLabel}>{label}</span>
-      <span style={styles.rowValue}>{value}</span>
+      <span style={{ ...styles.rowValue, float: 'right' }}>{value}</span>
     </Text>
   )
 }
