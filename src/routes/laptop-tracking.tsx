@@ -440,6 +440,7 @@ function LicensesTab() {
         </Table>
       </CardContent>
       <GenerateLicenseDialog open={gen} onOpenChange={setGen} />
+      <EditLicenseDialog license={editing} onOpenChange={(v: boolean) => !v && setEditing(null)} />
     </Card>
   );
 }
