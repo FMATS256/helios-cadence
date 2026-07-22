@@ -347,43 +347,40 @@ function Customer360() {
   };
 
 
+  const initials = (customer.company_name || "?")
+    .split(/\s+/)
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <PageContainer>
-      {/* Sticky hero header */}
-      <div className="rounded-3xl p-8 text-navy-foreground relative overflow-hidden" style={{ background: "var(--gradient-navy)" }}>
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-30 blur-3xl" style={{ background: "var(--gradient-solar)" }} />
-        <div className="relative flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[3px] text-solar font-semibold mb-2 font-mono">{customer.account_number}</p>
-            <h1 className="font-display text-4xl font-bold truncate">{customer.company_name}</h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-navy-foreground/80 mt-2">
-              <span className="inline-flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{customer.industry || "—"}</span>
-              {customer.primary_email && <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{customer.primary_email}</span>}
-              {customer.primary_phone && <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{customer.primary_phone}</span>}
-              {customerSince && <span className="inline-flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" />Since {customerSince.getFullYear()}</span>}
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <StatusPill tone={customer.status === "active" ? "success" : "neutral"}>{customer.status}</StatusPill>
-              <StatusPill tone={tierTone as any}>Tier · {tier}</StatusPill>
-              <StatusPill tone={contractActive ? "success" : "warning"}>{contractActive ? "Contract active" : "No active contract"}</StatusPill>
-              {health && <StatusPill tone={health.tone}><Heart className="h-3 w-3 mr-1 inline" />Health {health.score} · {health.label}</StatusPill>}
-            </div>
-          </div>
-
-          {health && (
-            <div className="shrink-0 flex flex-col items-center justify-center rounded-2xl bg-white/10 border border-white/20 px-6 py-4 min-w-[160px]">
-              <p className="text-[10px] uppercase tracking-widest text-navy-foreground/70">Health score</p>
-              <p className="font-display text-5xl font-bold text-solar mt-1 tabular-nums">{health.score}</p>
-              <p className="text-xs text-navy-foreground/80 mt-1">{health.label}</p>
-            </div>
-          )}
+      {/* Zoho-style compact top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/customers" className="text-sm text-muted-foreground hover:text-foreground">Customers</Link>
+          <span className="text-muted-foreground">/</span>
+          <span className="font-semibold truncate">{customer.company_name}</span>
+          <span className="font-mono text-xs text-solar bg-solar/10 rounded px-2 py-0.5">{customer.account_number}</span>
+          <StatusPill tone={customer.status === "active" ? "success" : "neutral"}>{customer.status}</StatusPill>
         </div>
-
-        {/* Customer-level actions */}
-        <div className="relative mt-6 flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => sendReminder.mutate()} disabled={sendReminder.isPending || stats.openInvoiceTotal <= 0}>
+            <Bell className="h-4 w-4 mr-1.5" />Send reminder
+          </Button>
+          {customer.status === "suspended" ? (
+            <Button size="sm" variant="outline" onClick={() => toggleLifecycle.mutate("resume")} disabled={toggleLifecycle.isPending}>
+              <PlayCircle className="h-4 w-4 mr-1.5" />Resume
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }} disabled={toggleLifecycle.isPending}>
+              <PowerOff className="h-4 w-4 mr-1.5" />Suspend
+            </Button>
+          )}
           <Button
             size="sm"
-            className="text-solar-foreground border-0"
+            className="text-solar-foreground"
             style={{ background: "var(--gradient-solar)" }}
             onClick={() => {
               setCustForm({
@@ -397,48 +394,66 @@ function Customer360() {
               setEditCustOpen(true);
             }}
           >
-            <Pencil className="h-4 w-4 mr-1.5" />Edit details
-          </Button>
-          {customer.status === "suspended" ? (
-            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => toggleLifecycle.mutate("resume")} disabled={toggleLifecycle.isPending}>
-              <PlayCircle className="h-4 w-4 mr-1.5" />Resume account
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary" className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20" onClick={() => { if (confirm(`Suspend ${customer.company_name}? All active subscriptions will be paused.`)) toggleLifecycle.mutate("suspend"); }} disabled={toggleLifecycle.isPending}>
-              <PowerOff className="h-4 w-4 mr-1.5" />Suspend account
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="secondary"
-            className="bg-white/10 border-white/20 text-navy-foreground hover:bg-white/20"
-            onClick={() => sendReminder.mutate()}
-            disabled={sendReminder.isPending || stats.openInvoiceTotal <= 0}
-            title={stats.openInvoiceTotal <= 0 ? "No outstanding invoices" : "Email reminder for open invoices"}
-          >
-            <Bell className="h-4 w-4 mr-1.5" />Send reminder
+            <Pencil className="h-4 w-4 mr-1.5" />Edit
           </Button>
         </div>
+      </div>
 
-        {/* Quick actions bar — inline dialogs, no navigation away */}
-        <div className="mt-3 space-y-2">
-          <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
-          <div className="flex flex-wrap gap-2 text-xs">
-            <QuickBtn to="/assets" icon={Laptop}>Assets</QuickBtn>
-            <QuickBtn to="/credentials" icon={KeyRound}>Credentials</QuickBtn>
-            <QuickBtn to="/reports" icon={FileText}>Reports</QuickBtn>
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4 mt-4">
+        {/* LEFT: Zoho-style contact properties panel */}
+        <aside className="space-y-4">
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center text-center pb-4 border-b">
+                <div className="h-16 w-16 rounded-full flex items-center justify-center text-navy-foreground font-display text-xl font-bold shadow-md" style={{ background: "var(--gradient-navy)" }}>
+                  {initials}
+                </div>
+                <p className="font-display font-semibold mt-3 truncate max-w-full">{customer.company_name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{customer.industry || "—"}</p>
+                <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                  <StatusPill tone={tierTone as any}>{tier}</StatusPill>
+                  {health && <StatusPill tone={health.tone}><Heart className="h-3 w-3 mr-1 inline" />{health.score}</StatusPill>}
+                </div>
+              </div>
+              <div className="pt-4 space-y-3 text-sm">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Contact properties</p>
+                <SideRow icon={Mail} label="Email" value={customer.primary_email} href={customer.primary_email ? `mailto:${customer.primary_email}` : undefined} />
+                <SideRow icon={Phone} label="Phone" value={customer.primary_phone} href={customer.primary_phone ? `tel:${customer.primary_phone}` : undefined} />
+                <SideRow icon={Building2} label="Website" value={customer.website} href={customer.website || undefined} />
+                <SideRow icon={FileText} label="Address" value={(customer as any).billing_address} />
+                <SideRow icon={CalendarClock} label="Since" value={customerSince ? customerSince.toLocaleDateString() : "—"} />
+                <SideRow icon={ShieldCheck} label="Contract" value={contractActive ? "Active" : "None"} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5 space-y-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Quick jump</p>
+              <QuickJump to="/assets" icon={Laptop}>Assets ({assets.length})</QuickJump>
+              <QuickJump to="/credentials" icon={KeyRound}>Credentials ({credentials.length})</QuickJump>
+              <QuickJump to="/reports" icon={FileText}>Reports</QuickJump>
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* RIGHT: main workspace */}
+        <div className="min-w-0 space-y-4">
+          {/* Quick actions bar — inline dialogs, no navigation away */}
+          <Card>
+            <CardContent className="p-4">
+              <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
+            </CardContent>
+          </Card>
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone="warning" />
+            <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
+            <KpiTile icon={Activity} label="ARR (est.)" value={money(stats.mrr * 12)} tone="info" />
+            <KpiTile icon={Server} label="Active services" value={stats.activeServices} />
+            <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
           </div>
-        </div>
-      </div>
-
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone="warning" />
-        <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
-        <KpiTile icon={Activity} label="ARR (est.)" value={money(stats.mrr * 12)} tone="info" />
-        <KpiTile icon={Server} label="Active services" value={stats.activeServices} />
-        <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
-      </div>
 
       {/* Edit customer dialog */}
       <Dialog open={editCustOpen} onOpenChange={setEditCustOpen}>
@@ -1074,6 +1089,8 @@ function Customer360() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
     </PageContainer>
   );
 }
@@ -1086,9 +1103,36 @@ function QuickBtn({ to, icon: Icon, children }: { to: string; icon: any; childre
   );
 }
 
+function QuickJump({ to, icon: Icon, children }: { to: string; icon: any; children: React.ReactNode }) {
+  return (
+    <Link to={to as any} className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
+      <Icon className="h-4 w-4 text-solar" />
+      <span>{children}</span>
+    </Link>
+  );
+}
+
+function SideRow({ icon: Icon, label, value, href }: { icon: any; label: string; value?: string | null; href?: string }) {
+  const content = value || "—";
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        {href && value ? (
+          <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="text-sm text-solar hover:underline truncate block">{content}</a>
+        ) : (
+          <p className="text-sm truncate">{content}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return <div className="flex justify-between gap-4"><span className="text-muted-foreground">{k}</span><span className="text-right">{v}</span></div>;
 }
+
 function KpiTile({ icon: Icon, label, value, tone = "info" }: { icon: any; label: string; value: number | string; tone?: "info" | "success" | "warning" | "danger" }) {
   const toneMap: Record<string, string> = {
     info: "bg-info/15 text-info",
