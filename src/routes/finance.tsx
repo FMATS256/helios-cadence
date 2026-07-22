@@ -278,48 +278,9 @@ function FinanceWorkspace() {
           </div>
         )}
 
-        {/* ── Zoho-style dashboard body ───────────────────────────────── */}
+        {/* ── Netzur-style Finance Dashboard ──────────────────────────── */}
         {tab === "dashboard" && (
-          <div className="p-4 md:p-6 space-y-5">
-            {/* Receivables + Payables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ReceivablePayableCard
-                title="Total Receivables"
-                subtitle={`Total Unpaid Invoices ${money(kpi?.ar ?? 0, currency)}`}
-                current={kpi?.currentUnpaid ?? 0}
-                overdue={kpi?.overdueUnpaid ?? 0}
-                currency={currency}
-                actionTo="/billing"
-                accent="success"
-              />
-              <ReceivablePayableCard
-                title="Total Payables"
-                subtitle={`Total Unpaid Bills ${money((kpi?.payablesCurrent ?? 0) + (kpi?.payablesOverdue ?? 0), currency)}`}
-                current={kpi?.payablesCurrent ?? 0}
-                overdue={kpi?.payablesOverdue ?? 0}
-                currency={currency}
-                actionTo="/inventory"
-                accent="info"
-              />
-            </div>
-
-            {/* Cash flow */}
-            <CashFlowCard
-              data={cashFlow}
-              currency={currency}
-              asOfDate={asOfDate}
-              yearStartDate={yearStartDate}
-              incoming={kpi?.incomingTotal ?? 0}
-              outgoing={kpi?.outgoingTotal ?? 0}
-              net={kpi?.netCash ?? 0}
-            />
-
-            {/* Income vs Expense + Top Expenses */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <IncomeExpenseCard data={cashFlow} currency={currency} />
-              <TopExpensesCard data={topExpenses} currency={currency} />
-            </div>
-          </div>
+          <NetzurDashboard data={data} currency={currency} />
         )}
 
         {tab === "recent" && (
@@ -883,5 +844,216 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
       <h4 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-2">{title}</h4>
       <div className="rounded-lg border border-border p-3">{children}</div>
     </div>
+  );
+}
+
+// ─────────── Netzur-style Finance Dashboard ────────────────────────────────
+
+function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
+  const inv: any[] = data?.invoices ?? [];
+  const pay: any[] = data?.payments ?? [];
+  const quotes: any[] = data?.quotes ?? [];
+  const customers: any[] = data?.customers ?? [];
+
+  const amt = (r: any) => Number(r.amount_total ?? r.total ?? 0);
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const today = new Date();
+
+  const unpaidInv = inv.filter((x) => x.status !== "paid" && x.status !== "void");
+  const openQuotes = quotes.filter((q) => q.status === "draft" || q.status === "sent" || q.status === "open");
+  const todaysInvoices = inv.filter((x) => x.issue_date && isSameDay(new Date(x.issue_date), today));
+  const todaysPayments = pay.filter((p) => p.paid_at && isSameDay(new Date(p.paid_at), today));
+
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [quarterOffset, setQuarterOffset] = useState(0);
+  const [yearOffset, setYearOffset] = useState(0);
+
+  const monthRef = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1);
+  const monthStart = new Date(monthRef.getFullYear(), monthRef.getMonth(), 1);
+  const monthEnd = new Date(monthRef.getFullYear(), monthRef.getMonth() + 1, 1);
+  const monthLabel = monthRef.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  const yearRef = new Date(today.getFullYear() - yearOffset, 0, 1);
+  const yearStart = new Date(yearRef.getFullYear(), 0, 1);
+  const yearEnd = new Date(yearRef.getFullYear() + 1, 0, 1);
+  const yearLabel = String(yearRef.getFullYear());
+
+  const currentQuarter = Math.floor(today.getMonth() / 3);
+  const totalQOffset = currentQuarter + today.getFullYear() * 4 - quarterOffset;
+  const qYear = Math.floor(totalQOffset / 4);
+  const qIdx = totalQOffset - qYear * 4;
+  const quarterStart = new Date(qYear, qIdx * 3, 1);
+  const quarterEnd = new Date(qYear, qIdx * 3 + 3, 1);
+  const quarterLabel = `${qYear} - Q${qIdx + 1}`;
+
+  const summarize = (start: Date, end: Date) => {
+    const range = inv.filter((x) => {
+      const d = x.issue_date ? new Date(x.issue_date) : (x.created_at ? new Date(x.created_at) : null);
+      return d && d >= start && d < end;
+    });
+    const paid = range.filter((x) => x.status === "paid");
+    const unpaid = range.filter((x) => x.status !== "paid" && x.status !== "void");
+    const rangeQuotes = quotes.filter((q) => {
+      const d = q.created_at ? new Date(q.created_at) : null;
+      return d && d >= start && d < end && (q.status === "draft" || q.status === "sent" || q.status === "open");
+    });
+    return {
+      total: { count: range.length, amount: range.reduce((a, x) => a + amt(x), 0) },
+      paid: { count: paid.length, amount: paid.reduce((a, x) => a + amt(x), 0) },
+      unpaid: { count: unpaid.length, amount: unpaid.reduce((a, x) => a + amt(x), 0) },
+      quotes: { count: rangeQuotes.length, amount: rangeQuotes.reduce((a, x) => a + Number(x.total || 0), 0) },
+    };
+  };
+
+  const monthly = summarize(monthStart, monthEnd);
+  const quarterly = summarize(quarterStart, quarterEnd);
+  const yearly = summarize(yearStart, yearEnd);
+
+  const custMap = new Map(customers.map((c) => [c.id, c]));
+  const payerAgg: Record<string, number> = {};
+  for (const p of pay) {
+    if (!p.customer_id || p.status === "failed") continue;
+    payerAgg[p.customer_id] = (payerAgg[p.customer_id] || 0) + Number(p.amount || 0);
+  }
+  const debtorAgg: Record<string, number> = {};
+  for (const x of unpaidInv) {
+    if (!x.customer_id) continue;
+    debtorAgg[x.customer_id] = (debtorAgg[x.customer_id] || 0) + amt(x);
+  }
+  const nameFor = (id: string) => {
+    const c: any = custMap.get(id);
+    return c ? (c.company_name || c.account_number || id.slice(0, 8)) : id.slice(0, 8);
+  };
+  const topPayers = Object.entries(payerAgg)
+    .map(([id, value]) => ({ name: nameFor(id), value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value).slice(0, 10);
+  const topDebtors = Object.entries(debtorAgg)
+    .map(([id, value]) => ({ name: nameFor(id), value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value).slice(0, 10);
+
+  return (
+    <div className="p-4 md:p-6 space-y-5 bg-muted/20">
+      <h2 className="text-sm font-semibold text-muted-foreground">Finance Dashboard</h2>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <NetzurStat icon={ClipboardList} label="Unpaid Invoices"
+          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#e07a5f" />
+        <NetzurStat icon={FileText} label="Open Quotes"
+          value={`${openQuotes.length} (${money(openQuotes.reduce((a, x) => a + Number(x.total || 0), 0), currency)})`} bg="#4a5c6a" />
+        <NetzurStat icon={Receipt} label="Today's Invoices"
+          value={`${todaysInvoices.length} (${money(todaysInvoices.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#a06cc9" />
+        <NetzurStat icon={CheckDouble} label="Today's Payments"
+          value={money(todaysPayments.reduce((a, p) => a + Number(p.amount || 0), 0), currency)} bg="#3fa87a" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <NetzurPeriodCard title="Monthly" period={monthLabel} data={monthly} currency={currency}
+          onPrev={() => setMonthOffset((v) => v + 1)} onNext={() => setMonthOffset((v) => Math.max(0, v - 1))} />
+        <NetzurPeriodCard title="Quarterly" period={quarterLabel} data={quarterly} currency={currency}
+          onPrev={() => setQuarterOffset((v) => v + 1)} onNext={() => setQuarterOffset((v) => Math.max(0, v - 1))} />
+        <NetzurPeriodCard title="Yearly" period={yearLabel} data={yearly} currency={currency}
+          onPrev={() => setYearOffset((v) => v + 1)} onNext={() => setYearOffset((v) => Math.max(0, v - 1))} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <NetzurPartyCard title="Top 10 Payers" data={topPayers} currency={currency} palette={PAYER_COLORS} emptyLabel="No payments yet" />
+        <NetzurPartyCard title="Top 10 Debtors" data={topDebtors} currency={currency} palette={DEBTOR_COLORS} emptyLabel="No outstanding invoices" />
+      </div>
+    </div>
+  );
+}
+
+function CheckDouble(props: any) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2 12l5 5L18 6" />
+      <path d="M9 17l5 5L24 8" transform="translate(-2 -3)" />
+    </svg>
+  );
+}
+
+const PAYER_COLORS = ["#3fa87a", "#e6c04a", "#a06cc9", "#4a5c6a", "#5aa9e0", "#e07a5f", "#7bc47f", "#f0a04a", "#8474b6", "#2f6f7a"];
+const DEBTOR_COLORS = ["#f0a04a", "#a06cc9", "#4a90a4", "#e07a5f", "#e6c04a", "#3fa87a", "#8474b6", "#5aa9e0", "#c96c8a", "#4a5c6a"];
+
+function NetzurStat({ icon: Icon, label, value, bg }: { icon: any; label: string; value: string; bg: string }) {
+  return (
+    <div className="rounded-md shadow-sm flex items-center gap-3 p-4 text-white" style={{ background: bg }}>
+      <div className="h-11 w-11 rounded-md bg-white/20 flex items-center justify-center shrink-0">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium opacity-90">{label}</p>
+        <p className="font-display text-lg font-bold tabular-nums truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function NetzurPeriodCard({
+  title, period, data, currency, onPrev, onNext,
+}: {
+  title: string; period: string; currency: Ccy;
+  data: { total: { count: number; amount: number }; paid: { count: number; amount: number }; unpaid: { count: number; amount: number }; quotes: { count: number; amount: number } };
+  onPrev: () => void; onNext: () => void;
+}) {
+  const rows = [
+    { label: "Total Invoices",  count: data.total.count,  amount: data.total.amount,  color: "text-foreground" },
+    { label: "Paid Invoices",   count: data.paid.count,   amount: data.paid.amount,   color: "text-success" },
+    { label: "Unpaid Invoices", count: data.unpaid.count, amount: data.unpaid.amount, color: "text-[oklch(0.62_0.19_45)]" },
+    { label: "Open Quotes",     count: data.quotes.count, amount: data.quotes.amount, color: "text-muted-foreground" },
+  ];
+  return (
+    <Card className="border-border shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            <h3 className="font-semibold text-foreground">{title}</h3>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={onPrev} className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted text-muted-foreground">‹</button>
+            <span className="text-xs font-mono px-2 py-1 rounded bg-muted/60">{period}</span>
+            <button onClick={onNext} className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted text-muted-foreground">›</button>
+          </div>
+        </div>
+        <div className="divide-y divide-border">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between py-2.5 text-sm">
+              <span className="text-muted-foreground">{r.label}</span>
+              <span className={cn("font-semibold tabular-nums", r.color)}>{r.count} ({money(r.amount, currency)})</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NetzurPartyCard({
+  title, data, currency, palette, emptyLabel,
+}: { title: string; data: { name: string; value: number }[]; currency: Ccy; palette: string[]; emptyLabel: string }) {
+  return (
+    <Card className="border-border shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <PiggyBank className="h-4 w-4" />
+            <h3 className="font-semibold text-foreground">{title}</h3>
+          </div>
+          <span className="text-xs text-muted-foreground">Last 12 Months</span>
+        </div>
+        {data.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-16">{emptyLabel}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 items-center">
+            <DonutChart data={data} colors={palette} height={220} centerLabel="Total"
+              centerValue={<span className="text-base">{money(data.reduce((a, d) => a + d.value, 0), currency)}</span>}
+              formatter={(v) => money(v, currency)} />
+            <ChartLegend items={data.map((d) => ({ name: d.name, value: money(d.value, currency) }))} colors={palette} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
