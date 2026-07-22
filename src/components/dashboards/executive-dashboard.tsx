@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   Users, UserPlus, LifeBuoy, ServerOff, Plus, TicketPlus, FileText,
   DollarSign, KeyRound, Rocket, Server, Cloud, ChevronRight, Wallet,
+  Receipt, CreditCard, Repeat, Package, Warehouse, ShieldCheck, BarChart3, FolderKanban,
 } from "lucide-react";
 
 const USD = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
