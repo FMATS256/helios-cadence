@@ -134,9 +134,9 @@ export const logCommunication = createServerFn({ method: "POST" })
     let recipient = data.recipient?.trim() || null;
     if (!recipient && data.contact_id) {
       const { data: c } = await supabaseAdmin
-        .from("customer_contacts").select("email, phone, full_name")
+        .from("customer_contacts").select("email, phone, name")
         .eq("id", data.contact_id).eq("customer_id", cust.id).maybeSingle();
-      recipient = c?.email || c?.phone || c?.full_name || null;
+      recipient = (c as any)?.email || (c as any)?.phone || (c as any)?.name || null;
     }
     const { data: row, error } = await supabaseAdmin.from("communications").insert({
       customer_id: cust.id,

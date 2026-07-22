@@ -94,7 +94,8 @@ function OnboardingWizard() {
       if (contact.full_name.trim() || contact.email.trim()) {
         await supabase.from("customer_contacts").insert({
           customer_id: customerId,
-          full_name: contact.full_name || "Primary contact",
+          account_number: accountNumber,
+          name: contact.full_name || "Primary contact",
           email: contact.email || null,
           phone: contact.phone || null,
           role: contact.role || null,
