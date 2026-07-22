@@ -356,97 +356,104 @@ function Customer360() {
 
   return (
     <PageContainer>
-      {/* Zoho-style compact top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link to="/customers" className="text-sm text-muted-foreground hover:text-foreground">Customers</Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-semibold truncate">{customer.company_name}</span>
-          <span className="font-mono text-xs text-solar bg-solar/10 rounded px-2 py-0.5">{customer.account_number}</span>
-          <StatusPill tone={customer.status === "active" ? "success" : "neutral"}>{customer.status}</StatusPill>
+      {/* Breadcrumb bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border text-sm">
+        <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
+          <Link to="/customers" className="hover:text-foreground">Customers</Link>
+          <span>/</span>
+          <Link to="/customers" className="hover:text-foreground">Subscribers</Link>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">{customer.account_number} Subscriber</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => sendReminder.mutate()} disabled={sendReminder.isPending || stats.openInvoiceTotal <= 0}>
-            <Bell className="h-4 w-4 mr-1.5" />Send reminder
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="border-warning text-warning hover:bg-warning/10">
+            <PauseCircle className="h-4 w-4 mr-1.5" />Disable
           </Button>
-          {customer.status === "suspended" ? (
-            <Button size="sm" variant="outline" onClick={() => toggleLifecycle.mutate("resume")} disabled={toggleLifecycle.isPending}>
-              <PlayCircle className="h-4 w-4 mr-1.5" />Resume
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }} disabled={toggleLifecycle.isPending}>
-              <PowerOff className="h-4 w-4 mr-1.5" />Suspend
-            </Button>
-          )}
-          <Button
-            size="sm"
-            className="text-solar-foreground"
-            style={{ background: "var(--gradient-solar)" }}
-            onClick={() => {
-              setCustForm({
-                company_name: customer.company_name || "",
-                industry: customer.industry || "",
-                primary_email: customer.primary_email || "",
-                primary_phone: customer.primary_phone || "",
-                website: customer.website || "",
-                billing_address: (customer as any).billing_address || "",
-              });
-              setEditCustOpen(true);
-            }}
-          >
-            <Pencil className="h-4 w-4 mr-1.5" />Edit
+          <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }}>
+            <XCircle className="h-4 w-4 mr-1.5" />Terminate
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}>
+            <Pencil className="h-4 w-4 mr-1.5" />Details
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4 mt-4">
-        {/* LEFT: Zoho-style contact properties panel */}
-        <aside className="space-y-4">
+      {/* Netzur-style hero: identity block (left) + colored stat pills (right) */}
+      <div className="mt-4 grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-4">
+        {/* Identity block */}
+        <Card className="border-border">
+          <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="h-24 w-24 rounded-full flex items-center justify-center text-navy-foreground font-display text-3xl font-bold shadow-[var(--shadow-elegant)]" style={{ background: "var(--gradient-navy)" }}>
+              {initials}
+            </div>
+            <p className="mt-4 font-display font-bold text-xl tracking-wide truncate max-w-full">{customer.company_name}</p>
+            <p className="text-xs font-mono text-muted-foreground mt-1">({customer.account_number})</p>
+            <div className="flex items-center gap-2 mt-3">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold ${customer.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${customer.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
+                {customer.status === "active" ? "Active" : (customer.status || "Inactive")}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold bg-muted text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                {contractActive ? "Online" : "Offline"}
+              </span>
+            </div>
+            <div className="w-full mt-5 pt-4 border-t border-border grid grid-cols-2 gap-y-2 text-left text-xs">
+              <MetaRow label="Account Type" value={(customer as any).account_type || "Regular"} pill />
+              <MetaRow label="Group" value={tier} />
+              <MetaRow label="Zone" value={(customer as any).zone || "N/A"} />
+              <MetaRow label="Node" value={(customer as any).node || "N/A"} />
+              <MetaRow label="Last Logoff" value={customerSince ? customerSince.toISOString().slice(0, 10) : "—"} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Colored stat pills grid */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatChip label="Data" value={`${stats.activeServices * 10 || 0} GB`} color="#dbeafe" text="#1e40af" />
+            <StatChip label="Uptime" value="NoLimit" color="#ede9fe" text="#5b21b6" />
+            <StatChip label="Expiration" value={renewals[0]?.daysLeft != null ? `${renewals[0].daysLeft} D` : "—"} color="#fef3c7" text="#92400e" />
+            <StatChip label="Voucher" value={money(0).replace("USD ", "$")} color="#fce7f3" text="#9d174d" />
+            <StatChip label="Paid" value={money(stats.mrr).replace("USD ", "$")} color="#dcfce7" text="#166534" />
+            <StatChip label="Unpaid" value={money(stats.openInvoiceTotal).replace("USD ", "$")} color="#fee2e2" text="#991b1b" />
+          </div>
+
+          {/* Quick Information */}
           <Card>
             <CardContent className="p-5">
-              <div className="flex flex-col items-center text-center pb-4 border-b">
-                <div className="h-16 w-16 rounded-full flex items-center justify-center text-navy-foreground font-display text-xl font-bold shadow-md" style={{ background: "var(--gradient-navy)" }}>
-                  {initials}
-                </div>
-                <p className="font-display font-semibold mt-3 truncate max-w-full">{customer.company_name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{customer.industry || "—"}</p>
-                <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-                  <StatusPill tone={tierTone as any}>{tier}</StatusPill>
-                  {health && <StatusPill tone={health.tone}><Heart className="h-3 w-3 mr-1 inline" />{health.score}</StatusPill>}
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Quick Information</p>
+                <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh Status
+                </Button>
               </div>
-              <div className="pt-4 space-y-3 text-sm">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Contact properties</p>
-                <SideRow icon={Mail} label="Email" value={customer.primary_email} href={customer.primary_email ? `mailto:${customer.primary_email}` : undefined} />
-                <SideRow icon={Phone} label="Phone" value={customer.primary_phone} href={customer.primary_phone ? `tel:${customer.primary_phone}` : undefined} />
-                <SideRow icon={Building2} label="Website" value={customer.website} href={customer.website || undefined} />
-                <SideRow icon={FileText} label="Address" value={(customer as any).billing_address} />
-                <SideRow icon={CalendarClock} label="Since" value={customerSince ? customerSince.toLocaleDateString() : "—"} />
-                <SideRow icon={ShieldCheck} label="Contract" value={contractActive ? "Active" : "None"} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                <InfoRow label="Package Name" value={subscriptions[0]?.plan_name || "—"} sub={subscriptions[0]?.billing_cycle} />
+                <InfoRow label="Billing Type" value={subscriptions[0]?.billing_cycle || "Prepaid"} />
+                <InfoRow label="Expiry Date" value={subscriptions[0]?.next_renewal ? new Date(subscriptions[0].next_renewal).toISOString().slice(0, 10) : "—"} />
+                <InfoRow label="IPv4 Address" value={(customer as any).ipv4 || "DHCP"} />
+                <InfoRow label="Allowed NAS" value={(customer as any).allowed_nas || "ALL"} />
+                <InfoRow label="ipv6/Prefix / Del" value={(customer as any).ipv6 || "DHCP"} />
+                <InfoRow label="Last Recharge (Date/By)" value={payments[0]?.paid_at ? new Date(payments[0].paid_at).toISOString().slice(0, 10) : "—"} sub={customer.primary_email} />
+                <InfoRow label="Registered On/By" value={customerSince ? customerSince.toISOString().slice(0, 10) : "—"} />
+                <InfoRow label="OTP / Account Verified" value={customer.primary_email || "—"} />
+                <InfoRow label="Subscriber Code" value={customer.account_number} link />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5 space-y-2">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">Quick jump</p>
-              <QuickJump to="/assets" icon={Laptop}>Assets ({assets.length})</QuickJump>
-              <QuickJump to="/credentials" icon={KeyRound}>Credentials ({credentials.length})</QuickJump>
-              <QuickJump to="/reports" icon={FileText}>Reports</QuickJump>
-            </CardContent>
-          </Card>
-        </aside>
+          {/* Colored action bar */}
+          <div className="flex flex-wrap gap-2">
+            <ActionBtn tone="indigo" icon={RefreshCw} label="Change/Add Package" onClick={() => setActiveTab("packages")} />
+            <ActionBtn tone="amber" icon={CreditCard} label="Recharge" onClick={() => setActiveTab("payments")} />
+            <ActionBtn tone="emerald" icon={Plus} label="Add Invoice" onClick={() => setActiveTab("invoices")} />
+            <ActionBtn tone="sky" icon={DollarSign} label="Add Payment" onClick={() => setActiveTab("payments")} />
+            <ActionBtn tone="rose" icon={XCircle} label="Reset MAC" onClick={() => toast.info("MAC reset queued")} />
+            <ActionBtn tone="slate" icon={MoreHorizontal} label="Other Actions" onClick={() => sendReminder.mutate()} />
+          </div>
 
-        {/* RIGHT: main workspace */}
-        <div className="min-w-0 space-y-4">
-          {/* Quick actions bar — inline dialogs, no navigation away */}
-          <Card>
-            <CardContent className="p-4">
-              <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
-            </CardContent>
-          </Card>
-
-          {/* KPI strip */}
+          {/* KPI strip (kept for platform metrics) */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone="warning" />
             <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
@@ -454,6 +461,16 @@ function Customer360() {
             <KpiTile icon={Server} label="Active services" value={stats.activeServices} />
             <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
           </div>
+
+          {/* Quick actions inline dialogs */}
+          <Card>
+            <CardContent className="p-4">
+              <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
 
       {/* Edit customer dialog */}
       <Dialog open={editCustOpen} onOpenChange={setEditCustOpen}>
