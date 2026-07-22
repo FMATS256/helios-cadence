@@ -72,7 +72,6 @@ export const createQuoteForCustomer = createServerFn({ method: "POST" })
         description: i.description.trim(),
         quantity: Number(i.quantity),
         unit_price: Number(i.unit_price) || 0,
-        line_total: Number(i.quantity) * Number(i.unit_price || 0),
         position: idx,
       }));
       await supabaseAdmin.from("quote_line_items").insert(rows);
@@ -196,7 +195,6 @@ export const createInvoiceForCustomer = createServerFn({ method: "POST" })
       quantity: Number(i.quantity),
       unit_price: Number(i.unit_price) || 0,
       tax_rate: taxRate,
-      line_total: Number(i.quantity) * Number(i.unit_price || 0),
       position: idx,
     }));
     await supabaseAdmin.from("invoice_line_items").insert(lineRows);
