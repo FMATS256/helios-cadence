@@ -63,10 +63,6 @@
 :root {
   --radius: 0.5rem;
 
-}
-
-.no-radius, .no-radius * {
-  --radius: 0rem;
 
 
 
