@@ -28,6 +28,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
+import { ClientActionsBar } from "@/components/client-action-dialogs";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
@@ -419,17 +420,14 @@ function Customer360() {
           </Button>
         </div>
 
-        {/* Quick actions bar */}
-        <div className="relative mt-3 flex flex-wrap gap-2">
-          <QuickBtn to="/payments" icon={CreditCard}>Record Payment</QuickBtn>
-          <QuickBtn to="/billing" icon={Receipt}>Invoice</QuickBtn>
-          <QuickBtn to="/quotes" icon={FileCheck}>Quote</QuickBtn>
-          <QuickBtn to="/catalog" icon={Plus}>Add Service</QuickBtn>
-          <QuickBtn to="/tickets" icon={LifeBuoy}>Ticket</QuickBtn>
-          <QuickBtn to="/assets" icon={Laptop}>Asset</QuickBtn>
-          <QuickBtn to="/credentials" icon={KeyRound}>Credential</QuickBtn>
-          <QuickBtn to="/communications" icon={Mail}>Log Comm</QuickBtn>
-          <QuickBtn to="/reports" icon={FileText}>Report</QuickBtn>
+        {/* Quick actions bar — inline dialogs, no navigation away */}
+        <div className="mt-3 space-y-2">
+          <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
+          <div className="flex flex-wrap gap-2 text-xs">
+            <QuickBtn to="/assets" icon={Laptop}>Assets</QuickBtn>
+            <QuickBtn to="/credentials" icon={KeyRound}>Credentials</QuickBtn>
+            <QuickBtn to="/reports" icon={FileText}>Reports</QuickBtn>
+          </div>
         </div>
       </div>
 
