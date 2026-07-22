@@ -409,7 +409,7 @@ function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => vo
   const fn = useServerFn(logCommunication);
   const { data: contacts = [] } = useQuery({
     queryKey: ["customer-contacts", ctx.accountNumber],
-    queryFn: async () => (await supabase.from("customer_contacts").select("id, full_name, email, phone, is_primary").eq("customer_id", ctx.customerId).is("archived_at", null)).data ?? [],
+    queryFn: async () => (await supabase.from("customer_contacts").select("id, name, email, phone, is_primary").eq("customer_id", ctx.customerId).is("archived_at", null)).data ?? [],
   });
   const primary = (contacts as any[]).find((c) => c.is_primary) || (contacts as any[])[0];
   const [form, setForm] = useState({ channel: "call", direction: "outbound", subject: "", body: "", contact_id: "__primary__", occurred_at: new Date().toISOString().slice(0, 16) });
@@ -445,10 +445,10 @@ function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => vo
           </div>
           <div><Label>Contact person</Label>
             <Select value={form.contact_id} onValueChange={(v) => setForm({ ...form, contact_id: v })}>
-              <SelectTrigger><SelectValue placeholder={primary ? `Primary · ${primary.full_name}` : "No contacts"} /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={primary ? `Primary · ${primary.name}` : "No contacts"} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__primary__">{primary ? `Primary · ${primary.full_name}` : "— No primary contact —"}</SelectItem>
-                {(contacts as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.full_name}{c.email ? ` · ${c.email}` : ""}</SelectItem>)}
+                <SelectItem value="__primary__">{primary ? `Primary · ${primary.name}` : "— No primary contact —"}</SelectItem>
+                {(contacts as any[]).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.email ? ` · ${c.email}` : ""}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
