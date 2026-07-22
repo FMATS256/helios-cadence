@@ -355,7 +355,7 @@ function Customer360() {
     .toUpperCase();
 
   return (
-    <PageContainer>
+    <PageContainer><div className="sharp-corners space-y-6">
       {/* Breadcrumb bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border text-sm">
         <div className="flex items-center gap-2 min-w-0 text-muted-foreground">
@@ -1106,7 +1106,7 @@ function Customer360() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
-    </PageContainer>
+    </div></PageContainer>
 
   );
 }
