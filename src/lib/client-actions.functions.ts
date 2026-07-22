@@ -108,6 +108,45 @@ export const createTicketForCustomer = createServerFn({ method: "POST" })
       created_by: context.userId,
     } as any).select("*").single();
     if (error) throw new Error(error.message);
+
+    // Auto-log a communication entry against the primary contact so the ticket
+    // shows up in the customer's communication timeline.
+    try {
+      const { data: contact } = await supabaseAdmin
+        .from("customer_contacts")
+        .select("id, name, email, phone, is_primary")
+        .eq("customer_id", cust.id)
+        .is("archived_at", null)
+        .order("is_primary", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      let assigneeName: string | null = null;
+      if (data.assigned_to) {
+        const { data: p } = await supabaseAdmin
+          .from("profiles").select("full_name, email").eq("id", data.assigned_to).maybeSingle();
+        assigneeName = (p as any)?.full_name || (p as any)?.email || null;
+      }
+      const tnum = (ticket as any).ticket_number || (ticket as any).id;
+      const summary = [
+        `Ticket ${tnum} opened (${data.priority || "normal"}).`,
+        assigneeName ? `Assigned to ${assigneeName}.` : "Unassigned.",
+        data.description?.trim() ? `\n${data.description.trim()}` : "",
+      ].filter(Boolean).join(" ");
+      await supabaseAdmin.from("communications").insert({
+        customer_id: cust.id,
+        account_number: cust.account_number,
+        channel: "note",
+        direction: "outbound",
+        subject: `Ticket ${tnum}: ${data.subject.trim()}`,
+        body: summary,
+        recipient: (contact as any)?.email || (contact as any)?.phone || (contact as any)?.name || cust.primary_email || null,
+        sent_at: new Date().toISOString(),
+        status: "logged",
+        created_by: context.userId,
+      } as any);
+    } catch (e) {
+      console.error("[createTicketForCustomer] auto-log failed:", (e as any)?.message ?? e);
+    }
     return ticket;
   });
 
