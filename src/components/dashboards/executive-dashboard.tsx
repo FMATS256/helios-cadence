@@ -282,6 +282,32 @@ export function ExecutiveDashboard({ displayName: _displayName }: { displayName:
           </CardContent>
         </Card>
       </div>
+
+      {/* Finance modules mini menu */}
+      <Card className="border-border">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg font-semibold text-foreground">Finance modules</h2>
+            <Link to="/finance" className="text-xs text-info hover:underline flex items-center">
+              Open finance <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-1">
+            <Shortcut icon={Users} label="Customers" to="/customers" color={IMT_COLORS.info} />
+            <Shortcut icon={Package} label="Products & Services" to="/catalog" color={IMT_COLORS.solar} />
+            <Shortcut icon={FileText} label="Quotations" to="/quotes" color={IMT_COLORS.info} />
+            <Shortcut icon={Receipt} label="Invoices" to="/billing" color={IMT_COLORS.warning} />
+            <Shortcut icon={CreditCard} label="Payments" to="/payments" color={IMT_COLORS.success} />
+            <Shortcut icon={Repeat} label="Subscriptions" to="/subscriptions" color={IMT_COLORS.solar} />
+            <Shortcut icon={ShieldCheck} label="Licenses" to="/licenses" color={IMT_COLORS.success} />
+            <Shortcut icon={Warehouse} label="Inventory" to="/inventory" color={IMT_COLORS.warning} />
+            <Shortcut icon={Server} label="Assets" to="/assets" color={IMT_COLORS.info} />
+            <Shortcut icon={BarChart3} label="Financial reports" to="/reports" color={IMT_COLORS.solar} />
+            <Shortcut icon={FolderKanban} label="Projects" to="/projects" color={IMT_COLORS.info} />
+            <Shortcut icon={Wallet} label="Finance workspace" to="/finance" color={IMT_COLORS.success} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
