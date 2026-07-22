@@ -163,3 +163,10 @@
     letter-spacing: -0.01em;
   }
 }
+
+.sharp-corners,
+.sharp-corners * {
+  --radius: 0rem !important;
+  border-radius: 0 !important;
+}
+
