@@ -208,7 +208,7 @@ export const createInvoiceForCustomer = createServerFn({ method: "POST" })
         dueDate: invoice.due_date,
         currency: invoice.currency,
         subtotal, tax, total,
-        items: lineRows.map((r) => ({ description: r.description, quantity: r.quantity, unit_price: r.unit_price, line_total: r.line_total })),
+        items: lineRows.map((r) => ({ description: r.description, quantity: r.quantity, unit_price: r.unit_price, line_total: r.quantity * r.unit_price * (1 + taxRate / 100) })),
       }, `invoice-${invoice.id}`);
     }
     return invoice;
