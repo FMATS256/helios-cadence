@@ -1106,9 +1106,8 @@ function Customer360() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
-        </div>
-      </div>
     </PageContainer>
+
   );
 }
 
