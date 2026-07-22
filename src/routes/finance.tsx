@@ -290,61 +290,25 @@ function FinanceWorkspace() {
         )}
       </div>
 
-      {/* ── Secondary: KPI mosaic + quick actions ───────────────────── */}
-      <SectionCard title="Quick actions" description="Launch existing workflows without leaving Finance">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <QuickAction icon={FileText} label="Create Invoice" to="/billing" tone="warning" />
-          <QuickAction icon={DollarSign} label="Record Payment" to="/payments" tone="success" />
-          <QuickAction icon={Users} label="Create Customer" to="/customers/new" tone="info" />
-          <QuickAction icon={Package} label="Add Product" to="/catalog" tone="solar" />
-          <QuickAction icon={Repeat} label="Add Subscription" to="/subscriptions" tone="success" />
-          <QuickAction icon={Receipt} label="Create Quote" to="/quotes" tone="info" />
-          <QuickAction icon={Warehouse} label="Inventory" to="/inventory" tone="warning" />
-          <QuickAction icon={Server} label="Assets" to="/assets" tone="info" />
-          <QuickAction icon={BarChart3} label="Reports" to="/reports" tone="solar" />
-          <QuickAction icon={ShieldCheck} label="Licenses" to="/licenses" tone="success" />
+      {/* ── Graphs ─────────────────────────────────────────────────── */}
+      {tab === "dashboard" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <CashFlowCard
+              data={cashFlow}
+              currency={currency}
+              asOfDate={asOfDate}
+              yearStartDate={yearStartDate}
+              incoming={kpi?.incomingTotal ?? 0}
+              outgoing={kpi?.outgoingTotal ?? 0}
+              net={kpi?.netCash ?? 0}
+            />
+            <IncomeExpenseCard data={cashFlow} currency={currency} />
+          </div>
+          <TopExpensesCard data={topExpenses} currency={currency} />
         </div>
-      </SectionCard>
+      )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        <KpiCard label="MTD Revenue" value={money(kpi?.mtdRevenue ?? 0, currency)} icon={TrendingUp} tone="success" to="/payments" />
-        <KpiCard label="YTD Revenue" value={money(kpi?.ytdRevenue ?? 0, currency)} icon={TrendingUp} tone="success" to="/reports" />
-        <KpiCard label="MRR" value={money(kpi?.mrr ?? 0, currency)} icon={Repeat} tone="solar" to="/subscriptions" />
-        <KpiCard label="ARR" value={money(kpi?.arr ?? 0, currency)} icon={Repeat} tone="solar" to="/subscriptions" />
-        <KpiCard label="Overdue" value={money(kpi?.overdueTotal ?? 0, currency)} icon={AlertTriangle} tone="danger" to="/billing" hint={`${kpi?.overdueCount ?? 0} past due`} />
-        <KpiCard label="Renewals ≤ 30d" value={kpi?.renewalsSoon ?? 0} icon={Repeat} tone="warning" to="/subscriptions" />
-        <KpiCard label="Paid Invoices" value={kpi?.paidCount ?? 0} icon={Receipt} tone="success" to="/billing" />
-        <KpiCard label="Draft Invoices" value={kpi?.draftCount ?? 0} icon={FileText} tone="info" to="/billing" />
-        <KpiCard label="Active Customers" value={kpi?.activeCustomers ?? 0} icon={Users} tone="info" to="/customers" />
-        <KpiCard label="Active Subs" value={kpi?.activeSubs ?? 0} icon={Repeat} tone="success" to="/subscriptions" />
-        <KpiCard label="Inventory Value" value={money(kpi?.inventoryValue ?? 0, currency)} icon={Warehouse} tone="info" to="/inventory" />
-        <KpiCard label="Asset Value" value={money(kpi?.assetValue ?? 0, currency)} icon={Server} tone="info" to="/assets" />
-      </div>
-
-      <SectionCard title="Finance modules" description="Every finance area — open its dedicated workspace">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          <ModuleTile to="/customers" label="Customers" icon={Users} tone="info" />
-          <ModuleTile to="/catalog" label="Products & Services" icon={Package} tone="solar" />
-          <ModuleTile to="/quotes" label="Quotations" icon={FileText} tone="info" />
-          <ModuleTile to="/billing" label="Invoices" icon={Receipt} tone="warning" />
-          <ModuleTile to="/payments" label="Payments" icon={CreditCard} tone="success" />
-          <ModuleTile to="/subscriptions" label="Subscriptions" icon={Repeat} tone="solar" />
-          <ModuleTile to="/licenses" label="Licenses" icon={ShieldCheck} tone="success" />
-          <ModuleTile to="/inventory" label="Inventory" icon={Warehouse} tone="warning" />
-          <ModuleTile to="/assets" label="Assets" icon={Server} tone="info" />
-          <ModuleTile to="/reports" label="Financial Reports" icon={BarChart3} tone="solar" />
-          <ModuleTile to="/projects" label="Projects" icon={FolderKanban} tone="info" />
-          <ModuleTile to="/settings" label="Settings" icon={Building2} tone="info" />
-          <ModuleTile label="Banking" icon={Landmark} tone="info" soon />
-          <ModuleTile label="Accounts Payable" icon={FileText} tone="danger" soon />
-          <ModuleTile label="General Ledger" icon={BookOpen} tone="info" soon />
-          <ModuleTile label="Journal Entries" icon={ScrollText} tone="info" soon />
-          <ModuleTile label="Expenses" icon={ArrowDownRight} tone="danger" soon />
-          <ModuleTile label="Procurement" icon={Truck} tone="warning" soon />
-          <ModuleTile label="Tax" icon={ScrollText} tone="info" soon />
-          <ModuleTile label="Audit Logs" icon={Activity} tone="info" soon />
-        </div>
-      </SectionCard>
 
       <CustomerPanel customerId={customerId} onClose={() => setCustomerId(null)} currency={currency} />
     </PageContainer>
