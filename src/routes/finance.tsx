@@ -278,48 +278,9 @@ function FinanceWorkspace() {
           </div>
         )}
 
-        {/* ── Zoho-style dashboard body ───────────────────────────────── */}
+        {/* ── Netzur-style Finance Dashboard ──────────────────────────── */}
         {tab === "dashboard" && (
-          <div className="p-4 md:p-6 space-y-5">
-            {/* Receivables + Payables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ReceivablePayableCard
-                title="Total Receivables"
-                subtitle={`Total Unpaid Invoices ${money(kpi?.ar ?? 0, currency)}`}
-                current={kpi?.currentUnpaid ?? 0}
-                overdue={kpi?.overdueUnpaid ?? 0}
-                currency={currency}
-                actionTo="/billing"
-                accent="success"
-              />
-              <ReceivablePayableCard
-                title="Total Payables"
-                subtitle={`Total Unpaid Bills ${money((kpi?.payablesCurrent ?? 0) + (kpi?.payablesOverdue ?? 0), currency)}`}
-                current={kpi?.payablesCurrent ?? 0}
-                overdue={kpi?.payablesOverdue ?? 0}
-                currency={currency}
-                actionTo="/inventory"
-                accent="info"
-              />
-            </div>
-
-            {/* Cash flow */}
-            <CashFlowCard
-              data={cashFlow}
-              currency={currency}
-              asOfDate={asOfDate}
-              yearStartDate={yearStartDate}
-              incoming={kpi?.incomingTotal ?? 0}
-              outgoing={kpi?.outgoingTotal ?? 0}
-              net={kpi?.netCash ?? 0}
-            />
-
-            {/* Income vs Expense + Top Expenses */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <IncomeExpenseCard data={cashFlow} currency={currency} />
-              <TopExpensesCard data={topExpenses} currency={currency} />
-            </div>
-          </div>
+          <NetzurDashboard data={data} currency={currency} />
         )}
 
         {tab === "recent" && (
