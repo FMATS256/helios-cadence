@@ -1089,6 +1089,8 @@ function Customer360() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
     </PageContainer>
   );
 }
@@ -1101,9 +1103,36 @@ function QuickBtn({ to, icon: Icon, children }: { to: string; icon: any; childre
   );
 }
 
+function QuickJump({ to, icon: Icon, children }: { to: string; icon: any; children: React.ReactNode }) {
+  return (
+    <Link to={to as any} className="flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
+      <Icon className="h-4 w-4 text-solar" />
+      <span>{children}</span>
+    </Link>
+  );
+}
+
+function SideRow({ icon: Icon, label, value, href }: { icon: any; label: string; value?: string | null; href?: string }) {
+  const content = value || "—";
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        {href && value ? (
+          <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="text-sm text-solar hover:underline truncate block">{content}</a>
+        ) : (
+          <p className="text-sm truncate">{content}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return <div className="flex justify-between gap-4"><span className="text-muted-foreground">{k}</span><span className="text-right">{v}</span></div>;
 }
+
 function KpiTile({ icon: Icon, label, value, tone = "info" }: { icon: any; label: string; value: number | string; tone?: "info" | "success" | "warning" | "danger" }) {
   const toneMap: Record<string, string> = {
     info: "bg-info/15 text-info",
