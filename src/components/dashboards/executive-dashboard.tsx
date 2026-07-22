@@ -1,536 +1,286 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { HeroPanel, KpiCard, QuickAction, SectionCard } from "./shared";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  GradientAreaChart,
-  GradientBarChart,
-  DonutChart,
-  RadialGauge,
-  ChartLegend,
-  IMT_COLORS,
-  IMT_SERIES,
-} from "./charts";
-import { StatusPill } from "@/components/page";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+  Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid,
+} from "recharts";
+import { IMT_COLORS } from "./charts";
+import { cn } from "@/lib/utils";
 import {
-  Users, LifeBuoy, KeyRound, Server, Box, DollarSign,
-  Plus, FileText, TicketPlus, Building2, ArrowUpRight,
-  Cloud, Cpu, Rocket, AlertTriangle, ShieldCheck, Bell, Zap, GitBranch,
+  Users, UserPlus, LifeBuoy, ServerOff, Plus, TicketPlus, FileText,
+  DollarSign, KeyRound, Rocket, Server, Cloud, ChevronRight, Wallet,
 } from "lucide-react";
 
-const USD = (n: number) =>
-  `$${Math.round(n).toLocaleString("en-US")}`;
+const USD = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
 async function load() {
-  const [
-    customers, tickets, credentials, monitoring, invoices, assets, subs,
-    cloudServers, cloudActivity, plans, workflows, incidents, notifications,
-  ] = await Promise.all([
-    supabase.from("customers").select("id,account_number,company_name,status,created_at,industry").is("archived_at", null).order("created_at", { ascending: false }),
-    supabase.from("tickets").select("id,ticket_number,subject,priority,status,account_number,created_at").is("archived_at", null).order("created_at", { ascending: false }),
-    supabase.from("credentials").select("id,expires_at").is("archived_at", null),
-    (supabase.from as any)("monitoring_checks").select("id,status,name,check_type").is("archived_at", null),
-    (supabase.from as any)("invoices").select("id,amount_total,status,due_date,issued_at").is("archived_at", null),
-    (supabase.from as any)("assets").select("id,status,asset_type").is("archived_at", null),
-    (supabase.from as any)("subscriptions").select("id,mrr,status").is("archived_at", null),
-    (supabase.from as any)("cloud_servers").select("id,name,provider,status,region,monthly_cost_usd,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }),
-    (supabase.from as any)("cloud_activity").select("id,action,status,message,created_at,server_id").order("created_at", { ascending: false }).limit(12),
-    (supabase.from as any)("provisioning_plans").select("id,provider,region,status,estimated_monthly_usd,created_at,request").order("created_at", { ascending: false }).limit(20),
-    (supabase.from as any)("deployment_workflows").select("id,provider,status,current_step,total_steps,created_at").order("created_at", { ascending: false }).limit(10),
-    (supabase.from as any)("monitoring_incidents").select("id,severity,summary,status,opened_at").order("opened_at", { ascending: false }).limit(6),
-    (supabase.from as any)("notifications").select("id,title,body,link,created_at,read_at").order("created_at", { ascending: false }).limit(8),
+  const [customers, tickets, monitoring, invoices, payments, servers] = await Promise.all([
+    supabase.from("customers").select("id,status,created_at").is("archived_at", null),
+    supabase.from("tickets").select("id,status,created_at").is("archived_at", null),
+    (supabase.from as any)("monitoring_checks").select("id,status").is("archived_at", null),
+    (supabase.from as any)("invoices").select("id,amount_total,status,issued_at,due_date").is("archived_at", null),
+    (supabase.from as any)("payments").select("id,amount,created_at").is("archived_at", null),
+    (supabase.from as any)("cloud_servers").select("id,status,created_at").is("archived_at", null),
   ]);
 
   const c = customers.data ?? [];
   const t = tickets.data ?? [];
-  const cr = credentials.data ?? [];
   const m = (monitoring.data ?? []) as any[];
   const inv = (invoices.data ?? []) as any[];
-  const s = (subs.data ?? []) as any[];
-  const servers = (cloudServers.data ?? []) as any[];
-  const acts = (cloudActivity.data ?? []) as any[];
-  const pl = (plans.data ?? []) as any[];
-  const wf = (workflows.data ?? []) as any[];
-  const inc = (incidents.data ?? []) as any[];
-  const notifs = (notifications.data ?? []) as any[];
+  const pays = (payments.data ?? []) as any[];
+  const srv = (servers.data ?? []) as any[];
 
-  const open = t.filter((x: any) => x.status !== "resolved" && x.status !== "closed");
-  const soon = new Date(); soon.setDate(soon.getDate() + 30);
-  const mrr = s.filter((x) => x.status === "active").reduce((sum, x) => sum + Number(x.mrr || 0), 0);
-  const unpaid = inv.filter((x) => x.status !== "paid").reduce((sum, x) => sum + Number(x.amount_total || 0), 0);
-  const down = m.filter((x) => x.status === "down").length;
-
-  // Cloud aggregates
-  const providerCounts = servers.reduce<Record<string, number>>((acc, x) => {
-    acc[x.provider ?? "unknown"] = (acc[x.provider ?? "unknown"] ?? 0) + 1;
-    return acc;
-  }, {});
-  const cloudSpend = servers.reduce((sum, x) => sum + Number(x.monthly_cost_usd || 0), 0);
-  const runningServers = servers.filter((x) => x.status === "running" || x.status === "active").length;
-
-  // Revenue trend (last 6 months from invoices.issued_at when paid)
-  const trend: { label: string; value: number }[] = [];
   const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const active = c.filter((x) => x.status === "active").length;
+  const newThisMonth = c.filter((x) => new Date(x.created_at) >= startOfThisMonth).length;
+  const openTickets = t.filter((x) => x.status !== "resolved" && x.status !== "closed").length;
+  const newTicketsThisMonth = t.filter((x) => new Date(x.created_at) >= startOfThisMonth).length;
+  const devicesDown = m.filter((x) => x.status === "down").length;
+  const serversRunning = srv.filter((x) => x.status === "running" || x.status === "active").length;
+
+  // Customers chart — 6 months of "new" vs "active cumulative"
+  const chart: { label: string; new: number; active: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    const total = inv
-      .filter((x) => x.status === "paid" && x.issued_at && new Date(x.issued_at) >= d && new Date(x.issued_at) < end)
-      .reduce((sum, x) => sum + Number(x.amount_total || 0), 0);
-    trend.push({ label: d.toLocaleDateString("en", { month: "short" }), value: total });
+    const nw = c.filter((x) => new Date(x.created_at) >= d && new Date(x.created_at) < end).length;
+    const cum = c.filter((x) => new Date(x.created_at) < end && x.status === "active").length;
+    chart.push({ label: d.toLocaleDateString("en", { month: "short" }), new: nw, active: cum });
   }
-  const trendMax = Math.max(1, ...trend.map((x) => x.value));
 
-  // Sparklines: last 6 months buckets
-  const bucket6 = (rows: any[], dateKey: string) => {
-    const buckets: number[] = new Array(6).fill(0);
-    rows.forEach((r) => {
-      const raw = r[dateKey];
-      if (!raw) return;
-      const dt = new Date(raw);
-      const diff = (now.getFullYear() - dt.getFullYear()) * 12 + (now.getMonth() - dt.getMonth());
-      if (diff >= 0 && diff < 6) buckets[5 - diff] += 1;
-    });
-    return buckets;
+  const invIn = (start: Date, end: Date) => inv.filter((x) => x.issued_at && new Date(x.issued_at) >= start && new Date(x.issued_at) < end);
+  const payIn = (start: Date, end: Date) => pays.filter((x) => x.created_at && new Date(x.created_at) >= start && new Date(x.created_at) < end);
+
+  const buildFin = (start: Date, end: Date) => {
+    const ii = invIn(start, end);
+    const pp = payIn(start, end);
+    const paid = ii.filter((x) => x.status === "paid");
+    const unpaid = ii.filter((x) => x.status !== "paid" && x.status !== "credit");
+    return {
+      paymentsCount: pp.length,
+      paymentsTotal: pp.reduce((s, x) => s + Number(x.amount || 0), 0),
+      paidCount: paid.length,
+      paidTotal: paid.reduce((s, x) => s + Number(x.amount_total || 0), 0),
+      unpaidCount: unpaid.length,
+      unpaidTotal: unpaid.reduce((s, x) => s + Number(x.amount_total || 0), 0),
+      creditCount: ii.filter((x) => x.status === "credit").length,
+      creditTotal: ii.filter((x) => x.status === "credit").reduce((s, x) => s + Number(x.amount_total || 0), 0),
+    };
   };
-  const customersSpark = bucket6(c, "created_at");
-  const ticketsSpark = bucket6(t, "created_at");
-  const serversSpark = bucket6(servers, "created_at");
-  const mrrSpark = trend.map((x) => x.value);
-
-  // Ticket priority breakdown
-  const openByPriority = ["critical", "high", "medium", "low"].map((p) => ({
-    name: p,
-    value: open.filter((x: any) => (x.priority || "low") === p).length,
-  })).filter((x) => x.value > 0);
-
-  // Cloud spend by provider
-  const spendByProvider = Object.entries(
-    servers.reduce<Record<string, number>>((acc, x) => {
-      const k = x.provider ?? "unknown";
-      acc[k] = (acc[k] ?? 0) + Number(x.monthly_cost_usd || 0);
-      return acc;
-    }, {}),
-  ).map(([name, value]) => ({ name, value: Math.round(value) }));
-
-  const fleetHealth = servers.length > 0 ? Math.round((runningServers / servers.length) * 100) : 100;
-
-  // Ops pipeline: Draft -> Approved -> Deploying -> Live
-  const draftCount = pl.filter((p) => p.status === "draft" || p.status === "pending_approval").length;
-  const approvedCount = pl.filter((p) => p.status === "approved").length;
-  const deployingCount = wf.filter((w) => w.status === "running" || w.status === "pending").length;
-  const liveCount = runningServers;
-  const pipeline = [
-    { label: "Draft", value: draftCount, spend: draftCount * 25, tone: "info" as const },
-    { label: "Approved", value: approvedCount, spend: approvedCount * 45, tone: "warning" as const },
-    { label: "Deploying", value: deployingCount, spend: deployingCount * 60, tone: "solar" as const },
-    { label: "Live", value: liveCount, spend: Math.round(cloudSpend), tone: "success" as const },
-  ];
-  const pipelineChart = pipeline.map((p) => ({ label: p.label, value: p.spend }));
+  const current = buildFin(startOfThisMonth, new Date(now.getFullYear(), now.getMonth() + 1, 1));
+  const last = buildFin(startOfLastMonth, startOfThisMonth);
 
   return {
-    customerCount: c.length,
-    openTickets: open.length,
-    credentialCount: cr.length,
-    expiringSoon: cr.filter((x: any) => x.expires_at && new Date(x.expires_at) < soon).length,
-    assetCount: (assets.data ?? []).length,
-    monitorsDown: down,
-    monitorsTotal: m.length,
-    mrr, unpaid,
-    recentCustomers: c.slice(0, 5),
-    recentTickets: open.slice(0, 6),
-    servers, providerCounts, cloudSpend, runningServers,
-    activity: acts,
-    plans: pl,
-    pendingPlans: pl.filter((p) => p.status === "draft" || p.status === "pending_approval"),
-    workflows: wf,
-    activeWorkflows: wf.filter((w) => w.status === "running" || w.status === "pending"),
-    incidents: inc,
-    openIncidents: inc.filter((x) => x.status !== "resolved" && x.status !== "closed"),
-    notifications: notifs,
-    unread: notifs.filter((n) => !n.read_at).length,
-    trend, trendMax,
-    customersSpark, ticketsSpark, serversSpark, mrrSpark,
-    openByPriority, spendByProvider, fleetHealth,
-    pipeline, pipelineChart,
+    active, newThisMonth, openTickets, newTicketsThisMonth, devicesDown,
+    serversRunning, serversTotal: srv.length,
+    chart, current, last,
   };
 }
 
-export function ExecutiveDashboard({ displayName }: { displayName: string }) {
-  const { data: s } = useQuery({ queryKey: ["dash-exec"], queryFn: load });
-
+/* ---------- KPI tile (Splynx style) ---------- */
+function StatTile({
+  label, value, icon: Icon, tone, to,
+}: {
+  label: string; value: string | number; icon: any;
+  tone: "success" | "info" | "warning" | "danger";
+  to: string;
+}) {
+  const toneMap = {
+    success: { fg: "text-success", ring: "bg-success/10" },
+    info: { fg: "text-info", ring: "bg-info/10" },
+    warning: { fg: "text-solar", ring: "bg-solar/10" },
+    danger: { fg: "text-destructive", ring: "bg-destructive/10" },
+  }[tone];
   return (
-    <>
-      <HeroPanel
-        eyebrow={new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}
-        title={`Welcome back, ${displayName.split(" ")[0] || displayName} 👋`}
-        subtitle={
-          <>
-            Your team has{" "}
-            <span className="text-solar font-semibold">{s?.pipeline?.[2]?.value ?? 0} deployments</span>{" "}
-            in flight and{" "}
-            <span className="text-solar font-semibold">{USD(s?.mrr ?? 0)}</span>{" "}
-            in active MRR across{" "}
-            <span className="text-solar font-semibold">{s?.customerCount ?? 0}</span> customers.
-          </>
-        }
-        actions={
-          <>
-            <Button asChild variant="outline" className="bg-white/10 text-navy-foreground border-white/20 hover:bg-white/20 hover:text-navy-foreground">
-              <Link to="/reports">View reports</Link>
-            </Button>
-            <Button asChild className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
-              <Link to="/cloud-ops/new"><Rocket className="h-4 w-4 mr-1.5" />Provision</Link>
-            </Button>
-          </>
-        }
-      />
-
-      {/* Business KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="Customers" value={s?.customerCount ?? 0} icon={Users} tone="info" to="/customers" spark={s?.customersSpark} hint={`${s?.pipeline?.[3]?.value ?? 0} live services`} />
-        <KpiCard label="Open Tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="solar" to="/tickets" spark={s?.ticketsSpark} />
-        <KpiCard label="MRR" value={USD(s?.mrr ?? 0)} icon={DollarSign} tone="success" to="/subscriptions" spark={s?.mrrSpark} />
-        <KpiCard label="Unpaid AR" value={USD(s?.unpaid ?? 0)} icon={FileText} tone="warning" to="/billing" />
-        <KpiCard label="Cloud Spend" value={USD(s?.cloudSpend ?? 0)} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
-      </div>
-
-
-      <SectionCard title="Quick actions" description="Kick off the most common workflows">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          <QuickAction icon={Rocket} label="Provision Server" to="/cloud-ops/new" tone="solar" />
-          <QuickAction icon={Plus} label="New Customer" to="/customers" />
-          <QuickAction icon={TicketPlus} label="Open Ticket" to="/tickets" tone="info" />
-          <QuickAction icon={FileText} label="Draft Quote" to="/quotes" tone="warning" />
-          <QuickAction icon={DollarSign} label="Log Payment" to="/payments" tone="success" />
-          <QuickAction icon={KeyRound} label="Vault Entry" to="/credentials" />
-          <QuickAction icon={Building2} label="Add Asset" to="/assets" tone="info" />
-          <QuickAction icon={Server} label="Monitoring" to="/monitoring" tone="success" />
+    <Card className="border-border overflow-hidden">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-3">
+          <div className={cn("h-10 w-10 rounded-xl grid place-items-center shrink-0", toneMap.ring)}>
+            <Icon className={cn("h-5 w-5", toneMap.fg)} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{label}</p>
+          </div>
         </div>
-      </SectionCard>
-
-      {/* Revenue trend + Pipeline value */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <SectionCard
-          title="Revenue trend"
-          description="Paid invoices, last 6 months"
-          action={
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold rounded-full px-2 py-1 bg-success/10 text-success">+{Math.round(((s?.trend?.[5]?.value ?? 0) / Math.max(1, s?.trend?.[4]?.value ?? 1) - 1) * 100)}% MoM</span>
-            </div>
-          }
-        >
-          <GradientAreaChart
-            data={s?.trend ?? []}
-            height={260}
-            color={IMT_COLORS.solar}
-            colorEnd={IMT_COLORS.solarGlow}
-            formatter={(v) => USD(v)}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title="Pipeline value"
-          description="Estimated monthly value by stage"
-          action={
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Total</p>
-              <p className="font-display text-xl font-bold tabular-nums">
-                {USD((s?.pipelineChart ?? []).reduce((a: number, b: any) => a + b.value, 0))}
-              </p>
-            </div>
-          }
-        >
-          <GradientBarChart
-            data={s?.pipelineChart ?? []}
-            height={260}
-            color={IMT_COLORS.navy}
-            colorEnd={IMT_COLORS.solar}
-            formatter={(v) => USD(v)}
-          />
-        </SectionCard>
-      </div>
-
-      {/* Pipeline snapshot */}
-      <SectionCard
-        title="Ops pipeline"
-        description="Live snapshot across the provisioning funnel"
-        action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">Open board <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
-      >
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {(s?.pipeline ?? []).map((p: any) => {
-            const toneMap: any = {
-              info: "from-info/15 to-info/0 border-info/30 text-info",
-              warning: "from-warning/25 to-warning/0 border-warning/40 text-[oklch(0.45_0.13_75)]",
-              solar: "from-solar/20 to-solar/0 border-solar/40 text-solar",
-              success: "from-success/15 to-success/0 border-success/30 text-success",
-            };
-            return (
-              <div key={p.label} className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 ${toneMap[p.tone]}`}>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-[2px] font-semibold">{p.label}</p>
-                  <span className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-card/70">{p.value}</span>
-                </div>
-                <p className="font-display text-3xl font-bold text-foreground mt-3 tabular-nums">{p.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">Est. {USD(p.spend)}/mo</p>
-              </div>
-            );
-          })}
+        <div className="mt-4 flex items-end justify-between border-t border-border pt-3">
+          <Link to={to as any} className="text-sm text-info hover:underline font-medium">View</Link>
+          <p className={cn("font-display text-3xl font-bold tabular-nums", toneMap.fg)}>{value}</p>
         </div>
-      </SectionCard>
-
-      {/* Fleet health + Cloud infra KPIs */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <SectionCard title="Fleet health" description={`${s?.runningServers ?? 0} / ${s?.servers?.length ?? 0} servers running`}>
-          <RadialGauge
-            value={s?.fleetHealth ?? 100}
-            label="Uptime"
-            color={(s?.fleetHealth ?? 100) >= 90 ? IMT_COLORS.success : (s?.fleetHealth ?? 100) >= 60 ? IMT_COLORS.warning : IMT_COLORS.danger}
-            height={180}
-          />
-          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-lg border border-border p-2">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Monitors up</p>
-              <p className="font-display text-lg font-bold text-success tabular-nums">
-                {(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-2">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Incidents</p>
-              <p className={`font-display text-lg font-bold tabular-nums ${(s?.openIncidents?.length ?? 0) > 0 ? "text-destructive" : "text-success"}`}>
-                {s?.openIncidents?.length ?? 0}
-              </p>
-            </div>
-          </div>
-        </SectionCard>
-        <div className="xl:col-span-2 grid grid-cols-2 gap-3">
-          <KpiCard label="Cloud Servers" value={s?.servers?.length ?? 0} icon={Cloud} tone="info" to="/cloud-ops" hint={`${s?.runningServers ?? 0} running`} spark={s?.serversSpark} />
-          <KpiCard label="Active Workflows" value={s?.activeWorkflows?.length ?? 0} icon={Zap} tone="warning" to="/cloud-ops" hint={`${s?.workflows?.length ?? 0} total`} />
-          <KpiCard label="Plans Pending" value={s?.pendingPlans?.length ?? 0} icon={ShieldCheck} tone="info" to="/cloud-ops" hint="Awaiting approval" />
-          <KpiCard label="Monitors" value={`${(s?.monitorsTotal ?? 0) - (s?.monitorsDown ?? 0)}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All green"} />
-        </div>
-      </div>
-
-      {/* Cloud spend by provider + Ticket priority breakdown */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <SectionCard title="Cloud spend by provider" description="Monthly cost distribution">
-          {(s?.spendByProvider ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-10">No cloud servers yet</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              <DonutChart
-                data={s?.spendByProvider ?? []}
-                centerLabel="Total / mo"
-                centerValue={USD(s?.cloudSpend ?? 0)}
-                formatter={(v) => USD(v)}
-              />
-              <ChartLegend
-                items={(s?.spendByProvider ?? []).map((x) => ({
-                  name: x.name,
-                  value: USD(x.value),
-                  hint: `${Math.round((x.value / Math.max(1, s?.cloudSpend ?? 1)) * 100)}%`,
-                }))}
-              />
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard title="Open ticket priorities" description="Where support attention is concentrated">
-          {(s?.openByPriority ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-10">Inbox zero ✨</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              <DonutChart
-                data={s?.openByPriority ?? []}
-                centerLabel="Open"
-                centerValue={s?.openTickets ?? 0}
-                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
-              />
-              <ChartLegend
-                items={(s?.openByPriority ?? []).map((x) => ({ name: x.name, value: x.value }))}
-                colors={[IMT_COLORS.danger, IMT_COLORS.warning, IMT_COLORS.info, IMT_COLORS.success]}
-              />
-            </div>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* Provisioning plans + Workflows */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <SectionCard
-          title="Provisioning plans"
-          description="Awaiting engineer approval"
-          action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">All <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
-        >
-          <div className="space-y-2">
-            {(s?.pendingPlans ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No pending plans</p>}
-            {(s?.pendingPlans ?? []).slice(0, 6).map((p: any) => (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                <div className="h-9 w-9 rounded-lg bg-info/15 text-info flex items-center justify-center">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">
-                    {(p.request as any)?.name ?? "Untitled"} · <span className="text-muted-foreground capitalize">{p.provider}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">{p.region} · {USD(Number(p.estimated_monthly_usd || 0))}/mo</p>
-                </div>
-                <StatusPill tone="warning">{p.status}</StatusPill>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="Active workflows"
-          description="Live deployment progress"
-          action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">Console <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
-        >
-          <div className="space-y-3">
-            {(s?.activeWorkflows ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No workflows running</p>}
-            {(s?.activeWorkflows ?? []).slice(0, 6).map((w: any) => {
-              const pct = w.total_steps ? Math.round((w.current_step / w.total_steps) * 100) : 0;
-              return (
-                <div key={w.id} className="p-3 rounded-lg border border-border">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="font-mono text-xs truncate">{w.id.slice(0, 8)} · <span className="capitalize">{w.provider}</span></span>
-                    <StatusPill tone={w.status === "running" ? "info" : "warning"}>{w.status}</StatusPill>
-                  </div>
-                  <Progress value={pct} className="h-2" />
-                  <div className="text-[11px] text-muted-foreground mt-1 tabular-nums">
-                    Step {w.current_step ?? 0}/{w.total_steps ?? 20}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Incidents + Activity + Notifications */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <SectionCard title="Open incidents" description="Monitoring alerts requiring attention">
-          <div className="space-y-2">
-            {(s?.openIncidents ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No open incidents</p>}
-            {(s?.openIncidents ?? []).map((i: any) => (
-              <div key={i.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
-                <AlertTriangle className={`h-4 w-4 mt-0.5 ${i.severity === "critical" ? "text-destructive" : "text-warning"}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{i.summary}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(i.opened_at).toLocaleString()}</p>
-                </div>
-                <StatusPill tone={i.severity === "critical" ? "danger" : "warning"}>{i.severity}</StatusPill>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Cloud activity" description="Latest agent events">
-          <div className="space-y-2 max-h-72 overflow-auto pr-1">
-            {(s?.activity ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No recent activity</p>}
-            {(s?.activity ?? []).map((a: any) => (
-              <div key={a.id} className="flex items-start gap-2 text-xs">
-                <GitBranch className={`h-3.5 w-3.5 mt-0.5 ${a.status === "success" ? "text-success" : a.status === "error" ? "text-destructive" : "text-info"}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="truncate"><span className="font-semibold">{a.action}</span> · {a.message}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(a.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Notifications" description={`${s?.unread ?? 0} unread`}>
-          <div className="space-y-2 max-h-72 overflow-auto pr-1">
-            {(s?.notifications ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Nothing here</p>}
-            {(s?.notifications ?? []).map((n: any) => (
-              <div key={n.id} className={`flex items-start gap-2 p-2 rounded-lg ${!n.read_at ? "bg-solar/5 border border-solar/20" : "border border-border"}`}>
-                <Bell className="h-3.5 w-3.5 mt-1 text-solar" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate">{n.title}</p>
-                  {n.body && <p className="text-[11px] text-muted-foreground truncate">{n.body}</p>}
-                  <p className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Tickets + customers */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <SectionCard
-          className="xl:col-span-2"
-          title="Open tickets"
-          description="Latest unresolved requests"
-          action={<Button variant="ghost" size="sm" asChild><Link to="/tickets">Open desk <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
-        >
-          <div className="space-y-2">
-            {(s?.recentTickets ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">All caught up ✨</p>}
-            {(s?.recentTickets ?? []).map((t: any) => (
-              <Link key={t.id} to="/tickets/$id" params={{ id: t.id }} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                <div className="h-10 w-10 rounded-lg bg-navy/10 text-navy flex items-center justify-center font-semibold text-xs">{t.ticket_number}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{t.subject}</p>
-                  <p className="text-xs text-muted-foreground">{t.account_number} · {new Date(t.created_at).toLocaleDateString()}</p>
-                </div>
-                <StatusPill tone={t.priority === "critical" ? "danger" : t.priority === "high" ? "warning" : "info"}>{t.priority}</StatusPill>
-                <StatusPill tone="neutral">{t.status}</StatusPill>
-              </Link>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="Recent customers"
-          action={<Button variant="ghost" size="sm" asChild><Link to="/customers">All →</Link></Button>}
-        >
-          <div className="space-y-2">
-            {(s?.recentCustomers ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No customers yet</p>}
-            {(s?.recentCustomers ?? []).map((c: any) => (
-              <Link key={c.id} to="/customers/$accountNumber" params={{ accountNumber: c.account_number }} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="h-8 w-8 rounded-md bg-solar/15 text-solar flex items-center justify-center font-semibold text-[10px]">{c.account_number}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{c.company_name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{c.industry || "—"}</p>
-                </div>
-                <StatusPill tone={c.status === "active" ? "success" : "neutral"}>{c.status}</StatusPill>
-              </Link>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Fleet snapshot */}
-      <SectionCard
-        title="Cloud fleet"
-        description="All provisioned servers across providers"
-        action={<Button variant="ghost" size="sm" asChild><Link to="/cloud-ops">Manage <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}
-      >
-        {(s?.servers ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">No servers provisioned yet</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(s?.servers ?? []).slice(0, 9).map((sv: any) => (
-              <Link key={sv.id} to="/cloud-ops/$id" params={{ id: sv.id }} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition">
-                <div className="h-10 w-10 rounded-lg bg-navy/10 text-navy flex items-center justify-center">
-                  <Cpu className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{sv.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{sv.provider} · {sv.region}</p>
-                  <p className="text-[11px] text-muted-foreground tabular-nums">{USD(Number(sv.monthly_cost_usd || 0))}/mo</p>
-                </div>
-                <StatusPill tone={sv.status === "running" || sv.status === "active" ? "success" : sv.status === "error" ? "danger" : "neutral"}>{sv.status}</StatusPill>
-              </Link>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-    </>
+      </CardContent>
+    </Card>
   );
 }
 
-export { load as loadExecStats };
+/* ---------- Shortcut chip ---------- */
+function Shortcut({ icon: Icon, label, to, color }: { icon: any; label: string; to: string; color: string }) {
+  return (
+    <Link
+      to={to as any}
+      className="group flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted/50 transition-colors"
+    >
+      <div className="h-8 w-8 rounded-md grid place-items-center shrink-0" style={{ background: `${color}1A` }}>
+        <Icon className="h-4 w-4" style={{ color }} />
+      </div>
+      <span className="text-sm text-foreground group-hover:text-solar transition-colors truncate">{label}</span>
+    </Link>
+  );
+}
+
+/* ---------- Finance row ---------- */
+function FinRow({ label, count, total, danger }: { label: string; count: number; total: number; danger?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b border-border/60 last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={cn("text-sm font-semibold tabular-nums", danger ? "text-destructive" : "text-foreground")}>
+        {count} ({USD(total)})
+      </span>
+    </div>
+  );
+}
+
+export function ExecutiveDashboard({ displayName: _displayName }: { displayName: string }) {
+  const { data: s } = useQuery({ queryKey: ["dash-exec-splynx"], queryFn: load });
+  const [chartMode, setChartMode] = useState<"new" | "active">("new");
+
+  const chartData = useMemo(() => (s?.chart ?? []).map((d) => ({
+    label: d.label, value: chartMode === "new" ? d.new : d.active,
+  })), [s, chartMode]);
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className="h-9 w-9 rounded-lg bg-solar/10 grid place-items-center">
+          <Wallet className="h-5 w-5 text-solar" />
+        </div>
+        <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatTile label="Active customers" value={s?.active ?? 0} icon={Users} tone="success" to="/customers" />
+        <StatTile label="New customers" value={s?.newThisMonth ?? 0} icon={UserPlus} tone="info" to="/customers" />
+        <StatTile label="New & open tickets" value={s?.openTickets ?? 0} icon={LifeBuoy} tone="warning" to="/tickets" />
+        <StatTile
+          label={s && s.devicesDown > 0 ? "Devices down" : "Servers running"}
+          value={s && s.devicesDown > 0 ? s.devicesDown : (s?.serversRunning ?? 0)}
+          icon={s && s.devicesDown > 0 ? ServerOff : Server}
+          tone={s && s.devicesDown > 0 ? "danger" : "success"}
+          to="/monitoring"
+        />
+      </div>
+
+      {/* Shortcuts */}
+      <Card className="border-border">
+        <CardContent className="p-5">
+          <h2 className="font-display text-lg font-semibold text-foreground mb-3">Shortcuts</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-1">
+            <Shortcut icon={Plus} label="Add customer" to="/customers/new" color={IMT_COLORS.info} />
+            <Shortcut icon={TicketPlus} label="Add ticket" to="/tickets" color={IMT_COLORS.solar} />
+            <Shortcut icon={DollarSign} label="Record payment" to="/payments" color={IMT_COLORS.success} />
+            <Shortcut icon={FileText} label="Create invoice" to="/billing" color={IMT_COLORS.warning} />
+            <Shortcut icon={Rocket} label="Provision server" to="/cloud-ops/new" color={IMT_COLORS.solar} />
+            <Shortcut icon={KeyRound} label="Vault entry" to="/credentials" color={IMT_COLORS.navy} />
+            <Shortcut icon={Cloud} label="Cloud ops" to="/cloud-ops" color={IMT_COLORS.info} />
+            <Shortcut icon={Server} label="Monitoring" to="/monitoring" color={IMT_COLORS.success} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Chart + Finance */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        {/* Customers chart */}
+        <Card className="border-border xl:col-span-2">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-lg font-semibold text-foreground">Customers chart</h2>
+              <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40">
+                <button
+                  onClick={() => setChartMode("new")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-semibold rounded-md transition-colors",
+                    chartMode === "new" ? "bg-info text-white" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  New
+                </button>
+                <button
+                  onClick={() => setChartMode("active")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-semibold rounded-md transition-colors",
+                    chartMode === "active" ? "text-white" : "text-muted-foreground hover:text-foreground",
+                  )}
+                  style={chartMode === "active" ? { background: IMT_COLORS.solar } : undefined}
+                >
+                  Active
+                </button>
+              </div>
+            </div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 255)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "oklch(0.5 0.03 260)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "oklch(0.5 0.03 260)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 8, border: "1px solid oklch(0.92 0.01 255)",
+                      background: "white", fontSize: 12,
+                    }}
+                    labelStyle={{ fontWeight: 600 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={chartMode === "new" ? IMT_COLORS.info : IMT_COLORS.solar}
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: chartMode === "new" ? IMT_COLORS.info : IMT_COLORS.solar, strokeWidth: 0 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Finance */}
+        <Card className="border-border">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-success/10 grid place-items-center">
+                  <Wallet className="h-4 w-4 text-success" />
+                </div>
+                <h2 className="font-display text-lg font-semibold text-foreground">Finance</h2>
+              </div>
+              <Link to="/finance" className="text-xs text-info hover:underline flex items-center">
+                Open <ChevronRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <p className="text-sm font-semibold text-success mb-1">Current month</p>
+            <div>
+              <FinRow label="Payments" count={s?.current.paymentsCount ?? 0} total={s?.current.paymentsTotal ?? 0} />
+              <FinRow label="Paid invoices" count={s?.current.paidCount ?? 0} total={s?.current.paidTotal ?? 0} />
+              <FinRow label="Unpaid invoices" count={s?.current.unpaidCount ?? 0} total={s?.current.unpaidTotal ?? 0} danger={(s?.current.unpaidCount ?? 0) > 0} />
+              <FinRow label="Credit notes" count={s?.current.creditCount ?? 0} total={s?.current.creditTotal ?? 0} />
+            </div>
+
+            <p className="text-sm font-semibold text-solar mt-5 mb-1">Last month</p>
+            <div>
+              <FinRow label="Payments" count={s?.last.paymentsCount ?? 0} total={s?.last.paymentsTotal ?? 0} />
+              <FinRow label="Paid invoices" count={s?.last.paidCount ?? 0} total={s?.last.paidTotal ?? 0} />
+              <FinRow label="Unpaid invoices" count={s?.last.unpaidCount ?? 0} total={s?.last.unpaidTotal ?? 0} danger={(s?.last.unpaidCount ?? 0) > 0} />
+              <FinRow label="Credit notes" count={s?.last.creditCount ?? 0} total={s?.last.creditTotal ?? 0} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
