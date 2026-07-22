@@ -5,6 +5,7 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
     company_name: string;
+    account_type?: "corporate" | "personal";
     industry?: string;
     primary_email?: string;
     primary_phone?: string;
@@ -16,13 +17,14 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
     const { data: hasRole, error: roleError } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
     if (roleError) throw new Error(roleError.message);
     if (!hasRole) throw new Error("Your account needs a staff role before you can add records.");
-    if (!data.company_name?.trim()) throw new Error("Company name is required");
+    if (!data.company_name?.trim()) throw new Error("Name is required");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("customers")
       .insert({
         company_name: data.company_name.trim(),
+        account_type: data.account_type || "corporate",
         industry: data.industry?.trim() || null,
         primary_email: data.primary_email?.trim() || null,
         primary_phone: data.primary_phone?.trim() || null,
@@ -30,12 +32,11 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
         status: data.status || "active",
         notes: data.notes?.trim() || null,
         created_by: context.userId,
-      })
+      } as any)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
 
-    // Fire-and-forget welcome email
     if (row.primary_email) {
       const { notify } = await import("./notify.server");
       const { data: manager } = await supabaseAdmin
@@ -50,6 +51,74 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
       }, `welcome-${row.id}`);
     }
     return row;
+  });
+
+export const createOnboardingInvoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    customer_id: string;
+    items: { description: string; quantity: number; unit_price: number }[];
+    currency?: string;
+    mark_paid?: boolean;
+    payment_method?: string;
+    payment_reference?: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    if (!data.items?.length) throw new Error("At least one line item is required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: customer, error: cErr } = await supabaseAdmin
+      .from("customers").select("id, account_number").eq("id", data.customer_id).single();
+    if (cErr || !customer) throw new Error(cErr?.message || "Customer not found");
+
+    const subtotal = data.items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
+    const total = Number(subtotal.toFixed(2));
+
+    const { data: inv, error: invErr } = await supabaseAdmin.from("invoices").insert({
+      customer_id: customer.id,
+      account_number: customer.account_number,
+      status: "sent",
+      currency: data.currency || "USD",
+      subtotal: total,
+      tax: 0,
+      total,
+      due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+      created_by: context.userId,
+    } as any).select("*").single();
+    if (invErr || !inv) throw new Error(invErr?.message || "Could not create invoice");
+
+    const { error: liErr } = await supabaseAdmin.from("invoice_line_items").insert(
+      data.items.map((i) => ({
+        invoice_id: inv.id,
+        description: i.description,
+        quantity: Number(i.quantity),
+        unit_price: Number(i.unit_price),
+      })) as any,
+    );
+    if (liErr) throw new Error(liErr.message);
+
+    let payment: any = null;
+    if (data.mark_paid) {
+      const { data: pay, error: payErr } = await supabaseAdmin.from("payments").insert({
+        customer_id: customer.id,
+        account_number: customer.account_number,
+        invoice_id: inv.id,
+        amount: total,
+        currency: data.currency || "USD",
+        method: data.payment_method || "cash",
+        reference: data.payment_reference?.trim() || null,
+        status: "received",
+        paid_at: new Date().toISOString(),
+        created_by: context.userId,
+      } as any).select("*").single();
+      if (payErr) throw new Error(payErr.message);
+      payment = pay;
+      await supabaseAdmin.from("payment_allocations").insert({
+        payment_id: pay.id, invoice_id: inv.id, amount: total,
+      } as any);
+    }
+    return { invoice: inv, payment };
   });
 
 export const createPaymentRecord = createServerFn({ method: "POST" })

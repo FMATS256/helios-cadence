@@ -1191,6 +1191,7 @@ export type Database = {
         Row: {
           account_manager_id: string | null
           account_number: string
+          account_type: string
           archived_at: string | null
           billing_address: string | null
           company_name: string
@@ -1209,6 +1210,7 @@ export type Database = {
         Insert: {
           account_manager_id?: string | null
           account_number?: string
+          account_type?: string
           archived_at?: string | null
           billing_address?: string | null
           company_name: string
@@ -1227,6 +1229,7 @@ export type Database = {
         Update: {
           account_manager_id?: string | null
           account_number?: string
+          account_type?: string
           archived_at?: string | null
           billing_address?: string | null
           company_name?: string

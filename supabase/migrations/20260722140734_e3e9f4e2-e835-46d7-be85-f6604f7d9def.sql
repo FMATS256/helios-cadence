@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS account_type text NOT NULL DEFAULT 'corporate' CHECK (account_type IN ('corporate','personal'));
