@@ -141,7 +141,7 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
 }
 
 /* =============================== Record Payment ============================== */
-function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const payFn = useServerFn(createPaymentRecord);
   const [form, setForm] = useState({
