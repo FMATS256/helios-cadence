@@ -30,7 +30,10 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
-import { ClientActionsBar } from "@/components/client-action-dialogs";
+import {
+  AddServiceDialog, RecordPaymentDialog, CreateInvoiceDialog,
+  CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
+} from "@/components/client-action-dialogs";
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
@@ -480,59 +483,19 @@ function Customer360() {
           </CardContent>
         </Card>
 
-        {/* Dynamic KPI block — MRR is the only financial KPI; all others are operational and driven by the capability engine */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <KpiTile icon={TrendingUp} label="MRR" value={money(kpis.mrr)} tone="success" />
-            {kpis.operational.slice(0, 5).map((k) => (
-              <KpiTile key={k.key} icon={Activity} label={k.label} value={k.value} tone={(k.tone === "danger" ? "warning" : k.tone) as any} />
-            ))}
-          </div>
-
-          {/* Capability strip — one card per service line the customer actually owns */}
-          {caps.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Active service lines</p>
-                  <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
-                  {caps.map((cap) => {
-                    const items = cap.pickItems(view as Customer360View);
-                    const Icon = cap.icon;
-                    return (
-                      <button
-                        key={cap.key}
-                        type="button"
-                        onClick={() => setActiveTab(cap.key)}
-                        className="flex items-center gap-3 p-3 border border-border hover:border-solar/60 hover:bg-solar/5 transition text-left"
-                      >
-                        <span className="h-9 w-9 flex items-center justify-center text-white" style={{ background: cap.color }}>
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-xs text-muted-foreground">{cap.label}</span>
-                          <span className="block font-display font-semibold">{items.length}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick actions — real, wired dialogs only */}
-          <Card>
-            <CardContent className="p-4">
-              <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
-            </CardContent>
-          </Card>
-        </div>
+        {/* ISP-style dynamic hero pane — layout pixel-matched, every value dynamic.
+            No fake fillers: rows/chips whose underlying data is missing are omitted or
+            replaced with the closest live equivalent for the customer's actual services. */}
+        <IspHeroPane
+          view={view as Customer360View}
+          stats={stats}
+          onLifecycle={(a: "suspend" | "resume") => toggleLifecycle.mutate(a)}
+          onSendReminder={() => sendReminder.mutate()}
+          onEdit={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}
+          onRefresh={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}
+        />
       </div>
+
 
 
       {/* Edit customer dialog */}
@@ -1393,6 +1356,216 @@ function ActionBtn({ tone, icon: Icon, label, onClick }: { tone: "indigo" | "amb
       <Icon className="h-3.5 w-3.5" />
       {label}
     </button>
+  );
+}
+
+/* ============================================================================
+ * IspHeroPane — pixel-matched ISP hero, every value dynamic.
+ * ==========================================================================*/
+type Chip = { label: string; value: string | number; color: string; text: string };
+
+function ispChips(view: Customer360View): Chip[] {
+  const chips: Chip[] = [];
+  const s = view.stats;
+  const server = view.cloudServers[0] as any;
+  const host = view.webHosting[0] as any;
+  const nas = view.managedNas[0] as any;
+  const store = view.cloudStorage[0] as any;
+  if (server && (server.vcpu ?? server.cpu)) {
+    chips.push({ label: "vCPU CORES", value: server.vcpu ?? server.cpu, color: "#7c3aed", text: "#ffffff" });
+  } else if (host && host.disk_quota_gb) {
+    chips.push({ label: "DISK QUOTA", value: `${host.disk_quota_gb} GB`, color: "#7c3aed", text: "#ffffff" });
+  } else if (store && (store.capacity_gb ?? store.storage_gb)) {
+    chips.push({ label: "STORAGE", value: `${store.capacity_gb ?? store.storage_gb} GB`, color: "#7c3aed", text: "#ffffff" });
+  } else if (nas && (nas.capacity_gb ?? nas.total_capacity_gb)) {
+    chips.push({ label: "NAS CAPACITY", value: `${nas.capacity_gb ?? nas.total_capacity_gb} GB`, color: "#7c3aed", text: "#ffffff" });
+  } else if (view.starlink.length) {
+    chips.push({ label: "STARLINK KITS", value: view.starlink.length, color: "#7c3aed", text: "#ffffff" });
+  } else if (view.assets.length) {
+    chips.push({ label: "ASSIGNED ASSETS", value: view.assets.length, color: "#7c3aed", text: "#ffffff" });
+  } else {
+    chips.push({ label: "ACTIVE SERVICES", value: s.activeServices, color: "#7c3aed", text: "#ffffff" });
+  }
+
+  if (view.cloudServers.length) {
+    chips.push({ label: "SERVERS RUNNING", value: `${s.activeServers}/${view.cloudServers.length}`, color: "#2563eb", text: "#ffffff" });
+  } else if (view.monitoringChecks.length) {
+    chips.push({ label: "MONITORS UP", value: `${s.monitorsUp}/${view.monitoringChecks.length}`, color: "#2563eb", text: "#ffffff" });
+  } else if (view.webHosting.length) {
+    chips.push({ label: "HOSTING ACCOUNTS", value: view.webHosting.length, color: "#2563eb", text: "#ffffff" });
+  } else if (s.openTickets > 0) {
+    chips.push({ label: "OPEN TICKETS", value: s.openTickets, color: "#2563eb", text: "#ffffff" });
+  } else {
+    chips.push({ label: "SUBSCRIPTIONS", value: s.activeSubscriptions, color: "#2563eb", text: "#ffffff" });
+  }
+
+  const nextR = collectRenewals(view, 365)[0];
+  if (nextR) {
+    chips.push({ label: "EXPIRATION", value: new Date(nextR.date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
+  } else if ((view.customer as any)?.contract_end_date) {
+    chips.push({ label: "CONTRACT ENDS", value: new Date((view.customer as any).contract_end_date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
+  } else if ((view.customer as any)?.created_at) {
+    chips.push({ label: "CUSTOMER SINCE", value: String(new Date((view.customer as any).created_at).getFullYear()), color: "#ea580c", text: "#ffffff" });
+  } else {
+    chips.push({ label: "STATUS", value: (view.customer as any)?.status || "active", color: "#ea580c", text: "#ffffff" });
+  }
+
+  const credit = Number((view.customer as any)?.credit_balance || 0);
+  if (credit > 0) {
+    chips.push({ label: "CREDIT", value: money(credit), color: "#0d9488", text: "#ffffff" });
+  } else if (view.starlink.length || view.voip.length) {
+    chips.push({ label: "PREPAID SERVICES", value: view.starlink.length + view.voip.length, color: "#0d9488", text: "#ffffff" });
+  } else {
+    chips.push({ label: "MRR", value: money(s.mrr), color: "#0d9488", text: "#ffffff" });
+  }
+
+  const cutoff = Date.now() - 90 * 86400000;
+  const paid90 = (view.payments as any[])
+    .filter((p) => p.paid_at && new Date(p.paid_at).getTime() >= cutoff)
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  chips.push({ label: "PAID (90d)", value: money(paid90), color: "#10b981", text: "#ffffff" });
+
+  chips.push({ label: "UNPAID", value: money(s.openInvoiceTotal), color: "#dc2626", text: "#ffffff" });
+  return chips;
+}
+
+function ispQuickInfo(view: Customer360View): Array<{ label: string; value: string; sub?: string }> {
+  const rows: Array<{ label: string; value: string; sub?: string }> = [];
+  const primarySub = (view.subscriptions as any[]).find((s) => s.status === "active") || (view.subscriptions as any[])[0];
+  if (primarySub?.plan_name) rows.push({ label: "Primary Package", value: primarySub.plan_name, sub: primarySub.description || undefined });
+  if (primarySub?.billing_cycle) rows.push({ label: "Billing Cycle", value: primarySub.billing_cycle });
+  if (primarySub?.next_renewal) rows.push({ label: "Next Renewal", value: new Date(primarySub.next_renewal).toLocaleDateString() });
+
+  const server = view.cloudServers[0] as any;
+  const host = view.webHosting[0] as any;
+  const star = view.starlink[0] as any;
+  const voip = view.voip[0] as any;
+  if (server) {
+    if (server.hostname || server.name) rows.push({ label: "Primary Server", value: server.hostname || server.name, sub: server.public_ip || undefined });
+    if (server.provider) rows.push({ label: "Cloud Provider", value: server.provider });
+    if (server.os) rows.push({ label: "Operating System", value: server.os });
+  } else if (host) {
+    if (host.domain) rows.push({ label: "Primary Domain", value: host.domain });
+    if (host.control_panel) rows.push({ label: "Control Panel", value: host.control_panel });
+  } else if (star) {
+    if (star.kit_serial) rows.push({ label: "Starlink Kit", value: star.kit_serial });
+    if (star.terminal_id) rows.push({ label: "Terminal ID", value: star.terminal_id });
+    if (star.plan_type) rows.push({ label: "Starlink Plan", value: star.plan_type });
+  } else if (voip) {
+    if (voip.sip_username) rows.push({ label: "SIP Username", value: voip.sip_username });
+    if (voip.did_number || voip.number) rows.push({ label: "DID Number", value: voip.did_number || voip.number });
+  }
+
+  const lastPay = (view.payments as any[])[0];
+  if (lastPay?.paid_at) rows.push({ label: "Last Payment", value: new Date(lastPay.paid_at).toLocaleDateString(), sub: `${lastPay.currency || "USD"} ${Number(lastPay.amount || 0).toFixed(2)}` });
+
+  const c = view.customer as any;
+  if (c?.created_at) rows.push({ label: "Registered On", value: new Date(c.created_at).toLocaleDateString() });
+  if (c?.account_type) rows.push({ label: "Account Type", value: String(c.account_type) });
+  if (c?.status) rows.push({ label: "Status", value: String(c.status) });
+  if (view.contacts.length) rows.push({ label: "Contacts on File", value: String(view.contacts.length) });
+  if (c?.account_number) rows.push({ label: "Subscriber Code", value: c.account_number });
+  return rows;
+}
+
+function IspHeroPane(props: {
+  view: Customer360View;
+  stats: Customer360View["stats"];
+  onLifecycle: (a: "suspend" | "resume") => void;
+  onSendReminder: () => void;
+  onEdit: () => void;
+  onRefresh: () => void;
+}) {
+  const { view, stats, onLifecycle, onSendReminder, onEdit, onRefresh } = props;
+  const customer = view.customer as any;
+  const ctx: ClientContext = {
+    customerId: customer.id,
+    accountNumber: customer.account_number,
+    companyName: customer.company_name,
+    primaryEmail: customer.primary_email,
+  };
+  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm">(null);
+
+  const chips = useMemo(() => ispChips(view), [view]);
+  const info = useMemo(() => ispQuickInfo(view), [view]);
+  const arr = stats.mrr * 12;
+  const suspended = customer?.status !== "active";
+
+  const hasPrepaid = view.starlink.length > 0 || view.voip.length > 0;
+  const hasCloud = view.cloudServers.length > 0;
+  const hasOverdue = stats.openInvoiceTotal > 0;
+  const slot5: { label: string; icon: any; onClick: () => void } =
+    hasPrepaid
+      ? { label: "Recharge", icon: RefreshCw, onClick: () => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; } }
+      : hasCloud
+        ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
+        : hasOverdue
+          ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
+          : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2">
+        {chips.slice(0, 3).map((c, i) => <StatChip key={`a${i}`} label={c.label} value={String(c.value)} color={c.color} text={c.text} />)}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {chips.slice(3, 6).map((c, i) => <StatChip key={`b${i}`} label={c.label} value={String(c.value)} color={c.color} text={c.text} />)}
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between py-3">
+          <CardTitle className="text-sm font-display uppercase tracking-wider">Quick Information</CardTitle>
+          <Button size="sm" variant="ghost" onClick={onRefresh}><RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh</Button>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 pt-0">
+          {info.map((r, i) => <InfoRow key={i} label={r.label} value={r.value} sub={r.sub} />)}
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-2">
+        <ActionBtn tone="indigo"  icon={PackageIcon} label="Change/Add Package" onClick={() => setOpen("service")} />
+        <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
+        <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
+        <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
+        <ActionBtn tone="rose"    icon={slot5.icon}  label={slot5.label}        onClick={slot5.onClick} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition bg-[oklch(0.4_0.03_265)] hover:bg-[oklch(0.35_0.03_265)] text-white">
+              <MoreHorizontal className="h-3.5 w-3.5" />
+              Other Actions
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setOpen("quote")}><FileCheck className="h-4 w-4 mr-2" />New Quote</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen("ticket")}><LifeBuoy className="h-4 w-4 mr-2" />New Ticket</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen("comm")}><Mail className="h-4 w-4 mr-2" />Log Communication</DropdownMenuItem>
+            <DropdownMenuItem onClick={onSendReminder}><Bell className="h-4 w-4 mr-2" />Send Payment Reminder</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onEdit}><Pencil className="h-4 w-4 mr-2" />Edit Details</DropdownMenuItem>
+            {suspended ? (
+              <DropdownMenuItem onClick={() => onLifecycle("resume")}><PlayCircle className="h-4 w-4 mr-2 text-success" />Resume Account</DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) onLifecycle("suspend"); }} className="text-destructive focus:text-destructive"><PauseCircle className="h-4 w-4 mr-2" />Suspend Account</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone={stats.openInvoiceTotal > 0 ? "warning" : "success"} />
+        <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
+        <KpiTile icon={TrendingUp} label="ARR (Est.)" value={money(arr)} tone="info" />
+        <KpiTile icon={Activity} label="Active Services" value={stats.activeServices} tone="info" />
+        <KpiTile icon={LifeBuoy} label="Open Tickets" value={stats.openTickets} tone={stats.criticalTickets > 0 ? "danger" : stats.openTickets > 0 ? "warning" : "success"} />
+      </div>
+
+      {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "payment" && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "invoice" && <CreateInvoiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
+    </div>
   );
 }
 

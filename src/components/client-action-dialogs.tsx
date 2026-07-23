@@ -74,7 +74,7 @@ function useRefresh(accountNumber: string) {
 }
 
 /* ================================ Add Service ================================ */
-function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const catalogFn = useServerFn(listCatalog);
   const assignFn = useServerFn(assignServices);
@@ -141,7 +141,7 @@ function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () =>
 }
 
 /* =============================== Record Payment ============================== */
-function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const payFn = useServerFn(createPaymentRecord);
   const [form, setForm] = useState({
@@ -216,7 +216,7 @@ function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: ()
 }
 
 /* =============================== Create Invoice ============================== */
-function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const invFn = useServerFn(createInvoiceForCustomer);
   const subInvFn = useServerFn(generateInvoiceForSubscription);
@@ -306,7 +306,7 @@ function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: ()
 }
 
 /* ================================ Create Quote =============================== */
-function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createQuoteForCustomer);
   const [form, setForm] = useState({
@@ -355,7 +355,7 @@ function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () =
 }
 
 /* ================================ Create Ticket ============================== */
-function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createTicketForCustomer);
   const staffFn = useServerFn(listAssignableStaff);
@@ -404,7 +404,7 @@ function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () 
 }
 
 /* ============================== Log Communication ============================ */
-function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(logCommunication);
   const { data: contacts = [] } = useQuery({
