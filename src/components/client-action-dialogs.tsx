@@ -404,7 +404,7 @@ export function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClo
 }
 
 /* ============================== Log Communication ============================ */
-function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(logCommunication);
   const { data: contacts = [] } = useQuery({
