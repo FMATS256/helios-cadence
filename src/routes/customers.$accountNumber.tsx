@@ -30,7 +30,10 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
-import { ClientActionsBar } from "@/components/client-action-dialogs";
+import {
+  AddServiceDialog, RecordPaymentDialog, CreateInvoiceDialog,
+  CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
+} from "@/components/client-action-dialogs";
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
