@@ -74,7 +74,7 @@ function useRefresh(accountNumber: string) {
 }
 
 /* ================================ Add Service ================================ */
-function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const catalogFn = useServerFn(listCatalog);
   const assignFn = useServerFn(assignServices);
