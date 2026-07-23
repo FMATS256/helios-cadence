@@ -588,33 +588,100 @@ export const getCustomer360 = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!customer) return null;
     const cid = customer.id;
-    const [services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline, packages] = await Promise.all([
-      supabaseAdmin.from("cloud_services").select("id,service_name,service_type,vendor,plan,monthly_cost,status,renewal_date").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
+
+    // Single-round aggregation across every module that touches the customer.
+    const rows = <T,>(r: { data: T[] | null }) => (r.data ?? []) as T[];
+    const [
+      servicesR, subscriptionsR, invoicesR, paymentsR, quotesR, ticketsR, assetsR, credentialsR,
+      timelineR, packagesR, contactsR, branchesR, notesR, communicationsR,
+      cloudServersR, monitoringChecksR, monitoringIncidentsR, webHostingR, starlinkR, voipR,
+      cloudStorageR, managedNasR, licensesR, projectsR, auditLogR,
+    ] = await Promise.all([
+      supabaseAdmin.from("cloud_services").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
       supabaseAdmin.from("subscriptions").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
-      supabaseAdmin.from("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }).limit(50),
-      supabaseAdmin.from("payments").select("*").eq("customer_id", cid).order("paid_at", { ascending: false }).limit(50),
-      supabaseAdmin.from("quotes").select("id,quote_number,title,status,total,currency,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
-      supabaseAdmin.from("tickets").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
-      supabaseAdmin.from("assets").select("id,asset_tag,name,status,serial_number").eq("customer_id", cid).is("archived_at", null),
-      supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at").eq("customer_id", cid).is("archived_at", null),
-      supabaseAdmin.from("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }).limit(100),
+      supabaseAdmin.from("payments").select("*").eq("customer_id", cid).order("paid_at", { ascending: false }).limit(100),
+      supabaseAdmin.from("quotes").select("id,quote_number,title,status,total,currency,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(30),
+      supabaseAdmin.from("tickets").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("assets").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at,created_at").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(100),
       supabaseAdmin.from("customer_services").select("id, quantity, unit_price, status, started_on, ends_on, notes, catalog:service_catalog(id, code, name, category, billing_cycle, currency)").eq("customer_id", cid).order("created_at", { ascending: false }),
+      supabaseAdmin.from("customer_contacts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("customer_branches").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("customer_notes").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
+      supabaseAdmin.from("communications").select("*").eq("customer_id", cid).order("occurred_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("cloud_servers").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("monitoring_checks").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("monitoring_incidents").select("*").eq("customer_id", cid).order("started_at", { ascending: false }).limit(20),
+      supabaseAdmin.from("web_hosting_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("starlink_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("voip_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("cloud_storage_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("managed_nas_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("licenses").select("*").eq("customer_id", cid).is("archived_at", null),
+      supabaseAdmin.from("projects").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
+      supabaseAdmin.from("audit_log").select("*").eq("account_number", acct).order("created_at", { ascending: false }).limit(50),
     ]);
-    const openInvoiceTotal = (invoices.data ?? []).filter((i: any) => ["sent", "partial", "overdue"].includes(i.status)).reduce((s: number, i: any) => s + Number(i.total || 0), 0);
-    const mrr = (subscriptions.data ?? []).filter((s: any) => s.status === "active").reduce((sum: number, s: any) => sum + (s.billing_cycle === "yearly" ? Number(s.amount) / 12 : Number(s.amount) || 0), 0);
+
+    const services = rows(servicesR), subscriptions = rows(subscriptionsR), invoices = rows(invoicesR),
+      payments = rows(paymentsR), quotes = rows(quotesR), tickets = rows(ticketsR), assets = rows(assetsR),
+      credentials = rows(credentialsR), timeline = rows(timelineR), packages = rows(packagesR),
+      contacts = rows(contactsR), branches = rows(branchesR), notes = rows(notesR), communications = rows(communicationsR),
+      cloudServers = rows(cloudServersR), monitoringChecks = rows(monitoringChecksR),
+      monitoringIncidents = rows(monitoringIncidentsR), webHosting = rows(webHostingR),
+      starlink = rows(starlinkR), voip = rows(voipR), cloudStorage = rows(cloudStorageR),
+      managedNas = rows(managedNasR), licenses = rows(licensesR), projects = rows(projectsR),
+      auditLog = rows(auditLogR);
+
+    // Live operational metrics — no hardcoded placeholders.
+    const now = Date.now();
+    const soon = (iso?: string | null, days = 30) => {
+      if (!iso) return false;
+      const d = (new Date(iso).getTime() - now) / 86_400_000;
+      return d >= 0 && d <= days;
+    };
+    const isActive = (s: any) => ["active", "running", "on", "up"].includes(String(s?.status || "").toLowerCase());
+
+    const openInvoiceTotal = (invoices as any[]).filter((i) => ["sent", "partial", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i.total || 0), 0);
+    const overdueInvoiceCount = (invoices as any[]).filter((i) => i.status === "overdue").length;
+    const mrr = (subscriptions as any[]).filter((s) => s.status === "active").reduce((sum, s) => {
+      const amt = Number(s.amount) || 0;
+      const cyc = String(s.billing_cycle || "monthly").toLowerCase();
+      return sum + (cyc === "yearly" || cyc === "annual" ? amt / 12 : cyc === "quarterly" ? amt / 3 : cyc === "weekly" ? amt * 4.345 : amt);
+    }, 0);
+    const activeSubscriptions = (subscriptions as any[]).filter((s) => s.status === "active").length;
+    const activeCloudServices = (services as any[]).filter((s) => s.status === "active").length;
+    const openTickets = (tickets as any[]).filter((t) => !["resolved", "closed"].includes(t.status)).length;
+    const criticalTickets = (tickets as any[]).filter((t) => (t.priority === "critical" || t.priority === "urgent") && !["resolved", "closed"].includes(t.status)).length;
+    const activeServers = (cloudServers as any[]).filter(isActive).length;
+    const monitorsDown = (monitoringChecks as any[]).filter((c) => String(c.status || "").toLowerCase() === "down").length;
+    const monitorsUp = (monitoringChecks as any[]).filter((c) => String(c.status || "").toLowerCase() === "up").length;
+    const openIncidents = (monitoringIncidents as any[]).filter((i) => !i.resolved_at).length;
+    const activeAssets = (assets as any[]).filter((a) => ["active", "deployed", "in_use"].includes(String(a.status || "").toLowerCase())).length;
+    const credentialsExpiring = (credentials as any[]).filter((c) => soon(c.expires_at, 30)).length;
+    const licensesExpiring = (licenses as any[]).filter((l: any) => soon(l.expires_at ?? l.renewal_date, 60)).length;
+    const renewals30 =
+      (subscriptions as any[]).filter((s) => s.status === "active" && soon(s.next_renewal, 30)).length +
+      (services as any[]).filter((s) => s.status === "active" && soon(s.renewal_date, 30)).length +
+      (licenses as any[]).filter((l: any) => soon(l.expires_at ?? l.renewal_date, 30)).length;
+
     return {
       customer,
-      services: services.data ?? [],
-      subscriptions: subscriptions.data ?? [],
-      invoices: invoices.data ?? [],
-      payments: payments.data ?? [],
-      quotes: quotes.data ?? [],
-      tickets: tickets.data ?? [],
-      assets: assets.data ?? [],
-      credentials: credentials.data ?? [],
-      timeline: timeline.data ?? [],
-      packages: packages.data ?? [],
-      stats: { openInvoiceTotal, mrr, ticketCount: (tickets.data ?? []).length, activeServices: (services.data ?? []).filter((s: any) => s.status === "active").length },
+      services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline, packages,
+      contacts, branches, notes, communications,
+      cloudServers, monitoringChecks, monitoringIncidents, webHosting, starlink, voip,
+      cloudStorage, managedNas, licenses, projects, auditLog,
+      stats: {
+        openInvoiceTotal, overdueInvoiceCount, mrr,
+        activeSubscriptions, activeCloudServices, activeServers,
+        openTickets, criticalTickets,
+        monitorsUp, monitorsDown, openIncidents,
+        activeAssets, credentialsExpiring, licensesExpiring, renewals30,
+        // Back-compat aliases
+        ticketCount: (tickets as any[]).length,
+        activeServices: activeCloudServices,
+      },
     };
   });
 
