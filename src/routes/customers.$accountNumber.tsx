@@ -380,6 +380,48 @@ function Customer360() {
   };
 
 
+  // Group everything (subs, services, packages, assets, credentials) by IMT service line.
+  const serviceLineGroups = useMemo(() => {
+    const buckets = new Map<string, { subs: any[]; services: any[]; packages: any[]; assets: any[]; credentials: any[]; mrr: number; count: number }>();
+    const bucket = (key: string) => {
+      if (!buckets.has(key)) buckets.set(key, { subs: [], services: [], packages: [], assets: [], credentials: [], mrr: 0, count: 0 });
+      return buckets.get(key)!;
+    };
+    (subscriptions || []).forEach((s: any) => {
+      const k = classifyServiceLine(s.plan_name, s.description, s.billing_cycle);
+      const b = bucket(k);
+      b.subs.push(s);
+      b.count++;
+      if (s.status === "active") {
+        const amt = Number(s.amount) || 0;
+        const cyc = (s.billing_cycle || "monthly").toLowerCase();
+        b.mrr += cyc === "yearly" || cyc === "annual" ? amt / 12 : cyc === "quarterly" ? amt / 3 : amt;
+      }
+    });
+    (services || []).forEach((s: any) => {
+      const k = classifyServiceLine(s.service_name, s.service_type, s.vendor, s.plan);
+      const b = bucket(k);
+      b.services.push(s);
+      b.count++;
+      if (s.status === "active") b.mrr += Number(s.monthly_cost) || 0;
+    });
+    (packages || []).forEach((p: any) => {
+      const k = classifyServiceLine(p.catalog?.name, p.catalog?.category, p.catalog?.code);
+      bucket(k).packages.push(p);
+    });
+    (assets || []).forEach((a: any) => {
+      const k = classifyServiceLine(a.asset_type, a.name, a.model);
+      bucket(k).assets.push(a);
+    });
+    (credentials || []).forEach((c: any) => {
+      const k = classifyServiceLine(c.name, c.category, c.system);
+      bucket(k).credentials.push(c);
+    });
+    return SERVICE_LINES
+      .map((line) => ({ line, data: buckets.get(line.key) }))
+      .filter((row) => row.data && row.data.count + row.data.packages.length + row.data.assets.length + row.data.credentials.length > 0);
+  }, [subscriptions, services, packages, assets, credentials]);
+
   const initials = (customer.company_name || "?")
     .split(/\s+/)
     .map((w: string) => w[0])
