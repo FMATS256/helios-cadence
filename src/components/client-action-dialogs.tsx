@@ -355,7 +355,7 @@ export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClos
 }
 
 /* ================================ Create Ticket ============================== */
-function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createTicketForCustomer);
   const staffFn = useServerFn(listAssignableStaff);
