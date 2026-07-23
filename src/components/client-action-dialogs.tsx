@@ -216,7 +216,7 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 }
 
 /* =============================== Create Invoice ============================== */
-function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const invFn = useServerFn(createInvoiceForCustomer);
   const subInvFn = useServerFn(generateInvoiceForSubscription);
