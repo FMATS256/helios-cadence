@@ -124,13 +124,15 @@ function PaymentsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Today" value={fmt(kpi.today)} tone="solar" />
-        <KpiCard icon={<Receipt className="h-4 w-4" />} label="7 days" value={fmt(kpi.week)} />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="This month" value={fmt(kpi.month)} tone="solar" />
-        <KpiCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(kpi.pending)} tone="warning" />
-        <KpiCard icon={<AlertCircle className="h-4 w-4" />} label="Unreconciled" value={fmt(kpi.unrec)} tone="danger" />
-      </div>
+      <KpiRow
+        items={[
+          { icon: TrendingUp, label: "Today", value: fmt(kpi.today), tone: "solar" },
+          { icon: Receipt, label: "7 days", value: fmt(kpi.week), tone: "info" },
+          { icon: TrendingUp, label: "This month", value: fmt(kpi.month), tone: "solar" },
+          { icon: Clock, label: "Pending", value: fmt(kpi.pending), tone: "warning" },
+          { icon: AlertCircle, label: "Unreconciled", value: fmt(kpi.unrec), tone: "danger" },
+        ]}
+      />
 
       <Card>
         <CardContent className="p-0">
