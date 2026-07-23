@@ -191,7 +191,7 @@ function Customer360() {
       const { error } = await supabase.from("customer_contacts").insert({ customer_id: customer!.id, account_number: customer!.account_number, ...contactForm });
       if (error) throw error;
     },
-    onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-contacts", accountNumber] }); toast.success("Contact added"); },
+    onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Contact added"); },
   });
 
   const invoiceFromSub = useMutation({
