@@ -679,26 +679,144 @@ function Customer360() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* IMT service lines snapshot */}
+            <Card className="lg:col-span-3">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-display flex items-center gap-2"><Boxes className="h-4 w-4 text-solar" />IMT service lines</CardTitle>
+                <Link to="/customers/$accountNumber" params={{ accountNumber }} search={{ tab: "services" }} className="text-xs text-solar hover:underline">View all →</Link>
+              </CardHeader>
+              <CardContent>
+                {serviceLineGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No service lines on file yet. Assign packages from the Packages tab.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {serviceLineGroups.map(({ line, data }) => {
+                      const Icon = line.icon;
+                      return (
+                        <Link key={line.key} to={line.route} className="group p-3 rounded border border-border hover:border-solar transition-colors flex items-start gap-3">
+                          <div className="h-9 w-9 shrink-0 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{line.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {data!.subs.length + data!.services.length} services · {data!.packages.length} pkg · {data!.assets.length} assets
+                            </p>
+                            <p className="text-xs font-mono text-solar mt-0.5">{money(data!.mrr)}/mo</p>
+                          </div>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="services" className="mt-4">
-          <Card><CardContent className="p-0 divide-y">
-            {services.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No services yet.</p>}
-            {services.map((s: any) => (
-              <div key={s.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{s.service_name}</p>
-                  <p className="text-xs text-muted-foreground">{s.service_type} · {s.vendor || "—"} · {s.plan || "—"}{s.renewal_date ? ` · Renews ${s.renewal_date}` : ""}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono">{money(s.monthly_cost)}/mo</span>
-                  <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
-                </div>
-              </div>
-            ))}
-          </CardContent></Card>
+          <div className="space-y-4">
+            {serviceLineGroups.length === 0 && (
+              <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+                No services yet. Assign an IMT package from the Packages tab.
+              </CardContent></Card>
+            )}
+            {serviceLineGroups.map(({ line, data }) => {
+              const Icon = line.icon;
+              return (
+                <Card key={line.key}>
+                  <CardHeader className="flex flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="font-display text-base">{line.label}</CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          {data!.subs.length} subscription{data!.subs.length === 1 ? "" : "s"} ·{" "}
+                          {data!.services.length} service{data!.services.length === 1 ? "" : "s"} ·{" "}
+                          {data!.assets.length} asset{data!.assets.length === 1 ? "" : "s"} ·{" "}
+                          <span className="font-mono text-solar">{money(data!.mrr)}/mo</span>
+                        </p>
+                      </div>
+                    </div>
+                    <Link to={line.route} className="text-xs text-solar hover:underline inline-flex items-center gap-1">
+                      Open module <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-0 divide-y border-t">
+                    {data!.subs.map((s: any) => (
+                      <div key={`sub-${s.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{s.plan_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Subscription · {s.billing_cycle || "monthly"}
+                            {s.next_renewal ? ` · Renews ${new Date(s.next_renewal).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-mono">{money(Number(s.amount) || 0, s.currency || "USD")}</span>
+                          <StatusPill tone={s.status === "active" ? "success" : s.status === "paused" ? "warning" : "neutral"}>{s.status}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.services.map((s: any) => (
+                      <div key={`svc-${s.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{s.service_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {s.service_type} · {s.vendor || "—"} · {s.plan || "—"}
+                            {s.renewal_date ? ` · Renews ${new Date(s.renewal_date).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-mono">{money(Number(s.monthly_cost) || 0)}/mo</span>
+                          <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.packages.map((p: any) => (
+                      <div key={`pkg-${p.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{p.catalog?.name || "Package"}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Assigned package · {p.catalog?.code || p.catalog?.category || ""}
+                            {p.quantity ? ` · Qty ${p.quantity}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {p.unit_price != null && <span className="text-sm font-mono">{money(Number(p.unit_price) || 0, p.currency || "USD")}</span>}
+                          <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status || "active"}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.assets.map((a: any) => (
+                      <div key={`asset-${a.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{a.name || a.asset_type}</p>
+                          <p className="text-xs text-muted-foreground truncate">Asset · {a.model || a.serial_number || a.asset_type}</p>
+                        </div>
+                        <StatusPill tone={a.status === "active" ? "success" : "neutral"}>{a.status || "in use"}</StatusPill>
+                      </div>
+                    ))}
+                    {data!.credentials.map((c: any) => (
+                      <div key={`cred-${c.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">Credential · {c.system || c.category || "vault entry"}</p>
+                        </div>
+                        {c.expires_at && <span className="text-xs text-muted-foreground">Expires {new Date(c.expires_at).toLocaleDateString()}</span>}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </TabsContent>
+
 
         <TabsContent value="services-mgmt" className="mt-4">
           <Card>
