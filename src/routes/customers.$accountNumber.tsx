@@ -31,6 +31,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import { ClientActionsBar } from "@/components/client-action-dialogs";
+import {
+  CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
+  type Customer360View, type Capability,
+} from "@/lib/customer360/capability-engine";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
@@ -166,26 +170,11 @@ function Customer360() {
 
   const customer = view?.customer;
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["customer-contacts", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_contacts").select("*").eq("customer_id", customer!.id).is("archived_at", null)).data ?? [],
-  });
-  const { data: branches = [] } = useQuery({
-    queryKey: ["customer-branches", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_branches").select("*").eq("customer_id", customer!.id).is("archived_at", null)).data ?? [],
-  });
-  const { data: notes = [] } = useQuery({
-    queryKey: ["customer-notes", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_notes").select("*").eq("customer_id", customer!.id).order("created_at", { ascending: false })).data ?? [],
-  });
-  const { data: communications = [] } = useQuery({
-    queryKey: ["customer-comms", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("communications").select("*").eq("customer_id", customer!.id).order("occurred_at", { ascending: false }).limit(50)).data ?? [],
-  });
+  // Contacts / branches / notes / communications now flow from the single aggregation.
+  const contacts = (view as any)?.contacts ?? [];
+  const branches = (view as any)?.branches ?? [];
+  const notes = (view as any)?.notes ?? [];
+  const communications = (view as any)?.communications ?? [];
 
   const [noteBody, setNoteBody] = useState("");
   const addNote = useMutation({
@@ -193,7 +182,7 @@ function Customer360() {
       const { error } = await supabase.from("customer_notes").insert({ customer_id: customer!.id, account_number: customer!.account_number, body: noteBody, author_id: user?.id ?? null });
       if (error) throw error;
     },
-    onSuccess: () => { setNoteBody(""); qc.invalidateQueries({ queryKey: ["customer-notes", accountNumber] }); toast.success("Note added"); },
+    onSuccess: () => { setNoteBody(""); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Note added"); },
   });
 
   const [contactForm, setContactForm] = useState({ name: "", role: "", contact_type: "general", email: "", phone: "" });
@@ -202,7 +191,7 @@ function Customer360() {
       const { error } = await supabase.from("customer_contacts").insert({ customer_id: customer!.id, account_number: customer!.account_number, ...contactForm });
       if (error) throw error;
     },
-    onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-contacts", accountNumber] }); toast.success("Contact added"); },
+    onSuccess: () => { setContactForm({ name: "", role: "", contact_type: "general", email: "", phone: "" }); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Contact added"); },
   });
 
   const invoiceFromSub = useMutation({
@@ -429,6 +418,17 @@ function Customer360() {
     .slice(0, 2)
     .toUpperCase();
 
+  // Service Capability Engine — dynamic KPIs / tabs / sections driven by real data.
+  const caps: Capability[] = useMemo(() => activeCapabilities(view as Customer360View), [view]);
+  const kpis = useMemo(() => dynamicKpis(view as Customer360View), [view]);
+  const renewalsAll = useMemo(() => collectRenewals(view as Customer360View), [view]);
+  const capByKey = useMemo(() => Object.fromEntries(caps.map((c) => [c.key, c])) as Record<string, Capability>, [caps]);
+  const toneClass = (t?: string) =>
+    t === "success" ? "text-success" :
+    t === "warning" ? "text-warning" :
+    t === "danger" ? "text-destructive" :
+    t === "info" ? "text-solar" : "text-foreground";
+
   return (
     <PageContainer><div className="sharp-corners space-y-6">
       {/* Breadcrumb bar */}
@@ -441,11 +441,8 @@ function Customer360() {
           <span className="text-foreground font-medium truncate">{customer.account_number} Subscriber</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="border-warning text-warning hover:bg-warning/10">
-            <PauseCircle className="h-4 w-4 mr-1.5" />Disable
-          </Button>
           <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }}>
-            <XCircle className="h-4 w-4 mr-1.5" />Terminate
+            <XCircle className="h-4 w-4 mr-1.5" />{customer.status === "active" ? "Suspend" : "Terminate"}
           </Button>
           <Button size="sm" variant="outline" onClick={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}>
             <Pencil className="h-4 w-4 mr-1.5" />Details
@@ -453,7 +450,7 @@ function Customer360() {
         </div>
       </div>
 
-      {/* Netzur-style hero: identity block (left) + colored stat pills (right) */}
+      {/* Hero: identity block (left) + dynamic capability-driven KPIs (right) */}
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-4">
         {/* Identity block */}
         <Card className="border-border">
@@ -483,61 +480,52 @@ function Customer360() {
           </CardContent>
         </Card>
 
-        {/* Colored stat pills grid */}
+        {/* Dynamic KPI block — MRR is the only financial KPI; all others are operational and driven by the capability engine */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatChip label="Data" value={`${stats.activeServices * 10 || 0} GB`} color="#dbeafe" text="#1e40af" />
-            <StatChip label="Uptime" value="NoLimit" color="#ede9fe" text="#5b21b6" />
-            <StatChip label="Expiration" value={renewals[0]?.daysLeft != null ? `${renewals[0].daysLeft} D` : "—"} color="#fef3c7" text="#92400e" />
-            <StatChip label="Voucher" value={money(0).replace("USD ", "$")} color="#fce7f3" text="#9d174d" />
-            <StatChip label="Paid" value={money(stats.mrr).replace("USD ", "$")} color="#dcfce7" text="#166534" />
-            <StatChip label="Unpaid" value={money(stats.openInvoiceTotal).replace("USD ", "$")} color="#fee2e2" text="#991b1b" />
+            <KpiTile icon={TrendingUp} label="MRR" value={money(kpis.mrr)} tone="success" />
+            {kpis.operational.slice(0, 5).map((k) => (
+              <KpiTile key={k.key} icon={Activity} label={k.label} value={k.value} tone={(k.tone === "danger" ? "warning" : k.tone) as any} />
+            ))}
           </div>
 
-          {/* Quick Information */}
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Quick Information</p>
-                <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh Status
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <InfoRow label="Package Name" value={subscriptions[0]?.plan_name || "—"} sub={subscriptions[0]?.billing_cycle} />
-                <InfoRow label="Billing Type" value={subscriptions[0]?.billing_cycle || "Prepaid"} />
-                <InfoRow label="Expiry Date" value={subscriptions[0]?.next_renewal ? new Date(subscriptions[0].next_renewal).toISOString().slice(0, 10) : "—"} />
-                <InfoRow label="IPv4 Address" value={(customer as any).ipv4 || "DHCP"} />
-                <InfoRow label="Allowed NAS" value={(customer as any).allowed_nas || "ALL"} />
-                <InfoRow label="ipv6/Prefix / Del" value={(customer as any).ipv6 || "DHCP"} />
-                <InfoRow label="Last Recharge (Date/By)" value={payments[0]?.paid_at ? new Date(payments[0].paid_at).toISOString().slice(0, 10) : "—"} sub={customer.primary_email} />
-                <InfoRow label="Registered On/By" value={customerSince ? customerSince.toISOString().slice(0, 10) : "—"} />
-                <InfoRow label="OTP / Account Verified" value={customer.primary_email || "—"} />
-                <InfoRow label="Subscriber Code" value={customer.account_number} link />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Capability strip — one card per service line the customer actually owns */}
+          {caps.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Active service lines</p>
+                  <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+                  {caps.map((cap) => {
+                    const items = cap.pickItems(view as Customer360View);
+                    const Icon = cap.icon;
+                    return (
+                      <button
+                        key={cap.key}
+                        type="button"
+                        onClick={() => setActiveTab(cap.key)}
+                        className="flex items-center gap-3 p-3 border border-border hover:border-solar/60 hover:bg-solar/5 transition text-left"
+                      >
+                        <span className="h-9 w-9 flex items-center justify-center text-white" style={{ background: cap.color }}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs text-muted-foreground">{cap.label}</span>
+                          <span className="block font-display font-semibold">{items.length}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Colored action bar */}
-          <div className="flex flex-wrap gap-2">
-            <ActionBtn tone="indigo" icon={RefreshCw} label="Change/Add Package" onClick={() => setActiveTab("packages")} />
-            <ActionBtn tone="amber" icon={CreditCard} label="Recharge" onClick={() => setActiveTab("payments")} />
-            <ActionBtn tone="emerald" icon={Plus} label="Add Invoice" onClick={() => setActiveTab("invoices")} />
-            <ActionBtn tone="sky" icon={DollarSign} label="Add Payment" onClick={() => setActiveTab("payments")} />
-            <ActionBtn tone="rose" icon={XCircle} label="Reset MAC" onClick={() => toast.info("MAC reset queued")} />
-            <ActionBtn tone="slate" icon={MoreHorizontal} label="Other Actions" onClick={() => sendReminder.mutate()} />
-          </div>
-
-          {/* KPI strip (kept for platform metrics) */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone="warning" />
-            <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
-            <KpiTile icon={Activity} label="ARR (est.)" value={money(stats.mrr * 12)} tone="info" />
-            <KpiTile icon={Server} label="Active services" value={stats.activeServices} />
-            <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
-          </div>
-
-          {/* Quick actions inline dialogs */}
+          {/* Quick actions — real, wired dialogs only */}
           <Card>
             <CardContent className="p-4">
               <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
@@ -571,21 +559,21 @@ function Customer360() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>
-          <TabsTrigger value="packages">Packages</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="quotes">Quotes</TabsTrigger>
-          <TabsTrigger value="assets">Assets</TabsTrigger>
-          <TabsTrigger value="tickets">Tickets</TabsTrigger>
-          <TabsTrigger value="renewals">Renewals</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="credentials">Credentials</TabsTrigger>
-          <TabsTrigger value="comms">Communications</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          {subscriptions.length + services.length + packages.length > 0 && <TabsTrigger value="services">Services</TabsTrigger>}
+          {subscriptions.length > 0 && <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>}
+          {packages.length > 0 && <TabsTrigger value="packages">Packages</TabsTrigger>}
+          {subscriptions.length > 0 && <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>}
+          {(invoices.length + payments.length) > 0 && <TabsTrigger value="transactions">Transactions</TabsTrigger>}
+          {invoices.length > 0 && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
+          {payments.length > 0 && <TabsTrigger value="payments">Payments</TabsTrigger>}
+          {quotes.length > 0 && <TabsTrigger value="quotes">Quotes</TabsTrigger>}
+          {assets.length > 0 && <TabsTrigger value="assets">Assets</TabsTrigger>}
+          {tickets.length > 0 && <TabsTrigger value="tickets">Tickets</TabsTrigger>}
+          {renewalsAll.length > 0 && <TabsTrigger value="renewals">Renewals</TabsTrigger>}
+          {(contacts.length + branches.length) > 0 && <TabsTrigger value="contacts">Contacts</TabsTrigger>}
+          {credentials.length > 0 && <TabsTrigger value="credentials">Credentials</TabsTrigger>}
+          {communications.length > 0 && <TabsTrigger value="comms">Communications</TabsTrigger>}
+          {timeline.length > 0 && <TabsTrigger value="timeline">Timeline</TabsTrigger>}
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
