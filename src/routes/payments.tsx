@@ -5,8 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomersLite } from "@/components/module-page";
 import { createPaymentRecord, getCustomerPaymentContext } from "@/lib/ops.functions";
+import { getPaymentsOverview } from "@/lib/finance.functions";
 import { useAuth } from "@/hooks/use-auth";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +17,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Download, Receipt, TrendingUp, Clock, AlertCircle, X } from "lucide-react";
+import { Plus, Search, Download, Receipt, TrendingUp, Clock, AlertCircle, X, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PageShell, SectionHeader, KpiRow, StatusBadge, toneForStatus, money as fmtMoney,
+} from "@/components/enterprise";
 
 const METHODS = ["bank_transfer", "credit_card", "cash", "mobile_money", "cheque", "other"];
 const STATUSES = ["received", "pending", "failed", "refunded"];
