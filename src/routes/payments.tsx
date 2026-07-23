@@ -235,20 +235,6 @@ function PaymentsPage() {
   );
 }
 
-function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: "solar" | "warning" | "danger" }) {
-  const toneClass =
-    tone === "solar" ? "border-solar/40 bg-solar/5" :
-    tone === "warning" ? "border-amber-500/40 bg-amber-500/5" :
-    tone === "danger" ? "border-destructive/40 bg-destructive/5" : "";
-  return (
-    <Card className={toneClass}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wide">{icon}{label}</div>
-        <div className="mt-2 text-2xl font-mono font-semibold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function RecordPaymentDialog({
   open, onOpenChange, customers, getContext, onSubmit,
