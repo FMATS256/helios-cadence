@@ -441,11 +441,8 @@ function Customer360() {
           <span className="text-foreground font-medium truncate">{customer.account_number} Subscriber</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="border-warning text-warning hover:bg-warning/10">
-            <PauseCircle className="h-4 w-4 mr-1.5" />Disable
-          </Button>
           <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }}>
-            <XCircle className="h-4 w-4 mr-1.5" />Terminate
+            <XCircle className="h-4 w-4 mr-1.5" />{customer.status === "active" ? "Suspend" : "Terminate"}
           </Button>
           <Button size="sm" variant="outline" onClick={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}>
             <Pencil className="h-4 w-4 mr-1.5" />Details
@@ -453,12 +450,11 @@ function Customer360() {
         </div>
       </div>
 
-      {/* Netzur-style hero: identity block (left) + colored stat pills (right) */}
+      {/* Hero: identity block (left) + dynamic capability-driven KPIs (right) */}
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-4">
         {/* Identity block */}
         <Card className="border-border">
           <CardContent className="p-6 flex flex-col items-center text-center">
-            <div className="h-24 w-24 rounded-full flex items-center justify-center text-navy-foreground font-display text-3xl font-bold shadow-[var(--shadow-elegant)]" style={{ background: "var(--gradient-navy)" }}>
               {initials}
             </div>
             <p className="mt-4 font-display font-bold text-xl tracking-wide truncate max-w-full">{customer.company_name}</p>
