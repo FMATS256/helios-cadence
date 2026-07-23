@@ -480,61 +480,52 @@ function Customer360() {
           </CardContent>
         </Card>
 
-        {/* Colored stat pills grid */}
+        {/* Dynamic KPI block — MRR is the only financial KPI; all others are operational and driven by the capability engine */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatChip label="Data" value={`${stats.activeServices * 10 || 0} GB`} color="#dbeafe" text="#1e40af" />
-            <StatChip label="Uptime" value="NoLimit" color="#ede9fe" text="#5b21b6" />
-            <StatChip label="Expiration" value={renewals[0]?.daysLeft != null ? `${renewals[0].daysLeft} D` : "—"} color="#fef3c7" text="#92400e" />
-            <StatChip label="Voucher" value={money(0).replace("USD ", "$")} color="#fce7f3" text="#9d174d" />
-            <StatChip label="Paid" value={money(stats.mrr).replace("USD ", "$")} color="#dcfce7" text="#166534" />
-            <StatChip label="Unpaid" value={money(stats.openInvoiceTotal).replace("USD ", "$")} color="#fee2e2" text="#991b1b" />
+            <KpiTile icon={TrendingUp} label="MRR" value={money(kpis.mrr)} tone="success" />
+            {kpis.operational.slice(0, 5).map((k) => (
+              <KpiTile key={k.key} icon={Activity} label={k.label} value={k.value} tone={(k.tone === "danger" ? "warning" : k.tone) as any} />
+            ))}
           </div>
 
-          {/* Quick Information */}
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Quick Information</p>
-                <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh Status
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <InfoRow label="Package Name" value={subscriptions[0]?.plan_name || "—"} sub={subscriptions[0]?.billing_cycle} />
-                <InfoRow label="Billing Type" value={subscriptions[0]?.billing_cycle || "Prepaid"} />
-                <InfoRow label="Expiry Date" value={subscriptions[0]?.next_renewal ? new Date(subscriptions[0].next_renewal).toISOString().slice(0, 10) : "—"} />
-                <InfoRow label="IPv4 Address" value={(customer as any).ipv4 || "DHCP"} />
-                <InfoRow label="Allowed NAS" value={(customer as any).allowed_nas || "ALL"} />
-                <InfoRow label="ipv6/Prefix / Del" value={(customer as any).ipv6 || "DHCP"} />
-                <InfoRow label="Last Recharge (Date/By)" value={payments[0]?.paid_at ? new Date(payments[0].paid_at).toISOString().slice(0, 10) : "—"} sub={customer.primary_email} />
-                <InfoRow label="Registered On/By" value={customerSince ? customerSince.toISOString().slice(0, 10) : "—"} />
-                <InfoRow label="OTP / Account Verified" value={customer.primary_email || "—"} />
-                <InfoRow label="Subscriber Code" value={customer.account_number} link />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Capability strip — one card per service line the customer actually owns */}
+          {caps.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Active service lines</p>
+                  <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+                  {caps.map((cap) => {
+                    const items = cap.pickItems(view as Customer360View);
+                    const Icon = cap.icon;
+                    return (
+                      <button
+                        key={cap.key}
+                        type="button"
+                        onClick={() => setActiveTab(cap.key)}
+                        className="flex items-center gap-3 p-3 border border-border hover:border-solar/60 hover:bg-solar/5 transition text-left"
+                      >
+                        <span className="h-9 w-9 flex items-center justify-center text-white" style={{ background: cap.color }}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs text-muted-foreground">{cap.label}</span>
+                          <span className="block font-display font-semibold">{items.length}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Colored action bar */}
-          <div className="flex flex-wrap gap-2">
-            <ActionBtn tone="indigo" icon={RefreshCw} label="Change/Add Package" onClick={() => setActiveTab("packages")} />
-            <ActionBtn tone="amber" icon={CreditCard} label="Recharge" onClick={() => setActiveTab("payments")} />
-            <ActionBtn tone="emerald" icon={Plus} label="Add Invoice" onClick={() => setActiveTab("invoices")} />
-            <ActionBtn tone="sky" icon={DollarSign} label="Add Payment" onClick={() => setActiveTab("payments")} />
-            <ActionBtn tone="rose" icon={XCircle} label="Reset MAC" onClick={() => toast.info("MAC reset queued")} />
-            <ActionBtn tone="slate" icon={MoreHorizontal} label="Other Actions" onClick={() => sendReminder.mutate()} />
-          </div>
-
-          {/* KPI strip (kept for platform metrics) */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone="warning" />
-            <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
-            <KpiTile icon={Activity} label="ARR (est.)" value={money(stats.mrr * 12)} tone="info" />
-            <KpiTile icon={Server} label="Active services" value={stats.activeServices} />
-            <KpiTile icon={LifeBuoy} label="Open tickets" value={stats.ticketCount} />
-          </div>
-
-          {/* Quick actions inline dialogs */}
+          {/* Quick actions — real, wired dialogs only */}
           <Card>
             <CardContent className="p-4">
               <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
