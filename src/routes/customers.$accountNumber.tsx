@@ -559,21 +559,21 @@ function Customer360() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>
-          <TabsTrigger value="packages">Packages</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="quotes">Quotes</TabsTrigger>
-          <TabsTrigger value="assets">Assets</TabsTrigger>
-          <TabsTrigger value="tickets">Tickets</TabsTrigger>
-          <TabsTrigger value="renewals">Renewals</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="credentials">Credentials</TabsTrigger>
-          <TabsTrigger value="comms">Communications</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          {subscriptions.length + services.length + packages.length > 0 && <TabsTrigger value="services">Services</TabsTrigger>}
+          {subscriptions.length > 0 && <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>}
+          {packages.length > 0 && <TabsTrigger value="packages">Packages</TabsTrigger>}
+          {subscriptions.length > 0 && <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>}
+          {(invoices.length + payments.length) > 0 && <TabsTrigger value="transactions">Transactions</TabsTrigger>}
+          {invoices.length > 0 && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
+          {payments.length > 0 && <TabsTrigger value="payments">Payments</TabsTrigger>}
+          {quotes.length > 0 && <TabsTrigger value="quotes">Quotes</TabsTrigger>}
+          {assets.length > 0 && <TabsTrigger value="assets">Assets</TabsTrigger>}
+          {tickets.length > 0 && <TabsTrigger value="tickets">Tickets</TabsTrigger>}
+          {renewalsAll.length > 0 && <TabsTrigger value="renewals">Renewals</TabsTrigger>}
+          {(contacts.length + branches.length) > 0 && <TabsTrigger value="contacts">Contacts</TabsTrigger>}
+          {credentials.length > 0 && <TabsTrigger value="credentials">Credentials</TabsTrigger>}
+          {communications.length > 0 && <TabsTrigger value="comms">Communications</TabsTrigger>}
+          {timeline.length > 0 && <TabsTrigger value="timeline">Timeline</TabsTrigger>}
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
