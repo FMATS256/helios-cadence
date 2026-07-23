@@ -418,6 +418,17 @@ function Customer360() {
     .slice(0, 2)
     .toUpperCase();
 
+  // Service Capability Engine — dynamic KPIs / tabs / sections driven by real data.
+  const caps: Capability[] = useMemo(() => activeCapabilities(view as Customer360View), [view]);
+  const kpis = useMemo(() => dynamicKpis(view as Customer360View), [view]);
+  const renewalsAll = useMemo(() => collectRenewals(view as Customer360View), [view]);
+  const capByKey = useMemo(() => Object.fromEntries(caps.map((c) => [c.key, c])) as Record<string, Capability>, [caps]);
+  const toneClass = (t?: string) =>
+    t === "success" ? "text-success" :
+    t === "warning" ? "text-warning" :
+    t === "danger" ? "text-destructive" :
+    t === "info" ? "text-solar" : "text-foreground";
+
   return (
     <PageContainer><div className="sharp-corners space-y-6">
       {/* Breadcrumb bar */}
