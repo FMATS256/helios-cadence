@@ -657,7 +657,8 @@ export const getCustomer360 = createServerFn({ method: "POST" })
     const activeServers = (cloudServers as any[]).filter(isActive).length;
     const monitorsDown = (monitoringChecks as any[]).filter((c) => String(c.status || "").toLowerCase() === "down").length;
     const monitorsUp = (monitoringChecks as any[]).filter((c) => String(c.status || "").toLowerCase() === "up").length;
-    const openIncidents = (monitoringIncidents as any[]).filter((i) => !i.resolved_at).length;
+    const checkIds = new Set((monitoringChecks as any[]).map((c) => c.id));
+    const openIncidents = (monitoringIncidents as any[]).filter((i) => checkIds.has(i.check_id) && !i.ended_at).length;
     const activeAssets = (assets as any[]).filter((a) => ["active", "deployed", "in_use"].includes(String(a.status || "").toLowerCase())).length;
     const credentialsExpiring = (credentials as any[]).filter((c) => soon(c.expires_at, 30)).length;
     const licensesExpiring = (licenses as any[]).filter((l: any) => soon(l.expires_at ?? l.renewal_date, 60)).length;
