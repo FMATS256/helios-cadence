@@ -109,8 +109,8 @@ function PaymentsPage() {
   }
 
   return (
-    <PageContainer>
-      <PageHeader
+    <PageShell>
+      <SectionHeader
         eyebrow="Business"
         title="Payments Platform"
         description="Record, reconcile and analyze every payment across customers, subscriptions and services."
@@ -199,12 +199,12 @@ function PaymentsPage() {
                     <TableCell className="text-sm capitalize">{r.method?.replace(/_/g, " ") ?? "—"}</TableCell>
                     <TableCell className="text-xs uppercase text-muted-foreground">{r.service_context ?? "—"}</TableCell>
                     <TableCell>
-                      <StatusPill tone={r.status === "received" ? "success" : r.status === "failed" ? "danger" : r.status === "refunded" ? "warning" : "neutral"}>{r.status}</StatusPill>
+                      <StatusBadge tone={toneForStatus(r.status === "received" ? "success" : r.status === "failed" ? "danger" : r.status === "refunded" ? "warning" : "neutral" as any)}>{r.status}</StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <StatusPill tone={r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral"}>
+                      <StatusBadge tone={toneForStatus(r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral" as any)}>
                         {r.reconciliation_status ?? "pending"}
-                      </StatusPill>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(r.paid_at).toLocaleString()}</TableCell>
                   </TableRow>
@@ -229,7 +229,7 @@ function PaymentsPage() {
       />
 
       <PaymentDrawer payment={drawer} onClose={() => setDrawer(null)} />
-    </PageContainer>
+    </PageShell>
   );
 }
 
@@ -473,8 +473,8 @@ function PaymentDrawer({ payment, onClose }: { payment: any; onClose: () => void
                 <div className="text-xs uppercase text-muted-foreground">Amount</div>
                 <div className="mt-1 text-3xl font-mono font-semibold">{fmt(payment.amount, payment.currency)}</div>
                 <div className="mt-2 flex gap-2">
-                  <StatusPill tone={payment.status === "received" ? "success" : "warning"}>{payment.status}</StatusPill>
-                  <StatusPill tone={payment.reconciliation_status === "matched" ? "success" : "neutral"}>{payment.reconciliation_status ?? "pending"}</StatusPill>
+                  <StatusBadge tone={toneForStatus(payment.status === "received" ? "success" : "warning" as any)}>{payment.status}</StatusBadge>
+                  <StatusBadge tone={toneForStatus(payment.reconciliation_status === "matched" ? "success" : "neutral" as any)}>{payment.reconciliation_status ?? "pending"}</StatusBadge>
                 </div>
               </div>
 
