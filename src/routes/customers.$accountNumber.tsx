@@ -16,6 +16,8 @@ import {
   KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp,
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
   Mail, Phone, ShieldCheck, Heart, Pencil, PowerOff, Send, Bell,
+  Cloud, Globe, HardDrive, Database, Satellite, PhoneCall, Mail as MailIcon, Package as PackageIcon,
+  ShieldAlert, LifeBuoy as SupportIcon, Boxes, ArrowRight,
 } from "lucide-react";
 import {
   getCustomer360, generateInvoiceForSubscription, manageSubscription,
@@ -97,6 +99,37 @@ function toCsv(rows: Array<Record<string, any>>): string {
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
+}
+
+
+/** IMT service lines — canonical taxonomy shown across Customer 360 sections. */
+const SERVICE_LINES: Array<{
+  key: string;
+  label: string;
+  icon: any;
+  color: string;
+  route: string;
+  match: (text: string) => boolean;
+}> = [
+  { key: "cloud",       label: "Cloud & VPS",         icon: Cloud,       color: "#2563eb", route: "/cloud",           match: (t) => /(vps|cloud|server|vm|instance|kamatera|vultr|contabo|kvm)/i.test(t) },
+  { key: "hosting",     label: "Web Hosting",         icon: Globe,       color: "#0891b2", route: "/web-hosting",     match: (t) => /(hosting|cpanel|website|wordpress|shared host)/i.test(t) },
+  { key: "domains",     label: "Domains & DNS",       icon: Globe,       color: "#7c3aed", route: "/web-hosting",     match: (t) => /(domain|dns|\.co\.zw|\.com|registrar)/i.test(t) },
+  { key: "m365",        label: "Microsoft 365",       icon: MailIcon,    color: "#0369a1", route: "/licenses",        match: (t) => /(m365|microsoft ?365|office ?365|exchange|outlook)/i.test(t) },
+  { key: "security",    label: "Cybersecurity",       icon: ShieldAlert, color: "#dc2626", route: "/services/cybersecurity", match: (t) => /(security|kaspersky|sophos|antivirus|edr|soc|firewall|endpoint)/i.test(t) },
+  { key: "starlink",    label: "Starlink",            icon: Satellite,   color: "#7c2d12", route: "/starlink",        match: (t) => /(starlink|satellite)/i.test(t) },
+  { key: "voip",        label: "VoIP / Telephony",    icon: PhoneCall,   color: "#16a34a", route: "/voip",            match: (t) => /(voip|sip|pbx|telephony|dandemutande|call)/i.test(t) },
+  { key: "nas",         label: "Managed NAS",         icon: HardDrive,   color: "#059669", route: "/managed-nas",     match: (t) => /(nas|synology|qnap|file server)/i.test(t) },
+  { key: "storage",     label: "Cloud Storage",       icon: Database,    color: "#0d9488", route: "/cloud-storage",   match: (t) => /(storage|s3|backup storage|object store)/i.test(t) },
+  { key: "backup",      label: "Backup & DR",         icon: Database,    color: "#4338ca", route: "/cloud-ops",       match: (t) => /(backup|dr|disaster|acronis|veeam)/i.test(t) },
+  { key: "licenses",    label: "Software Licenses",   icon: PackageIcon, color: "#a16207", route: "/licenses",        match: (t) => /(licen[sc]e|subscription key|product key)/i.test(t) },
+  { key: "trackx",      label: "TrackX / Devices",    icon: Laptop,      color: "#334155", route: "/laptop-tracking", match: (t) => /(trackx|laptop|device|asset tracking|absolute)/i.test(t) },
+  { key: "support",     label: "Managed Support",     icon: SupportIcon, color: "#0f766e", route: "/tickets",         match: (t) => /(support|managed|sla|helpdesk|retainer)/i.test(t) },
+];
+
+function classifyServiceLine(...parts: Array<string | null | undefined>): string {
+  const text = parts.filter(Boolean).join(" ");
+  for (const line of SERVICE_LINES) if (line.match(text)) return line.key;
+  return "other";
 }
 
 
@@ -346,6 +379,48 @@ function Customer360() {
     toast.success(`Exported ${rows.length} row${rows.length === 1 ? "" : "s"}`);
   };
 
+
+  // Group everything (subs, services, packages, assets, credentials) by IMT service line.
+  const serviceLineGroups = useMemo(() => {
+    const buckets = new Map<string, { subs: any[]; services: any[]; packages: any[]; assets: any[]; credentials: any[]; mrr: number; count: number }>();
+    const bucket = (key: string) => {
+      if (!buckets.has(key)) buckets.set(key, { subs: [], services: [], packages: [], assets: [], credentials: [], mrr: 0, count: 0 });
+      return buckets.get(key)!;
+    };
+    (subscriptions || []).forEach((s: any) => {
+      const k = classifyServiceLine(s.plan_name, s.description, s.billing_cycle);
+      const b = bucket(k);
+      b.subs.push(s);
+      b.count++;
+      if (s.status === "active") {
+        const amt = Number(s.amount) || 0;
+        const cyc = (s.billing_cycle || "monthly").toLowerCase();
+        b.mrr += cyc === "yearly" || cyc === "annual" ? amt / 12 : cyc === "quarterly" ? amt / 3 : amt;
+      }
+    });
+    (services || []).forEach((s: any) => {
+      const k = classifyServiceLine(s.service_name, s.service_type, s.vendor, s.plan);
+      const b = bucket(k);
+      b.services.push(s);
+      b.count++;
+      if (s.status === "active") b.mrr += Number(s.monthly_cost) || 0;
+    });
+    (packages || []).forEach((p: any) => {
+      const k = classifyServiceLine(p.catalog?.name, p.catalog?.category, p.catalog?.code);
+      bucket(k).packages.push(p);
+    });
+    (assets || []).forEach((a: any) => {
+      const k = classifyServiceLine(a.asset_type, a.name, a.model);
+      bucket(k).assets.push(a);
+    });
+    (credentials || []).forEach((c: any) => {
+      const k = classifyServiceLine(c.name, c.category, c.system);
+      bucket(k).credentials.push(c);
+    });
+    return SERVICE_LINES
+      .map((line) => ({ line, data: buckets.get(line.key) }))
+      .filter((row) => row.data && row.data.count + row.data.packages.length + row.data.assets.length + row.data.credentials.length > 0);
+  }, [subscriptions, services, packages, assets, credentials]);
 
   const initials = (customer.company_name || "?")
     .split(/\s+/)
@@ -604,26 +679,144 @@ function Customer360() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* IMT service lines snapshot */}
+            <Card className="lg:col-span-3">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-display flex items-center gap-2"><Boxes className="h-4 w-4 text-solar" />IMT service lines</CardTitle>
+                <Link to="/customers/$accountNumber" params={{ accountNumber }} search={{ tab: "services" }} className="text-xs text-solar hover:underline">View all →</Link>
+              </CardHeader>
+              <CardContent>
+                {serviceLineGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No service lines on file yet. Assign packages from the Packages tab.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {serviceLineGroups.map(({ line, data }) => {
+                      const Icon = line.icon;
+                      return (
+                        <Link key={line.key} to={line.route} className="group p-3 rounded border border-border hover:border-solar transition-colors flex items-start gap-3">
+                          <div className="h-9 w-9 shrink-0 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{line.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {data!.subs.length + data!.services.length} services · {data!.packages.length} pkg · {data!.assets.length} assets
+                            </p>
+                            <p className="text-xs font-mono text-solar mt-0.5">{money(data!.mrr)}/mo</p>
+                          </div>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="services" className="mt-4">
-          <Card><CardContent className="p-0 divide-y">
-            {services.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No services yet.</p>}
-            {services.map((s: any) => (
-              <div key={s.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{s.service_name}</p>
-                  <p className="text-xs text-muted-foreground">{s.service_type} · {s.vendor || "—"} · {s.plan || "—"}{s.renewal_date ? ` · Renews ${s.renewal_date}` : ""}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono">{money(s.monthly_cost)}/mo</span>
-                  <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
-                </div>
-              </div>
-            ))}
-          </CardContent></Card>
+          <div className="space-y-4">
+            {serviceLineGroups.length === 0 && (
+              <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+                No services yet. Assign an IMT package from the Packages tab.
+              </CardContent></Card>
+            )}
+            {serviceLineGroups.map(({ line, data }) => {
+              const Icon = line.icon;
+              return (
+                <Card key={line.key}>
+                  <CardHeader className="flex flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="font-display text-base">{line.label}</CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          {data!.subs.length} subscription{data!.subs.length === 1 ? "" : "s"} ·{" "}
+                          {data!.services.length} service{data!.services.length === 1 ? "" : "s"} ·{" "}
+                          {data!.assets.length} asset{data!.assets.length === 1 ? "" : "s"} ·{" "}
+                          <span className="font-mono text-solar">{money(data!.mrr)}/mo</span>
+                        </p>
+                      </div>
+                    </div>
+                    <Link to={line.route} className="text-xs text-solar hover:underline inline-flex items-center gap-1">
+                      Open module <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-0 divide-y border-t">
+                    {data!.subs.map((s: any) => (
+                      <div key={`sub-${s.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{s.plan_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Subscription · {s.billing_cycle || "monthly"}
+                            {s.next_renewal ? ` · Renews ${new Date(s.next_renewal).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-mono">{money(Number(s.amount) || 0, s.currency || "USD")}</span>
+                          <StatusPill tone={s.status === "active" ? "success" : s.status === "paused" ? "warning" : "neutral"}>{s.status}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.services.map((s: any) => (
+                      <div key={`svc-${s.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{s.service_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {s.service_type} · {s.vendor || "—"} · {s.plan || "—"}
+                            {s.renewal_date ? ` · Renews ${new Date(s.renewal_date).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-mono">{money(Number(s.monthly_cost) || 0)}/mo</span>
+                          <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.packages.map((p: any) => (
+                      <div key={`pkg-${p.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{p.catalog?.name || "Package"}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Assigned package · {p.catalog?.code || p.catalog?.category || ""}
+                            {p.quantity ? ` · Qty ${p.quantity}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {p.unit_price != null && <span className="text-sm font-mono">{money(Number(p.unit_price) || 0, p.currency || "USD")}</span>}
+                          <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status || "active"}</StatusPill>
+                        </div>
+                      </div>
+                    ))}
+                    {data!.assets.map((a: any) => (
+                      <div key={`asset-${a.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{a.name || a.asset_type}</p>
+                          <p className="text-xs text-muted-foreground truncate">Asset · {a.model || a.serial_number || a.asset_type}</p>
+                        </div>
+                        <StatusPill tone={a.status === "active" ? "success" : "neutral"}>{a.status || "in use"}</StatusPill>
+                      </div>
+                    ))}
+                    {data!.credentials.map((c: any) => (
+                      <div key={`cred-${c.id}`} className="p-3 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">Credential · {c.system || c.category || "vault entry"}</p>
+                        </div>
+                        {c.expires_at && <span className="text-xs text-muted-foreground">Expires {new Date(c.expires_at).toLocaleDateString()}</span>}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </TabsContent>
+
 
         <TabsContent value="services-mgmt" className="mt-4">
           <Card>
