@@ -5,8 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomersLite } from "@/components/module-page";
 import { createPaymentRecord, getCustomerPaymentContext } from "@/lib/ops.functions";
+import { getPaymentsOverview } from "@/lib/finance.functions";
 import { useAuth } from "@/hooks/use-auth";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +17,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Download, Receipt, TrendingUp, Clock, AlertCircle, X } from "lucide-react";
+import { Plus, Search, Download, Receipt, TrendingUp, Clock, AlertCircle, X, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PageShell, SectionHeader, KpiRow, StatusBadge, toneForStatus, money as fmtMoney,
+} from "@/components/enterprise";
 
 const METHODS = ["bank_transfer", "credit_card", "cash", "mobile_money", "cheque", "other"];
 const STATUSES = ["received", "pending", "failed", "refunded"];
@@ -106,8 +109,8 @@ function PaymentsPage() {
   }
 
   return (
-    <PageContainer>
-      <PageHeader
+    <PageShell>
+      <SectionHeader
         eyebrow="Business"
         title="Payments Platform"
         description="Record, reconcile and analyze every payment across customers, subscriptions and services."
@@ -121,13 +124,15 @@ function PaymentsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="Today" value={fmt(kpi.today)} tone="solar" />
-        <KpiCard icon={<Receipt className="h-4 w-4" />} label="7 days" value={fmt(kpi.week)} />
-        <KpiCard icon={<TrendingUp className="h-4 w-4" />} label="This month" value={fmt(kpi.month)} tone="solar" />
-        <KpiCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(kpi.pending)} tone="warning" />
-        <KpiCard icon={<AlertCircle className="h-4 w-4" />} label="Unreconciled" value={fmt(kpi.unrec)} tone="danger" />
-      </div>
+      <KpiRow
+        items={[
+          { icon: TrendingUp, label: "Today", value: fmt(kpi.today), tone: "solar" },
+          { icon: Receipt, label: "7 days", value: fmt(kpi.week), tone: "info" },
+          { icon: TrendingUp, label: "This month", value: fmt(kpi.month), tone: "solar" },
+          { icon: Clock, label: "Pending", value: fmt(kpi.pending), tone: "warning" },
+          { icon: AlertCircle, label: "Unreconciled", value: fmt(kpi.unrec), tone: "danger" },
+        ]}
+      />
 
       <Card>
         <CardContent className="p-0">
@@ -196,12 +201,12 @@ function PaymentsPage() {
                     <TableCell className="text-sm capitalize">{r.method?.replace(/_/g, " ") ?? "—"}</TableCell>
                     <TableCell className="text-xs uppercase text-muted-foreground">{r.service_context ?? "—"}</TableCell>
                     <TableCell>
-                      <StatusPill tone={r.status === "received" ? "success" : r.status === "failed" ? "danger" : r.status === "refunded" ? "warning" : "neutral"}>{r.status}</StatusPill>
+                      <StatusBadge tone={toneForStatus(r.status === "received" ? "success" : r.status === "failed" ? "danger" : r.status === "refunded" ? "warning" : "neutral" as any)}>{r.status}</StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <StatusPill tone={r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral"}>
+                      <StatusBadge tone={toneForStatus(r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral" as any)}>
                         {r.reconciliation_status ?? "pending"}
-                      </StatusPill>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(r.paid_at).toLocaleString()}</TableCell>
                   </TableRow>
@@ -226,24 +231,10 @@ function PaymentsPage() {
       />
 
       <PaymentDrawer payment={drawer} onClose={() => setDrawer(null)} />
-    </PageContainer>
+    </PageShell>
   );
 }
 
-function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: "solar" | "warning" | "danger" }) {
-  const toneClass =
-    tone === "solar" ? "border-solar/40 bg-solar/5" :
-    tone === "warning" ? "border-amber-500/40 bg-amber-500/5" :
-    tone === "danger" ? "border-destructive/40 bg-destructive/5" : "";
-  return (
-    <Card className={toneClass}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wide">{icon}{label}</div>
-        <div className="mt-2 text-2xl font-mono font-semibold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function RecordPaymentDialog({
   open, onOpenChange, customers, getContext, onSubmit,
@@ -470,8 +461,8 @@ function PaymentDrawer({ payment, onClose }: { payment: any; onClose: () => void
                 <div className="text-xs uppercase text-muted-foreground">Amount</div>
                 <div className="mt-1 text-3xl font-mono font-semibold">{fmt(payment.amount, payment.currency)}</div>
                 <div className="mt-2 flex gap-2">
-                  <StatusPill tone={payment.status === "received" ? "success" : "warning"}>{payment.status}</StatusPill>
-                  <StatusPill tone={payment.reconciliation_status === "matched" ? "success" : "neutral"}>{payment.reconciliation_status ?? "pending"}</StatusPill>
+                  <StatusBadge tone={toneForStatus(payment.status === "received" ? "success" : "warning" as any)}>{payment.status}</StatusBadge>
+                  <StatusBadge tone={toneForStatus(payment.reconciliation_status === "matched" ? "success" : "neutral" as any)}>{payment.reconciliation_status ?? "pending"}</StatusBadge>
                 </div>
               </div>
 
