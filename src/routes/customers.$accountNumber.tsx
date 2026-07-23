@@ -455,6 +455,7 @@ function Customer360() {
         {/* Identity block */}
         <Card className="border-border">
           <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="h-24 w-24 rounded-full flex items-center justify-center text-navy-foreground font-display text-3xl font-bold shadow-[var(--shadow-elegant)]" style={{ background: "var(--gradient-navy)" }}>
               {initials}
             </div>
             <p className="mt-4 font-display font-bold text-xl tracking-wide truncate max-w-full">{customer.company_name}</p>
