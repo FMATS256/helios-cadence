@@ -170,26 +170,11 @@ function Customer360() {
 
   const customer = view?.customer;
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["customer-contacts", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_contacts").select("*").eq("customer_id", customer!.id).is("archived_at", null)).data ?? [],
-  });
-  const { data: branches = [] } = useQuery({
-    queryKey: ["customer-branches", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_branches").select("*").eq("customer_id", customer!.id).is("archived_at", null)).data ?? [],
-  });
-  const { data: notes = [] } = useQuery({
-    queryKey: ["customer-notes", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("customer_notes").select("*").eq("customer_id", customer!.id).order("created_at", { ascending: false })).data ?? [],
-  });
-  const { data: communications = [] } = useQuery({
-    queryKey: ["customer-comms", accountNumber],
-    enabled: !!customer,
-    queryFn: async () => (await supabase.from("communications").select("*").eq("customer_id", customer!.id).order("occurred_at", { ascending: false }).limit(50)).data ?? [],
-  });
+  // Contacts / branches / notes / communications now flow from the single aggregation.
+  const contacts = (view as any)?.contacts ?? [];
+  const branches = (view as any)?.branches ?? [];
+  const notes = (view as any)?.notes ?? [];
+  const communications = (view as any)?.communications ?? [];
 
   const [noteBody, setNoteBody] = useState("");
   const addNote = useMutation({
