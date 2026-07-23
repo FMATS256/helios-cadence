@@ -306,7 +306,7 @@ export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 }
 
 /* ================================ Create Quote =============================== */
-function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createQuoteForCustomer);
   const [form, setForm] = useState({
