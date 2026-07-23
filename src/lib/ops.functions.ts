@@ -613,7 +613,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       supabaseAdmin.from("communications").select("*").eq("customer_id", cid).order("occurred_at", { ascending: false }).limit(50),
       supabaseAdmin.from("cloud_servers").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("monitoring_checks").select("*").eq("customer_id", cid).is("archived_at", null),
-      supabaseAdmin.from("monitoring_incidents").select("*").eq("customer_id", cid).order("started_at", { ascending: false }).limit(20),
+      supabaseAdmin.from("monitoring_incidents").select("*").order("started_at", { ascending: false }).limit(50),
       supabaseAdmin.from("web_hosting_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("starlink_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("voip_accounts").select("*").eq("customer_id", cid).is("archived_at", null),
