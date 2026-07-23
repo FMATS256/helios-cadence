@@ -480,59 +480,19 @@ function Customer360() {
           </CardContent>
         </Card>
 
-        {/* Dynamic KPI block — MRR is the only financial KPI; all others are operational and driven by the capability engine */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <KpiTile icon={TrendingUp} label="MRR" value={money(kpis.mrr)} tone="success" />
-            {kpis.operational.slice(0, 5).map((k) => (
-              <KpiTile key={k.key} icon={Activity} label={k.label} value={k.value} tone={(k.tone === "danger" ? "warning" : k.tone) as any} />
-            ))}
-          </div>
-
-          {/* Capability strip — one card per service line the customer actually owns */}
-          {caps.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs uppercase tracking-[3px] text-solar font-semibold">Active service lines</p>
-                  <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
-                  {caps.map((cap) => {
-                    const items = cap.pickItems(view as Customer360View);
-                    const Icon = cap.icon;
-                    return (
-                      <button
-                        key={cap.key}
-                        type="button"
-                        onClick={() => setActiveTab(cap.key)}
-                        className="flex items-center gap-3 p-3 border border-border hover:border-solar/60 hover:bg-solar/5 transition text-left"
-                      >
-                        <span className="h-9 w-9 flex items-center justify-center text-white" style={{ background: cap.color }}>
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-xs text-muted-foreground">{cap.label}</span>
-                          <span className="block font-display font-semibold">{items.length}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick actions — real, wired dialogs only */}
-          <Card>
-            <CardContent className="p-4">
-              <ClientActionsBar ctx={{ customerId: customer.id, accountNumber: customer.account_number, companyName: customer.company_name, primaryEmail: customer.primary_email }} />
-            </CardContent>
-          </Card>
-        </div>
+        {/* ISP-style dynamic hero pane — layout pixel-matched, every value dynamic.
+            No fake fillers: rows/chips whose underlying data is missing are omitted or
+            replaced with the closest live equivalent for the customer's actual services. */}
+        <IspHeroPane
+          view={view as Customer360View}
+          stats={stats}
+          onLifecycle={(a) => toggleLifecycle.mutate(a)}
+          onSendReminder={() => sendReminder.mutate()}
+          onEdit={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}
+          onRefresh={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}
+        />
       </div>
+
 
 
       {/* Edit customer dialog */}
