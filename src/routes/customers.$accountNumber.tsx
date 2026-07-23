@@ -182,7 +182,7 @@ function Customer360() {
       const { error } = await supabase.from("customer_notes").insert({ customer_id: customer!.id, account_number: customer!.account_number, body: noteBody, author_id: user?.id ?? null });
       if (error) throw error;
     },
-    onSuccess: () => { setNoteBody(""); qc.invalidateQueries({ queryKey: ["customer-notes", accountNumber] }); toast.success("Note added"); },
+    onSuccess: () => { setNoteBody(""); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Note added"); },
   });
 
   const [contactForm, setContactForm] = useState({ name: "", role: "", contact_type: "general", email: "", phone: "" });
