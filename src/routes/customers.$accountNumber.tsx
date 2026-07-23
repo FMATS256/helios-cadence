@@ -489,7 +489,7 @@ function Customer360() {
         <IspHeroPane
           view={view as Customer360View}
           stats={stats}
-          onLifecycle={(a) => toggleLifecycle.mutate(a)}
+          onLifecycle={(a: "suspend" | "resume") => toggleLifecycle.mutate(a)}
           onSendReminder={() => sendReminder.mutate()}
           onEdit={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}
           onRefresh={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}
