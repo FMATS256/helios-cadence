@@ -16,6 +16,8 @@ import {
   KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp,
   Plus, FileCheck, Laptop, Activity, Sparkles, CalendarClock, Target, Building2,
   Mail, Phone, ShieldCheck, Heart, Pencil, PowerOff, Send, Bell,
+  Cloud, Globe, HardDrive, Database, Satellite, PhoneCall, Mail as MailIcon, Package as PackageIcon,
+  ShieldAlert, LifeBuoy as SupportIcon, Boxes, ArrowRight,
 } from "lucide-react";
 import {
   getCustomer360, generateInvoiceForSubscription, manageSubscription,
