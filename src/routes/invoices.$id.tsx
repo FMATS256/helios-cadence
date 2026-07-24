@@ -2,16 +2,17 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  PageShell, SectionHeader, SummaryCard, StatusBadge, toneForStatus, DetailCard,
+  DataGrid, EmptyState, type ColumnDef,
+} from "@/components/enterprise";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer } from "lucide-react";
+import { Plus, Trash2, Printer, Receipt } from "lucide-react";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({ meta: [{ title: "Invoice — IMT Operations" }] }),
@@ -22,7 +23,7 @@ function InvoiceDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
 
-  const { data: invoice } = useQuery({
+  const { data: invoice, isLoading } = useQuery({
     queryKey: ["invoice", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("invoices").select("*, customers:customer_id(company_name, account_number)").eq("id", id).maybeSingle();
@@ -48,7 +49,6 @@ function InvoiceDetail() {
     return { subtotal, tax, total, paid, balance: total - paid };
   })();
 
-  // Keep invoice totals in sync from line items
   const syncTotals = useMutation({
     mutationFn: async () => {
       await supabase.from("invoices").update({
@@ -65,92 +65,96 @@ function InvoiceDetail() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoice-items", id] }); setTimeout(() => syncTotals.mutate(), 100); },
   });
 
-  if (!invoice) return <PageContainer><PageHeader title="Loading…" /></PageContainer>;
+  if (isLoading || !invoice) {
+    return <PageShell><SectionHeader title="Loading invoice…" /></PageShell>;
+  }
   const overdue = invoice.due_date && invoice.status !== "paid" && new Date(invoice.due_date) < new Date();
   const aging = invoice.due_date ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / 86400000) : 0;
 
+  const itemCols: ColumnDef<any>[] = [
+    { header: "Description", cell: (r) => r.description },
+    { header: "Qty", align: "right", cell: (r) => <span className="font-mono">{r.quantity}</span> },
+    { header: "Unit", align: "right", cell: (r) => <span className="font-mono">{Number(r.unit_price).toFixed(2)}</span> },
+    { header: "Tax %", align: "right", cell: (r) => <span className="font-mono">{Number(r.tax_rate).toFixed(1)}%</span> },
+    { header: "Total", align: "right", cell: (r) => <span className="font-mono font-semibold">{Number(r.line_total).toFixed(2)}</span> },
+    { header: "", align: "right", cell: (r) => (
+      <Button variant="ghost" size="sm" onClick={() => removeItem.mutate(r.id)}><Trash2 className="h-4 w-4" /></Button>
+    ) },
+  ];
+
+  const allocCols: ColumnDef<any>[] = [
+    { header: "Payment", cell: (r) => <span className="font-mono">{r.payments?.reference || r.payment_id.slice(0, 8)}</span> },
+    { header: "Method", cell: (r) => <span className="capitalize">{r.payments?.method?.replace(/_/g, " ") ?? "—"}</span> },
+    { header: "Date", cell: (r) => r.payments?.paid_at ? new Date(r.payments.paid_at).toLocaleDateString() : "—" },
+    { header: "Amount", align: "right", cell: (r) => <span className="font-mono">{invoice.currency} {Number(r.amount).toFixed(2)}</span> },
+  ];
+
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow={<Link to="/billing" className="text-solar hover:underline">← Billing</Link> as any}
+    <PageShell>
+      <SectionHeader
+        eyebrow={<Link to="/billing" className="text-solar hover:underline">← Invoices</Link>}
         title={`Invoice ${invoice.invoice_number}`}
-        description={<span>For <Link to="/customers/$accountNumber" params={{ accountNumber: invoice.account_number }} className="text-solar hover:underline font-mono">{invoice.account_number}</Link> · {invoice.customers?.company_name}</span> as any}
+        description={
+          <span>
+            For{" "}
+            <Link to="/customers/$accountNumber" params={{ accountNumber: invoice.account_number }} className="text-solar hover:underline font-mono">
+              {invoice.account_number}
+            </Link>
+            {invoice.customers?.company_name ? ` · ${invoice.customers.company_name}` : ""}
+          </span>
+        }
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1.5" />Print / PDF</Button>
-          </div>
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-1.5" />Print / PDF
+          </Button>
         }
       />
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <SummaryCard label="Status" value={<StatusPill tone={invoice.status === "paid" ? "success" : overdue ? "danger" : "info"}>{overdue ? "overdue" : invoice.status}</StatusPill>} />
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <SummaryCard
+          label="Status"
+          tone={invoice.status === "paid" ? "success" : overdue ? "danger" : "info"}
+          value={<StatusBadge tone={toneForStatus(overdue ? "overdue" : invoice.status)}>{overdue ? "overdue" : invoice.status}</StatusBadge>}
+        />
         <SummaryCard label="Total" value={<span className="font-mono">{invoice.currency} {totals.total.toFixed(2)}</span>} />
-        <SummaryCard label="Paid" value={<span className="font-mono text-success">{invoice.currency} {totals.paid.toFixed(2)}</span>} />
-        <SummaryCard label={overdue ? `Overdue ${aging}d` : "Balance"} value={<span className={`font-mono font-semibold ${totals.balance > 0 ? "text-destructive" : "text-success"}`}>{invoice.currency} {totals.balance.toFixed(2)}</span>} />
+        <SummaryCard label="Paid" tone="success" value={<span className="font-mono text-success">{invoice.currency} {totals.paid.toFixed(2)}</span>} />
+        <SummaryCard
+          label={overdue ? `Overdue ${aging}d` : "Balance"}
+          tone={totals.balance > 0.001 ? (overdue ? "danger" : "warning") : "success"}
+          value={<span className={`font-mono font-semibold ${totals.balance > 0.001 ? "text-destructive" : "text-success"}`}>{invoice.currency} {totals.balance.toFixed(2)}</span>}
+        />
       </div>
 
-      <Card>
-        <div className="p-4 flex items-center justify-between border-b">
-          <h3 className="font-display font-semibold">Line items</h3>
+      <DetailCard
+        title="Line items"
+        padded={false}
+        action={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => syncTotals.mutate()}>Sync totals</Button>
             <AddLineItem invoiceId={id} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-items", id] })} />
           </div>
-        </div>
-        <CardContent className="p-0">
-          {items.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No line items yet.</div>
-          ) : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Description</TableHead><TableHead>Qty</TableHead><TableHead>Unit</TableHead><TableHead>Tax %</TableHead><TableHead>Total</TableHead><TableHead></TableHead></TableRow></TableHeader>
-              <TableBody>
-                {items.map((i: any) => (
-                  <TableRow key={i.id}>
-                    <TableCell>{i.description}</TableCell>
-                    <TableCell className="font-mono">{i.quantity}</TableCell>
-                    <TableCell className="font-mono">{Number(i.unit_price).toFixed(2)}</TableCell>
-                    <TableCell className="font-mono">{Number(i.tax_rate).toFixed(1)}%</TableCell>
-                    <TableCell className="font-mono font-semibold">{Number(i.line_total).toFixed(2)}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => removeItem.mutate(i.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        }
+      >
+        <DataGrid
+          rows={items as any[]}
+          columns={itemCols}
+          empty={<EmptyState icon={Receipt} title="No line items" description="Add products or services to build this invoice." />}
+        />
+      </DetailCard>
 
-      <Card>
-        <div className="p-4 flex items-center justify-between border-b">
-          <h3 className="font-display font-semibold">Payment allocations</h3>
-          <AllocateDialog invoiceId={id} customerId={invoice.customer_id} balance={totals.balance} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-allocs", id] })} />
-        </div>
-        <CardContent className="p-0">
-          {allocs.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No payments allocated yet.</div>
-          ) : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Payment</TableHead><TableHead>Method</TableHead><TableHead>Date</TableHead><TableHead>Amount</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {(allocs as any[]).map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-mono">{a.payments?.reference || a.payment_id.slice(0, 8)}</TableCell>
-                    <TableCell>{a.payments?.method?.replace(/_/g, " ")}</TableCell>
-                    <TableCell>{a.payments?.paid_at ? new Date(a.payments.paid_at).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell className="font-mono">{invoice.currency} {Number(a.amount).toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </PageContainer>
+      <DetailCard
+        title="Payment allocations"
+        padded={false}
+        action={<AllocateDialog invoiceId={id} customerId={invoice.customer_id} balance={totals.balance} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-allocs", id] })} />}
+      >
+        <DataGrid
+          rows={allocs as any[]}
+          columns={allocCols}
+          empty={<EmptyState icon={Receipt} title="No payments allocated" description="Allocate a customer payment to settle this invoice." />}
+        />
+      </DetailCard>
+    </PageShell>
   );
-}
-
-function SummaryCard({ label, value }: { label: string; value: React.ReactNode }) {
-  return <Card><CardContent className="p-5"><p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p><div className="mt-2 text-2xl font-bold">{value}</div></CardContent></Card>;
 }
 
 function AddLineItem({ invoiceId, onDone }: { invoiceId: string; onDone: () => void }) {
@@ -158,6 +162,7 @@ function AddLineItem({ invoiceId, onDone }: { invoiceId: string; onDone: () => v
   const [form, setForm] = useState({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
   const create = useMutation({
     mutationFn: async () => {
+      if (!form.description.trim()) throw new Error("Description required");
       const { error } = await supabase.from("invoice_line_items").insert({
         invoice_id: invoiceId, description: form.description,
         quantity: Number(form.quantity), unit_price: Number(form.unit_price), tax_rate: Number(form.tax_rate),
@@ -198,7 +203,9 @@ function AllocateDialog({ invoiceId, customerId, balance, onDone }: { invoiceId:
   const alloc = useMutation({
     mutationFn: async () => {
       if (!paymentId) throw new Error("Pick a payment");
-      const { error } = await supabase.from("payment_allocations").insert({ payment_id: paymentId, invoice_id: invoiceId, amount: Number(amount) });
+      const amt = Number(amount);
+      if (!(amt > 0)) throw new Error("Amount must be positive");
+      const { error } = await supabase.from("payment_allocations").insert({ payment_id: paymentId, invoice_id: invoiceId, amount: amt });
       if (error) throw error;
     },
     onSuccess: () => { setOpen(false); onDone(); toast.success("Allocated"); },
