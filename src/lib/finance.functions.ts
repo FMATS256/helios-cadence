@@ -138,9 +138,9 @@ export const getQuotesOverview = createServerFn({ method: "POST" })
     const { data: quotes } = await supabaseAdmin
       .from("quotes")
       .select("*, customers:customer_id(company_name)")
-      .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(limit);
+
 
     const list = (quotes ?? []) as any[];
     const now = Date.now();
