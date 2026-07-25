@@ -1,147 +1,161 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomersLite } from "@/components/module-page";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge,
+  EmptyState, RefreshButton, type ColumnDef,
+} from "@/components/enterprise";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Activity, Plus, Play, AlertTriangle } from "lucide-react";
+import { Activity, Plus, Play, AlertTriangle, ArrowUpCircle, ArrowDownCircle, Gauge, Search } from "lucide-react";
 import { toast } from "sonner";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
+import { getMonitoringOverview } from "@/lib/infra.functions";
 
 const CHECK_TYPES = ["http", "https", "ping", "tcp", "dns"];
 
 export const Route = createFileRoute("/monitoring")({
-  head: () => ({ meta: [{ title: "Monitoring — IMT Operations" }] }),
+  head: () => ({
+    meta: [
+      { title: "Monitoring — IMT Operations" },
+      { name: "description", content: "Live uptime, latency and incident tracking for every monitored customer endpoint." },
+    ],
+  }),
   component: MonitoringPage,
 });
 
 function MonitoringPage() {
   const qc = useQueryClient();
   const runNow = useServerFn(runAllChecksNow);
+  const overviewFn = useServerFn(getMonitoringOverview);
   const { data: customers = [] } = useCustomersLite();
+  const [search, setSearch] = useState("");
 
-  const { data: checks = [] } = useQuery({
-    queryKey: ["monitoring_checks"],
-    queryFn: async () => (await supabase.from("monitoring_checks").select("*").order("name")).data ?? [],
-  });
-  const { data: incidents = [] } = useQuery({
-    queryKey: ["monitoring_incidents_open"],
-    queryFn: async () => (await supabase.from("monitoring_incidents").select("*, monitoring_checks:check_id(name,target)").is("ended_at", null).order("started_at", { ascending: false })).data ?? [],
-  });
+  const overview = useQuery({ queryKey: ["monitoring-overview"], queryFn: () => overviewFn() });
+  const checks = overview.data?.checks ?? [];
+  const incidents = overview.data?.incidents ?? [];
+  const stats = overview.data?.stats;
 
   const run = useMutation({
     mutationFn: () => runNow(),
-    onSuccess: (r: any) => { toast.success(`Ran ${r.ran} checks`); qc.invalidateQueries(); },
+    onSuccess: (r: any) => { toast.success(`Ran ${r.ran} checks`); qc.invalidateQueries({ queryKey: ["monitoring-overview"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const up = (checks as any[]).filter((c) => c.status === "up").length;
-  const down = (checks as any[]).filter((c) => c.status === "down").length;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return checks;
+    return checks.filter((c: any) =>
+      [c.name, c.target, c.account_number, c.check_type].some((v) => String(v ?? "").toLowerCase().includes(q)));
+  }, [checks, search]);
+
+  const checkCols: ColumnDef<any>[] = [
+    { header: "Status", cell: (r) => <StatusBadge tone={r.status === "up" ? "success" : r.status === "down" ? "danger" : "neutral"}>{r.status ?? "unknown"}</StatusBadge> },
+    {
+      header: "Check",
+      cell: (r) => (
+        <div>
+          <div className="font-semibold">{r.name}</div>
+          <div className="text-xs text-muted-foreground font-mono">{r.target}</div>
+        </div>
+      ),
+    },
+    { header: "Type", cell: (r) => <StatusBadge tone="info">{String(r.check_type).toUpperCase()}</StatusBadge> },
+    {
+      header: "Customer",
+      cell: (r) => r.account_number
+        ? <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link>
+        : "—",
+    },
+    { header: "Interval", cell: (r) => `${r.interval_seconds}s` },
+    { header: "Last check", cell: (r) => r.last_checked_at ? new Date(r.last_checked_at).toLocaleTimeString() : "Never" },
+    { header: "Latency", align: "right", cell: (r) => <span className="font-mono">{r.last_response_ms != null ? `${r.last_response_ms}ms` : "—"}</span> },
+    {
+      header: "Avg 24h", align: "right",
+      cell: (r) => <span className="font-mono text-muted-foreground">{r.avg_response_ms != null ? `${r.avg_response_ms}ms` : "—"}</span>,
+    },
+    {
+      header: "Uptime 24h", align: "right",
+      cell: (r) => (
+        <span className={`font-mono font-semibold ${r.uptime_24h == null ? "text-muted-foreground" : r.uptime_24h >= 99 ? "text-success" : r.uptime_24h >= 90 ? "text-warning" : "text-destructive"}`}>
+          {r.uptime_24h == null ? "—" : `${r.uptime_24h}%`}
+        </span>
+      ),
+    },
+  ];
+
+  const incidentCols: ColumnDef<any>[] = [
+    { header: "Check", cell: (r) => <span className="font-semibold">{r.monitoring_checks?.name ?? "—"}</span> },
+    { header: "Target", cell: (r) => <span className="font-mono text-xs">{r.monitoring_checks?.target ?? "—"}</span> },
+    { header: "Started", cell: (r) => new Date(r.started_at).toLocaleString() },
+    {
+      header: "Down for",
+      cell: (r) => {
+        const mins = Math.max(0, Math.round((Date.now() - new Date(r.started_at).getTime()) / 60000));
+        return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      },
+    },
+    { header: "Error", cell: (r) => <span className="text-xs text-destructive">{r.last_error || "—"}</span> },
+  ];
 
   return (
-    <PageContainer>
-      <PageHeader
+    <PageShell>
+      <SectionHeader
         eyebrow="Services"
         title="Monitoring"
-        description="Live uptime and reachability checks. Cron runs due checks every 5 minutes."
+        description="Live uptime and reachability checks. The scheduler runs due checks every 5 minutes."
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => run.mutate()} disabled={run.isPending}><Play className="h-4 w-4 mr-1.5" />{run.isPending ? "Running…" : "Run all now"}</Button>
-            <NewCheckDialog customers={customers} onDone={() => qc.invalidateQueries({ queryKey: ["monitoring_checks"] })} />
+          <div className="flex flex-wrap items-center gap-2">
+            <RefreshButton onClick={() => overview.refetch()} loading={overview.isFetching} />
+            <Button variant="outline" onClick={() => run.mutate()} disabled={run.isPending}>
+              <Play className="h-4 w-4 mr-1.5" />{run.isPending ? "Running…" : "Run all now"}
+            </Button>
+            <NewCheckDialog customers={customers} onDone={() => qc.invalidateQueries({ queryKey: ["monitoring-overview"] })} />
           </div>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Kpi label="Total checks" value={checks.length} tone="info" icon={Activity} />
-        <Kpi label="Up" value={up} tone="success" icon={Activity} />
-        <Kpi label="Down" value={down} tone="danger" icon={AlertTriangle} />
-        <Kpi label="Open incidents" value={incidents.length} tone="warning" icon={AlertTriangle} />
-      </div>
+      <KpiRow
+        cols={5}
+        items={[
+          { label: "Monitored endpoints", value: stats?.total ?? 0, icon: Activity, tone: "info", hint: stats ? `${stats.enabled} enabled` : undefined },
+          { label: "Up", value: stats?.up ?? 0, icon: ArrowUpCircle, tone: "success" },
+          { label: "Down", value: stats?.down ?? 0, icon: ArrowDownCircle, tone: "danger" },
+          { label: "Open incidents", value: stats?.openIncidents ?? 0, icon: AlertTriangle, tone: "warning" },
+          { label: "Avg uptime 24h", value: stats?.avgUptime24h == null ? "—" : `${stats.avgUptime24h}%`, icon: Gauge, tone: "solar", hint: stats?.samples24h ? `${stats.samples24h} samples` : undefined },
+        ]}
+      />
 
       {incidents.length > 0 && (
-        <Card>
-          <div className="p-4 border-b"><h3 className="font-display font-semibold text-destructive">Open incidents</h3></div>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader><TableRow><TableHead>Check</TableHead><TableHead>Target</TableHead><TableHead>Started</TableHead><TableHead>Error</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {(incidents as any[]).map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell className="font-semibold">{i.monitoring_checks?.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{i.monitoring_checks?.target}</TableCell>
-                    <TableCell className="text-sm">{new Date(i.started_at).toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-destructive">{i.last_error || "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DetailCard title="Open incidents" padded={false}>
+          <DataGrid rows={incidents} columns={incidentCols} />
+        </DetailCard>
       )}
 
-      <Card>
-        <div className="p-4 border-b"><h3 className="font-display font-semibold">All checks</h3></div>
-        <CardContent className="p-0">
-          {checks.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No checks configured. Add one to start monitoring.</div>
-          ) : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Status</TableHead><TableHead>Check</TableHead><TableHead>Type</TableHead><TableHead>Customer</TableHead><TableHead>Interval</TableHead><TableHead>Last</TableHead><TableHead>Latency</TableHead><TableHead>Uptime 24h</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {(checks as any[]).map((r) => <CheckRow key={r.id} row={r} />)}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </PageContainer>
-  );
-}
-
-function CheckRow({ row }: { row: any }) {
-  const { data: uptime } = useQuery({
-    queryKey: ["uptime", row.id],
-    queryFn: async () => {
-      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-      const { data } = await supabase.from("monitoring_results").select("status").eq("check_id", row.id).gte("checked_at", since);
-      const total = data?.length ?? 0;
-      const up = (data || []).filter((r: any) => r.status === "up").length;
-      return total ? Math.round((up / total) * 1000) / 10 : null;
-    },
-  });
-  return (
-    <TableRow>
-      <TableCell><StatusPill tone={row.status === "up" ? "success" : row.status === "down" ? "danger" : "neutral"}>{row.status}</StatusPill></TableCell>
-      <TableCell><div className="font-semibold">{row.name}</div><div className="text-xs text-muted-foreground font-mono">{row.target}</div></TableCell>
-      <TableCell><StatusPill tone="info">{row.check_type.toUpperCase()}</StatusPill></TableCell>
-      <TableCell>{row.account_number ? <Link to="/customers/$accountNumber" params={{ accountNumber: row.account_number }} className="font-mono text-xs text-solar hover:underline">{row.account_number}</Link> : "—"}</TableCell>
-      <TableCell className="text-sm">{row.interval_seconds}s</TableCell>
-      <TableCell className="text-sm">{row.last_checked_at ? new Date(row.last_checked_at).toLocaleTimeString() : "Never"}</TableCell>
-      <TableCell className="font-mono">{row.last_response_ms != null ? `${row.last_response_ms}ms` : "—"}</TableCell>
-      <TableCell className="font-mono">{uptime == null ? "—" : `${uptime}%`}</TableCell>
-    </TableRow>
-  );
-}
-
-function Kpi({ label, value, tone, icon: Icon }: any) {
-  const map: any = { info: "bg-info/15 text-info", success: "bg-success/15 text-success", danger: "bg-destructive/15 text-destructive", warning: "bg-warning/20 text-[oklch(0.45_0.13_75)]" };
-  return (
-    <Card><CardContent className="p-5 flex items-start justify-between">
-      <div>
-        <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">{label}</p>
-        <p className="font-display text-3xl font-bold mt-2 tabular-nums">{value}</p>
-      </div>
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${map[tone]}`}><Icon className="h-4 w-4" /></div>
-    </CardContent></Card>
+      <DetailCard
+        title="All checks"
+        padded={false}
+        action={
+          <div className="relative w-56">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search checks…" className="pl-9 h-9" />
+          </div>
+        }
+      >
+        <DataGrid
+          rows={filtered}
+          columns={checkCols}
+          loading={overview.isLoading}
+          empty={<EmptyState title="No checks configured" description="Add an HTTP or HTTPS check to start monitoring a customer endpoint." icon={Activity} />}
+        />
+      </DetailCard>
+    </PageShell>
   );
 }
 
@@ -151,7 +165,11 @@ function NewCheckDialog({ customers, onDone }: { customers: any[]; onDone: () =>
   const create = useMutation({
     mutationFn: async () => {
       if (!form.name || !form.target) throw new Error("Name and target required");
-      const { error } = await supabase.from("monitoring_checks").insert({ ...form, customer_id: form.customer_id || null, interval_seconds: Number(form.interval_seconds) || 300 } as any);
+      const { error } = await supabase.from("monitoring_checks").insert({
+        ...form,
+        customer_id: form.customer_id || null,
+        interval_seconds: Number(form.interval_seconds) || 300,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => { setOpen(false); onDone(); toast.success("Check created"); },
@@ -159,28 +177,49 @@ function NewCheckDialog({ customers, onDone }: { customers: any[]; onDone: () =>
   });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}><Plus className="h-4 w-4 mr-1.5" />New check</Button></DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogTrigger asChild>
+        <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+          <Plus className="h-4 w-4 mr-1.5" />New check
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
         <DialogHeader><DialogTitle>New monitoring check</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Name *</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Client website" />
+          </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Customer</Label>
-              <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Internal / none" /></SelectTrigger>
-                <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Type</Label>
+            <div className="space-y-2">
+              <Label>Type</Label>
               <Select value={form.check_type} onValueChange={(v) => setForm({ ...form, check_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CHECK_TYPES.map((t) => <SelectItem key={t} value={t}>{t.toUpperCase()}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-2"><Label>Name *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="col-span-2 space-y-2"><Label>Target *</Label><Input required value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} placeholder="https://portal.example.com" /></div>
-            <div className="space-y-2"><Label>Interval (seconds)</Label><Input type="number" min="60" value={form.interval_seconds} onChange={(e) => setForm({ ...form, interval_seconds: e.target.value })} /></div>
+            <div className="space-y-2">
+              <Label>Interval (seconds)</Label>
+              <Input type="number" value={form.interval_seconds} onChange={(e) => setForm({ ...form, interval_seconds: e.target.value })} />
+            </div>
           </div>
-          <DialogFooter><Button type="submit" disabled={create.isPending}>Save</Button></DialogFooter>
+          <div className="space-y-2">
+            <Label>Target *</Label>
+            <Input value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })} placeholder="https://client.co.zw" />
+          </div>
+          <div className="space-y-2">
+            <Label>Customer</Label>
+            <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Optional — link to a customer" /></SelectTrigger>
+              <SelectContent>
+                {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={create.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+              {create.isPending ? "Saving…" : "Create check"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
