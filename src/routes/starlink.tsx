@@ -7,22 +7,23 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   checkStarlinkAccount,
   createStarlinkAccount,
-  listStarlinkAccounts,
-  listStarlinkRecharges,
   recordStarlinkRecharge,
 } from "@/lib/starlink.functions";
+import { getStarlinkOverview } from "@/lib/infra.functions";
 import { STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS } from "@/lib/starlink.shared";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  RefreshButton, type ColumnDef,
+} from "@/components/enterprise";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Activity, CheckCircle2, Plus, RefreshCw, Satellite, Search, WalletCards } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Plus, RefreshCw, Satellite, Search, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/starlink")({
@@ -40,67 +41,128 @@ function dateTime(s?: string | null) {
 
 function StarlinkPage() {
   const { user, loading } = useAuth();
-  const listAccounts = useServerFn(listStarlinkAccounts);
-  const listRecharges = useServerFn(listStarlinkRecharges);
+  const overviewFn = useServerFn(getStarlinkOverview);
   const [addOpen, setAddOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const authReady = !loading && !!user;
 
-  const accounts = useQuery({ queryKey: ["starlink-accounts"], queryFn: () => listAccounts(), enabled: authReady });
-  const recharges = useQuery({ queryKey: ["starlink-recharges"], queryFn: () => listRecharges({ data: { limit: 100 } }), enabled: authReady });
+  const overview = useQuery({ queryKey: ["starlink-overview"], queryFn: () => overviewFn(), enabled: authReady });
+  const accounts = overview.data?.accounts ?? [];
+  const recharges = overview.data?.recharges ?? [];
+  const stats = overview.data?.stats;
 
   const filteredAccounts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return accounts.data ?? [];
-    return (accounts.data ?? []).filter((a: any) => [
-      a.account_number,
-      a.starlink_account_number,
-      a.kit_serial,
-      a.terminal_id,
-      a.service_address,
-      a.customers?.company_name,
+    if (!q) return accounts;
+    return accounts.filter((a: any) => [
+      a.account_number, a.starlink_account_number, a.kit_serial,
+      a.terminal_id, a.service_address, a.customers?.company_name,
     ].some((v) => String(v ?? "").toLowerCase().includes(q)));
-  }, [accounts.data, search]);
+  }, [accounts, search]);
 
-  const active = (accounts.data ?? []).filter((a: any) => a.status === "active").length;
-  const monthlyRevenue = (accounts.data ?? []).reduce((sum: number, a: any) => sum + Number(a.monthly_price ?? 0), 0);
-  const rechargeMargin = (recharges.data ?? []).reduce((sum: number, r: any) => sum + Number(r.margin_usd ?? 0), 0);
+  const accountCols: ColumnDef<any>[] = [
+    {
+      header: "Customer",
+      cell: (a) => (
+        <div>
+          <div className="font-semibold">{a.customers?.company_name ?? "—"}</div>
+          <Link to="/customers/$accountNumber" params={{ accountNumber: a.account_number }} className="font-mono text-xs text-solar hover:underline">{a.account_number}</Link>
+        </div>
+      ),
+    },
+    {
+      header: "Starlink details",
+      cell: (a) => (
+        <div>
+          <div className="font-mono text-xs">{a.starlink_account_number || "No Starlink account #"}</div>
+          <div className="text-xs text-muted-foreground">Kit {a.kit_serial || "—"} · Terminal {a.terminal_id || "—"}</div>
+          <div className="max-w-xs truncate text-xs text-muted-foreground">{a.service_address || "—"}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Plan",
+      cell: (a) => (
+        <div>
+          <StatusBadge tone={a.plan_type === "business" ? "info" : "neutral"}>{a.plan_type}</StatusBadge>
+          <div className="mt-1 text-xs font-mono">{money(a.monthly_price)}/mo</div>
+        </div>
+      ),
+    },
+    { header: "Balance", align: "right", cell: (a) => <span className="font-mono text-sm">{money(a.balance_usd)}</span> },
+    { header: "Status", cell: (a) => <StatusBadge tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}>{a.status}</StatusBadge> },
+    { header: "Last checked", cell: (a) => <span className="text-xs text-muted-foreground">{dateTime(a.last_checked_at)}</span> },
+    {
+      header: "Actions", align: "right",
+      cell: (a) => (
+        <div className="flex items-center justify-end gap-1">
+          <CheckButton id={a.id} />
+          <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setRechargeFor(a)}>Recharge</Button>
+        </div>
+      ),
+    },
+  ];
 
-  if (loading) return <PageContainer><div className="p-6 text-sm text-muted-foreground">Loading…</div></PageContainer>;
+  const rechargeCols: ColumnDef<any>[] = [
+    { header: "Reference", cell: (r) => <span className="font-mono text-xs">{r.payment_reference ?? "—"}</span> },
+    {
+      header: "Account",
+      cell: (r) => (
+        <div>
+          <div className="font-mono text-xs">{r.starlink_accounts?.starlink_account_number ?? "—"}</div>
+          <div className="text-xs text-muted-foreground">{r.account_number}</div>
+        </div>
+      ),
+    },
+    { header: "Customer charge", align: "right", cell: (r) => <span className="font-mono">{money(r.customer_charge_usd)}</span> },
+    { header: "External payout", align: "right", cell: (r) => <span className="font-mono">{money(r.external_payout_usd)}</span> },
+    { header: "Margin", align: "right", cell: (r) => <span className="font-mono font-semibold text-success">{money(r.margin_usd)}</span> },
+    { header: "External", cell: (r) => <StatusBadge tone={r.external_status === "sent" ? "success" : r.external_status === "failed" ? "danger" : "warning"}>{r.external_status}</StatusBadge> },
+    { header: "Date", cell: (r) => <span className="text-xs text-muted-foreground">{dateTime(r.created_at)}</span> },
+  ];
+
+  if (loading) return <PageShell><div className="p-6 text-sm text-muted-foreground">Loading…</div></PageShell>;
   if (!user) {
     return (
-      <PageContainer>
-        <PageHeader eyebrow="Connectivity" title="Starlink" description="Sign in to manage Starlink accounts and recharges." />
+      <PageShell>
+        <SectionHeader eyebrow="Connectivity" title="Starlink" description="Sign in to manage Starlink accounts and recharges." />
         <Card><CardContent className="p-6 text-sm">Please <Link to="/auth" className="font-medium text-solar underline">sign in</Link> before checking accounts or recording recharges.</CardContent></Card>
-      </PageContainer>
+      </PageShell>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader
+    <PageShell>
+      <SectionHeader
         eyebrow="Connectivity"
         title="Starlink"
         description="Track customer terminals, check account records, apply Residential or Business packages and record recharge margins."
         actions={
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-                <Plus className="h-4 w-4 mr-1.5" /> Add Starlink account
-              </Button>
-            </DialogTrigger>
-            <AddStarlinkDialog onDone={() => { setAddOpen(false); accounts.refetch(); }} />
-          </Dialog>
+          <div className="flex flex-wrap items-center gap-2">
+            <RefreshButton onClick={() => overview.refetch()} loading={overview.isFetching} />
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                  <Plus className="h-4 w-4 mr-1.5" /> Add Starlink account
+                </Button>
+              </DialogTrigger>
+              <AddStarlinkDialog onDone={() => { setAddOpen(false); overview.refetch(); }} />
+            </Dialog>
+          </div>
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Stat icon={<Satellite className="h-4 w-4" />} label="Accounts" value={accounts.data?.length ?? 0} />
-        <Stat icon={<CheckCircle2 className="h-4 w-4" />} label="Active" value={active} tone="success" />
-        <Stat icon={<WalletCards className="h-4 w-4" />} label="Monthly revenue" value={money(monthlyRevenue)} />
-        <Stat icon={<Activity className="h-4 w-4" />} label="Recharge margin" value={money(rechargeMargin)} tone="success" />
-      </div>
+      <KpiRow
+        cols={5}
+        items={[
+          { label: "Terminals", value: stats?.total ?? 0, icon: Satellite, tone: "info", hint: stats ? `${stats.business} business · ${stats.residential} residential` : undefined },
+          { label: "Active", value: stats?.active ?? 0, icon: CheckCircle2, tone: "success", hint: stats?.suspended ? `${stats.suspended} suspended` : undefined },
+          { label: "Starlink MRR", value: money(stats?.mrr ?? 0), icon: WalletCards, tone: "solar" },
+          { label: "Margin (30d)", value: money(stats?.margin30d ?? 0), icon: Activity, tone: "success", hint: stats ? `${stats.recharges30d} recharges` : undefined },
+          { label: "Needs check", value: stats?.needsCheck ?? 0, icon: AlertTriangle, tone: stats?.failedExternal ? "danger" : "warning", hint: stats?.failedExternal ? `${stats.failedExternal} failed sends` : "not checked in 7d" },
+        ]}
+      />
 
       <div className="grid gap-3 md:grid-cols-2">
         <PlanCard name="Residential" price={STARLINK_PLANS.residential.monthlyPrice} />
@@ -109,101 +171,51 @@ function StarlinkPage() {
 
       <Tabs defaultValue="accounts">
         <TabsList className="flex h-auto flex-wrap">
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="recharges">Recharges</TabsTrigger>
+          <TabsTrigger value="accounts">Accounts ({accounts.length})</TabsTrigger>
+          <TabsTrigger value="recharges">Recharges ({recharges.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="mt-4">
-          <Card>
-            <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-base">Customer Starlink accounts</CardTitle>
-              <div className="relative w-full sm:w-96">
+          <DetailCard
+            title="Customer Starlink accounts"
+            padded={false}
+            action={
+              <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search account, kit, terminal, customer…" className="pl-9" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search account, kit, terminal…" className="pl-9 h-9" />
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {accounts.isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-                : filteredAccounts.length === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">No Starlink accounts found.</div>
-                : (
-                  <Table>
-                    <TableHeader><TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Starlink details</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last checked</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow></TableHeader>
-                    <TableBody>
-                      {filteredAccounts.map((a: any) => (
-                        <TableRow key={a.id}>
-                          <TableCell>
-                            <div className="font-semibold">{a.customers?.company_name ?? "—"}</div>
-                            <Link to="/customers/$accountNumber" params={{ accountNumber: a.account_number }} className="font-mono text-xs text-solar hover:underline">{a.account_number}</Link>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-mono text-xs">{a.starlink_account_number || "No Starlink account #"}</div>
-                            <div className="text-xs text-muted-foreground">Kit {a.kit_serial || "—"} · Terminal {a.terminal_id || "—"}</div>
-                            <div className="max-w-xs truncate text-xs text-muted-foreground">{a.service_address || "—"}</div>
-                          </TableCell>
-                          <TableCell><StatusPill tone={a.plan_type === "business" ? "info" : "neutral"}>{a.plan_type}</StatusPill><div className="mt-1 text-xs font-mono">{money(a.monthly_price)}/mo</div></TableCell>
-                          <TableCell className="font-mono text-sm">{money(a.balance_usd)}</TableCell>
-                          <TableCell><StatusPill tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}>{a.status}</StatusPill></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{dateTime(a.last_checked_at)}</TableCell>
-                          <TableCell className="text-right space-x-1">
-                            <CheckButton id={a.id} />
-                            <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setRechargeFor(a)}>Recharge</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-            </CardContent>
-          </Card>
+            }
+          >
+            <DataGrid
+              rows={filteredAccounts}
+              columns={accountCols}
+              loading={overview.isLoading}
+              empty={<EmptyState title="No Starlink accounts" description="Add a customer terminal to start tracking plans and recharges." icon={Satellite} />}
+            />
+          </DetailCard>
         </TabsContent>
 
         <TabsContent value="recharges" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Recharge history</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {(recharges.data?.length ?? 0) === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">No Starlink recharges recorded.</div> : (
-                <Table>
-                  <TableHeader><TableRow><TableHead>Reference</TableHead><TableHead>Account</TableHead><TableHead>Customer charge</TableHead><TableHead>External payout</TableHead><TableHead>Margin</TableHead><TableHead>External</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {(recharges.data ?? []).map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{r.payment_reference ?? "—"}</TableCell>
-                        <TableCell><div className="font-mono text-xs">{r.starlink_accounts?.starlink_account_number ?? "—"}</div><div className="text-xs text-muted-foreground">{r.account_number}</div></TableCell>
-                        <TableCell className="font-mono">{money(r.customer_charge_usd)}</TableCell>
-                        <TableCell className="font-mono">{money(r.external_payout_usd)}</TableCell>
-                        <TableCell className="font-mono font-semibold text-success">{money(r.margin_usd)}</TableCell>
-                        <TableCell><StatusPill tone={r.external_status === "sent" ? "success" : r.external_status === "failed" ? "danger" : "warning"}>{r.external_status}</StatusPill></TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{dateTime(r.created_at)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <DetailCard title="Recharge history" padded={false}>
+            <DataGrid
+              rows={recharges}
+              columns={rechargeCols}
+              loading={overview.isLoading}
+              empty={<EmptyState title="No recharges yet" description="Recorded recharges will show customer charge, payout and retained margin." icon={WalletCards} />}
+            />
+          </DetailCard>
         </TabsContent>
       </Tabs>
 
       {rechargeFor && (
         <Dialog open={!!rechargeFor} onOpenChange={() => setRechargeFor(null)}>
-          <RechargeDialog account={rechargeFor} onDone={() => { setRechargeFor(null); accounts.refetch(); recharges.refetch(); }} />
+          <RechargeDialog account={rechargeFor} onDone={() => { setRechargeFor(null); overview.refetch(); }} />
         </Dialog>
       )}
-    </PageContainer>
+    </PageShell>
   );
 }
 
-function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: React.ReactNode; tone?: "success" }) {
-  return <Card><CardContent className="p-4"><div className={`flex items-center gap-2 text-xs uppercase tracking-widest ${tone === "success" ? "text-success" : "text-solar"}`}>{icon}{label}</div><div className="mt-2 font-display text-2xl font-bold">{value}</div></CardContent></Card>;
-}
 
 function PlanCard({ name, price }: { name: string; price: number }) {
   const margin = price - STARLINK_EXTERNAL_PAYOUT_USD;
