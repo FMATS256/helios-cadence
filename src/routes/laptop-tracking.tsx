@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Copy, KeyRound, Laptop2, MoreHorizontal, Plus, RefreshCw, Trash2, CreditCard, Ban, PlayCircle, ShieldOff, TimerReset, Eye, Pencil } from "lucide-react";
+import { Copy, KeyRound, Laptop2, Users, MoreHorizontal, Plus, RefreshCw, Trash2, CreditCard, Ban, PlayCircle, ShieldOff, TimerReset, Eye, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/laptop-tracking")({
   head: () => ({ meta: [{ title: "Laptop Tracking — IMT Trackx" }] }),
