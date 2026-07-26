@@ -1,28 +1,40 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  listVoipAccounts, listVoipRecharges, createVoipAccount, updateVoipAccount,
-  recordVoipRecharge, syncVoipAccount, voipSummary, lookupDandemutandeVoip,
+  createVoipAccount, updateVoipAccount,
+  recordVoipRecharge, syncVoipAccount, lookupDandemutandeVoip,
 } from "@/lib/voip.functions";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getVoipOverview } from "@/lib/infra.functions";
+import {
+  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  RefreshButton, type ColumnDef,
+} from "@/components/enterprise";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PhoneCall, Plus, RefreshCw, Wallet, AlertTriangle, CheckCircle2, Ban, ReceiptText, Search } from "lucide-react";
 
 export const Route = createFileRoute("/voip")({
-  head: () => ({ meta: [{ title: "VoIP Management — IMT Operations" }, { name: "description", content: "Manage Dandemutande VoIP customer accounts, balances, recharges and Proof of Payment." }] }),
+  head: () => ({
+    meta: [
+      { title: "VoIP Management — IMT Operations" },
+      { name: "description", content: "Manage Dandemutande VoIP customer accounts, balances, recharges and Proof of Payment." },
+      { property: "og:title", content: "VoIP Management — IMT Operations" },
+      { property: "og:description", content: "VoIP numbers, balances, recharges and proof of payment." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: VoipPage,
 });
 
@@ -33,228 +45,213 @@ function fmtDate(s?: string | null) { return s ? new Date(s).toLocaleString() : 
 
 function VoipPage() {
   const { user, loading } = useAuth();
-  const listFn = useServerFn(listVoipAccounts);
-  const summaryFn = useServerFn(voipSummary);
-  const rechargesFn = useServerFn(listVoipRecharges);
-
+  const overviewFn = useServerFn(getVoipOverview);
   const authReady = !loading && !!user;
-  const accountsQ = useQuery({ queryKey: ["voip-accounts"], queryFn: () => listFn(), enabled: authReady });
-  const summaryQ = useQuery({ queryKey: ["voip-summary"], queryFn: () => summaryFn(), refetchInterval: authReady ? 30_000 : false, enabled: authReady });
-  const rechargesQ = useQuery({ queryKey: ["voip-recharges"], queryFn: () => rechargesFn({ data: { limit: 50 } }), enabled: authReady });
+
+  const overview = useQuery({
+    queryKey: ["voip-overview"],
+    queryFn: () => overviewFn(),
+    enabled: authReady,
+    refetchInterval: authReady ? 60_000 : false,
+  });
+
+  const accounts = overview.data?.accounts ?? [];
+  const recharges = overview.data?.recharges ?? [];
+  const stats = overview.data?.stats;
 
   const [addOpen, setAddOpen] = useState(false);
   const [lookupOpen, setLookupOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
   const [balanceFor, setBalanceFor] = useState<any | null>(null);
+  const [search, setSearch] = useState("");
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <div className="p-6 text-sm text-muted-foreground">Loading…</div>
-      </PageContainer>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return accounts;
+    return accounts.filter((a: any) =>
+      [a.voip_number, a.dandemutande_account, a.sip_username, a.customers?.company_name, a.customers?.account_number]
+        .some((v) => String(v ?? "").toLowerCase().includes(q)),
     );
-  }
+  }, [accounts, search]);
+
+  const alerts = accounts.filter((a: any) => a.low_balance || a.status === "suspended");
+  const refreshAll = () => overview.refetch();
+
+  const accountCols: ColumnDef<any>[] = [
+    {
+      header: "VoIP number",
+      cell: (a) => (
+        <div>
+          <div className="font-mono font-semibold">{a.voip_number}</div>
+          <div className="text-xs text-muted-foreground">{a.dandemutande_account ?? "No Dandemutande account"}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Customer",
+      cell: (a) => a.customers ? (
+        <div>
+          <div className="text-sm">{a.customers.company_name}</div>
+          <Link to="/customers/$accountNumber" params={{ accountNumber: a.customers.account_number }} className="font-mono text-xs text-solar hover:underline">{a.customers.account_number}</Link>
+        </div>
+      ) : <span className="text-xs text-muted-foreground">Unassigned</span>,
+    },
+    {
+      header: "Balance", align: "right",
+      cell: (a) => (
+        <div>
+          <div className={`font-mono font-semibold ${a.low_balance ? "text-destructive" : ""}`}>{fmtMoney(a.balance_usd)}</div>
+          <div className="text-xs text-muted-foreground">threshold {fmtMoney(a.low_balance_threshold_usd)}</div>
+        </div>
+      ),
+    },
+    { header: "Extensions", align: "center", cell: (a) => <span className="font-mono text-sm">{a.extension_count || 0}</span> },
+    { header: "Status", cell: (a) => <StatusBadge tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}>{a.status}</StatusBadge> },
+    { header: "Last synced", cell: (a) => <span className="text-xs text-muted-foreground">{fmtDate(a.last_synced_at)}</span> },
+    {
+      header: "Actions", align: "right",
+      cell: (a) => (
+        <div className="flex items-center justify-end gap-1">
+          <SyncButton id={a.id} />
+          <Button size="sm" variant="outline" onClick={() => setBalanceFor(a)}>Balance</Button>
+          <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setRechargeFor(a)}>Recharge</Button>
+        </div>
+      ),
+    },
+  ];
+
+  const rechargeCols: ColumnDef<any>[] = [
+    { header: "Receipt", cell: (r) => <span className="font-mono text-xs">{r.receipt_number}</span> },
+    { header: "Number", cell: (r) => <span className="font-mono text-sm">{r.voip_accounts?.voip_number ?? "—"}</span> },
+    { header: "Amount", align: "right", cell: (r) => <span className="font-mono font-semibold">{fmtMoney(r.amount_usd)}</span> },
+    { header: "Reference", cell: (r) => <span className="text-xs text-muted-foreground">{r.payment_reference ?? "—"}</span> },
+    { header: "POP email", cell: (r) => <StatusBadge tone={r.email_status === "sent" ? "success" : r.email_status === "failed" ? "danger" : "neutral"}>{r.email_status ?? "—"}</StatusBadge> },
+    { header: "Status", cell: (r) => <StatusBadge tone={r.status === "verified" ? "success" : r.status === "submitted" ? "info" : "neutral"}>{r.status}</StatusBadge> },
+    { header: "Date", cell: (r) => <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span> },
+  ];
+
+  if (loading) return <PageShell><div className="p-6 text-sm text-muted-foreground">Loading…</div></PageShell>;
 
   if (!user) {
     return (
-      <PageContainer>
-        <PageHeader
-          eyebrow="Communications"
-          title="Dandemutande VoIP"
-          description="Sign in to manage VoIP numbers, balances, recharges and Proof of Payment."
-        />
-        <div className="rounded-xl border p-6 text-sm">
-          You must be signed in to access this page. <a href="/auth" className="font-medium underline">Sign in →</a>
-        </div>
-      </PageContainer>
+      <PageShell>
+        <SectionHeader eyebrow="Communications" title="Dandemutande VoIP" description="Sign in to manage VoIP numbers, balances, recharges and Proof of Payment." />
+        <Card><CardContent className="p-6 text-sm">Please <Link to="/auth" className="font-medium text-solar underline">sign in</Link> to continue.</CardContent></Card>
+      </PageShell>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader
+    <PageShell>
+      <SectionHeader
         eyebrow="Communications"
         title="Dandemutande VoIP"
         description="Manage VoIP numbers, monitor balances, log recharges and email Proof of Payment to Dandemutande support."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <RefreshButton onClick={refreshAll} loading={overview.isFetching} />
             <Dialog open={lookupOpen} onOpenChange={setLookupOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline"><Search className="h-4 w-4 mr-1.5" /> Lookup number</Button>
+                <Button variant="outline"><Search className="mr-1.5 h-4 w-4" /> Lookup number</Button>
               </DialogTrigger>
               <LookupDialog />
             </Dialog>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
                 <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-                  <Plus className="h-4 w-4 mr-1.5" /> Add VoIP number
+                  <Plus className="mr-1.5 h-4 w-4" /> Add VoIP number
                 </Button>
               </DialogTrigger>
-              <AddVoipDialog onDone={() => { setAddOpen(false); accountsQ.refetch(); summaryQ.refetch(); }} />
+              <AddVoipDialog onDone={() => { setAddOpen(false); refreshAll(); }} />
             </Dialog>
           </div>
         }
       />
 
-      {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <KpiCard icon={<PhoneCall className="h-5 w-5" />} label="Active accounts" value={summaryQ.data?.active ?? 0} tone="success" />
-        <KpiCard icon={<Ban className="h-5 w-5" />} label="Suspended" value={summaryQ.data?.suspended ?? 0} tone="danger" />
-        <KpiCard icon={<AlertTriangle className="h-5 w-5" />} label="Low balance" value={summaryQ.data?.low_balance ?? 0} tone="warning" />
-        <KpiCard icon={<Wallet className="h-5 w-5" />} label="Total balance" value={fmtMoney(summaryQ.data?.total_balance ?? 0)} />
-      </div>
+      <KpiRow
+        cols={5}
+        items={[
+          { label: "Active accounts", value: stats?.active ?? 0, icon: PhoneCall, tone: "success", hint: stats ? `${stats.total} total numbers` : undefined },
+          { label: "Total balance", value: fmtMoney(stats?.totalBalance ?? 0), icon: Wallet, tone: "solar", hint: stats ? `${stats.extensions} extensions` : undefined },
+          { label: "Recharges today", value: fmtMoney(stats?.rechargedToday ?? 0), icon: ReceiptText, tone: "info", hint: stats ? `${stats.rechargesToday} transactions` : undefined },
+          { label: "Low balance", value: stats?.lowBalance ?? 0, icon: AlertTriangle, tone: stats?.lowBalance ? "danger" : "neutral", hint: "at or below threshold" },
+          { label: "Suspended", value: stats?.suspended ?? 0, icon: Ban, tone: stats?.suspended ? "warning" : "neutral", hint: stats?.failedEmails ? `${stats.failedEmails} failed POP emails` : undefined },
+        ]}
+      />
 
       <Tabs defaultValue="accounts">
-        <TabsList>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="recharges">Recharges</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+        <TabsList className="flex h-auto flex-wrap">
+          <TabsTrigger value="accounts">Accounts ({accounts.length})</TabsTrigger>
+          <TabsTrigger value="recharges">Recharges ({recharges.length})</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts ({alerts.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="mt-4">
-          <Card>
-            <CardContent className="p-0">
-              {accountsQ.isLoading ? (
-                <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-              ) : (accountsQ.data?.length ?? 0) === 0 ? (
-                <div className="p-12 text-center">
-                  <PhoneCall className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">No VoIP numbers yet. Add your first number to get started.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>VoIP number</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last synced</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {(accountsQ.data ?? []).map((a: any) => {
-                      const low = Number(a.balance_usd) <= Number(a.low_balance_threshold_usd ?? 0);
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell className="font-mono font-semibold">{a.voip_number}
-                            <div className="text-xs text-muted-foreground font-sans">{a.dandemutande_account ?? "—"}</div>
-                          </TableCell>
-                          <TableCell>{a.customers?.company_name ?? "—"}
-                            <div className="text-xs font-mono text-muted-foreground">{a.customers?.account_number ?? ""}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className={`font-semibold ${low ? "text-destructive" : ""}`}>{fmtMoney(a.balance_usd)}</div>
-                            <div className="text-xs text-muted-foreground">threshold {fmtMoney(a.low_balance_threshold_usd)}</div>
-                          </TableCell>
-                          <TableCell><StatusPill tone={a.status === "active" ? "success" : a.status === "suspended" ? "danger" : "neutral"}>{a.status}</StatusPill></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{fmtDate(a.last_synced_at)}</TableCell>
-                          <TableCell className="text-right space-x-1">
-                            <SyncButton id={a.id} />
-                            <Button size="sm" variant="outline" onClick={() => setBalanceFor(a)}>Balance</Button>
-                            <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setRechargeFor(a)}>Recharge</Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <DetailCard
+            title="VoIP accounts"
+            padded={false}
+            action={
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search number, account, customer…" className="h-9 pl-9" />
+              </div>
+            }
+          >
+            <DataGrid
+              rows={filtered}
+              columns={accountCols}
+              loading={overview.isLoading}
+              empty={<EmptyState title="No VoIP numbers" description="Add your first number to track balances and recharges." icon={PhoneCall} />}
+            />
+          </DetailCard>
         </TabsContent>
 
         <TabsContent value="recharges" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Recharge history</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {rechargesQ.isLoading ? <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-                : (rechargesQ.data?.length ?? 0) === 0 ? <div className="p-12 text-center text-sm text-muted-foreground">No recharges yet.</div>
-                : (
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>Receipt</TableHead>
-                    <TableHead>Number</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {(rechargesQ.data ?? []).map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{r.receipt_number}</TableCell>
-                        <TableCell className="font-mono">{r.voip_accounts?.voip_number ?? "—"}</TableCell>
-                        <TableCell className="font-semibold">{fmtMoney(r.amount_usd)}</TableCell>
-                        <TableCell className="text-muted-foreground">{r.payment_reference ?? "—"}</TableCell>
-                        <TableCell><StatusPill tone={r.email_status === "sent" ? "success" : r.email_status === "failed" ? "danger" : "neutral"}>{r.email_status}</StatusPill></TableCell>
-                        <TableCell><StatusPill tone={r.status === "submitted" ? "info" : r.status === "verified" ? "success" : "neutral"}>{r.status}</StatusPill></TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <DetailCard title="Recharge history" padded={false}>
+            <DataGrid
+              rows={recharges}
+              columns={rechargeCols}
+              loading={overview.isLoading}
+              empty={<EmptyState title="No recharges yet" description="Recorded recharges will appear here with receipts and POP status." icon={ReceiptText} />}
+            />
+          </DetailCard>
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Alerts</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {(accountsQ.data ?? []).filter((a: any) => Number(a.balance_usd) <= Number(a.low_balance_threshold_usd ?? 0)).map((a: any) => (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <div className="flex-1">
-                    <div className="font-semibold font-mono">{a.voip_number}</div>
-                    <div className="text-xs text-muted-foreground">Balance {fmtMoney(a.balance_usd)} · Threshold {fmtMoney(a.low_balance_threshold_usd)}</div>
+          <DetailCard title="Account alerts">
+            {alerts.length === 0 ? (
+              <div className="flex items-center gap-2 p-4 text-sm text-success"><CheckCircle2 className="h-5 w-5" /> All VoIP accounts healthy.</div>
+            ) : (
+              <div className="space-y-2">
+                {alerts.map((a: any) => (
+                  <div key={a.id} className={`flex items-center gap-3 rounded-lg border p-3 ${a.status === "suspended" ? "border-warning/40 bg-warning/5" : "border-destructive/30 bg-destructive/5"}`}>
+                    {a.status === "suspended" ? <Ban className="h-5 w-5 text-warning" /> : <AlertTriangle className="h-5 w-5 text-destructive" />}
+                    <div className="flex-1">
+                      <div className="font-mono font-semibold">{a.voip_number}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {a.status === "suspended" ? "Account suspended — recharge to reactivate." : `Balance ${fmtMoney(a.balance_usd)} · Threshold ${fmtMoney(a.low_balance_threshold_usd)}`}
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => setRechargeFor(a)}>Recharge</Button>
                   </div>
-                  <Button size="sm" onClick={() => setRechargeFor(a)}>Recharge</Button>
-                </div>
-              ))}
-              {(accountsQ.data ?? []).filter((a: any) => a.status === "suspended").map((a: any) => (
-                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-orange-500/30 bg-orange-500/5">
-                  <Ban className="h-5 w-5 text-orange-500" />
-                  <div className="flex-1">
-                    <div className="font-semibold font-mono">{a.voip_number}</div>
-                    <div className="text-xs text-muted-foreground">Account suspended — recharge to reactivate.</div>
-                  </div>
-                </div>
-              ))}
-              {(accountsQ.data ?? []).every((a: any) => a.status !== "suspended" && Number(a.balance_usd) > Number(a.low_balance_threshold_usd ?? 0)) && (
-                <div className="flex items-center gap-2 text-green-500 p-4">
-                  <CheckCircle2 className="h-5 w-5" /> All VoIP accounts healthy.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                ))}
+              </div>
+            )}
+          </DetailCard>
         </TabsContent>
       </Tabs>
 
       {rechargeFor && (
         <Dialog open={!!rechargeFor} onOpenChange={() => setRechargeFor(null)}>
-          <RechargeDialog account={rechargeFor} onDone={() => { setRechargeFor(null); accountsQ.refetch(); rechargesQ.refetch(); summaryQ.refetch(); }} />
+          <RechargeDialog account={rechargeFor} onDone={() => { setRechargeFor(null); refreshAll(); }} />
         </Dialog>
       )}
       {balanceFor && (
         <Dialog open={!!balanceFor} onOpenChange={() => setBalanceFor(null)}>
-          <BalanceDialog account={balanceFor} onDone={() => { setBalanceFor(null); accountsQ.refetch(); summaryQ.refetch(); }} />
+          <BalanceDialog account={balanceFor} onDone={() => { setBalanceFor(null); refreshAll(); }} />
         </Dialog>
       )}
-    </PageContainer>
-  );
-}
-
-function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: React.ReactNode; tone?: "success" | "warning" | "danger" }) {
-  const toneClass = tone === "success" ? "text-green-500" : tone === "warning" ? "text-orange-500" : tone === "danger" ? "text-destructive" : "text-solar";
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className={`flex items-center gap-2 text-xs uppercase tracking-widest ${toneClass}`}>{icon}<span>{label}</span></div>
-        <div className="mt-2 font-display text-3xl font-bold">{value}</div>
-      </CardContent>
-    </Card>
+    </PageShell>
   );
 }
 
