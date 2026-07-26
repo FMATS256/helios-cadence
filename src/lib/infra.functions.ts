@@ -188,3 +188,153 @@ export const getStarlinkOverview = createServerFn({ method: "GET" })
       },
     };
   });
+
+/* ------------------------------------------------------------------ *
+ * Cloud Storage
+ * ------------------------------------------------------------------ */
+export const getStorageOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb: any = context.supabase;
+    const [accountsRes, customersRes] = await Promise.all([
+      sb.from("cloud_storage_accounts").select("*").is("archived_at", null).order("created_at", { ascending: false }),
+      sb.from("customers").select("id,account_number,company_name").is("archived_at", null).order("company_name"),
+    ]);
+
+    const customers = (customersRes.data ?? []) as any[];
+    const byId = new Map(customers.map((c) => [c.id, c]));
+    const byAcct = new Map(customers.map((c) => [c.account_number, c]));
+
+    const accounts = ((accountsRes.data ?? []) as any[]).map((a) => {
+      const cust = byId.get(a.customer_id) ?? byAcct.get(a.account_number) ?? null;
+      const dleft = daysUntil(a.renewal_date);
+      const used = Number(a.used_tb ?? 0);
+      const cap = Number(a.storage_tb ?? 0);
+      return {
+        ...a,
+        customer_name: cust?.company_name ?? null,
+        customer_account: cust?.account_number ?? a.account_number ?? null,
+        days_to_renewal: dleft,
+        usage_pct: cap > 0 ? Math.round((used / cap) * 1000) / 10 : null,
+        renewal_state: dleft == null ? "unknown" : dleft < 0 ? "expired" : dleft <= 30 ? "due" : "ok",
+      };
+    });
+
+    const active = accounts.filter((a) => a.status === "active");
+    return {
+      accounts,
+      customers,
+      stats: {
+        total: accounts.length,
+        active: active.length,
+        suspended: accounts.filter((a) => a.status === "suspended").length,
+        allocatedTb: Math.round(accounts.reduce((s, a) => s + Number(a.storage_tb ?? 0), 0) * 100) / 100,
+        usedTb: Math.round(accounts.reduce((s, a) => s + Number(a.used_tb ?? 0), 0) * 100) / 100,
+        nearFull: accounts.filter((a) => (a.usage_pct ?? 0) >= 85).length,
+        dueSoon: accounts.filter((a) => a.renewal_state === "due").length,
+        expired: accounts.filter((a) => a.renewal_state === "expired").length,
+        mrr: active.reduce((s, a) => s + Number(a.monthly_cost ?? 0), 0),
+      },
+    };
+  });
+
+/* ------------------------------------------------------------------ *
+ * Managed NAS
+ * ------------------------------------------------------------------ */
+export const getNasOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb: any = context.supabase;
+    const [unitsRes, customersRes] = await Promise.all([
+      sb.from("managed_nas_accounts").select("*").is("archived_at", null).order("created_at", { ascending: false }),
+      sb.from("customers").select("id,account_number,company_name").is("archived_at", null).order("company_name"),
+    ]);
+
+    const customers = (customersRes.data ?? []) as any[];
+    const byId = new Map(customers.map((c) => [c.id, c]));
+    const byAcct = new Map(customers.map((c) => [c.account_number, c]));
+
+    const units = ((unitsRes.data ?? []) as any[]).map((u) => {
+      const cust = byId.get(u.customer_id) ?? byAcct.get(u.account_number) ?? null;
+      const dleft = daysUntil(u.renewal_date);
+      return {
+        ...u,
+        customer_name: cust?.company_name ?? null,
+        customer_account: cust?.account_number ?? u.account_number ?? null,
+        days_to_renewal: dleft,
+        renewal_state: dleft == null ? "unknown" : dleft < 0 ? "expired" : dleft <= 30 ? "due" : "ok",
+      };
+    });
+
+    const active = units.filter((u) => u.status === "active");
+    return {
+      units,
+      customers,
+      stats: {
+        total: units.length,
+        active: active.length,
+        suspended: units.filter((u) => u.status === "suspended").length,
+        capacityTb: Math.round(units.reduce((s, u) => s + Number(u.capacity_tb ?? 0), 0) * 100) / 100,
+        sites: new Set(units.map((u) => u.location).filter(Boolean)).size,
+        dueSoon: units.filter((u) => u.renewal_state === "due").length,
+        expired: units.filter((u) => u.renewal_state === "expired").length,
+        mrr: active.reduce((s, u) => s + Number(u.monthly_cost ?? 0), 0),
+      },
+    };
+  });
+
+/* ------------------------------------------------------------------ *
+ * VoIP
+ * ------------------------------------------------------------------ */
+export const getVoipOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb: any = context.supabase;
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [accountsRes, rechargesRes] = await Promise.all([
+      sb
+        .from("voip_accounts")
+        .select("*, customers(id,account_number,company_name)")
+        .is("archived_at", null)
+        .order("created_at", { ascending: false }),
+      sb
+        .from("voip_recharges")
+        .select("*, voip_accounts(voip_number,dandemutande_account)")
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ]);
+
+    const accounts = (accountsRes.data ?? []) as any[];
+    const recharges = (rechargesRes.data ?? []) as any[];
+
+    const lowBalance = accounts.filter(
+      (a) => Number(a.balance_usd ?? 0) <= Number(a.low_balance_threshold_usd ?? 0),
+    );
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const today = recharges.filter((r) => new Date(r.created_at) >= todayStart);
+    const month = recharges.filter((r) => new Date(r.created_at) >= monthStart);
+
+    return {
+      accounts: accounts.map((a) => ({
+        ...a,
+        low_balance: Number(a.balance_usd ?? 0) <= Number(a.low_balance_threshold_usd ?? 0),
+        extension_count: (a.extensions ?? []).length,
+      })),
+      recharges,
+      stats: {
+        total: accounts.length,
+        active: accounts.filter((a) => a.status === "active").length,
+        suspended: accounts.filter((a) => a.status === "suspended").length,
+        lowBalance: lowBalance.length,
+        totalBalance: accounts.reduce((s, a) => s + Number(a.balance_usd ?? 0), 0),
+        rechargesToday: today.length,
+        rechargedToday: today.reduce((s, r) => s + Number(r.amount_usd ?? 0), 0),
+        monthRevenue: month.reduce((s, r) => s + Number(r.amount_usd ?? 0), 0),
+        failedEmails: recharges.filter((r) => r.email_status === "failed").length,
+        extensions: accounts.reduce((s, a) => s + (a.extensions ?? []).length, 0),
+      },
+    };
+  });
