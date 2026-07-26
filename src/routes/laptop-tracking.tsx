@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
 import { useAuth } from "@/hooks/use-auth";
-import { PageHeader, PageContainer, StatusPill } from "@/components/page";
+import { StatusPill } from "@/components/page";
+import { PageShell, SectionHeader, KpiRow, RefreshButton } from "@/components/enterprise";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Copy, KeyRound, Laptop2, MoreHorizontal, Plus, RefreshCw, Trash2, CreditCard, Ban, PlayCircle, ShieldOff, TimerReset, Eye, Pencil } from "lucide-react";
+import { Copy, KeyRound, Laptop2, Users, MoreHorizontal, Plus, RefreshCw, Trash2, CreditCard, Ban, PlayCircle, ShieldOff, TimerReset, Eye, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/laptop-tracking")({
   head: () => ({ meta: [{ title: "Laptop Tracking — IMT Trackx" }] }),
@@ -38,36 +39,31 @@ function LaptopTrackingPage() {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <PageContainer>
-        <div className="text-sm text-muted-foreground p-6">Loading…</div>
-      </PageContainer>
+      <PageShell>
+        <div className="p-6 text-sm text-muted-foreground">Loading…</div>
+      </PageShell>
     );
   }
   if (!user) {
     return (
-      <PageContainer>
-        <PageHeader
+      <PageShell>
+        <SectionHeader
           eyebrow="IMT Trackx"
           title="Laptop Tracking"
           description="Sign in to manage client accounts, licenses, devices and billing."
         />
-        <div className="rounded-xl border p-6 text-sm">
+        <Card><CardContent className="p-6 text-sm">
           You must be signed in to access this page.{" "}
-          <a href="/auth" className="underline font-medium">Sign in →</a>
-        </div>
-      </PageContainer>
+          <a href="/auth" className="font-medium text-solar underline">Sign in →</a>
+        </CardContent></Card>
+      </PageShell>
     );
   }
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow="IMT Trackx"
-        title="Laptop Tracking"
-        description="Manage client accounts, licenses, devices and billing for the IMT laptop tracking service."
-      />
+    <PageShell>
       <StatsBar />
       <Tabs defaultValue="accounts" className="w-full">
-        <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="accounts">Accounts</TabsTrigger>
           <TabsTrigger value="licenses">Licenses</TabsTrigger>
           <TabsTrigger value="devices">Devices</TabsTrigger>
@@ -78,7 +74,7 @@ function LaptopTrackingPage() {
         <TabsContent value="devices" className="mt-6"><DevicesTab /></TabsContent>
         <TabsContent value="billing" className="mt-6"><BillingTab /></TabsContent>
       </Tabs>
-    </PageContainer>
+    </PageShell>
   );
 }
 
@@ -93,28 +89,30 @@ function StatsBar() {
     enabled: !!user,
   });
   const s = data || {};
-  const items = [
-    { label: "Accounts", value: s.total_accounts ?? s.accounts ?? "—" },
-    { label: "Active Licenses", value: s.active_licenses ?? s.licenses_active ?? "—" },
-    { label: "Devices", value: s.total_devices ?? s.devices ?? "—" },
-    { label: "Revenue", value: typeof s.total_revenue === "number" ? fmtMoney(s.total_revenue, s.currency || "USD") : (s.revenue ?? "—") },
-  ];
+  const num = (v: any) => (v == null ? 0 : v);
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {items.map((i) => (
-        <Card key={i.label}>
-          <CardContent className="p-4">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{i.label}</div>
-            <div className="font-display text-2xl font-bold mt-1">{isLoading ? "…" : String(i.value)}</div>
-          </CardContent>
-        </Card>
-      ))}
-      <div className="col-span-2 md:col-span-4 -mt-1">
-        <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh stats
-        </Button>
-      </div>
-    </div>
+    <>
+      <SectionHeader
+        eyebrow="IMT Trackx"
+        title="Laptop Tracking"
+        description="Track, monitor and manage client laptop accounts, licenses, devices and billing in real time."
+        actions={<RefreshButton onClick={() => refetch()} loading={isFetching} />}
+      />
+      <KpiRow
+        cols={4}
+        items={[
+          { label: "Accounts", value: isLoading ? "…" : String(num(s.total_accounts ?? s.accounts)), icon: Users, tone: "info" },
+          { label: "Active licenses", value: isLoading ? "…" : String(num(s.active_licenses ?? s.licenses_active)), icon: KeyRound, tone: "success" },
+          { label: "Devices", value: isLoading ? "…" : String(num(s.total_devices ?? s.devices)), icon: Laptop2, tone: "solar" },
+          {
+            label: "Revenue",
+            value: isLoading ? "…" : typeof s.total_revenue === "number" ? fmtMoney(s.total_revenue, s.currency || "USD") : String(s.revenue ?? "—"),
+            icon: CreditCard,
+            tone: "neutral",
+          },
+        ]}
+      />
+    </>
   );
 }
 
