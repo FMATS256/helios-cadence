@@ -260,7 +260,7 @@ function SyncButton({ id }: { id: string }) {
   const qc = useQueryClient();
   const m = useMutation({
     mutationFn: () => fn({ data: { id } }),
-    onSuccess: () => { toast.success("Synced (portal balance requires manual entry)"); qc.invalidateQueries({ queryKey: ["voip-accounts"] }); },
+    onSuccess: () => { toast.success("Synced (portal balance requires manual entry)"); qc.invalidateQueries({ queryKey: ["voip-overview"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
   return <Button size="sm" variant="ghost" onClick={() => m.mutate()} disabled={m.isPending}><RefreshCw className={`h-4 w-4 ${m.isPending ? "animate-spin" : ""}`} /></Button>;
