@@ -168,16 +168,17 @@ function VoipPage() {
         }
       />
 
-      <KpiRow
+      <StatChipRow
         cols={5}
-        items={[
-          { label: "Active accounts", value: stats?.active ?? 0, icon: PhoneCall, tone: "success", hint: stats ? `${stats.total} total numbers` : undefined },
-          { label: "Total balance", value: fmtMoney(stats?.totalBalance ?? 0), icon: Wallet, tone: "solar", hint: stats ? `${stats.extensions} extensions` : undefined },
-          { label: "Recharges today", value: fmtMoney(stats?.rechargedToday ?? 0), icon: ReceiptText, tone: "info", hint: stats ? `${stats.rechargesToday} transactions` : undefined },
-          { label: "Low balance", value: stats?.lowBalance ?? 0, icon: AlertTriangle, tone: stats?.lowBalance ? "danger" : "neutral", hint: "at or below threshold" },
-          { label: "Suspended", value: stats?.suspended ?? 0, icon: Ban, tone: stats?.suspended ? "warning" : "neutral", hint: stats?.failedEmails ? `${stats.failedEmails} failed POP emails` : undefined },
+        chips={[
+          { label: "Active accounts", value: stats?.active ?? 0, color: "#10b981", hint: stats ? `${stats.total} total numbers` : undefined },
+          { label: "Total balance", value: fmtMoney(stats?.totalBalance ?? 0), color: "#f59e0b", text: "#3b2606", hint: stats ? `${stats.extensions} extensions` : undefined },
+          { label: "Recharges today", value: fmtMoney(stats?.rechargedToday ?? 0), color: "#0ea5e9", hint: stats ? `${stats.rechargesToday} transactions` : undefined },
+          { label: "Low balance", value: stats?.lowBalance ?? 0, color: "#f43f5e", hint: "at or below threshold" },
+          { label: "Suspended", value: stats?.suspended ?? 0, color: "#64748b", hint: stats?.failedEmails ? `${stats.failedEmails} failed POP emails` : undefined },
         ]}
       />
+
 
       <Tabs defaultValue="accounts">
         <TabsList className="flex h-auto flex-wrap">
