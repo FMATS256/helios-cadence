@@ -12,7 +12,7 @@ import {
 import { getStarlinkOverview } from "@/lib/infra.functions";
 import { STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS } from "@/lib/starlink.shared";
 import {
-  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, type ColumnDef,
 } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
@@ -153,16 +153,17 @@ function StarlinkPage() {
         }
       />
 
-      <KpiRow
+      <StatChipRow
         cols={5}
-        items={[
-          { label: "Terminals", value: stats?.total ?? 0, icon: Satellite, tone: "info", hint: stats ? `${stats.business} business · ${stats.residential} residential` : undefined },
-          { label: "Active", value: stats?.active ?? 0, icon: CheckCircle2, tone: "success", hint: stats?.suspended ? `${stats.suspended} suspended` : undefined },
-          { label: "Starlink MRR", value: money(stats?.mrr ?? 0), icon: WalletCards, tone: "solar" },
-          { label: "Margin (30d)", value: money(stats?.margin30d ?? 0), icon: Activity, tone: "success", hint: stats ? `${stats.recharges30d} recharges` : undefined },
-          { label: "Needs check", value: stats?.needsCheck ?? 0, icon: AlertTriangle, tone: stats?.failedExternal ? "danger" : "warning", hint: stats?.failedExternal ? `${stats.failedExternal} failed sends` : "not checked in 7d" },
+        chips={[
+          { label: "Terminals", value: stats?.total ?? 0, color: "#4f46e5", hint: stats ? `${stats.business} business · ${stats.residential} residential` : undefined },
+          { label: "Active", value: stats?.active ?? 0, color: "#10b981", hint: stats?.suspended ? `${stats.suspended} suspended` : undefined },
+          { label: "Starlink MRR", value: money(stats?.mrr ?? 0), color: "#f59e0b", text: "#3b2606" },
+          { label: "Margin (30d)", value: money(stats?.margin30d ?? 0), color: "#0ea5e9", hint: stats ? `${stats.recharges30d} recharges` : undefined },
+          { label: "Needs check", value: stats?.needsCheck ?? 0, color: "#f43f5e", hint: stats?.failedExternal ? `${stats.failedExternal} failed sends` : "not checked in 7d" },
         ]}
       />
+
 
       <div className="grid gap-3 md:grid-cols-2">
         <PlanCard name="Residential" price={STARLINK_PLANS.residential.monthlyPrice} />

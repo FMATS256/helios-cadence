@@ -10,7 +10,7 @@ import {
 } from "@/lib/voip.functions";
 import { getVoipOverview } from "@/lib/infra.functions";
 import {
-  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, type ColumnDef,
 } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";

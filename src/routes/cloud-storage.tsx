@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { getStorageOverview } from "@/lib/infra.functions";
 import {
-  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, type ColumnDef,
 } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
@@ -148,16 +148,17 @@ function CloudStoragePage() {
         }
       />
 
-      <KpiRow
+      <StatChipRow
         cols={5}
-        items={[
-          { label: "Accounts", value: stats?.total ?? 0, icon: Cloud, tone: "info", hint: stats ? `${stats.active} active · ${stats.suspended} suspended` : undefined },
-          { label: "Used storage", value: `${stats?.usedTb ?? 0} TB`, icon: HardDrive, tone: "success", hint: stats ? `of ${stats.allocatedTb} TB allocated` : undefined },
-          { label: "Allocated", value: `${stats?.allocatedTb ?? 0} TB`, icon: Database, tone: "neutral" },
-          { label: "Near capacity", value: stats?.nearFull ?? 0, icon: TriangleAlert, tone: stats?.nearFull ? "danger" : "neutral", hint: "85%+ consumed" },
-          { label: "Storage MRR", value: money(stats?.mrr ?? 0), icon: WalletCards, tone: "solar", hint: stats ? `${stats.dueSoon} renewals due` : undefined },
+        chips={[
+          { label: "Accounts", value: stats?.total ?? 0, color: "#4f46e5", hint: stats ? `${stats.active} active · ${stats.suspended} suspended` : undefined },
+          { label: "Used storage", value: `${stats?.usedTb ?? 0} TB`, color: "#10b981", hint: stats ? `of ${stats.allocatedTb} TB` : undefined },
+          { label: "Allocated", value: `${stats?.allocatedTb ?? 0} TB`, color: "#0ea5e9" },
+          { label: "Near capacity", value: stats?.nearFull ?? 0, color: "#f43f5e", hint: "85%+ consumed" },
+          { label: "Storage MRR", value: money(stats?.mrr ?? 0), color: "#f59e0b", text: "#3b2606", hint: stats ? `${stats.dueSoon} renewals due` : undefined },
         ]}
       />
+
 
       <Tabs defaultValue="accounts">
         <TabsList className="flex h-auto flex-wrap">
