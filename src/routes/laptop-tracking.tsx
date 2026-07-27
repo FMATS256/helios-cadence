@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusPill } from "@/components/page";
-import { PageShell, SectionHeader, KpiRow, RefreshButton } from "@/components/enterprise";
+import { PageShell, SectionHeader, StatChipRow, RefreshButton } from "@/components/enterprise";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
