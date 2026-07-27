@@ -87,14 +87,16 @@ export function StatChip({ label, value, color, text = "#ffffff", hint }: StatCh
 }
 
 /** A row of colored StatChips — automatically hidden when empty. */
-export function StatChipRow({ chips, cols = 3 }: { chips: StatChipDef[]; cols?: 2 | 3 | 4 | 6 }) {
+export function StatChipRow({ chips, cols = 3 }: { chips: StatChipDef[]; cols?: 2 | 3 | 4 | 5 | 6 }) {
   if (!chips.length) return null;
   const grid =
     cols === 2 ? "grid-cols-2" :
     cols === 4 ? "grid-cols-2 md:grid-cols-4" :
+    cols === 5 ? "grid-cols-2 md:grid-cols-5" :
     cols === 6 ? "grid-cols-3 md:grid-cols-6" :
     "grid-cols-3";
   return <div className={cn("grid gap-2", grid)}>{chips.map((c, i) => <StatChip key={i} {...c} />)}</div>;
+
 }
 
 export type KpiTone = "info" | "success" | "warning" | "danger" | "solar" | "neutral";
