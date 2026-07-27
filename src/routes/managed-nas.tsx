@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { getNasOverview } from "@/lib/infra.functions";
 import {
-  PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
+  PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, type ColumnDef,
 } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
@@ -144,16 +144,17 @@ function ManagedNasPage() {
         }
       />
 
-      <KpiRow
+      <StatChipRow
         cols={5}
-        items={[
-          { label: "Deployments", value: stats?.total ?? 0, icon: Server, tone: "info", hint: stats ? `${stats.active} active · ${stats.suspended} suspended` : undefined },
-          { label: "Managed capacity", value: `${stats?.capacityTb ?? 0} TB`, icon: HardDrive, tone: "success" },
-          { label: "Sites", value: stats?.sites ?? 0, icon: MapPin, tone: "neutral" },
-          { label: "Renewals due", value: stats?.dueSoon ?? 0, icon: TriangleAlert, tone: stats?.expired ? "danger" : "warning", hint: stats?.expired ? `${stats.expired} expired` : "next 30 days" },
-          { label: "NAS MRR", value: money(stats?.mrr ?? 0), icon: WalletCards, tone: "solar" },
+        chips={[
+          { label: "Deployments", value: stats?.total ?? 0, color: "#4f46e5", hint: stats ? `${stats.active} active · ${stats.suspended} suspended` : undefined },
+          { label: "Managed capacity", value: `${stats?.capacityTb ?? 0} TB`, color: "#10b981" },
+          { label: "Sites", value: stats?.sites ?? 0, color: "#0ea5e9" },
+          { label: "Renewals due", value: stats?.dueSoon ?? 0, color: "#f43f5e", hint: stats?.expired ? `${stats.expired} expired` : "next 30 days" },
+          { label: "NAS MRR", value: money(stats?.mrr ?? 0), color: "#f59e0b", text: "#3b2606" },
         ]}
       />
+
 
       <Tabs defaultValue="units">
         <TabsList className="flex h-auto flex-wrap">

@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { trackxCall } from "@/lib/trackx.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusPill } from "@/components/page";
-import { PageShell, SectionHeader, KpiRow, RefreshButton } from "@/components/enterprise";
+import { PageShell, SectionHeader, StatChipRow, RefreshButton } from "@/components/enterprise";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,20 +98,21 @@ function StatsBar() {
         description="Track, monitor and manage client laptop accounts, licenses, devices and billing in real time."
         actions={<RefreshButton onClick={() => refetch()} loading={isFetching} />}
       />
-      <KpiRow
+      <StatChipRow
         cols={4}
-        items={[
-          { label: "Accounts", value: isLoading ? "…" : String(num(s.total_accounts ?? s.accounts)), icon: Users, tone: "info" },
-          { label: "Active licenses", value: isLoading ? "…" : String(num(s.active_licenses ?? s.licenses_active)), icon: KeyRound, tone: "success" },
-          { label: "Devices", value: isLoading ? "…" : String(num(s.total_devices ?? s.devices)), icon: Laptop2, tone: "solar" },
+        chips={[
+          { label: "Accounts", value: isLoading ? "…" : String(num(s.total_accounts ?? s.accounts)), color: "#4f46e5" },
+          { label: "Active licenses", value: isLoading ? "…" : String(num(s.active_licenses ?? s.licenses_active)), color: "#10b981" },
+          { label: "Devices", value: isLoading ? "…" : String(num(s.total_devices ?? s.devices)), color: "#0ea5e9" },
           {
             label: "Revenue",
             value: isLoading ? "…" : typeof s.total_revenue === "number" ? fmtMoney(s.total_revenue, s.currency || "USD") : String(s.revenue ?? "—"),
-            icon: CreditCard,
-            tone: "neutral",
+            color: "#f59e0b",
+            text: "#3b2606",
           },
         ]}
       />
+
     </>
   );
 }
