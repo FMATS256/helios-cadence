@@ -669,12 +669,15 @@ export type Database = {
           direction: string
           external_id: string | null
           id: string
+          is_internal: boolean
           metadata: Json | null
+          parent_id: string | null
           recipient: string | null
           sender: string | null
           sent_at: string | null
           status: string | null
           subject: string | null
+          thread_id: string | null
           updated_at: string
         }
         Insert: {
@@ -687,12 +690,15 @@ export type Database = {
           direction?: string
           external_id?: string | null
           id?: string
+          is_internal?: boolean
           metadata?: Json | null
+          parent_id?: string | null
           recipient?: string | null
           sender?: string | null
           sent_at?: string | null
           status?: string | null
           subject?: string | null
+          thread_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -705,12 +711,15 @@ export type Database = {
           direction?: string
           external_id?: string | null
           id?: string
+          is_internal?: boolean
           metadata?: Json | null
+          parent_id?: string | null
           recipient?: string | null
           sender?: string | null
           sent_at?: string | null
           status?: string | null
           subject?: string | null
+          thread_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -719,6 +728,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
             referencedColumns: ["id"]
           },
         ]
@@ -1029,6 +1045,144 @@ export type Database = {
           },
         ]
       }
+      customer_credits: {
+        Row: {
+          account_number: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          id: string
+          kind: string
+          note: string | null
+          source_invoice_id: string | null
+          source_payment_id: string | null
+        }
+        Insert: {
+          account_number: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          id?: string
+          kind?: string
+          note?: string | null
+          source_invoice_id?: string | null
+          source_payment_id?: string | null
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          source_invoice_id?: string | null
+          source_payment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_credits_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credits_source_invoice_id_fkey"
+            columns: ["source_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credits_source_payment_id_fkey"
+            columns: ["source_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_documents: {
+        Row: {
+          account_number: string
+          category: string
+          created_at: string
+          customer_id: string
+          doc_key: string
+          doc_label: string
+          expires_at: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          issued_on: string | null
+          mime_type: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          account_number: string
+          category?: string
+          created_at?: string
+          customer_id: string
+          doc_key: string
+          doc_label: string
+          expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          issued_on?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          account_number?: string
+          category?: string
+          created_at?: string
+          customer_id?: string
+          doc_key?: string
+          doc_label?: string
+          expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          issued_on?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_documents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           account_number: string
@@ -1037,6 +1191,7 @@ export type Database = {
           created_at: string
           customer_id: string
           id: string
+          note_type: string
           pinned: boolean
         }
         Insert: {
@@ -1046,6 +1201,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           id?: string
+          note_type?: string
           pinned?: boolean
         }
         Update: {
@@ -1055,6 +1211,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           id?: string
+          note_type?: string
           pinned?: boolean
         }
         Relationships: [
@@ -2470,6 +2627,82 @@ export type Database = {
           },
         ]
       }
+      refunds: {
+        Row: {
+          account_number: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          id: string
+          invoice_id: string | null
+          method: string | null
+          payment_id: string | null
+          reason: string | null
+          reference: string | null
+          refunded_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          payment_id?: string | null
+          reason?: string | null
+          reference?: string | null
+          refunded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          id?: string
+          invoice_id?: string | null
+          method?: string | null
+          payment_id?: string | null
+          reason?: string | null
+          reference?: string | null
+          refunded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_backups: {
         Row: {
           created_at: string
@@ -2716,6 +2949,81 @@ export type Database = {
             columns: ["starlink_account_id"]
             isOneToOne: false
             referencedRelation: "starlink_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_history: {
+        Row: {
+          account_number: string
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          customer_id: string
+          effective_on: string
+          from_amount: number | null
+          from_cycle: string | null
+          from_plan: string | null
+          from_status: string | null
+          id: string
+          reason: string | null
+          subscription_id: string | null
+          to_amount: number | null
+          to_cycle: string | null
+          to_plan: string | null
+          to_status: string | null
+        }
+        Insert: {
+          account_number: string
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          customer_id: string
+          effective_on?: string
+          from_amount?: number | null
+          from_cycle?: string | null
+          from_plan?: string | null
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          subscription_id?: string | null
+          to_amount?: number | null
+          to_cycle?: string | null
+          to_plan?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          account_number?: string
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          customer_id?: string
+          effective_on?: string
+          from_amount?: number | null
+          from_cycle?: string | null
+          from_plan?: string | null
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          subscription_id?: string | null
+          to_amount?: number | null
+          to_cycle?: string | null
+          to_plan?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]

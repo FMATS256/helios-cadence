@@ -1,301 +1,207 @@
-# Plan — four workstreams, shipped in order
+## Scope note
 
-## 1. In-place actions in Customer 360 (no more redirects)
+This request is a multi-release program (three phases, ~40 distinct features, several external integrations: WHM/cPanel, Quote Studio, WhatsApp chatbot, PDF/Excel export). It cannot be delivered safely in one pass. Below is the delivery plan, ordered so each block ships working end-to-end with the current UI untouched.
 
-On `/customers/$accountNumber`, replace the Quick Action buttons that currently navigate away with dialogs scoped to the current client. All writes go through existing authenticated server fns and invalidate the customer queries so every tab auto-syncs.
+I need one decision from you before starting: which block to build first (see "Start here" at the bottom).
 
-- **Add Service**: dialog pulls active catalog, choose package + qty + price, calls `assignServices({ customer_id, items })`. On success: Services + Subscriptions + Billing tabs refresh.
-- **New Quote**: dialog with title, line items (pick from catalog), amount auto-calc, valid-until, status. Writes to `quotes` + `quote_line_items` with this `customer_id` prefilled and locked.
-- **Record Payment**: single-step dialog — amount, method (cash/transfer/mobile-money/card/other), reference, optional invoice to allocate to (dropdown of unpaid invoices for this client), notes. Calls existing payment server fn, auto-allocates if invoice picked, triggers receipt email.
-- **New Ticket**: dialog — subject, description, priority, assign technician (dropdown of staff with support role). Writes to `tickets` with `customer_id` locked; notifies assignee via existing trigger.
-- **Log Communication**: dialog — channel (call/email/whatsapp/meeting), contact person (dropdown of `customer_contacts` for this client, defaults to primary), summary, follow-up date. Writes to `communications`.
-- **Service detail drawer**: clicking a row in Services tab opens a drawer with lifecycle actions (upgrade/downgrade/suspend/resume/renew/cancel) instead of navigating to the module page.
+---
 
-New/updated server fns as needed (`createQuoteForCustomer`, `logCommunication`, `createTicketForCustomer`) — all `requireSupabaseAuth`, all scoped by passed `customer_id`.
+## Block 1 — Customer 360 action bar + core workspaces
 
-## 2. Fixed guided onboarding
+Adds new buttons beside the existing New Ticket / New Quote / Log Communication / Edit Details, using the existing colored `ActionBar` style. No layout change.
 
-Rework `/customers/new`:
+New actions and their dialogs/sheets:
 
-- **Step 0**: account type radio — **Corporate** or **Personal** (no default, user must choose). Corporate shows company name + industry + website; Personal shows full name only.
-- **Step 1 (contact)**: mandatory for corporate (name + email + phone required to advance); optional for personal.
-- **Step 2 (services)**: at least one service required to advance.
-- **Step 3 (review)**: add **"Mark first invoice as paid"** toggle + payment method dropdown. On create, if selected services exist, auto-generate an initial invoice; if "paid" toggled, also record a payment allocated to it.
-- Fix the current failure (will reproduce and patch the specific error surfaced).
+- **Change Package** — fixes the duplicate-package bug: detects an existing active subscription for the same service type and *updates* it (status history row kept), instead of inserting a second. Recomputes recurring charge, writes timeline + audit entries.
+- **Billing** — full-screen billing workspace sheet: outstanding, credit/advance balance, MRR/ARR, recurring charges, next invoice/renewal, last payment, invoice list with ageing buckets (0-30/31-60/61-90/90+), payment history with allocations, refunds, failed payments, billing alerts and notes. All read from one aggregated server function; auto-refetches on any billing mutation.
+- **Customer Timeline** — major events only, with "View More" expanding to the full audit trail.
+- **Communication Center** — threaded view of emails/notes already stored in `communications`, plus reply/compose. SMS/WhatsApp/call channels stubbed as disabled tabs (schema-ready).
+- **Suspend / Resume / Cancel Service** — cascade rules across subscriptions, cloud services, hosting, VoIP, Starlink per service policy; timeline + audit.
+- **Print Statement**, **Download Customer Profile (PDF + Excel)**, **Generate Contract**, **Refund**.
+- **Customer Health badge** — Healthy / Attention Required / Critical, computed from overdue invoices, suspended services, open critical tickets, failed syncs, with reason list.
 
-## 3. Deploy with AI — human approval
+Also: every colored widget/chip on the page becomes clickable and scrolls to / opens the matching tab or workspace.
 
-Today `deployFromPrompt` picks + provisions in one shot. New flow:
+Backend: new tables for KYC documents, package history, refunds, and customer credit/wallet; new aggregate server functions; event helper that writes audit + timeline and invalidates the Customer 360 query key so every card refreshes without a page reload.
 
-- **Step A — Propose**: `proposeDeployment(prompt)` returns `{ provider, plan_id, region, os, label, monthly_cost, rationale }` using Lovable AI (`google/gemini-3.6-flash`) with the live plan/region/OS catalog as context. Provider choice is constrained to enabled ones (Vultr recommended, Kamatera/Contabo fallback).
-- **Step B — Approve**: dialog shows the proposal + cost + rationale with **Approve & Deploy** / **Edit** / **Cancel**. Nothing is provisioned until Approve.
-- **Step C — Provision**: on approve, existing `provisionServer` runs.
-- Also write a short in-app explainer in the dialog: *"Runs on our backend using your provider API keys; you approve every deployment; provider is chosen by fit + cost."*
+## Block 2 — KYC Documents + Equipment & Assets
 
-## 4. UI refresh on client pages
+- KYC action button with a document checklist driven by `customers.account_type` (corporate vs individual lists exactly as specified), upload to a private storage bucket, verification status per document.
+- Equipment & Assets action button: assign/reassign equipment to the customer, serial, warranty, technician, assignment date, status, with full assignment history.
 
-After 1–3 land, tighten Customer 360:
+## Block 3 — Record Payment rework + real-time finance sync
 
-- Cleaner tab bar (group Overview / Services / Billing / Support / Assets / Cloud / Docs).
-- Service rows become clickable cards → drawer (from #1).
-- Consistent dialog styling; remove the outbound-link icons on action buttons.
+- Replace the generic payment form with the service-driven workflow: customer → active/billable services dropdown → selected service loads package, status, outstanding, open invoice, due date, recurring charge → allocate to invoice / partial / advance / credit.
+- On save: allocations, receipt generation, ledger, auto-resume of suspended services when billing rules are satisfied, timeline + audit, and cache invalidation so Customer 360, Billing, Finance, Invoices, Reports and Dashboard all update live.
+- Fallback path when the customer has no services: setup fee, misc payment, deposit, customer credit.
 
-## Technical notes
+## Block 4 — Support automation
 
-- All new mutations use `useServerFn` + `useMutation`, then `queryClient.invalidateQueries({ queryKey: ["customer-360", accountNumber] })` (existing pattern).
-- No schema changes required for #1; #2 reuses existing `invoices`/`payments`; #3 adds one new server fn only.
-- Each workstream is one turn; I'll pause after #1 for you to sanity-check before continuing.
+- Ticket creation emails the customer (number, subject, description, priority, status, SLA, created date).
+- Assignment notifies technician + customer; technician dashboard with Assigned / In Progress / Waiting Customer / Resolved / Overdue queues.
 
-Enhance the existing Customer 360 workspace into a complete customer operations workspace while preserving all existing modules, permissions, integrations, APIs, routes, data, authentication, audit logging, and functionality. This is an enhancement only, not a rebuild.
+## Block 5 — Role-based visibility + audit hardening
 
-&nbsp;
+- Hide supplier cost, profit, margin, wholesale price, API keys, WHM/server credentials from everyone except Super Admin and Finance — enforced server-side (columns stripped in the aggregator), not just hidden in the UI.
+- Audit log records who / what / when / old value / new value / module / IP for every important mutation.
 
-Customer 360 must become the primary place where staff manage a customer. Users should rarely need to leave the customer page to complete day-to-day operations.
+## Block 6 — Starlink recharge workflow
 
-&nbsp;
+Status machine: Pending Finance → Paid → Message Sent → Awaiting Supplier → Completed / Failed / Cancelled, with the WhatsApp request to +263779237813, a scheduled job that re-checks supplier reply after ~1 hour, and notifications on both outcomes.
 
-Remove all navigation redirects from Customer 360 action buttons. Every action must execute in place using dialogs, drawers, or inline workflows while remaining on the current customer page.
+Needs from you: which WhatsApp provider account to use (Meta Cloud API, Twilio, or an existing gateway) — outbound messaging plus inbound reply capture requires a provider and webhook, which the platform does not have configured yet.
 
-&nbsp;
+## Block 7 — Web Hosting (WHM) + Cloud Storage lifecycle
 
-Remove the existing Quick Actions section and remove the "Quick Add Customer" action from Customer 360. Customer creation must only happen through the dedicated onboarding process.
+- WHM/cPanel API integration for create/suspend/unsuspend/terminate/change package/reset password/SSO/DNS/email/databases/backups/restore/usage sync, with auto-unsuspend on payment.
+- Cloud storage provisioning lifecycle, capacity tracking, auto-suspend/resume on billing.
 
-&nbsp;
+Needs from you: WHM hostname + API token, and the cloud storage platform's admin API details.
 
-All actions must always be automatically scoped to the currently opened customer. Never ask the user to choose a customer once they are inside Customer 360. Every dialog, lookup, search, dropdown, mutation and query must only use records belonging to the currently selected customer.
+## Block 8 — Quote Studio integration
 
-&nbsp;
+Replace local quote PDF generation with calls to the external Quote Studio API (`POST/GET/PUT/PATCH/DELETE /documents`, settings API), storing document ID + PDF, emailing the customer, and logging to timeline/documents.
 
-Implement the following customer-scoped operations:
+Needs from you: Quote Studio base URL and API key (stored as a secret, never in code).
 
-&nbsp;
+---
 
-• Add Service
+## Technical approach
 
-• Record Payment
+- Aggregation stays in the existing `getCustomer360` server function — extended, not replaced — so the page keeps one round-trip and no N+1 queries.
+- A shared `recordEvent` server helper writes `audit_log` + `customer_timeline` in the same transaction as each mutation, so "who/what/when/old/new" is never skipped.
+- Real-time sync uses TanStack Query invalidation keyed per customer plus Supabase realtime on the mutated tables — no polling, no page refresh.
+- All new actions run through authenticated server functions that validate role, ownership, and service state before executing.
+- Existing UI primitives (`PageShell`, `StatChipRow`, `ActionBar`, `DataGrid`, dialogs) are reused as-is; no visual redesign anywhere.
 
-• Create Invoice
+## Start here
 
-• Create Quote
-
-• Create Ticket
-
-• Deploy Cloud Server
-
-• Log Communication
-
-• Add Contact
+I recommend **Block 1** first — it is the highest-value slice and everything else hangs off its event/audit plumbing. Tell me to go, or name a different block to start with.
 
 &nbsp;
 
-Add Service must use the existing product/service catalog and assign services only to the current customer.
+Complete Block 1 only before starting any other block.
 
 &nbsp;
 
-Record Payment must only display unpaid invoices, services and subscriptions belonging to the current customer. It must support payment allocation, update invoice status, generate a receipt, trigger existing notifications and immediately refresh Customer 360.
+Keep the existing Customer 360 layout and ActionBar. Do not redesign the UI.
 
 &nbsp;
 
-Create Invoice must only invoice services belonging to the current customer.
+Add these Action Buttons:
+
+- Change Package
+
+- Billing
+
+- Customer Timeline
+
+- Communication Center
+
+- KYC Documents
+
+- Equipment & Assets
+
+- Suspend Service
+
+- Resume Service
+
+- Cancel Service
+
+- Generate Contract
+
+- Refund
+
+- Print Statement
+
+- Download Customer Profile (PDF & Excel)
 
 &nbsp;
 
-Create Quote must automatically attach to the current customer and lock customer selection.
+Billing must open a backend-connected Billing Workspace displaying:
+
+- Outstanding Balance
+
+- Credit Balance
+
+- Advance Payments
+
+- Customer Credits/Wallet
+
+- MRR & ARR
+
+- Recurring Charges
+
+- Next Invoice & Payment Due
+
+- Last Payment
+
+- Invoice History
+
+- Payment History
+
+- Payment Allocations
+
+- Paid, Partially Paid, Unpaid & Overdue Invoices
+
+- Invoice Ageing
+
+- Refund History
+
+- Failed Payments
+
+- Billing Alerts
+
+- Finance Notes
+
+- Service Billing Status
+
+- Upcoming Renewals
 
 &nbsp;
 
-Create Ticket must automatically attach to the current customer and notify the assigned technician using existing notification mechanisms.
+Customer Timeline must display major events with a "View More" option for the complete audit history.
 
 &nbsp;
 
-Log Communication must only display contacts belonging to the current customer.
+Communication Center must support email conversations now and prepare the database for SMS, WhatsApp and Call Logs.
 
 &nbsp;
 
-Deploy Cloud Server must automatically associate the deployed infrastructure with the current customer.
+KYC must automatically switch document requirements:
+
+- Corporate: Certificate of Incorporation, CR14, Proof of Business Address, VAT Certificate, Tax Clearance, TIN, Signed Contracts, Proof of Payments and Other Documents.
+
+- Individual: National ID/Passport and Proof of Residence.
 
 &nbsp;
 
-Clicking a service must open a Service 360 management drawer instead of navigating away. The drawer must support lifecycle operations including upgrade, downgrade, suspend, resume, renew and cancel while displaying all available operational information already stored by the platform.
+Equipment & Assets must support assignment, reassignment, serial numbers, warranty, technician assignment and full assignment history.
 
 &nbsp;
 
-Implement the correct service lifecycle.
+Implement Customer Health (Healthy, Attention Required, Critical) based on overdue invoices, suspended services, critical tickets and failed integrations.
 
 &nbsp;
 
-Services must NOT become Active immediately after being added.
+Make every dashboard KPI widget clickable and open the relevant filtered records.
 
 &nbsp;
 
-Required workflow:
+Fix the Change Package bug. If an active package exists for the same service, update it instead of creating another active package. Preserve package history and automatically update billing.
 
 &nbsp;
 
-Customer Created
-
-→ Add Service
-
-→ Service Status = Pending Payment
-
-→ Generate Invoice
-
-→ Record Payment
-
-→ Invoice Paid
-
-→ Service Automatically Changes to Active
-
-→ Provision Resources Automatically (where applicable)
-
-→ Begin Recurring Billing
-
-→ Refresh Customer Dashboard
+Create a shared server-side event framework. Every action must write to Customer Timeline and Audit Log within the same transaction.
 
 &nbsp;
 
-Only after successful payment should services activate.
+Use event-driven real-time synchronization so Customer 360, Billing, Finance, Invoices, Reports and Dashboards refresh automatically after every mutation without page reload.
 
 &nbsp;
 
-Every successful operation must automatically refresh Customer 360 using the existing query invalidation pattern so that dashboards, billing, services, subscriptions, activity history, revenue, balances, invoices, tickets and related widgets update immediately without requiring a page refresh.
+Extend existing backend functions instead of replacing them. Preserve existing APIs, maintain backward compatibility, avoid duplicate queries and enforce role-based permissions.
 
 &nbsp;
 
-Rework customer onboarding.
-
-&nbsp;
-
-Step 0:
-
-Require explicit selection of Corporate or Personal account.
-
-&nbsp;
-
-Step 1:
-
-Corporate accounts require company information.
-
-Personal accounts require personal information.
-
-&nbsp;
-
-Step 2:
-
-Corporate accounts require at least one contact before continuing.
-
-Personal contacts remain optional.
-
-&nbsp;
-
-Step 3:
-
-Require at least one service before completion.
-
-&nbsp;
-
-Step 4:
-
-Review.
-
-&nbsp;
-
-Automatically generate the first invoice for selected services.
-
-&nbsp;
-
-Provide an optional "Mark First Invoice as Paid" workflow.
-
-&nbsp;
-
-If selected:
-
-• Record payment
-
-• Allocate payment
-
-• Mark invoice paid
-
-• Generate receipt
-
-• Activate services
-
-• Refresh Customer 360 automatically
-
-&nbsp;
-
-Investigate and fix the current customer creation failure before implementing enhancements.
-
-&nbsp;
-
-Replace the current AI deployment flow with an approval workflow.
-
-&nbsp;
-
-New flow:
-
-&nbsp;
-
-User enters requirements
-
-→ AI recommends provider, plan, region, operating system, estimated monthly cost and rationale using the live provider catalog
-
-→ Display recommendation
-
-→ User may Approve, Edit or Cancel
-
-→ Only after approval may provisioning begin
-
-&nbsp;
-
-Provisioning must never occur before explicit user approval.
-
-&nbsp;
-
-Provider selection must only use enabled providers and continue using existing provider integrations and APIs.
-
-&nbsp;
-
-Maintain the existing backend security model.
-
-&nbsp;
-
-All new server functions must require authentication, perform authorization checks, enforce customer ownership and write audit logs.
-
-&nbsp;
-
-Reuse existing schema wherever possible.
-
-&nbsp;
-
-Continue using existing server functions, mutations, authentication, notifications, billing, payment allocation, invoicing and provisioning logic where available instead of duplicating functionality.
-
-&nbsp;
-
-Maintain compatibility with all existing APIs, modules, integrations and permissions.
-
-&nbsp;
-
-The final result should provide a complete end-to-end operational workflow:
-
-&nbsp;
-
-Create Customer
-
-→ Add Service
-
-→ Service Pending Payment
-
-→ Generate Invoice
-
-→ Record Payment
-
-→ Activate Service
-
-→ Provision Resources
-
-→ Customer dashboard updates automatically
-
-&nbsp;
-
-No operation performed inside Customer 360 should ever expose, modify or reference another customer's data. Every action, search, dropdown, invoice, payment, service, quote, ticket, deployment and communication must always remain isolated to the currently selected customer.
+Do not use placeholders or mock data. Every feature in Block 1 must be fully functional, connected to the backend, tested and production-ready before proceeding to Block 2.
