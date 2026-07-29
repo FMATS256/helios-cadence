@@ -962,7 +962,7 @@ export const generateContract = createServerFn({ method: "POST" })
       plan_name: s.plan_name, description: s.description, amount: num(s.amount),
       currency: s.currency || "USD", billing_cycle: s.billing_cycle, monthly: monthly(s.amount, s.billing_cycle),
     }));
-    const monthlyTotal = items.reduce((t, i) => t + i.monthly, 0);
+    const monthlyTotal = items.reduce((t: number, i: any) => t + i.monthly, 0);
     const term = data.term_months ?? 12;
     const start = data.start_date || new Date().toISOString().slice(0, 10);
     const end = (() => { const d = new Date(start); d.setMonth(d.getMonth() + term); return d.toISOString().slice(0, 10); })();
