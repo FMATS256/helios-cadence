@@ -111,3 +111,39 @@ export function serviceLineOf(...parts: Array<string | null | undefined>) {
   if (/(support|managed|sla|helpdesk|retainer)/.test(t)) return "support";
   return "other";
 }
+
+/** Free-form transactional email used by the Communication Center. */
+export async function sendRawEmail(opts: {
+  to: string; subject: string; body: string; replyTo?: string;
+}): Promise<{ sent: boolean; reason?: string }> {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) return { sent: false, reason: "email_not_configured" };
+  const { sendLovableEmail, EmailAPIError } = await import("@lovable.dev/email-js");
+  const html = `<div style="font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f2933;white-space:pre-wrap">${
+    opts.body.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string))
+  }</div>`;
+  try {
+    await sendLovableEmail(
+      {
+        to: opts.to,
+        from: `IMT Solutions <noreply@management.imtsolutions.co.zw>`,
+        sender_domain: "notify.management.imtsolutions.co.zw",
+        subject: opts.subject,
+        html,
+        text: opts.body,
+        purpose: "transactional",
+        label: "customer-communication",
+        idempotency_key: crypto.randomUUID(),
+        reply_to: opts.replyTo,
+      },
+      { apiKey, sendUrl: process.env.LOVABLE_SEND_URL },
+    );
+    return { sent: true };
+  } catch (error: any) {
+    if (error instanceof EmailAPIError && error.code === "recipient_suppressed") {
+      return { sent: false, reason: "recipient_suppressed" };
+    }
+    console.error("[sendRawEmail]", error?.message ?? error);
+    return { sent: false, reason: error?.message ?? "send_failed" };
+  }
+}
