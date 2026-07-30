@@ -38,6 +38,9 @@ import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
 } from "@/lib/customer360/capability-engine";
+import {
+  Customer360Workspace, type WorkspaceKind,
+} from "@/components/customer360-workspaces";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
@@ -1485,6 +1488,14 @@ function IspHeroPane(props: {
     primaryEmail: customer.primary_email,
   };
   const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm">(null);
+  const [ws, setWs] = useState<WorkspaceKind | null>(null);
+  const wsCtx = {
+    customerId: customer.id,
+    accountNumber: customer.account_number,
+    companyName: customer.company_name,
+    primaryEmail: customer.primary_email,
+    subscriptions: view.subscriptions ?? [],
+  };
 
   const chips = useMemo(() => ispChips(view), [view]);
   const info = useMemo(() => ispQuickInfo(view), [view]);
@@ -1541,7 +1552,23 @@ function IspHeroPane(props: {
             <DropdownMenuItem onClick={() => setOpen("comm")}><Mail className="h-4 w-4 mr-2" />Log Communication</DropdownMenuItem>
             <DropdownMenuItem onClick={onSendReminder}><Bell className="h-4 w-4 mr-2" />Send Payment Reminder</DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setWs("package")}><PackageIcon className="h-4 w-4 mr-2" />Change Package</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("billing")}><CreditCard className="h-4 w-4 mr-2" />Billing</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("timeline")}><Activity className="h-4 w-4 mr-2" />Customer Timeline</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("comms")}><MailIcon className="h-4 w-4 mr-2" />Communication Center</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("kyc")}><ShieldCheck className="h-4 w-4 mr-2" />KYC Documents</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("equipment")}><Boxes className="h-4 w-4 mr-2" />Equipment &amp; Assets</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setWs("contract")}><FileText className="h-4 w-4 mr-2" />Generate Contract</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("refund")}><Receipt className="h-4 w-4 mr-2" />Refund</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("statement")}><FileCheck className="h-4 w-4 mr-2" />Print Statement</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("export")}><Send className="h-4 w-4 mr-2" />Download Customer Profile</DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onEdit}><Pencil className="h-4 w-4 mr-2" />Edit Details</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("resume")}><PlayCircle className="h-4 w-4 mr-2 text-success" />Resume Service</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("suspend")} className="text-destructive focus:text-destructive"><PauseCircle className="h-4 w-4 mr-2" />Suspend Service</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setWs("cancel")} className="text-destructive focus:text-destructive"><XCircle className="h-4 w-4 mr-2" />Cancel Service</DropdownMenuItem>
+            <DropdownMenuSeparator />
             {suspended ? (
               <DropdownMenuItem onClick={() => onLifecycle("resume")}><PlayCircle className="h-4 w-4 mr-2 text-success" />Resume Account</DropdownMenuItem>
             ) : (
@@ -1565,6 +1592,7 @@ function IspHeroPane(props: {
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
+      {ws && <Customer360Workspace kind={ws} ctx={wsCtx} onClose={() => setWs(null)} />}
     </div>
   );
 }
