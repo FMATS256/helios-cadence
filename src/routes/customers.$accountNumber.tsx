@@ -38,6 +38,9 @@ import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
 } from "@/lib/customer360/capability-engine";
+import {
+  Customer360Workspace, type WorkspaceKind,
+} from "@/components/customer360-workspaces";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
