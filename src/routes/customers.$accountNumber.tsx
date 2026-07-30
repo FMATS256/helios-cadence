@@ -1488,6 +1488,14 @@ function IspHeroPane(props: {
     primaryEmail: customer.primary_email,
   };
   const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm">(null);
+  const [ws, setWs] = useState<WorkspaceKind | null>(null);
+  const wsCtx = {
+    customerId: customer.id,
+    accountNumber: customer.account_number,
+    companyName: customer.company_name,
+    primaryEmail: customer.primary_email,
+    subscriptions: view.subscriptions ?? [],
+  };
 
   const chips = useMemo(() => ispChips(view), [view]);
   const info = useMemo(() => ispQuickInfo(view), [view]);
