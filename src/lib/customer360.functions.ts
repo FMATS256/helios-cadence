@@ -666,10 +666,17 @@ export const getCustomerDocuments = createServerFn({ method: "POST" })
     const requirements = KYC_REQUIREMENTS[profile];
     const { data: docs } = await db.from("customer_documents").select("*")
       .eq("customer_id", cust.id).order("created_at", { ascending: false });
-    const list = (docs ?? []) as any[];
+    const now = Date.now();
+    const decorate = (d: any) => {
+      const exp = d.expires_at ? new Date(d.expires_at).getTime() : null;
+      const days = exp == null ? null : Math.floor((exp - now) / 86_400_000);
+      return { ...d, expiry_days: days, expired: days != null && days < 0, expiring_soon: days != null && days >= 0 && days <= 30 };
+    };
+    const list = (docs ?? []).map(decorate) as any[];
+    const usable = (d: any) => (d.status === "verified" || d.status === "uploaded") && !d.expired;
     const checklist = requirements.map((r) => {
       const matches = list.filter((d) => d.doc_key === r.key);
-      return { ...r, documents: matches, satisfied: matches.some((d) => d.status === "verified" || d.status === "uploaded") };
+      return { ...r, documents: matches, satisfied: matches.some(usable) };
     });
     return {
       profile,
@@ -680,8 +687,13 @@ export const getCustomerDocuments = createServerFn({ method: "POST" })
         (checklist.filter((c) => c.satisfied).length / Math.max(1, checklist.length)) * 100,
       ),
       missingRequired: checklist.filter((c) => c.required && !c.satisfied).map((c) => c.label),
+      expiringSoon: list.filter((d) => d.expiring_soon).map((d) => ({ id: d.id, label: d.doc_label, expires_at: d.expires_at })),
+      expired: list.filter((d) => d.expired).map((d) => ({ id: d.id, label: d.doc_label, expires_at: d.expires_at })),
+      verifiedCount: list.filter((d) => d.status === "verified").length,
+      totalCount: list.length,
     };
   });
+
 
 export const saveCustomerDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
