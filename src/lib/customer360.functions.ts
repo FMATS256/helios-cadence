@@ -744,29 +744,46 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
 
 export const setDocumentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { document_id: string; status: "pending" | "uploaded" | "verified" | "rejected"; notes?: string }) => input)
+  .inputValidator((input: {
+    document_id: string;
+    status?: "pending" | "uploaded" | "verified" | "rejected";
+    notes?: string;
+    issued_on?: string | null;
+    expires_at?: string | null;
+  }) => input)
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const db = await admin();
     const { data: doc } = await db.from("customer_documents").select("*").eq("id", data.document_id).maybeSingle();
     if (!doc) throw new Error("Document not found");
-    const { data: row, error } = await db.from("customer_documents").update({
-      status: data.status,
+    const status = data.status ?? doc.status;
+    if (status === "rejected" && !(data.notes?.trim() || doc.notes)) {
+      throw new Error("A rejection reason is required");
+    }
+    const patch: Record<string, unknown> = {
+      status,
       notes: data.notes?.trim() ?? doc.notes,
-      verified_by: data.status === "verified" ? context.userId : null,
-      verified_at: data.status === "verified" ? new Date().toISOString() : null,
-    } as any).eq("id", data.document_id).select("*").single();
+      verified_by: status === "verified" ? context.userId : null,
+      verified_at: status === "verified" ? new Date().toISOString() : null,
+    };
+    if (data.issued_on !== undefined) patch.issued_on = data.issued_on || null;
+    if (data.expires_at !== undefined) patch.expires_at = data.expires_at || null;
+    const { data: row, error } = await db.from("customer_documents").update(patch as any)
+      .eq("id", data.document_id).select("*").single();
     if (error) throw new Error(error.message);
     await recordCustomerEvent(db, {
       customer_id: doc.customer_id, account_number: doc.account_number,
       event_type: "status_changed",
-      title: `Document ${data.status}: ${doc.doc_label}`,
+      title: `Document ${status}: ${doc.doc_label}`,
+      description: data.notes?.trim() || null,
       module: "kyc", entity_type: "customer_document", entity_id: doc.id,
-      old_value: { status: doc.status }, new_value: { status: data.status },
-      actor_id: context.userId, major: false,
+      old_value: { status: doc.status, expires_at: doc.expires_at },
+      new_value: { status, expires_at: data.expires_at ?? doc.expires_at },
+      actor_id: context.userId, major: status === "rejected",
     });
     return row;
   });
+
 
 export const deleteCustomerDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
