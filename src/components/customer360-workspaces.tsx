@@ -32,7 +32,7 @@ import {
   recordRefund, addCustomerCredit, addBillingNote, getCustomerHistory,
   getCustomerConversations, sendCustomerMessage, getCustomerDocuments,
   saveCustomerDocument, setDocumentStatus, deleteCustomerDocument, getDocumentLink,
-  getCustomerEquipment, assignEquipment, releaseEquipment, generateContract,
+  getCustomerEquipment, assignEquipment, releaseEquipment, updateEquipment, generateContract,
   getCustomerStatement, getCustomerProfileExport,
 } from "@/lib/customer360.functions";
 
@@ -560,16 +560,76 @@ function CommunicationCenter({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () 
 
 /* ----------------------------------------------------------------- 5. KYC */
 
+function DocRow({ doc, onOpen, onChanged }: { doc: any; onOpen: (id: string) => void; onChanged: () => void }) {
+  const setStatus = useServerFn(setDocumentStatus);
+  const del = useServerFn(deleteCustomerDocument);
+  const [issued, setIssued] = useState(doc.issued_on ?? "");
+  const [expires, setExpires] = useState(doc.expires_at ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function run(fn: () => Promise<unknown>, msg: string) {
+    setBusy(true);
+    try { await fn(); toast.success(msg); onChanged(); }
+    catch (e: any) { toast.error(e.message ?? "Action failed"); }
+    finally { setBusy(false); }
+  }
+
+  const tone = doc.expired ? "danger" : doc.status === "verified" ? "success" : doc.status === "rejected" ? "danger" : doc.expiring_soon ? "warning" : toneForStatus(doc.status);
+  const label = doc.expired ? "expired" : doc.expiring_soon ? `expires in ${doc.expiry_days}d` : doc.status;
+
+  return (
+    <div className="rounded border px-2 py-1.5 text-xs space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate">{doc.file_name ?? doc.doc_label}</div>
+          <div className="text-muted-foreground">
+            uploaded {shortDate(doc.created_at)}
+            {doc.verified_at ? ` · verified ${shortDate(doc.verified_at)}` : ""}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <StatusBadge tone={tone as any}>{label}</StatusBadge>
+          {doc.file_path && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onOpen(doc.id)}>Open</Button>}
+          <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy || doc.status === "verified"}
+            onClick={() => run(() => setStatus({ data: { document_id: doc.id, status: "verified" } }), "Document verified")}>Verify</Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-warning" disabled={busy}
+            onClick={() => {
+              const reason = window.prompt("Reason for rejecting this document?");
+              if (!reason?.trim()) return;
+              void run(() => setStatus({ data: { document_id: doc.id, status: "rejected", notes: reason.trim() } }), "Document rejected");
+            }}>Reject</Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" disabled={busy}
+            onClick={() => { if (confirm("Remove this document?")) void run(() => del({ data: { document_id: doc.id } }), "Document removed"); }}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Issued</Label>
+          <Input type="date" className="h-7 w-36 text-xs" value={issued ?? ""} onChange={(e) => setIssued(e.target.value)} /></div>
+        <div className="space-y-1"><Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Expires</Label>
+          <Input type="date" className="h-7 w-36 text-xs" value={expires ?? ""} onChange={(e) => setExpires(e.target.value)} /></div>
+        <Button size="sm" variant="outline" className="h-7 text-xs" disabled={busy}
+          onClick={() => run(() => setStatus({ data: { document_id: doc.id, issued_on: issued || null, expires_at: expires || null } }), "Dates saved")}>
+          Save dates
+        </Button>
+        {doc.notes && <span className="text-[11px] text-muted-foreground">Note: {doc.notes}</span>}
+      </div>
+    </div>
+  );
+}
+
 function KycWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void }) {
   const qc = useQueryClient();
   const fn = useServerFn(getCustomerDocuments);
   const saveDoc = useServerFn(saveCustomerDocument);
-  const setStatus = useServerFn(setDocumentStatus);
-  const del = useServerFn(deleteCustomerDocument);
   const link = useServerFn(getDocumentLink);
   const key = ["c360-kyc", ctx.customerId];
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => fn({ data: { customer_id: ctx.customerId } }) });
   const [busy, setBusy] = useState<string | null>(null);
+  const [otherLabel, setOtherLabel] = useState("");
+
+  const refresh = () => qc.invalidateQueries();
 
   async function upload(docKey: string, docLabel: string, file: File) {
     setBusy(docKey);
@@ -584,7 +644,7 @@ function KycWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void
         },
       });
       toast.success(`${docLabel} uploaded`);
-      qc.invalidateQueries();
+      refresh();
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
     } finally { setBusy(null); }
@@ -599,9 +659,15 @@ function KycWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void
 
   return (
     <Shell open onClose={onClose} wide title={`KYC documents · ${ctx.companyName}`}
-      description={data ? `${data.profile} profile · ${data.completion}% complete` : undefined}>
+      description={data ? `${data.profile} profile · ${data.completion}% complete · ${data.verifiedCount}/${data.totalCount} verified` : undefined}>
       {isLoading || !data ? <p className="text-sm text-muted-foreground py-8 text-center">Loading documents…</p> : (
         <div className="space-y-3">
+          <KpiRow cols={4} items={[
+            { icon: ShieldCheck, label: "Completion", value: `${data.completion}%`, tone: data.completion === 100 ? "success" : "warning" },
+            { icon: FileText, label: "On file", value: String(data.totalCount), tone: "info" },
+            { icon: Clock, label: "Expiring ≤30d", value: String(data.expiringSoon.length), tone: data.expiringSoon.length ? "warning" : "neutral" },
+            { icon: AlertTriangle, label: "Expired", value: String(data.expired.length), tone: data.expired.length ? "danger" : "neutral" },
+          ]} />
           {!!data.missingRequired.length && (
             <div className="flex items-center gap-2 text-xs text-warning">
               <AlertTriangle className="h-4 w-4" />Missing required: {data.missingRequired.join(", ")}
@@ -621,36 +687,33 @@ function KycWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(c.key, c.label, f); e.currentTarget.value = ""; }} />
                 </label>
               </div>
-              {c.documents.map((d: any) => (
-                <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded border px-2 py-1.5 text-xs">
-                  <div className="min-w-0">
-                    <div className="truncate">{d.file_name ?? d.doc_label}</div>
-                    <div className="text-muted-foreground">{shortDate(d.created_at)} · {d.status}</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {d.file_path && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => open(d.id)}>Open</Button>}
-                    <Button size="sm" variant="ghost" className="h-7 text-xs"
-                      onClick={async () => { await setStatus({ data: { document_id: d.id, status: "verified" } }); toast.success("Verified"); qc.invalidateQueries(); }}>Verify</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive"
-                      onClick={async () => { if (!confirm("Remove this document?")) return; await del({ data: { document_id: d.id } }); toast.success("Removed"); qc.invalidateQueries(); }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              {c.documents.map((d: any) => <DocRow key={d.id} doc={d} onOpen={open} onChanged={refresh} />)}
             </CardContent></Card>
           ))}
-          {!!data.others.length && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Other documents</h4>
-              <DataGrid rows={data.others} columns={[
-                { header: "Document", cell: (r: any) => r.doc_label },
-                { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
-                { header: "Added", cell: (r: any) => shortDate(r.created_at) },
-                { header: "", align: "right", cell: (r: any) => r.file_path ? <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => open(r.id)}>Open</Button> : null },
-              ] as ColumnDef<any>[]} />
+
+          <Card><CardContent className="p-3 space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other documents</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input className="h-8 max-w-xs text-xs" placeholder="Document name (e.g. Signed SLA)"
+                value={otherLabel} onChange={(e) => setOtherLabel(e.target.value)} />
+              <label className={`inline-flex items-center gap-1.5 text-xs ${otherLabel.trim() ? "cursor-pointer text-solar" : "text-muted-foreground pointer-events-none"}`}>
+                <Upload className="h-3.5 w-3.5" />{busy === "__other" ? "Uploading…" : "Upload"}
+                <input type="file" className="hidden" disabled={!otherLabel.trim() || busy === "__other"}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      const label = otherLabel.trim();
+                      const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "other_document";
+                      void upload(slug, label, f).then(() => setOtherLabel(""));
+                    }
+                    e.currentTarget.value = "";
+                  }} />
+              </label>
             </div>
-          )}
+            {data.others.length === 0
+              ? <p className="text-xs text-muted-foreground">No additional documents.</p>
+              : data.others.map((d: any) => <DocRow key={d.id} doc={d} onOpen={open} onChanged={refresh} />)}
+          </CardContent></Card>
         </div>
       )}
     </Shell>
@@ -659,6 +722,67 @@ function KycWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void
 
 /* ----------------------------------------------------------- 6. equipment */
 
+const ASSET_STATES = ["deployed", "in_service", "spare", "in_repair", "retired", "lost"];
+
+function EditEquipment({ asset, onDone }: { asset: any; onDone: () => void }) {
+  const update = useServerFn(updateEquipment);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    assigned_to: asset.assigned_to ?? "",
+    location: asset.location ?? "",
+    status: asset.status ?? "deployed",
+    warranty_expires: asset.warranty_expires ?? "",
+    notes: "",
+  });
+  const save = useMutation({
+    mutationFn: () => update({
+      data: {
+        asset_id: asset.id,
+        assigned_to: form.assigned_to,
+        location: form.location,
+        status: form.status,
+        warranty_expires: form.warranty_expires || null,
+        notes: form.notes || null,
+      },
+    }),
+    onSuccess: () => { toast.success("Equipment updated"); setOpen(false); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setOpen(true)}>Reassign</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reassign / update equipment</DialogTitle>
+            <DialogDescription>{[asset.asset_tag, asset.asset_type, asset.serial_number].filter(Boolean).join(" · ")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1"><Label>Technician / holder</Label>
+              <Input value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Location / site</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ASSET_STATES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
+              </Select></div>
+            <div className="space-y-1"><Label>Warranty expires</Label>
+              <Input type="date" value={form.warranty_expires ?? ""} onChange={(e) => setForm({ ...form, warranty_expires: e.target.value })} /></div>
+            <div className="space-y-1 md:col-span-2"><Label>Note</Label>
+              <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void }) {
   const qc = useQueryClient();
   const fn = useServerFn(getCustomerEquipment);
@@ -666,18 +790,24 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
   const release = useServerFn(releaseEquipment);
   const key = ["c360-equipment", ctx.customerId];
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => fn({ data: { customer_id: ctx.customerId } }) });
-  const [poolId, setPoolId] = useState("");
-  const [nw, setNw] = useState({ asset_type: "", make: "", model: "", serial_number: "", warranty_expires: "", location: "", assigned_to: "" });
+  const [stock, setStock] = useState({ asset_id: "", assigned_to: "", location: "", notes: "" });
+  const emptyNew = { asset_type: "", make: "", model: "", serial_number: "", warranty_expires: "", purchase_date: "", location: "", assigned_to: "", notes: "" };
+  const [nw, setNw] = useState(emptyNew);
 
   const doAssign = useMutation({
     mutationFn: (payload: any) => assign({ data: { customer_id: ctx.customerId, ...payload } }),
-    onSuccess: () => { toast.success("Equipment assigned"); setPoolId(""); setNw({ asset_type: "", make: "", model: "", serial_number: "", warranty_expires: "", location: "", assigned_to: "" }); qc.invalidateQueries(); },
+    onSuccess: () => {
+      toast.success("Equipment assigned");
+      setStock({ asset_id: "", assigned_to: "", location: "", notes: "" });
+      setNw(emptyNew);
+      qc.invalidateQueries();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <Shell open onClose={onClose} wide title={`Equipment & assets · ${ctx.companyName}`}
-      description="Assigned equipment, warranty tracking and assignment history.">
+      description="Assigned equipment, technician handover, warranty tracking and full assignment history.">
       {isLoading || !data ? <p className="text-sm text-muted-foreground py-8 text-center">Loading equipment…</p> : (
         <div className="space-y-4">
           <KpiRow cols={4} items={[
@@ -692,25 +822,34 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
             { header: "Type", cell: (r: any) => r.asset_type },
             { header: "Make/Model", cell: (r: any) => [r.make, r.model].filter(Boolean).join(" ") || "—" },
             { header: "Serial", cell: (r: any) => <span className="font-mono text-xs">{r.serial_number ?? "—"}</span> },
-            { header: "Warranty", cell: (r: any) => r.warranty_expires ? shortDate(r.warranty_expires) : "—" },
-            { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
+            { header: "Technician", cell: (r: any) => r.assigned_to ?? "—" },
+            { header: "Assigned", cell: (r: any) => shortDate(r.assigned_on) },
+            {
+              header: "Warranty", cell: (r: any) => r.warranty_expires
+                ? <StatusBadge tone={r.warranty_state === "expired" ? "danger" : r.warranty_state === "expiring" ? "warning" : "success"}>{shortDate(r.warranty_expires)}</StatusBadge>
+                : "—",
+            },
+            { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{String(r.status).replace(/_/g, " ")}</StatusBadge> },
             {
               header: "", align: "right", cell: (r: any) => (
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive"
-                  onClick={async () => {
-                    if (!confirm("Return this equipment to stock?")) return;
-                    try { await release({ data: { asset_id: r.id } }); toast.success("Returned to stock"); qc.invalidateQueries(); }
-                    catch (e: any) { toast.error(e.message); }
-                  }}>Release</Button>
+                <div className="flex items-center justify-end gap-1">
+                  <EditEquipment asset={r} onDone={() => qc.invalidateQueries()} />
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive"
+                    onClick={async () => {
+                      if (!confirm("Return this equipment to stock?")) return;
+                      try { await release({ data: { asset_id: r.id } }); toast.success("Returned to stock"); qc.invalidateQueries(); }
+                      catch (e: any) { toast.error(e.message); }
+                    }}>Release</Button>
+                </div>
               ),
             },
           ] as ColumnDef<any>[]} empty={<EmptyState icon={Boxes} title="No equipment assigned" />} />
 
           <Card><CardContent className="p-4 space-y-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assign from stock</h4>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1 min-w-60"><Label>Available asset</Label>
-                <Select value={poolId} onValueChange={setPoolId}>
+            <div className="grid gap-2 md:grid-cols-4">
+              <div className="space-y-1 md:col-span-2"><Label>Available asset</Label>
+                <Select value={stock.asset_id} onValueChange={(v) => setStock({ ...stock, asset_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select asset" /></SelectTrigger>
                   <SelectContent>
                     {data.pool.map((a: any) => (
@@ -718,7 +857,15 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
                     ))}
                   </SelectContent>
                 </Select></div>
-              <Button onClick={() => doAssign.mutate({ asset_id: poolId })} disabled={!poolId || doAssign.isPending}>Assign</Button>
+              <div className="space-y-1"><Label>Technician</Label>
+                <Input value={stock.assigned_to} onChange={(e) => setStock({ ...stock, assigned_to: e.target.value })} /></div>
+              <div className="space-y-1"><Label>Location / site</Label>
+                <Input value={stock.location} onChange={(e) => setStock({ ...stock, location: e.target.value })} /></div>
+              <div className="space-y-1 md:col-span-3"><Label>Handover note</Label>
+                <Input value={stock.notes} onChange={(e) => setStock({ ...stock, notes: e.target.value })} /></div>
+              <div className="flex items-end">
+                <Button className="w-full" onClick={() => doAssign.mutate(stock)} disabled={!stock.asset_id || doAssign.isPending}>Assign</Button>
+              </div>
             </div>
 
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">Or register new equipment</h4>
@@ -727,10 +874,15 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
               <Input placeholder="Make" value={nw.make} onChange={(e) => setNw({ ...nw, make: e.target.value })} />
               <Input placeholder="Model" value={nw.model} onChange={(e) => setNw({ ...nw, model: e.target.value })} />
               <Input placeholder="Serial number" value={nw.serial_number} onChange={(e) => setNw({ ...nw, serial_number: e.target.value })} />
-              <Input type="date" value={nw.warranty_expires} onChange={(e) => setNw({ ...nw, warranty_expires: e.target.value })} />
+              <div className="space-y-1"><Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Installed / purchased</Label>
+                <Input type="date" value={nw.purchase_date} onChange={(e) => setNw({ ...nw, purchase_date: e.target.value })} /></div>
+              <div className="space-y-1"><Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Warranty expires</Label>
+                <Input type="date" value={nw.warranty_expires} onChange={(e) => setNw({ ...nw, warranty_expires: e.target.value })} /></div>
               <Input placeholder="Assigned technician" value={nw.assigned_to} onChange={(e) => setNw({ ...nw, assigned_to: e.target.value })} />
+              <Input placeholder="Location / site" value={nw.location} onChange={(e) => setNw({ ...nw, location: e.target.value })} />
+              <Input placeholder="Note" value={nw.notes} onChange={(e) => setNw({ ...nw, notes: e.target.value })} />
             </div>
-            <Button onClick={() => doAssign.mutate({ ...nw, warranty_expires: nw.warranty_expires || null })}
+            <Button onClick={() => doAssign.mutate({ ...nw, warranty_expires: nw.warranty_expires || null, purchase_date: nw.purchase_date || null })}
               disabled={!nw.asset_type || doAssign.isPending}>Register & assign</Button>
           </CardContent></Card>
 
@@ -739,7 +891,8 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Assignment history</h4>
               <DataGrid rows={data.history} columns={[
                 { header: "When", cell: (r: any) => shortDate(r.occurred_at) },
-                { header: "Event", cell: (r: any) => r.event_type },
+                { header: "Asset", cell: (r: any) => <span className="text-xs">{r.asset_label || "—"}</span> },
+                { header: "Event", cell: (r: any) => <StatusBadge tone={toneForStatus(r.event_type)}>{String(r.event_type).replace(/_/g, " ")}</StatusBadge> },
                 { header: "Notes", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.notes ?? "—"}</span> },
               ] as ColumnDef<any>[]} />
             </div>
@@ -749,6 +902,7 @@ function EquipmentWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =
     </Shell>
   );
 }
+
 
 /* ------------------------------------------------------- 7. service state */
 

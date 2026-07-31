@@ -666,10 +666,17 @@ export const getCustomerDocuments = createServerFn({ method: "POST" })
     const requirements = KYC_REQUIREMENTS[profile];
     const { data: docs } = await db.from("customer_documents").select("*")
       .eq("customer_id", cust.id).order("created_at", { ascending: false });
-    const list = (docs ?? []) as any[];
+    const now = Date.now();
+    const decorate = (d: any) => {
+      const exp = d.expires_at ? new Date(d.expires_at).getTime() : null;
+      const days = exp == null ? null : Math.floor((exp - now) / 86_400_000);
+      return { ...d, expiry_days: days, expired: days != null && days < 0, expiring_soon: days != null && days >= 0 && days <= 30 };
+    };
+    const list = (docs ?? []).map(decorate) as any[];
+    const usable = (d: any) => (d.status === "verified" || d.status === "uploaded") && !d.expired;
     const checklist = requirements.map((r) => {
       const matches = list.filter((d) => d.doc_key === r.key);
-      return { ...r, documents: matches, satisfied: matches.some((d) => d.status === "verified" || d.status === "uploaded") };
+      return { ...r, documents: matches, satisfied: matches.some(usable) };
     });
     return {
       profile,
@@ -680,8 +687,13 @@ export const getCustomerDocuments = createServerFn({ method: "POST" })
         (checklist.filter((c) => c.satisfied).length / Math.max(1, checklist.length)) * 100,
       ),
       missingRequired: checklist.filter((c) => c.required && !c.satisfied).map((c) => c.label),
+      expiringSoon: list.filter((d) => d.expiring_soon).map((d) => ({ id: d.id, label: d.doc_label, expires_at: d.expires_at })),
+      expired: list.filter((d) => d.expired).map((d) => ({ id: d.id, label: d.doc_label, expires_at: d.expires_at })),
+      verifiedCount: list.filter((d) => d.status === "verified").length,
+      totalCount: list.length,
     };
   });
+
 
 export const saveCustomerDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -732,29 +744,46 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
 
 export const setDocumentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { document_id: string; status: "pending" | "uploaded" | "verified" | "rejected"; notes?: string }) => input)
+  .inputValidator((input: {
+    document_id: string;
+    status?: "pending" | "uploaded" | "verified" | "rejected";
+    notes?: string;
+    issued_on?: string | null;
+    expires_at?: string | null;
+  }) => input)
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const db = await admin();
     const { data: doc } = await db.from("customer_documents").select("*").eq("id", data.document_id).maybeSingle();
     if (!doc) throw new Error("Document not found");
-    const { data: row, error } = await db.from("customer_documents").update({
-      status: data.status,
+    const status = data.status ?? doc.status;
+    if (status === "rejected" && !(data.notes?.trim() || doc.notes)) {
+      throw new Error("A rejection reason is required");
+    }
+    const patch: Record<string, unknown> = {
+      status,
       notes: data.notes?.trim() ?? doc.notes,
-      verified_by: data.status === "verified" ? context.userId : null,
-      verified_at: data.status === "verified" ? new Date().toISOString() : null,
-    } as any).eq("id", data.document_id).select("*").single();
+      verified_by: status === "verified" ? context.userId : null,
+      verified_at: status === "verified" ? new Date().toISOString() : null,
+    };
+    if (data.issued_on !== undefined) patch.issued_on = data.issued_on || null;
+    if (data.expires_at !== undefined) patch.expires_at = data.expires_at || null;
+    const { data: row, error } = await db.from("customer_documents").update(patch as any)
+      .eq("id", data.document_id).select("*").single();
     if (error) throw new Error(error.message);
     await recordCustomerEvent(db, {
       customer_id: doc.customer_id, account_number: doc.account_number,
       event_type: "status_changed",
-      title: `Document ${data.status}: ${doc.doc_label}`,
+      title: `Document ${status}: ${doc.doc_label}`,
+      description: data.notes?.trim() || null,
       module: "kyc", entity_type: "customer_document", entity_id: doc.id,
-      old_value: { status: doc.status }, new_value: { status: data.status },
-      actor_id: context.userId, major: false,
+      old_value: { status: doc.status, expires_at: doc.expires_at },
+      new_value: { status, expires_at: data.expires_at ?? doc.expires_at },
+      actor_id: context.userId, major: status === "rejected",
     });
     return row;
   });
+
 
 export const deleteCustomerDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -806,25 +835,106 @@ export const getCustomerEquipment = createServerFn({ method: "POST" })
       db.from("assets").select("id, asset_tag, asset_type, make, model, serial_number, status")
         .is("customer_id", null).is("archived_at", null).limit(200),
     ]);
-    const assigned = rows<any>(assignedR);
+    const assignedRaw = rows<any>(assignedR);
     let history: any[] = [];
-    if (assigned.length) {
+    if (assignedRaw.length) {
       const { data: ev } = await db.from("asset_lifecycle_events").select("*")
-        .in("asset_id", assigned.map((a) => a.id)).order("occurred_at", { ascending: false }).limit(300);
+        .in("asset_id", assignedRaw.map((a) => a.id)).order("occurred_at", { ascending: false }).limit(300);
       history = ev ?? [];
     }
+    const byAsset = new Map<string, any[]>();
+    for (const ev of history) {
+      const list = byAsset.get(ev.asset_id) ?? [];
+      list.push(ev);
+      byAsset.set(ev.asset_id, list);
+    }
+    const labelFor = (a: any) => [a.asset_tag, a.asset_type, a.serial_number].filter(Boolean).join(" · ");
+    const assigned = assignedRaw.map((a) => {
+      const evs = byAsset.get(a.id) ?? [];
+      const assignEvents = evs.filter((e) => ["assigned", "reassigned", "deployed"].includes(String(e.event_type)));
+      const days = a.warranty_expires ? Math.floor((new Date(a.warranty_expires).getTime() - Date.now()) / 86_400_000) : null;
+      return {
+        ...a,
+        assigned_on: assignEvents.length ? assignEvents[assignEvents.length - 1].occurred_at : a.created_at,
+        last_movement: evs[0]?.occurred_at ?? null,
+        events: evs,
+        warranty_days: days,
+        warranty_state: days == null ? "unknown" : days < 0 ? "expired" : days <= 60 ? "expiring" : "covered",
+      };
+    });
     return {
       assigned,
       pool: rows<any>(poolR),
-      history,
+      history: history.map((h) => ({
+        ...h,
+        asset_label: labelFor(assignedRaw.find((a) => a.id === h.asset_id) ?? {}),
+      })),
       stats: {
         total: assigned.length,
         inService: assigned.filter((a) => ["active", "deployed", "in_use", "in_service"].includes(String(a.status).toLowerCase())).length,
-        underWarranty: assigned.filter((a) => a.warranty_expires && new Date(a.warranty_expires).getTime() > Date.now()).length,
-        warrantyExpiring: assigned.filter((a) => a.warranty_expires && (new Date(a.warranty_expires).getTime() - Date.now()) / 86_400_000 <= 60 && new Date(a.warranty_expires).getTime() > Date.now()).length,
+        underWarranty: assigned.filter((a) => a.warranty_state === "covered" || a.warranty_state === "expiring").length,
+        warrantyExpiring: assigned.filter((a) => a.warranty_state === "expiring").length,
       },
     };
   });
+
+/** Reassign / update an assigned asset — technician, location, status, warranty. */
+export const updateEquipment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    asset_id: string;
+    assigned_to?: string | null;
+    location?: string | null;
+    status?: string;
+    warranty_expires?: string | null;
+    notes?: string | null;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const db = await admin();
+    const { data: asset } = await db.from("assets").select("*").eq("id", data.asset_id).maybeSingle();
+    if (!asset) throw new Error("Equipment not found");
+    if (!asset.customer_id) throw new Error("This equipment is not assigned to a customer");
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (data.assigned_to !== undefined) patch.assigned_to = data.assigned_to?.trim() || null;
+    if (data.location !== undefined) patch.location = data.location?.trim() || null;
+    if (data.status) patch.status = data.status;
+    if (data.warranty_expires !== undefined) patch.warranty_expires = data.warranty_expires || null;
+    if (data.notes) patch.notes = data.notes.trim();
+
+    const { data: updated, error } = await db.from("assets").update(patch as any)
+      .eq("id", data.asset_id).select("*").single();
+    if (error) throw new Error(error.message);
+
+    const technicianChanged = data.assigned_to !== undefined && (data.assigned_to?.trim() || null) !== asset.assigned_to;
+    await db.from("asset_lifecycle_events").insert({
+      asset_id: asset.id,
+      event_type: technicianChanged ? "reassigned" : data.status && data.status !== asset.status ? "status_changed" : "updated",
+      occurred_at: new Date().toISOString(),
+      notes: [
+        technicianChanged ? `Handler: ${asset.assigned_to ?? "unassigned"} → ${data.assigned_to?.trim() || "unassigned"}` : null,
+        data.status && data.status !== asset.status ? `Status: ${asset.status} → ${data.status}` : null,
+        data.location !== undefined && (data.location?.trim() || null) !== asset.location ? `Location: ${data.location?.trim() || "—"}` : null,
+        data.notes?.trim() || null,
+      ].filter(Boolean).join(" · ") || "Record updated",
+      created_by: context.userId,
+    } as any);
+
+    await recordCustomerEvent(db, {
+      customer_id: asset.customer_id, account_number: asset.account_number ?? "",
+      event_type: technicianChanged ? "equipment_reassigned" : "status_changed",
+      title: `Equipment updated: ${asset.asset_type}${asset.serial_number ? ` · ${asset.serial_number}` : ""}`,
+      description: data.notes?.trim() || null,
+      module: "assets", entity_type: "asset", entity_id: asset.id,
+      old_value: { assigned_to: asset.assigned_to, status: asset.status, location: asset.location, warranty_expires: asset.warranty_expires },
+      new_value: { assigned_to: updated.assigned_to, status: updated.status, location: updated.location, warranty_expires: updated.warranty_expires },
+      actor_id: context.userId,
+      major: technicianChanged,
+    });
+    return updated;
+  });
+
 
 export const assignEquipment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
