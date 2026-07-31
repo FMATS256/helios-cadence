@@ -835,25 +835,106 @@ export const getCustomerEquipment = createServerFn({ method: "POST" })
       db.from("assets").select("id, asset_tag, asset_type, make, model, serial_number, status")
         .is("customer_id", null).is("archived_at", null).limit(200),
     ]);
-    const assigned = rows<any>(assignedR);
+    const assignedRaw = rows<any>(assignedR);
     let history: any[] = [];
-    if (assigned.length) {
+    if (assignedRaw.length) {
       const { data: ev } = await db.from("asset_lifecycle_events").select("*")
-        .in("asset_id", assigned.map((a) => a.id)).order("occurred_at", { ascending: false }).limit(300);
+        .in("asset_id", assignedRaw.map((a) => a.id)).order("occurred_at", { ascending: false }).limit(300);
       history = ev ?? [];
     }
+    const byAsset = new Map<string, any[]>();
+    for (const ev of history) {
+      const list = byAsset.get(ev.asset_id) ?? [];
+      list.push(ev);
+      byAsset.set(ev.asset_id, list);
+    }
+    const labelFor = (a: any) => [a.asset_tag, a.asset_type, a.serial_number].filter(Boolean).join(" · ");
+    const assigned = assignedRaw.map((a) => {
+      const evs = byAsset.get(a.id) ?? [];
+      const assignEvents = evs.filter((e) => ["assigned", "reassigned", "deployed"].includes(String(e.event_type)));
+      const days = a.warranty_expires ? Math.floor((new Date(a.warranty_expires).getTime() - Date.now()) / 86_400_000) : null;
+      return {
+        ...a,
+        assigned_on: assignEvents.length ? assignEvents[assignEvents.length - 1].occurred_at : a.created_at,
+        last_movement: evs[0]?.occurred_at ?? null,
+        events: evs,
+        warranty_days: days,
+        warranty_state: days == null ? "unknown" : days < 0 ? "expired" : days <= 60 ? "expiring" : "covered",
+      };
+    });
     return {
       assigned,
       pool: rows<any>(poolR),
-      history,
+      history: history.map((h) => ({
+        ...h,
+        asset_label: labelFor(assignedRaw.find((a) => a.id === h.asset_id) ?? {}),
+      })),
       stats: {
         total: assigned.length,
         inService: assigned.filter((a) => ["active", "deployed", "in_use", "in_service"].includes(String(a.status).toLowerCase())).length,
-        underWarranty: assigned.filter((a) => a.warranty_expires && new Date(a.warranty_expires).getTime() > Date.now()).length,
-        warrantyExpiring: assigned.filter((a) => a.warranty_expires && (new Date(a.warranty_expires).getTime() - Date.now()) / 86_400_000 <= 60 && new Date(a.warranty_expires).getTime() > Date.now()).length,
+        underWarranty: assigned.filter((a) => a.warranty_state === "covered" || a.warranty_state === "expiring").length,
+        warrantyExpiring: assigned.filter((a) => a.warranty_state === "expiring").length,
       },
     };
   });
+
+/** Reassign / update an assigned asset — technician, location, status, warranty. */
+export const updateEquipment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    asset_id: string;
+    assigned_to?: string | null;
+    location?: string | null;
+    status?: string;
+    warranty_expires?: string | null;
+    notes?: string | null;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const db = await admin();
+    const { data: asset } = await db.from("assets").select("*").eq("id", data.asset_id).maybeSingle();
+    if (!asset) throw new Error("Equipment not found");
+    if (!asset.customer_id) throw new Error("This equipment is not assigned to a customer");
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (data.assigned_to !== undefined) patch.assigned_to = data.assigned_to?.trim() || null;
+    if (data.location !== undefined) patch.location = data.location?.trim() || null;
+    if (data.status) patch.status = data.status;
+    if (data.warranty_expires !== undefined) patch.warranty_expires = data.warranty_expires || null;
+    if (data.notes) patch.notes = data.notes.trim();
+
+    const { data: updated, error } = await db.from("assets").update(patch as any)
+      .eq("id", data.asset_id).select("*").single();
+    if (error) throw new Error(error.message);
+
+    const technicianChanged = data.assigned_to !== undefined && (data.assigned_to?.trim() || null) !== asset.assigned_to;
+    await db.from("asset_lifecycle_events").insert({
+      asset_id: asset.id,
+      event_type: technicianChanged ? "reassigned" : data.status && data.status !== asset.status ? "status_changed" : "updated",
+      occurred_at: new Date().toISOString(),
+      notes: [
+        technicianChanged ? `Handler: ${asset.assigned_to ?? "unassigned"} → ${data.assigned_to?.trim() || "unassigned"}` : null,
+        data.status && data.status !== asset.status ? `Status: ${asset.status} → ${data.status}` : null,
+        data.location !== undefined && (data.location?.trim() || null) !== asset.location ? `Location: ${data.location?.trim() || "—"}` : null,
+        data.notes?.trim() || null,
+      ].filter(Boolean).join(" · ") || "Record updated",
+      created_by: context.userId,
+    } as any);
+
+    await recordCustomerEvent(db, {
+      customer_id: asset.customer_id, account_number: asset.account_number ?? "",
+      event_type: technicianChanged ? "equipment_reassigned" : "status_changed",
+      title: `Equipment updated: ${asset.asset_type}${asset.serial_number ? ` · ${asset.serial_number}` : ""}`,
+      description: data.notes?.trim() || null,
+      module: "assets", entity_type: "asset", entity_id: asset.id,
+      old_value: { assigned_to: asset.assigned_to, status: asset.status, location: asset.location, warranty_expires: asset.warranty_expires },
+      new_value: { assigned_to: updated.assigned_to, status: updated.status, location: updated.location, warranty_expires: updated.warranty_expires },
+      actor_id: context.userId,
+      major: technicianChanged,
+    });
+    return updated;
+  });
+
 
 export const assignEquipment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
