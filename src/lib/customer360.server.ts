@@ -147,3 +147,124 @@ export async function sendRawEmail(opts: {
     return { sent: false, reason: error?.message ?? "send_failed" };
   }
 }
+
+/* =========================================================================
+ * PAYMENT ENGINE (Block 3) — shared by the Record Payment workspace
+ * =======================================================================*/
+
+export type OpenInvoice = {
+  id: string; invoice_number: string; total: number; paid: number; balance: number;
+  currency: string; status: string; issue_date: string | null; due_date: string | null;
+  is_overdue: boolean; ageing: string; days_overdue: number;
+};
+
+/** Every unsettled invoice with its true allocated/paid figure. */
+export async function loadOpenInvoices(db: any, customerId: string): Promise<OpenInvoice[]> {
+  const { data: invs } = await db
+    .from("invoices")
+    .select("id, invoice_number, total, currency, status, issue_date, due_date")
+    .eq("customer_id", customerId)
+    .is("archived_at", null)
+    .not("status", "in", "(void,cancelled)")
+    .order("due_date", { ascending: true });
+  const list = (invs ?? []) as any[];
+  if (!list.length) return [];
+  const { data: allocs } = await db
+    .from("payment_allocations")
+    .select("invoice_id, amount")
+    .in("invoice_id", list.map((i) => i.id));
+  const paidBy = new Map<string, number>();
+  for (const a of (allocs ?? []) as any[]) {
+    paidBy.set(a.invoice_id, (paidBy.get(a.invoice_id) ?? 0) + num(a.amount));
+  }
+  return list
+    .map((i) => {
+      const paid = paidBy.get(i.id) ?? 0;
+      const balance = Math.round((num(i.total) - paid) * 100) / 100;
+      const days = i.due_date ? Math.floor((Date.now() - new Date(i.due_date).getTime()) / 86_400_000) : 0;
+      return {
+        id: i.id, invoice_number: i.invoice_number, total: num(i.total), paid, balance,
+        currency: i.currency || "USD", status: i.status,
+        issue_date: i.issue_date ?? null, due_date: i.due_date ?? null,
+        is_overdue: balance > 0.005 && days > 0,
+        ageing: balance > 0.005 ? ageingBucket(i.due_date) : "settled",
+        days_overdue: balance > 0.005 && days > 0 ? days : 0,
+      } as OpenInvoice;
+    })
+    .filter((i) => i.balance > 0.005);
+}
+
+/** Oldest-due-first allocation of a sum across open invoices. */
+export function allocateOldestFirst(invoices: OpenInvoice[], amount: number) {
+  let left = Math.round(num(amount) * 100) / 100;
+  const out: Array<{ invoice_id: string; invoice_number: string; amount: number }> = [];
+  const ordered = [...invoices].sort((a, b) => {
+    const ad = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+    const bd = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+    return ad - bd;
+  });
+  for (const inv of ordered) {
+    if (left <= 0.005) break;
+    const take = Math.round(Math.min(left, inv.balance) * 100) / 100;
+    if (take <= 0) continue;
+    out.push({ invoice_id: inv.id, invoice_number: inv.invoice_number, amount: take });
+    left = Math.round((left - take) * 100) / 100;
+  }
+  return { allocations: out, unallocated: Math.max(0, left) };
+}
+
+export async function creditBalanceOf(db: any, customerId: string) {
+  const { data } = await db.from("customer_credits").select("amount").eq("customer_id", customerId);
+  return Math.round(((data ?? []) as any[]).reduce((s, c) => s + num(c.amount), 0) * 100) / 100;
+}
+
+/** Recurring lines a payment can be tagged against, plus their suspension state. */
+export async function loadPayableServices(db: any, customerId: string) {
+  const [subR, svcR] = await Promise.all([
+    db.from("subscriptions").select("*").eq("customer_id", customerId).neq("status", "cancelled").order("created_at", { ascending: false }),
+    db.from("cloud_services").select("*").eq("customer_id", customerId).is("archived_at", null).neq("status", "cancelled"),
+  ]);
+  const subs = ((subR as any)?.data ?? []).map((s: any) => ({
+    kind: "subscription" as const, id: s.id, label: s.plan_name,
+    description: s.description ?? null, status: s.status,
+    amount: num(s.amount), currency: s.currency || "USD", cycle: s.billing_cycle || "monthly",
+    monthly: monthly(s.amount, s.billing_cycle), next_renewal: s.next_renewal ?? null,
+    line: serviceLineOf(s.plan_name, s.description),
+    suspended: s.status === "paused" || s.status === "suspended",
+  }));
+  const svcs = ((svcR as any)?.data ?? []).map((s: any) => ({
+    kind: "service" as const, id: s.id, label: s.service_name || s.plan || "Cloud service",
+    description: s.vendor ?? s.service_type ?? null, status: s.status,
+    amount: num(s.monthly_cost), currency: "USD", cycle: "monthly",
+    monthly: num(s.monthly_cost), next_renewal: s.renewal_date ?? null,
+    line: serviceLineOf(s.service_name, s.service_type, s.vendor),
+    suspended: s.status === "suspended",
+  }));
+  return [...subs, ...svcs].sort((a, b) => b.monthly - a.monthly);
+}
+
+const SERVICE_TABLES = [
+  "cloud_services", "web_hosting_accounts", "voip_accounts",
+  "starlink_accounts", "cloud_storage_accounts", "managed_nas_accounts",
+] as const;
+
+/**
+ * Business rule: once an account has no overdue balance left, suspended
+ * services come back automatically. Returns what was restored.
+ */
+export async function resumeSuspendedForCustomer(db: any, customerId: string) {
+  const touched: Record<string, number> = {};
+  const subRes: any = await db.from("subscriptions")
+    .update({ status: "active", updated_at: new Date().toISOString() })
+    .eq("customer_id", customerId).eq("status", "paused").select("id, plan_name");
+  if (subRes?.data?.length) touched["subscriptions"] = subRes.data.length;
+  const others = await Promise.all(
+    SERVICE_TABLES.map((t) =>
+      db.from(t).update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("customer_id", customerId).eq("status", "suspended").select("id"),
+    ),
+  );
+  others.forEach((r: any, i) => { if (r?.data?.length) touched[SERVICE_TABLES[i]] = r.data.length; });
+  const total = Object.values(touched).reduce((s, n) => s + n, 0);
+  return { touched, total };
+}

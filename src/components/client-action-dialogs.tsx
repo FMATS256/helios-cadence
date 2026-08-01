@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package } from "lucide-react";
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
+import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
 import {
   createQuoteForCustomer, createTicketForCustomer, logCommunication,
   createInvoiceForCustomer, listAssignableStaff,
@@ -143,71 +144,226 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
 /* =============================== Record Payment ============================== */
 export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
   const refresh = useRefresh(ctx.accountNumber);
-  const payFn = useServerFn(createPaymentRecord);
+  const wsFn = useServerFn(getPaymentWorkspace);
+  const payFn = useServerFn(recordCustomerPayment);
+  const qc = useQueryClient();
+
+  const { data: ws, isLoading } = useQuery({
+    queryKey: ["payment-workspace", ctx.customerId],
+    queryFn: async () => (await wsFn({ data: { customer_id: ctx.customerId } })) as any,
+  });
+
   const [form, setForm] = useState({
-    amount: "" as string, currency: "USD", method: "cash",
-    reference: "", invoice_id: "__none__", notes: "",
+    amount: "" as string, currency: "", method: "cash",
+    reference: "", notes: "", service_id: "__none__",
     paid_at: new Date().toISOString().slice(0, 10),
   });
-  const { data: openInvoices = [] } = useQuery({
-    queryKey: ["customer-open-invoices", ctx.customerId],
-    queryFn: async () => (await supabase.from("invoices")
-      .select("id, invoice_number, total, currency, status, due_date")
-      .eq("customer_id", ctx.customerId).in("status", ["sent", "partial", "overdue"])
-      .order("issue_date", { ascending: false })).data ?? [],
-  });
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [manual, setManual] = useState<Record<string, string>>({});
+  const [useCredit, setUseCredit] = useState("");
+  const [creditRemainder, setCreditRemainder] = useState(true);
+  const [autoResume, setAutoResume] = useState(true);
+
+  const currency = form.currency || ws?.currency || "USD";
+  const invoices: any[] = ws?.openInvoices ?? [];
+  const services: any[] = ws?.services ?? [];
+  const amt = Number(form.amount) || 0;
+  const credit = Math.min(Number(useCredit) || 0, Number(ws?.creditBalance) || 0);
+  const settleTotal = Math.round((amt + credit) * 100) / 100;
+
+  // preview of the allocation plan (mirrors the server's oldest-due-first rule)
+  const plan = useMemo(() => {
+    if (mode === "manual") {
+      return invoices
+        .map((i) => ({ invoice: i, amount: Math.round((Number(manual[i.id]) || 0) * 100) / 100 }))
+        .filter((r) => r.amount > 0);
+    }
+    let left = settleTotal;
+    const out: Array<{ invoice: any; amount: number }> = [];
+    for (const i of [...invoices].sort((a, b) => new Date(a.due_date ?? 8.64e15).getTime() - new Date(b.due_date ?? 8.64e15).getTime())) {
+      if (left <= 0.005) break;
+      const take = Math.round(Math.min(left, i.balance) * 100) / 100;
+      if (take > 0) { out.push({ invoice: i, amount: take }); left = Math.round((left - take) * 100) / 100; }
+    }
+    return out;
+  }, [mode, manual, invoices, settleTotal]);
+
+  const allocated = Math.round(plan.reduce((s, r) => s + r.amount, 0) * 100) / 100;
+  const remainder = Math.round((settleTotal - allocated) * 100) / 100;
+  const appliedBy = new Map(plan.map((r) => [r.invoice.id, r.amount]));
+  const overdueLeft = Math.round(
+    invoices
+      .filter((i) => i.is_overdue)
+      .reduce((s, i) => s + Math.max(0, i.balance - (appliedBy.get(i.id) ?? 0)), 0) * 100,
+  ) / 100;
+  const willResume = autoResume && overdueLeft <= 0.005 && (ws?.suspendedServices?.length ?? 0) > 0;
 
   const mut = useMutation({
     mutationFn: async () => {
-      const amt = Number(form.amount);
-      if (!Number.isFinite(amt) || amt <= 0) throw new Error("Enter a payment amount");
-      const allocs = form.invoice_id && form.invoice_id !== "__none__" ? [{ invoice_id: form.invoice_id, amount: amt }] : [];
+      if (!(amt > 0)) throw new Error("Enter a payment amount");
+      if (allocated > settleTotal + 0.005) throw new Error("Allocations exceed the amount being settled");
       return payFn({ data: {
         customer_id: ctx.customerId,
-        amount: amt, currency: form.currency, method: form.method,
-        reference: form.reference || undefined, notes: form.notes || undefined,
+        amount: amt,
+        currency,
+        method: form.method,
+        reference: form.reference || undefined,
+        notes: form.notes || undefined,
         paid_at: form.paid_at,
-        allocations: allocs,
+        service_id: form.service_id === "__none__" ? null : form.service_id,
+        auto_allocate: mode === "auto",
+        allocations: mode === "manual" ? plan.map((r) => ({ invoice_id: r.invoice.id, amount: r.amount })) : [],
+        apply_credit: credit || 0,
+        credit_remainder: creditRemainder,
+        auto_resume: autoResume,
       } });
     },
-    onSuccess: (r: any) => { toast.success(`Payment recorded · Receipt ${r?.receipt_number || ""}`); refresh(); onClose(); },
+    onSuccess: (r: any) => {
+      const bits = [`Receipt ${r?.receipt_number ?? ""}`.trim()];
+      if (r?.settledInvoices?.length) bits.push(`applied to ${r.settledInvoices.join(", ")}`);
+      if (r?.creditCreated > 0) bits.push(`${r.creditCreated.toFixed(2)} held as credit`);
+      if (r?.resumed?.total > 0) bits.push(`${r.resumed.total} service(s) restored`);
+      toast.success(`Payment recorded · ${bits.join(" · ")}`);
+      qc.invalidateQueries({ queryKey: ["payment-workspace", ctx.customerId] });
+      qc.invalidateQueries({ queryKey: ["customer-billing", ctx.customerId] });
+      qc.invalidateQueries({ queryKey: ["customer-history", ctx.accountNumber] });
+      refresh();
+      onClose();
+    },
     onError: (e: any) => toast.error(e?.message || "Failed to record payment"),
   });
 
+  const kpi = (label: string, value: string, tone: string) => (
+    <div className={`rounded-lg border p-2.5 ${tone}`}>
+      <div className="text-[10px] uppercase tracking-wide opacity-70 font-semibold">{label}</div>
+      <div className="font-mono text-sm font-bold">{value}</div>
+    </div>
+  );
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Update payment · {ctx.companyName}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1"><Label>Amount *</Label><Input type="number" step="0.01" autoFocus value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
-          <div className="space-y-1"><Label>Currency</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} /></div>
-          <div className="space-y-1"><Label>Method *</Label>
-            <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["cash", "bank_transfer", "mobile_money", "card", "cheque", "other"].map((m) => <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>)}
-              </SelectContent>
-            </Select>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Record payment · {ctx.companyName}</DialogTitle></DialogHeader>
+
+        {isLoading ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Loading account balances…</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {kpi("Outstanding", `${currency} ${Number(ws?.outstanding ?? 0).toFixed(2)}`, "bg-muted/40")}
+              {kpi("Overdue", `${currency} ${Number(ws?.overdue ?? 0).toFixed(2)}`, Number(ws?.overdue) > 0 ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted/40")}
+              {kpi("Credit", `${currency} ${Number(ws?.creditBalance ?? 0).toFixed(2)}`, "bg-success/10 text-success border-success/30")}
+              {kpi("MRR", `${currency} ${Number(ws?.mrr ?? 0).toFixed(2)}`, "bg-solar/10 text-solar border-solar/30")}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label>Amount *</Label><Input type="number" step="0.01" autoFocus value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
+              <div className="space-y-1"><Label>Currency</Label><Input value={currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} /></div>
+              <div className="space-y-1"><Label>Method *</Label>
+                <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["cash", "bank_transfer", "mobile_money", "card", "cheque", "other"].map((m) => <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1"><Label>Paid on</Label><Input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value })} /></div>
+              <div className="col-span-2 space-y-1"><Label>Service being paid for</Label>
+                <Select value={form.service_id} onValueChange={(v) => setForm({ ...form, service_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="General account payment" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— General account payment —</SelectItem>
+                    {services.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.label} · {s.currency} {s.amount.toFixed(2)}/{s.cycle}{s.suspended ? " · suspended" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {services.length === 0 && <p className="text-xs text-muted-foreground">No recurring services on this account yet.</p>}
+              </div>
+            </div>
+
+            {Number(ws?.creditBalance) > 0 && (
+              <div className="flex items-end gap-3 rounded-lg border bg-success/5 p-3">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-xs">Apply account credit (available {currency} {Number(ws?.creditBalance).toFixed(2)})</Label>
+                  <Input type="number" step="0.01" value={useCredit} onChange={(e) => setUseCredit(e.target.value)} placeholder="0.00" />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setUseCredit(String(ws?.creditBalance ?? 0))}>Use all</Button>
+              </div>
+            )}
+
+            <div className="rounded-lg border">
+              <div className="flex items-center justify-between border-b p-2.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invoice allocation</span>
+                <div className="flex gap-1">
+                  <Button size="sm" variant={mode === "auto" ? "default" : "outline"} onClick={() => setMode("auto")}>Auto (oldest first)</Button>
+                  <Button size="sm" variant={mode === "manual" ? "default" : "outline"} onClick={() => setMode("manual")}>Manual</Button>
+                </div>
+              </div>
+              <div className="divide-y max-h-64 overflow-y-auto">
+                {invoices.length === 0 && <p className="p-4 text-sm text-muted-foreground text-center">No open invoices — this payment will be held as account credit.</p>}
+                {invoices.map((i: any) => {
+                  const applied = plan.find((r) => r.invoice.id === i.id)?.amount ?? 0;
+                  return (
+                    <div key={i.id} className="grid grid-cols-[1fr_auto] items-center gap-3 p-2.5">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-mono font-semibold">{i.invoice_number}</span>
+                          {i.is_overdue && <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">{i.days_overdue}d overdue</span>}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Balance {i.currency} {i.balance.toFixed(2)} of {i.total.toFixed(2)}{i.due_date ? ` · due ${String(i.due_date).slice(0, 10)}` : ""}
+                        </div>
+                      </div>
+                      {mode === "manual" ? (
+                        <div className="flex items-center gap-1">
+                          <Input className="h-8 w-28" type="number" step="0.01" value={manual[i.id] ?? ""} placeholder="0.00"
+                            onChange={(e) => setManual((p) => ({ ...p, [i.id]: e.target.value }))} />
+                          <Button size="sm" variant="ghost" onClick={() => setManual((p) => ({ ...p, [i.id]: i.balance.toFixed(2) }))}>Full</Button>
+                        </div>
+                      ) : (
+                        <span className={`font-mono text-sm ${applied > 0 ? "font-bold text-success" : "text-muted-foreground"}`}>
+                          {applied > 0 ? `${currency} ${applied.toFixed(2)}` : "—"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/30 p-2.5 text-xs">
+                <span>Settling <b className="font-mono">{currency} {settleTotal.toFixed(2)}</b> · allocated <b className="font-mono">{currency} {allocated.toFixed(2)}</b></span>
+                <span className={remainder > 0.005 ? "text-solar font-semibold" : "text-muted-foreground"}>
+                  {remainder > 0.005 ? `${currency} ${remainder.toFixed(2)} unallocated` : "Fully allocated"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="flex items-center gap-2 rounded-lg border p-2.5 text-xs cursor-pointer">
+                <input type="checkbox" checked={creditRemainder} onChange={(e) => setCreditRemainder(e.target.checked)} />
+                Hold any unallocated amount as account credit
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border p-2.5 text-xs cursor-pointer">
+                <input type="checkbox" checked={autoResume} onChange={(e) => setAutoResume(e.target.checked)} />
+                Auto-resume suspended services once overdue clears
+                {(ws?.suspendedServices?.length ?? 0) > 0 && <span className="ml-auto rounded bg-warning/15 px-1.5 py-0.5 font-semibold text-warning">{ws.suspendedServices.length} suspended</span>}
+              </label>
+            </div>
+            {willResume && <p className="text-xs text-success">This payment clears the overdue balance — {ws.suspendedServices.length} suspended service(s) will be restored automatically.</p>}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1"><Label>Reference</Label><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Bank ref, mobile money ID, cheque #" /></div>
+              <div className="col-span-2 space-y-1"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            </div>
           </div>
-          <div className="space-y-1"><Label>Paid on</Label><Input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value })} /></div>
-          <div className="col-span-2 space-y-1"><Label>Allocate to invoice (optional)</Label>
-            <Select value={form.invoice_id} onValueChange={(v) => setForm({ ...form, invoice_id: v })}>
-              <SelectTrigger><SelectValue placeholder="No allocation" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— No allocation (unallocated) —</SelectItem>
-                {openInvoices.map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.invoice_number} · {i.currency} {Number(i.total).toFixed(2)} · {i.status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2 space-y-1"><Label>Reference</Label><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Bank ref, mobile money ID, cheque #" /></div>
-          <div className="col-span-2 space-y-1"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-        </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={mut.isPending} onClick={() => mut.mutate()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-            {mut.isPending ? "Recording…" : "Record payment"}
+          <Button disabled={mut.isPending || !(amt > 0)} onClick={() => mut.mutate()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+            {mut.isPending ? "Recording…" : `Record ${currency} ${amt.toFixed(2)}`}
           </Button>
         </DialogFooter>
       </DialogContent>
