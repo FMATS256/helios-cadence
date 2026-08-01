@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { RecordPaymentDialog } from "@/components/client-action-dialogs";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -273,6 +274,7 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => fn({ data: { customer_id: ctx.customerId } }) });
   const [note, setNote] = useState("");
   const [credit, setCredit] = useState("");
+  const [payOpen, setPayOpen] = useState(false);
 
   const addCredit = useMutation({
     mutationFn: () => creditFn({ data: { customer_id: ctx.customerId, amount: Number(credit), note: "Manual credit" } }),
@@ -300,6 +302,18 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
             { icon: TrendingUp, label: "ARR", value: money(s.arr), tone: "info" },
             { icon: Receipt, label: "Refunded", value: money(s.totalRefunded), tone: "neutral" },
           ]} />
+
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setPayOpen(true)}>
+              <DollarSign className="h-4 w-4 mr-1.5" />Record payment
+            </Button>
+          </div>
+          {payOpen && (
+            <RecordPaymentDialog
+              ctx={{ customerId: ctx.customerId, accountNumber: ctx.accountNumber, companyName: ctx.companyName }}
+              onClose={() => { setPayOpen(false); qc.invalidateQueries({ queryKey: key }); }}
+            />
+          )}
 
           {!!data.alerts?.length && (
             <Card><CardContent className="p-3 space-y-1">
