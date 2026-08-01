@@ -189,11 +189,12 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 
   const allocated = Math.round(plan.reduce((s, r) => s + r.amount, 0) * 100) / 100;
   const remainder = Math.round((settleTotal - allocated) * 100) / 100;
-  const clearedIds = new Set(plan.filter((r) => r.amount >= r.invoice.balance - 0.005).map((r) => r.invoice.id));
+  const appliedBy = new Map(plan.map((r) => [r.invoice.id, r.amount]));
   const overdueLeft = Math.round(
-    invoices.filter((i) => i.is_overdue && !clearedIds.has(i.id)).reduce((s, i) => s + i.balance, 0)
-    - plan.filter((r) => r.invoice.is_overdue && !clearedIds.has(r.invoice.id)).reduce((s, r) => s + r.amount, 0),
-  * 100) / 100;
+    invoices
+      .filter((i) => i.is_overdue)
+      .reduce((s, i) => s + Math.max(0, i.balance - (appliedBy.get(i.id) ?? 0)), 0) * 100,
+  ) / 100;
   const willResume = autoResume && overdueLeft <= 0.005 && (ws?.suspendedServices?.length ?? 0) > 0;
 
   const mut = useMutation({
