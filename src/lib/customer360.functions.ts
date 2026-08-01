@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   assertStaff, isFinanceOrAdmin, admin, loadCustomer, num, monthly, advanceDate,
   ageingBucket, KYC_REQUIREMENTS, kycProfileFor, serviceLineOf, sendRawEmail,
+  loadOpenInvoices, allocateOldestFirst, creditBalanceOf, loadPayableServices,
+  resumeSuspendedForCustomer,
 } from "./customer360.server";
 import { recordCustomerEvent, MAJOR_EVENT_TYPES } from "./customer-events.server";
 
@@ -1191,5 +1193,254 @@ export const getCustomerProfileExport = createServerFn({ method: "POST" })
       invoices: rows<any>(invoices), payments: rows<any>(payments),
       tickets: rows<any>(tickets), assets: rows<any>(assets),
       documents: rows<any>(docs), projects: rows<any>(projects),
+    };
+  });
+
+/* =========================================================================
+ * RECORD PAYMENT WORKSPACE (Block 3)
+ * =======================================================================*/
+export const getPaymentWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const db = await admin();
+    const cust = await loadCustomer(db, data.customer_id);
+    const [openInvoices, services, credit, payR] = await Promise.all([
+      loadOpenInvoices(db, cust.id),
+      loadPayableServices(db, cust.id),
+      creditBalanceOf(db, cust.id),
+      db.from("payments").select("id,receipt_number,amount,currency,method,paid_at,status,reference,service_context,reconciliation_status")
+        .eq("customer_id", cust.id).order("paid_at", { ascending: false }).limit(8),
+    ]);
+    const outstanding = Math.round(openInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
+    const overdue = Math.round(openInvoices.filter((i) => i.is_overdue).reduce((s, i) => s + i.balance, 0) * 100) / 100;
+    const suspended = services.filter((s) => s.suspended);
+    const currency = openInvoices[0]?.currency || services[0]?.currency || "USD";
+    return {
+      customer: cust,
+      openInvoices,
+      services,
+      creditBalance: credit,
+      recentPayments: rows<any>(payR as any),
+      outstanding,
+      overdue,
+      currency,
+      suspendedServices: suspended.map((s) => ({ id: s.id, kind: s.kind, label: s.label, status: s.status })),
+      canAutoResume: suspended.length > 0,
+      mrr: Math.round(services.filter((s) => !s.suspended && s.status === "active").reduce((s, x) => s + x.monthly, 0) * 100) / 100,
+      lastPayment: rows<any>(payR as any)[0] ?? null,
+    };
+  });
+
+export const recordCustomerPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    customer_id: string;
+    amount: number;
+    currency?: string;
+    method?: string;
+    reference?: string;
+    paid_at?: string;
+    notes?: string;
+    /** subscription/cloud_service id or free label this payment settles */
+    service_id?: string | null;
+    service_label?: string | null;
+    /** explicit allocations; ignored when auto_allocate is true */
+    allocations?: Array<{ invoice_id: string; amount: number }>;
+    auto_allocate?: boolean;
+    /** consume part of the customer's credit balance in the same settlement */
+    apply_credit?: number;
+    /** park the unallocated remainder as an account credit (default true) */
+    credit_remainder?: boolean;
+    /** restore suspended services when the account clears (default true) */
+    auto_resume?: boolean;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const amount = Math.round(Number(data.amount) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be greater than zero");
+
+    const db = await admin();
+    const cust = await loadCustomer(db, data.customer_id);
+    const currency = (data.currency || "USD").toUpperCase();
+    const open = await loadOpenInvoices(db, cust.id);
+    const byId = new Map(open.map((i) => [i.id, i]));
+
+    // ---- credit portion -------------------------------------------------
+    const applyCredit = Math.round(Math.max(0, Number(data.apply_credit || 0)) * 100) / 100;
+    if (applyCredit > 0) {
+      const balance = await creditBalanceOf(db, cust.id);
+      if (applyCredit > balance + 0.005) throw new Error(`Only ${balance.toFixed(2)} of account credit is available`);
+    }
+
+    // ---- allocation plan -------------------------------------------------
+    const settleTotal = Math.round((amount + applyCredit) * 100) / 100;
+    let plan: Array<{ invoice_id: string; amount: number }>;
+    if (data.auto_allocate !== false && !(data.allocations ?? []).length) {
+      plan = allocateOldestFirst(open, settleTotal).allocations.map((a) => ({ invoice_id: a.invoice_id, amount: a.amount }));
+    } else {
+      plan = (data.allocations ?? []).filter((a) => a.invoice_id && Number(a.amount) > 0)
+        .map((a) => ({ invoice_id: a.invoice_id, amount: Math.round(Number(a.amount) * 100) / 100 }));
+      for (const a of plan) {
+        const inv = byId.get(a.invoice_id);
+        if (!inv) throw new Error("One of the selected invoices does not belong to this customer or is already settled");
+        if (a.amount > inv.balance + 0.005) {
+          throw new Error(`Allocation of ${a.amount.toFixed(2)} exceeds the ${inv.balance.toFixed(2)} balance on ${inv.invoice_number}`);
+        }
+      }
+    }
+    const planned = Math.round(plan.reduce((s, a) => s + a.amount, 0) * 100) / 100;
+    if (planned > settleTotal + 0.005) throw new Error(`Allocations (${planned.toFixed(2)}) exceed the amount being settled (${settleTotal.toFixed(2)})`);
+
+    // ---- service ownership check ----------------------------------------
+    let serviceLabel = data.service_label?.trim() || null;
+    if (data.service_id) {
+      const services = await loadPayableServices(db, cust.id);
+      const svc = services.find((s) => s.id === data.service_id);
+      if (!svc) throw new Error("That service is not assigned to this customer");
+      serviceLabel = svc.label;
+    }
+
+    // ---- write the payment ------------------------------------------------
+    const paidAt = data.paid_at ? new Date(data.paid_at).toISOString() : new Date().toISOString();
+    const { data: payment, error } = await db.from("payments").insert({
+      customer_id: cust.id,
+      account_number: cust.account_number,
+      amount,
+      currency,
+      method: data.method || "cash",
+      reference: data.reference?.trim() || null,
+      status: "received",
+      paid_at: paidAt,
+      notes: data.notes?.trim() || null,
+      service_context: serviceLabel,
+      invoice_id: plan.length === 1 ? plan[0].invoice_id : null,
+      created_by: context.userId,
+    } as any).select("*").single();
+    if (error) throw new Error(error.message);
+
+    // credit consumption is booked as its own zero-cash payment so invoice
+    // allocations always resolve to a real payment row
+    let creditPayment: any = null;
+    if (applyCredit > 0) {
+      const { data: cp, error: cErr } = await db.from("payments").insert({
+        customer_id: cust.id, account_number: cust.account_number,
+        amount: applyCredit, currency, method: "account_credit", status: "received",
+        paid_at: paidAt, reference: payment.receipt_number ? `CREDIT/${payment.receipt_number}` : null,
+        notes: "Account credit applied", service_context: serviceLabel,
+        created_by: context.userId,
+      } as any).select("*").single();
+      if (cErr) throw new Error(`Payment saved but credit could not be applied: ${cErr.message}`);
+      creditPayment = cp;
+      await db.from("customer_credits").insert({
+        customer_id: cust.id, account_number: cust.account_number,
+        amount: -applyCredit, currency, kind: "applied",
+        source_payment_id: cp.id, note: `Applied to settlement ${payment.receipt_number ?? ""}`.trim(),
+        created_by: context.userId,
+      } as any);
+    }
+
+    // ---- allocations: cash first, then credit ----------------------------
+    let cashLeft = amount;
+    const cashRows: any[] = [];
+    const creditRows: any[] = [];
+    for (const a of plan) {
+      const fromCash = Math.round(Math.min(cashLeft, a.amount) * 100) / 100;
+      if (fromCash > 0.005) { cashRows.push({ payment_id: payment.id, invoice_id: a.invoice_id, amount: fromCash }); cashLeft = Math.round((cashLeft - fromCash) * 100) / 100; }
+      const rest = Math.round((a.amount - fromCash) * 100) / 100;
+      if (rest > 0.005 && creditPayment) creditRows.push({ payment_id: creditPayment.id, invoice_id: a.invoice_id, amount: rest });
+    }
+    const allocRows = [...cashRows, ...creditRows];
+    if (allocRows.length) {
+      const { error: aErr } = await db.from("payment_allocations").insert(allocRows);
+      if (aErr) throw new Error(`Payment saved but allocation failed: ${aErr.message}`);
+    }
+
+    // ---- unallocated remainder becomes account credit --------------------
+    const remainder = Math.round((amount - cashRows.reduce((s, r) => s + r.amount, 0)) * 100) / 100;
+    if (remainder > 0.005 && data.credit_remainder !== false) {
+      await db.from("customer_credits").insert({
+        customer_id: cust.id, account_number: cust.account_number,
+        amount: remainder, currency, kind: "advance",
+        source_payment_id: payment.id,
+        note: `Unallocated balance from receipt ${payment.receipt_number ?? ""}`.trim(),
+        created_by: context.userId,
+      } as any);
+    }
+
+    // ---- post-settlement state -------------------------------------------
+    const after = await loadOpenInvoices(db, cust.id);
+    const outstandingAfter = Math.round(after.reduce((s, i) => s + i.balance, 0) * 100) / 100;
+    const overdueAfter = Math.round(after.filter((i) => i.is_overdue).reduce((s, i) => s + i.balance, 0) * 100) / 100;
+
+    let resumed: { touched: Record<string, number>; total: number } = { touched: {}, total: 0 };
+    if (data.auto_resume !== false && overdueAfter <= 0.005) {
+      resumed = await resumeSuspendedForCustomer(db, cust.id);
+      if (resumed.total > 0) {
+        if (cust.status === "suspended") {
+          await db.from("customers").update({ status: "active" } as any).eq("id", cust.id);
+        }
+        await recordCustomerEvent(db, {
+          customer_id: cust.id, account_number: cust.account_number,
+          event_type: "service_resumed",
+          title: `${resumed.total} service${resumed.total === 1 ? "" : "s"} restored after payment`,
+          description: `Overdue balance cleared by receipt ${payment.receipt_number ?? ""}`.trim(),
+          module: "billing", entity_type: "payment", entity_id: payment.id,
+          new_value: { restored: resumed.touched, receipt: payment.receipt_number },
+          actor_id: context.userId,
+        });
+      }
+    }
+
+    const settledInvoices = plan
+      .map((a) => byId.get(a.invoice_id)?.invoice_number)
+      .filter(Boolean) as string[];
+
+    await recordCustomerEvent(db, {
+      customer_id: cust.id, account_number: cust.account_number,
+      event_type: "payment_recorded",
+      title: `Payment received: ${currency} ${amount.toFixed(2)}`,
+      description: [
+        serviceLabel ? `Service: ${serviceLabel}` : null,
+        settledInvoices.length ? `Applied to ${settledInvoices.join(", ")}` : "Unapplied — held on account",
+        applyCredit > 0 ? `Credit applied: ${applyCredit.toFixed(2)}` : null,
+      ].filter(Boolean).join(" · "),
+      module: "billing", entity_type: "payment", entity_id: payment.id,
+      new_value: {
+        amount, currency, method: payment.method, receipt: payment.receipt_number,
+        allocations: allocRows.length, credit_applied: applyCredit,
+        outstanding_after: outstandingAfter, resumed: resumed.total,
+      },
+      actor_id: context.userId,
+    });
+
+    // ---- receipt email (never blocks the transaction) ---------------------
+    if (cust.primary_email) {
+      try {
+        const { notify } = await import("./notify.server");
+        void notify("receipt", cust.primary_email, {
+          companyName: cust.company_name,
+          receiptNumber: payment.receipt_number,
+          amount: payment.amount,
+          currency: payment.currency,
+          method: payment.method,
+          reference: payment.reference,
+          paidAt: String(payment.paid_at).slice(0, 10),
+          serviceContext: serviceLabel,
+        }, `receipt-${payment.id}`);
+      } catch (e: any) { console.error("[recordCustomerPayment] receipt", e?.message ?? e); }
+    }
+
+    return {
+      payment,
+      receipt_number: payment.receipt_number,
+      allocations: allocRows.length,
+      settledInvoices,
+      creditApplied: applyCredit,
+      creditCreated: remainder > 0.005 && data.credit_remainder !== false ? remainder : 0,
+      outstandingAfter,
+      overdueAfter,
+      resumed,
     };
   });
