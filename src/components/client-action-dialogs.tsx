@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package } from "lucide-react";
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
+import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
 import {
   createQuoteForCustomer, createTicketForCustomer, logCommunication,
   createInvoiceForCustomer, listAssignableStaff,
