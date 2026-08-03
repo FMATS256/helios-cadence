@@ -42,6 +42,45 @@ function requestMeta() {
 }
 
 /**
+ * Audit-only writer (Block 5 hardening) for mutations that are not tied to a
+ * customer timeline entry. Records who / what / when / old / new / module / IP.
+ * Never throws.
+ */
+export async function recordAudit(
+  admin: any,
+  a: {
+    actor_id?: string | null;
+    actor_email?: string | null;
+    action: string;
+    entity_type: string;
+    entity_id?: string | null;
+    account_number?: string | null;
+    module: string;
+    old_value?: Record<string, any> | null;
+    new_value?: Record<string, any> | null;
+  },
+) {
+  const { ip, ua } = requestMeta();
+  try {
+    await admin.from("audit_log").insert({
+      actor_id: a.actor_id ?? null,
+      actor_email: a.actor_email ?? null,
+      action: a.action,
+      entity_type: a.entity_type,
+      entity_id: a.entity_id ?? null,
+      account_number: a.account_number ?? null,
+      old_value: a.old_value ?? null,
+      new_value: { ...(a.new_value ?? {}), module: a.module },
+      ip_address: ip,
+      user_agent: ua,
+    } as any);
+  } catch (e) {
+    console.error("[recordAudit]", e);
+  }
+}
+
+
+/**
  * Write the audit + timeline pair. Never throws — a logging failure must not
  * roll back the business action that already succeeded.
  */
