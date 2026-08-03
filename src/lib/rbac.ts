@@ -38,6 +38,10 @@ export const PERMISSIONS = {
   // Monitoring
   "monitoring.view": ["operations_manager", "noc", "cloud_engineer", "technical_support", "cyber_security"],
 
+  // Commercially sensitive figures (supplier cost, margin, profit, wholesale).
+  // Mirrors the server-side redaction in src/lib/security/redaction.server.ts.
+  "costs.view":      ["finance", "operations_manager"],
+
   // Admin
   "admin.users":     [] as AppRole[],
 } satisfies Record<string, AppRole[]>;
