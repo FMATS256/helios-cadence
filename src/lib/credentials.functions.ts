@@ -94,13 +94,23 @@ export const updateCredential = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const VAULT_ROLES = ["master_admin", "operations_manager", "cloud_engineer", "technical_support", "cyber_security"];
+
 export const revealCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
+    // Block 5: secret material is role-gated server-side and every reveal is audited.
+    const { data: roleRows } = await context.supabase
+      .from("user_roles").select("role").eq("user_id", context.userId);
+    const roles = (roleRows ?? []).map((r: any) => String(r.role));
+    if (!roles.some((r) => VAULT_ROLES.includes(r))) {
+      throw new Error("You do not have permission to reveal credentials.");
+    }
+
     const { data: row, error } = await context.supabase
       .from("credentials")
-      .select("ciphertext,iv,auth_tag")
+      .select("id,name,customer_id,account_number,ciphertext,iv,auth_tag")
       .eq("id", data.id)
       .single();
     if (error || !row) throw new Error(error?.message || "Not found");
@@ -110,6 +120,20 @@ export const revealCredential = createServerFn({ method: "POST" })
       accessed_by: context.userId,
       action: "reveal",
     });
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { recordAudit } = await import("./customer-events.server");
+    await recordAudit(supabaseAdmin, {
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+      action: "credential_revealed",
+      entity_type: "credential",
+      entity_id: row.id,
+      account_number: (row as any).account_number ?? null,
+      module: "credentials",
+      new_value: { name: (row as any).name, customer_id: (row as any).customer_id ?? null },
+    });
+
 
     const { decryptSecret } = await import("./encryption.server");
     return { secret: decryptSecret({ ciphertext: row.ciphertext, iv: row.iv, authTag: row.auth_tag }) };

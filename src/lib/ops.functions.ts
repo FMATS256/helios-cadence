@@ -50,6 +50,23 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
         services: [],
       }, `welcome-${row.id}`);
     }
+
+    const { recordCustomerEvent } = await import("./customer-events.server");
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: row.id,
+      account_number: row.account_number,
+      event_type: "customer_created",
+      title: `Customer ${row.company_name} created`,
+      description: `Account ${row.account_number} · ${row.account_type}`,
+      module: "customers",
+      entity_type: "customer",
+      entity_id: row.id,
+      new_value: { company_name: row.company_name, status: row.status, account_type: row.account_type },
+      major: true,
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
+
     return row;
   });
 
@@ -573,6 +590,22 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
         items: [{ description: `${sub.plan_name} (${sub.billing_cycle})`, quantity: 1, unit_price: subtotal, line_total: subtotal }],
       }, `invoice-${invoice.id}`);
     }
+
+    const { recordCustomerEvent } = await import("./customer-events.server");
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: sub.customer_id,
+      account_number: sub.account_number,
+      event_type: "invoice_generated",
+      title: `Invoice ${(invoice as any).invoice_number} generated`,
+      description: `${invoice.currency} ${total.toFixed(2)} · ${sub.plan_name}`,
+      module: "billing",
+      entity_type: "invoice",
+      entity_id: invoice.id,
+      new_value: { total, currency: invoice.currency, due_date: invoice.due_date, subscription_id: sub.id },
+      major: true,
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
     return invoice;
   });
 
@@ -667,12 +700,25 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       (services as any[]).filter((s) => s.status === "active" && soon(s.renewal_date, 30)).length +
       (licenses as any[]).filter((l: any) => soon(l.expires_at ?? l.renewal_date, 30)).length;
 
+    // Block 5 — field-level access control. Supplier cost / margin / profit and
+    // any secret material are stripped server-side before the payload is sent.
+    const { viewerScope, redactBundle } = await import("./security/redaction.server");
+    const viewer = await viewerScope(context);
+
+    const payload = redactBundle(
+      {
+        customer,
+        services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline, packages,
+        contacts, branches, notes, communications,
+        cloudServers, monitoringChecks, monitoringIncidents, webHosting, starlink, voip,
+        cloudStorage, managedNas, licenses, projects, auditLog,
+      },
+      viewer,
+    );
+
     return {
-      customer,
-      services, subscriptions, invoices, payments, quotes, tickets, assets, credentials, timeline, packages,
-      contacts, branches, notes, communications,
-      cloudServers, monitoringChecks, monitoringIncidents, webHosting, starlink, voip,
-      cloudStorage, managedNas, licenses, projects, auditLog,
+      ...payload,
+      viewer: { roles: viewer.roles, isMaster: viewer.isMaster, canSeeCost: viewer.canSeeCost },
       stats: {
         openInvoiceTotal, overdueInvoiceCount, mrr,
         activeSubscriptions, activeCloudServices, activeServers,
@@ -684,6 +730,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
         activeServices: activeCloudServices,
       },
     };
+
   });
 
 /**
@@ -710,9 +757,38 @@ export const updateCustomerRecord = createServerFn({ method: "POST" })
     for (const k of ["company_name","industry","primary_email","primary_phone","website","status","billing_address","notes"] as const) {
       if (data[k] !== undefined) patch[k] = (data[k] as any) === "" ? null : data[k];
     }
+    const { data: before } = await supabaseAdmin
+      .from("customers").select("*").eq("id", data.customer_id).maybeSingle();
     const { data: row, error } = await supabaseAdmin
       .from("customers").update(patch).eq("id", data.customer_id).select("*").single();
     if (error) throw new Error(error.message);
+
+    const { recordCustomerEvent } = await import("./customer-events.server");
+    const changed: Record<string, any> = {};
+    const previous: Record<string, any> = {};
+    for (const k of Object.keys(patch)) {
+      if ((before as any)?.[k] !== (row as any)[k]) {
+        previous[k] = (before as any)?.[k] ?? null;
+        changed[k] = (row as any)[k];
+      }
+    }
+    if (Object.keys(changed).length) {
+      await recordCustomerEvent(supabaseAdmin, {
+        customer_id: row.id,
+        account_number: row.account_number,
+        event_type: (before as any)?.status !== row.status ? "status_changed" : "customer_updated",
+        title: `Customer details updated`,
+        description: Object.keys(changed).join(", "),
+        module: "customers",
+        entity_type: "customer",
+        entity_id: row.id,
+        old_value: previous,
+        new_value: changed,
+        major: (before as any)?.status !== row.status,
+        actor_id: context.userId,
+        actor_email: context.claims?.email ?? null,
+      });
+    }
     return row;
   });
 
@@ -732,13 +808,40 @@ export const setCustomerLifecycle = createServerFn({ method: "POST" })
       : "active";
     const subStatus  = data.action === "suspend" ? "paused" : data.action === "resume" ? "active" : custStatus;
 
+    const { data: before } = await supabaseAdmin
+      .from("customers").select("id, account_number, status").eq("id", data.customer_id).maybeSingle();
     await supabaseAdmin.from("customers").update({ status: custStatus }).eq("id", data.customer_id);
+    let affected = 0;
     if (data.action === "suspend") {
-      await supabaseAdmin.from("subscriptions").update({ status: "paused" }).eq("customer_id", data.customer_id).eq("status", "active");
+      const { data: subs } = await supabaseAdmin.from("subscriptions").update({ status: "paused" })
+        .eq("customer_id", data.customer_id).eq("status", "active").select("id");
+      affected = (subs ?? []).length;
     } else if (data.action === "resume") {
-      await supabaseAdmin.from("subscriptions").update({ status: "active" }).eq("customer_id", data.customer_id).eq("status", "paused");
+      const { data: subs } = await supabaseAdmin.from("subscriptions").update({ status: "active" })
+        .eq("customer_id", data.customer_id).eq("status", "paused").select("id");
+      affected = (subs ?? []).length;
     }
-    return { ok: true, status: custStatus, subStatus };
+
+    if (before) {
+      const { recordCustomerEvent } = await import("./customer-events.server");
+      await recordCustomerEvent(supabaseAdmin, {
+        customer_id: before.id,
+        account_number: before.account_number,
+        event_type: data.action === "suspend" ? "service_suspended" : "service_resumed",
+        title: `Account ${data.action}ed`,
+        description: affected ? `${affected} subscription(s) set to ${subStatus}` : null,
+        module: "customers",
+        entity_type: "customer",
+        entity_id: before.id,
+        old_value: { status: before.status },
+        new_value: { status: custStatus, subscriptions: affected, subscription_status: subStatus },
+        major: true,
+        actor_id: context.userId,
+        actor_email: context.claims?.email ?? null,
+      });
+    }
+    return { ok: true, status: custStatus, subStatus, affected };
+
   });
 
 /**
@@ -776,6 +879,21 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
       }, `reminder-${i.id}-${Date.now()}`);
       sent++;
     }
+    const { recordCustomerEvent } = await import("./customer-events.server");
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: cust.id,
+      account_number: cust.account_number,
+      event_type: "communication_sent",
+      title: `Payment reminder sent`,
+      description: `${sent} reminder email(s) to ${cust.primary_email}`,
+      module: "billing",
+      entity_type: "customer",
+      entity_id: cust.id,
+      new_value: { reminders: sent, invoice_id: data.invoice_id ?? null },
+      major: false,
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
     return { ok: true, sent };
   });
 
