@@ -2878,9 +2878,52 @@ export type Database = {
           },
         ]
       }
+      starlink_recharge_events: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          recharge_id: string
+          to_status: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          recharge_id: string
+          to_status: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          recharge_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_recharge_events_recharge_id_fkey"
+            columns: ["recharge_id"]
+            isOneToOne: false
+            referencedRelation: "starlink_recharges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       starlink_recharges: {
         Row: {
           account_number: string
+          check_attempts: number
+          completed_at: string | null
           created_at: string
           currency: string
           customer_charge_usd: number
@@ -2888,18 +2931,30 @@ export type Database = {
           external_company: string
           external_payout_usd: number
           external_status: string
+          failure_reason: string | null
           id: string
           margin_usd: number
+          message_channel: string | null
+          message_sent_at: string | null
+          next_check_at: string | null
           notes: string | null
+          paid_at: string | null
           payment_method: string | null
           payment_reference: string | null
           requested_by: string | null
           starlink_account_id: string
           status: string
+          supplier_checked_at: string | null
+          supplier_reply: string | null
           updated_at: string
+          whatsapp_message: string | null
+          whatsapp_number: string | null
+          workflow_status: string
         }
         Insert: {
           account_number: string
+          check_attempts?: number
+          completed_at?: string | null
           created_at?: string
           currency?: string
           customer_charge_usd?: number
@@ -2907,18 +2962,30 @@ export type Database = {
           external_company?: string
           external_payout_usd?: number
           external_status?: string
+          failure_reason?: string | null
           id?: string
           margin_usd?: number
+          message_channel?: string | null
+          message_sent_at?: string | null
+          next_check_at?: string | null
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null
           requested_by?: string | null
           starlink_account_id: string
           status?: string
+          supplier_checked_at?: string | null
+          supplier_reply?: string | null
           updated_at?: string
+          whatsapp_message?: string | null
+          whatsapp_number?: string | null
+          workflow_status?: string
         }
         Update: {
           account_number?: string
+          check_attempts?: number
+          completed_at?: string | null
           created_at?: string
           currency?: string
           customer_charge_usd?: number
@@ -2926,15 +2993,25 @@ export type Database = {
           external_company?: string
           external_payout_usd?: number
           external_status?: string
+          failure_reason?: string | null
           id?: string
           margin_usd?: number
+          message_channel?: string | null
+          message_sent_at?: string | null
+          next_check_at?: string | null
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null
           requested_by?: string | null
           starlink_account_id?: string
           status?: string
+          supplier_checked_at?: string | null
+          supplier_reply?: string | null
           updated_at?: string
+          whatsapp_message?: string | null
+          whatsapp_number?: string | null
+          workflow_status?: string
         }
         Relationships: [
           {
