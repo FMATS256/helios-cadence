@@ -8,9 +8,14 @@ import {
   checkStarlinkAccount,
   createStarlinkAccount,
   recordStarlinkRecharge,
+  advanceStarlinkRecharge,
+  getStarlinkRechargeWorkflow,
 } from "@/lib/starlink.functions";
 import { getStarlinkOverview } from "@/lib/infra.functions";
-import { STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS } from "@/lib/starlink.shared";
+import {
+  STARLINK_EXTERNAL_PAYOUT_USD, STARLINK_PLANS,
+  ALLOWED_TRANSITIONS, RECHARGE_STATUS_LABELS, RECHARGE_STATUS_TONE, type RechargeStatus,
+} from "@/lib/starlink.shared";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, type ColumnDef,
@@ -44,6 +49,7 @@ function StarlinkPage() {
   const overviewFn = useServerFn(getStarlinkOverview);
   const [addOpen, setAddOpen] = useState(false);
   const [rechargeFor, setRechargeFor] = useState<any | null>(null);
+  const [workflowFor, setWorkflowFor] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const authReady = !loading && !!user;
 
@@ -118,8 +124,27 @@ function StarlinkPage() {
     { header: "Customer charge", align: "right", cell: (r) => <span className="font-mono">{money(r.customer_charge_usd)}</span> },
     { header: "External payout", align: "right", cell: (r) => <span className="font-mono">{money(r.external_payout_usd)}</span> },
     { header: "Margin", align: "right", cell: (r) => <span className="font-mono font-semibold text-success">{money(r.margin_usd)}</span> },
-    { header: "External", cell: (r) => <StatusBadge tone={r.external_status === "sent" ? "success" : r.external_status === "failed" ? "danger" : "warning"}>{r.external_status}</StatusBadge> },
+    {
+      header: "Workflow",
+      cell: (r) => {
+        const st = (r.workflow_status ?? "pending_finance") as RechargeStatus;
+        return (
+          <div>
+            <StatusBadge tone={RECHARGE_STATUS_TONE[st] ?? "neutral"}>{RECHARGE_STATUS_LABELS[st] ?? st}</StatusBadge>
+            {r.next_check_at && ["awaiting_supplier"].includes(st) && (
+              <div className="mt-1 text-[11px] text-muted-foreground">Next check {dateTime(r.next_check_at)}</div>
+            )}
+            {r.failure_reason && <div className="mt-1 max-w-[16rem] truncate text-[11px] text-destructive">{r.failure_reason}</div>}
+          </div>
+        );
+      },
+    },
+    { header: "External", cell: (r) => <StatusBadge tone={r.external_status === "sent" || r.external_status === "confirmed" ? "success" : r.external_status === "failed" ? "danger" : "warning"}>{r.external_status}</StatusBadge> },
     { header: "Date", cell: (r) => <span className="text-xs text-muted-foreground">{dateTime(r.created_at)}</span> },
+    {
+      header: "Actions", align: "right",
+      cell: (r) => <Button size="sm" variant="outline" onClick={() => setWorkflowFor(r)}>Manage</Button>,
+    },
   ];
 
   if (loading) return <PageShell><div className="p-6 text-sm text-muted-foreground">Loading…</div></PageShell>;
@@ -207,6 +232,12 @@ function StarlinkPage() {
           </DetailCard>
         </TabsContent>
       </Tabs>
+
+      {workflowFor && (
+        <Dialog open={!!workflowFor} onOpenChange={() => setWorkflowFor(null)}>
+          <RechargeWorkflowDialog recharge={workflowFor} onChanged={() => overview.refetch()} />
+        </Dialog>
+      )}
 
       {rechargeFor && (
         <Dialog open={!!rechargeFor} onOpenChange={() => setRechargeFor(null)}>
@@ -311,6 +342,122 @@ function RechargeDialog({ account, onDone }: { account: any; onDone: () => void 
         <div className="space-y-2"><Label>Notes</Label><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         <DialogFooter><Button type="submit" disabled={recharge.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>{recharge.isPending ? "Sending…" : "Record & send recharge"}</Button></DialogFooter>
       </form>
+    </DialogContent>
+  );
+}
+function RechargeWorkflowDialog({ recharge, onChanged }: { recharge: any; onChanged: () => void }) {
+  const loadFn = useServerFn(getStarlinkRechargeWorkflow);
+  const advanceFn = useServerFn(advanceStarlinkRecharge);
+  const [note, setNote] = useState("");
+  const [reply, setReply] = useState("");
+  const [waLink, setWaLink] = useState<string | null>(null);
+
+  const wf = useQuery({
+    queryKey: ["starlink-recharge-workflow", recharge.id],
+    queryFn: () => loadFn({ data: { recharge_id: recharge.id } }),
+  });
+  const row: any = wf.data?.recharge ?? recharge;
+  const events: any[] = wf.data?.events ?? [];
+  const status = (row.workflow_status ?? "pending_finance") as RechargeStatus;
+  const next = ALLOWED_TRANSITIONS[status] ?? [];
+
+  const advance = useMutation({
+    mutationFn: (to: RechargeStatus) =>
+      advanceFn({ data: { recharge_id: recharge.id, to_status: to as any, note: note || undefined, supplier_reply: reply || undefined } }),
+    onSuccess: (res: any) => {
+      toast.success(`Recharge moved to ${RECHARGE_STATUS_LABELS[res.status as RechargeStatus] ?? res.status}`);
+      if (res.whatsapp && !res.whatsapp.sent) setWaLink(res.whatsapp.link);
+      setNote(""); setReply("");
+      wf.refetch(); onChanged();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const tone: Record<string, string> = {
+    paid: "#10b981", message_sent: "#0ea5e9", awaiting_supplier: "#f59e0b",
+    completed: "#16a34a", failed: "#f43f5e", cancelled: "#64748b",
+  };
+
+  return (
+    <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>Recharge workflow · {row.payment_reference ?? row.id.slice(0, 8)}</DialogTitle></DialogHeader>
+
+      <div className="space-y-4">
+        <div className="rounded-xl border bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-semibold">{row.customers?.company_name ?? row.account_number}</div>
+              <div className="font-mono text-xs text-muted-foreground">
+                {row.starlink_accounts?.starlink_account_number || row.starlink_accounts?.kit_serial || row.account_number}
+              </div>
+            </div>
+            <StatusBadge tone={RECHARGE_STATUS_TONE[status] ?? "neutral"}>{RECHARGE_STATUS_LABELS[status] ?? status}</StatusBadge>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+            <div className="rounded-lg bg-muted p-3"><div className="text-xs text-muted-foreground">Collected</div><div className="font-mono font-semibold">{money(row.customer_charge_usd)}</div></div>
+            <div className="rounded-lg bg-muted p-3"><div className="text-xs text-muted-foreground">Supplier payout</div><div className="font-mono font-semibold">{money(row.external_payout_usd)}</div></div>
+            <div className="rounded-lg bg-success/10 p-3"><div className="text-xs text-muted-foreground">Margin</div><div className="font-mono font-semibold text-success">{money(row.margin_usd)}</div></div>
+          </div>
+        </div>
+
+        {row.whatsapp_message && (
+          <div className="rounded-xl border p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <Activity className="h-3.5 w-3.5" /> WhatsApp request · {row.whatsapp_number}
+            </div>
+            <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{row.whatsapp_message}</pre>
+            <div className="mt-2 text-[11px] text-muted-foreground">Channel {row.message_channel ?? "—"} · sent {dateTime(row.message_sent_at)}</div>
+          </div>
+        )}
+
+        {waLink && (
+          <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+            <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-4 w-4" /> No WhatsApp provider connected</div>
+            <p className="mt-1 text-xs text-muted-foreground">The request is prepared and logged. Open WhatsApp to send it to the supplier, then mark the recharge as awaiting supplier.</p>
+            <a href={waLink} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-medium text-solar underline">Open WhatsApp with the prepared message</a>
+          </div>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2"><Label>Note (recorded on the audit trail)</Label><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></div>
+          <div className="space-y-2"><Label>Supplier reply</Label><Textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Paste the supplier confirmation" /></div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {next.length === 0 && <span className="text-xs text-muted-foreground">This recharge is closed — no further transitions.</span>}
+          {next.map((to) => (
+            <Button
+              key={to}
+              size="sm"
+              disabled={advance.isPending}
+              className="text-white"
+              style={{ background: tone[to] ?? "#4f46e5" }}
+              onClick={() => advance.mutate(to)}
+            >
+              {to === "message_sent" ? <><Satellite className="h-3.5 w-3.5 mr-1.5" />Send WhatsApp request</>
+                : to === "completed" ? <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Mark completed</>
+                : `Mark ${RECHARGE_STATUS_LABELS[to].toLowerCase()}`}
+            </Button>
+          ))}
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Workflow history</div>
+          <div className="mt-2 space-y-2">
+            {events.length === 0 && <div className="text-xs text-muted-foreground">No transitions recorded yet.</div>}
+            {events.map((e) => (
+              <div key={e.id} className="rounded-lg border p-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{RECHARGE_STATUS_LABELS[e.to_status as RechargeStatus] ?? e.to_status}</span>
+                  <span className="text-muted-foreground">{dateTime(e.created_at)}</span>
+                </div>
+                {e.note && <div className="mt-1 text-muted-foreground">{e.note}</div>}
+                {e.actor_email && <div className="mt-1 text-[11px] text-muted-foreground">{e.actor_email}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </DialogContent>
   );
 }
