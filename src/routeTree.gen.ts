@@ -73,6 +73,7 @@ import { Route as CSlugWorkspaceKeySupportRouteImport } from './routes/c.$slug.$
 import { Route as CSlugWorkspaceKeyServersRouteImport } from './routes/c.$slug.$workspaceKey.servers'
 import { Route as CSlugWorkspaceKeyBillingRouteImport } from './routes/c.$slug.$workspaceKey.billing'
 import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.$workspaceKey.activity'
+import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/public/hooks/starlink-tick'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
@@ -410,6 +411,12 @@ const CSlugWorkspaceKeyActivityRoute =
     path: '/activity',
     getParentRoute: () => CSlugWorkspaceKeyRoute,
   } as any)
+const ApiPublicHooksStarlinkTickRoute =
+  ApiPublicHooksStarlinkTickRouteImport.update({
+    id: '/api/public/hooks/starlink-tick',
+    path: '/api/public/hooks/starlink-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRemindersTickRoute =
   ApiPublicHooksRemindersTickRouteImport.update({
     id: '/api/public/hooks/reminders-tick',
@@ -514,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -584,6 +592,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -658,6 +667,7 @@ export interface FileRoutesById {
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
+  '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -733,6 +743,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/api/public/hooks/starlink-tick'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -803,6 +814,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/api/public/hooks/starlink-tick'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -876,6 +888,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
+    | '/api/public/hooks/starlink-tick'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -941,6 +954,7 @@ export interface RootRouteChildren {
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
+  ApiPublicHooksStarlinkTickRoute: typeof ApiPublicHooksStarlinkTickRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1396,6 +1410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugWorkspaceKeyActivityRouteImport
       parentRoute: typeof CSlugWorkspaceKeyRoute
     }
+    '/api/public/hooks/starlink-tick': {
+      id: '/api/public/hooks/starlink-tick'
+      path: '/api/public/hooks/starlink-tick'
+      fullPath: '/api/public/hooks/starlink-tick'
+      preLoaderRoute: typeof ApiPublicHooksStarlinkTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/reminders-tick': {
       id: '/api/public/hooks/reminders-tick'
       path: '/api/public/hooks/reminders-tick'
@@ -1602,6 +1623,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
+  ApiPublicHooksStarlinkTickRoute: ApiPublicHooksStarlinkTickRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

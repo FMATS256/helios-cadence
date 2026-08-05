@@ -206,6 +206,8 @@ export const recordStarlinkRecharge = createServerFn({ method: "POST" })
         external_company: "External Starlink recharge partner",
         external_status: "pending",
         status: "submitted",
+        workflow_status: "paid",
+        paid_at: new Date().toISOString(),
         requested_by: context.userId,
         notes: data.notes?.trim() || null,
       })
