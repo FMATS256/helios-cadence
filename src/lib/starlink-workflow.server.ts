@@ -10,41 +10,15 @@
 // engine returns a ready-to-use wa.me deep link so the operator sends it from
 // the desk and the workflow still records the exact message and timestamp.
 
+import {
+  ALLOWED_TRANSITIONS,
+  RECHARGE_STATUS_LABELS,
+  type RechargeStatus,
+} from "./starlink.shared";
+
 export const STARLINK_SUPPLIER_WHATSAPP = "+263779237813";
 export const SUPPLIER_RECHECK_MINUTES = 60;
 export const MAX_SUPPLIER_CHECKS = 4;
-
-export const RECHARGE_STATUSES = [
-  "pending_finance",
-  "paid",
-  "message_sent",
-  "awaiting_supplier",
-  "completed",
-  "failed",
-  "cancelled",
-] as const;
-export type RechargeStatus = (typeof RECHARGE_STATUSES)[number];
-
-export const RECHARGE_STATUS_LABELS: Record<RechargeStatus, string> = {
-  pending_finance: "Pending finance",
-  paid: "Paid",
-  message_sent: "Message sent",
-  awaiting_supplier: "Awaiting supplier",
-  completed: "Completed",
-  failed: "Failed",
-  cancelled: "Cancelled",
-};
-
-/** Allowed transitions — enforced server-side before any mutation. */
-export const ALLOWED_TRANSITIONS: Record<RechargeStatus, RechargeStatus[]> = {
-  pending_finance: ["paid", "cancelled", "failed"],
-  paid: ["message_sent", "cancelled", "failed"],
-  message_sent: ["awaiting_supplier", "completed", "failed", "cancelled"],
-  awaiting_supplier: ["completed", "failed", "cancelled"],
-  completed: [],
-  failed: ["message_sent", "cancelled"],
-  cancelled: [],
-};
 
 export function assertTransition(from: string, to: RechargeStatus) {
   const allowed = ALLOWED_TRANSITIONS[(from as RechargeStatus) ?? "pending_finance"] ?? [];
