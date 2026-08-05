@@ -297,3 +297,160 @@ export const scrapeAuraAccount = createServerFn({ method: "POST" })
     };
     return { url, facts, markdown: md.slice(0, 8000) };
   });
+
+// ---------------------------------------------------------------------------
+// Block 6 — Starlink recharge workflow
+// ---------------------------------------------------------------------------
+
+export const getStarlinkRechargeWorkflow = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { recharge_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: recharge, error } = await (context.supabase as any)
+      .from("starlink_recharges")
+      .select("*, starlink_accounts(starlink_account_number,kit_serial,terminal_id,plan_type,service_address), customers(company_name,primary_email,primary_phone)")
+      .eq("id", data.recharge_id)
+      .single();
+    if (error || !recharge) throw new Error(error?.message ?? "Recharge not found");
+    const { data: events } = await (context.supabase as any)
+      .from("starlink_recharge_events")
+      .select("*")
+      .eq("recharge_id", data.recharge_id)
+      .order("created_at", { ascending: false });
+    return { recharge, events: events ?? [] };
+  });
+
+export const advanceStarlinkRecharge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    recharge_id: string;
+    to_status: "paid" | "message_sent" | "awaiting_supplier" | "completed" | "failed" | "cancelled";
+    note?: string;
+    supplier_reply?: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole, error: roleError } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (roleError) throw new Error(roleError.message);
+    if (!hasRole) throw new Error("Your account needs a staff role before you can manage Starlink recharges.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const {
+      assertTransition, buildSupplierMessage, sendSupplierWhatsApp, recordRechargeEvent,
+      notifyStarlinkStaff, STARLINK_SUPPLIER_WHATSAPP, SUPPLIER_RECHECK_MINUTES,
+    } = await import("./starlink-workflow.server");
+    const { recordCustomerEvent } = await import("./customer-events.server");
+
+    const { data: row, error } = await (supabaseAdmin.from("starlink_recharges") as any)
+      .select("*, starlink_accounts(starlink_account_number,kit_serial,terminal_id,plan_type), customers(company_name)")
+      .eq("id", data.recharge_id)
+      .single();
+    if (error || !row) throw new Error(error?.message ?? "Recharge not found");
+
+    const from = String(row.workflow_status ?? "pending_finance");
+    assertTransition(from, data.to_status);
+
+    const now = new Date().toISOString();
+    const patch: Record<string, any> = { workflow_status: data.to_status };
+    let whatsapp: { link: string; sent: boolean; channel: string; detail?: string } | null = null;
+
+    if (data.to_status === "paid") {
+      patch.paid_at = now;
+    }
+
+    if (data.to_status === "message_sent") {
+      const message = buildSupplierMessage({
+        paymentReference: row.payment_reference,
+        starlinkAccountNumber: row.starlink_accounts?.starlink_account_number,
+        kitSerial: row.starlink_accounts?.kit_serial,
+        terminalId: row.starlink_accounts?.terminal_id,
+        planType: row.starlink_accounts?.plan_type,
+        customerName: row.customers?.company_name,
+        payoutUsd: Number(row.external_payout_usd ?? 0),
+      });
+      const res = await sendSupplierWhatsApp(STARLINK_SUPPLIER_WHATSAPP, message);
+      whatsapp = { link: res.link, sent: res.sent, channel: res.channel, detail: res.detail };
+      patch.whatsapp_number = STARLINK_SUPPLIER_WHATSAPP;
+      patch.whatsapp_message = message;
+      patch.message_channel = res.channel;
+      patch.message_sent_at = now;
+      // Provider sends move straight to awaiting supplier with a 1h re-check.
+      if (res.sent) {
+        patch.workflow_status = "awaiting_supplier";
+        patch.next_check_at = new Date(Date.now() + SUPPLIER_RECHECK_MINUTES * 60_000).toISOString();
+        patch.check_attempts = 0;
+      }
+    }
+
+    if (data.to_status === "awaiting_supplier") {
+      patch.next_check_at = new Date(Date.now() + SUPPLIER_RECHECK_MINUTES * 60_000).toISOString();
+      patch.check_attempts = 0;
+    }
+
+    if (data.supplier_reply) {
+      patch.supplier_reply = data.supplier_reply;
+      patch.supplier_checked_at = now;
+    }
+
+    if (data.to_status === "completed") {
+      patch.completed_at = now;
+      patch.external_status = "confirmed";
+      patch.status = "completed";
+      patch.next_check_at = null;
+    }
+
+    if (data.to_status === "failed") {
+      patch.failure_reason = data.note?.trim() || "Supplier did not confirm the recharge.";
+      patch.external_status = "failed";
+      patch.status = "failed";
+      patch.next_check_at = null;
+    }
+
+    if (data.to_status === "cancelled") {
+      patch.status = "cancelled";
+      patch.external_status = "cancelled";
+      patch.next_check_at = null;
+    }
+
+    const { data: updated, error: upErr } = await (supabaseAdmin.from("starlink_recharges") as any)
+      .update(patch)
+      .eq("id", row.id)
+      .select("*")
+      .single();
+    if (upErr) throw new Error(upErr.message);
+
+    const finalStatus = patch.workflow_status as any;
+    await recordRechargeEvent(supabaseAdmin, {
+      recharge_id: row.id,
+      from_status: from,
+      to_status: finalStatus,
+      note: data.note?.trim() || (whatsapp ? `WhatsApp ${whatsapp.channel}${whatsapp.sent ? " sent" : " prepared"}` : null),
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
+
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: row.customer_id,
+      account_number: row.account_number,
+      event_type: `starlink_recharge_${finalStatus}`,
+      title: `Starlink recharge ${String(finalStatus).replace(/_/g, " ")}`,
+      description: `${row.payment_reference ?? row.id} · USD ${Number(row.customer_charge_usd ?? 0).toFixed(2)}${data.note ? ` · ${data.note.trim()}` : ""}`,
+      module: "starlink",
+      entity_type: "starlink_recharge",
+      entity_id: row.id,
+      old_value: { workflow_status: from },
+      new_value: { workflow_status: finalStatus },
+      major: ["completed", "failed", "cancelled"].includes(String(finalStatus)),
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
+
+    if (["completed", "failed"].includes(String(finalStatus))) {
+      await notifyStarlinkStaff(
+        supabaseAdmin,
+        `Starlink recharge ${finalStatus}`,
+        `${row.account_number} · ${row.payment_reference ?? row.id}${patch.failure_reason ? ` · ${patch.failure_reason}` : ""}`,
+      );
+    }
+
+    return { recharge: updated, whatsapp, status: finalStatus };
+  });
