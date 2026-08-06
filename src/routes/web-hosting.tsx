@@ -187,36 +187,64 @@ function WebHostingPage() {
     { header: "Status", cell: (r) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
     {
       header: "", align: "right",
-      cell: (r) => (
-        <div className="flex items-center justify-end gap-1">
-          {r.control_panel_url && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={r.control_panel_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3 mr-1" />cPanel</a>
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {r.status !== "suspended" && (
-                <DropdownMenuItem onClick={() => setStatus.mutate({ id: r.id, status: "suspended" })}>Suspend account</DropdownMenuItem>
-              )}
-              {r.status !== "active" && (
-                <DropdownMenuItem onClick={() => setStatus.mutate({ id: r.id, status: "active" })}>Activate account</DropdownMenuItem>
-              )}
-              {r.status !== "cancelled" && (
-                <DropdownMenuItem className="text-destructive" onClick={() => setStatus.mutate({ id: r.id, status: "cancelled" })}>Cancel account</DropdownMenuItem>
-              )}
-              {r.account_number && (
-                <DropdownMenuItem asChild>
-                  <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }}>Open Customer 360</Link>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
+      cell: (r) => {
+        const onWhm = r.provisioning_status === "whm" && !!r.username;
+        const busy = lifecycle.isPending || provision.isPending || sso.isPending || sync.isPending;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {onWhm ? (
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => sso.mutate(r.id)}>
+                <ExternalLink className="h-3 w-3 mr-1" />cPanel
+              </Button>
+            ) : r.control_panel_url ? (
+              <Button size="sm" variant="outline" asChild>
+                <a href={r.control_panel_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3 mr-1" />cPanel</a>
+              </Button>
+            ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!onWhm && r.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => provision.mutate(r.id)}>Provision on WHM</DropdownMenuItem>
+                )}
+                {onWhm && <DropdownMenuItem onClick={() => sync.mutate(r.id)}>Sync usage from cPanel</DropdownMenuItem>}
+                {onWhm && (
+                  <DropdownMenuItem onClick={() => lifecycle.mutate({ id: r.id, action: "reset_password" })}>
+                    Reset cPanel password
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setPkgTarget(r)}>Change package</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {r.status !== "suspended" && r.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => {
+                    const reason = window.prompt("Suspension reason", "Billing suspension");
+                    if (reason !== null) lifecycle.mutate({ id: r.id, action: "suspend", reason });
+                  }}>Suspend account</DropdownMenuItem>
+                )}
+                {r.status === "suspended" && (
+                  <DropdownMenuItem onClick={() => lifecycle.mutate({ id: r.id, action: "unsuspend" })}>Unsuspend account</DropdownMenuItem>
+                )}
+                {r.status !== "cancelled" && (
+                  <DropdownMenuItem className="text-destructive" onClick={() => {
+                    if (window.confirm(`Terminate hosting for ${r.domain}? This removes the cPanel account on WHM.`))
+                      lifecycle.mutate({ id: r.id, action: "terminate" });
+                  }}>Terminate account</DropdownMenuItem>
+                )}
+                {r.account_number && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }}>Open Customer 360</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
   ];
 
@@ -229,10 +257,16 @@ function WebHostingPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <RefreshButton onClick={() => overview.refetch()} loading={overview.isFetching} />
+            <Button variant="outline" disabled={sync.isPending} onClick={() => sync.mutate(undefined)}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
+              {sync.isPending ? "Syncing…" : "Sync WHM"}
+            </Button>
+            <WhmServersDialog />
             <NewHostingDialog customers={customers} onDone={refresh} />
           </div>
         }
       />
+
 
       <KpiRow
         cols={5}
