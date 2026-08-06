@@ -265,6 +265,26 @@ export async function resumeSuspendedForCustomer(db: any, customerId: string) {
     ),
   );
   others.forEach((r: any, i) => { if (r?.data?.length) touched[SERVICE_TABLES[i]] = r.data.length; });
+
+  // Provider-side restore: hosting accounts living on WHM must also be
+  // unsuspended in cPanel, otherwise the site stays down after payment.
+  if (touched["web_hosting_accounts"]) {
+    try {
+      const { unsuspendHostingForCustomer } = await import("./hosting.server");
+      const pushed = await unsuspendHostingForCustomer(db, customerId);
+      if (pushed) touched["whm_unsuspended"] = pushed;
+    } catch (e) {
+      console.error("[resumeSuspendedForCustomer] WHM restore failed", e);
+    }
+  }
+  // Cloud storage suspension bookkeeping clears with the resume.
+  try {
+    await db.from("cloud_storage_accounts")
+      .update({ suspended_at: null, suspend_reason: null })
+      .eq("customer_id", customerId).is("archived_at", null).eq("status", "active");
+  } catch (e) { console.error("[resumeSuspendedForCustomer] storage clear failed", e); }
+
   const total = Object.values(touched).reduce((s, n) => s + n, 0);
   return { touched, total };
 }
+
