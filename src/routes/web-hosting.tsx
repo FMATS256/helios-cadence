@@ -296,8 +296,16 @@ function WebHostingPage() {
           empty={<EmptyState title="No hosting accounts yet" description="Add a cPanel account to start tracking hosting revenue and renewals." icon={Globe} />}
         />
       </DetailCard>
+
+      <ChangePackageDialog
+        target={pkgTarget}
+        onClose={() => setPkgTarget(null)}
+        pending={lifecycle.isPending}
+        onSubmit={(plan) => pkgTarget && lifecycle.mutate({ id: pkgTarget.id, action: "change_package", plan })}
+      />
     </PageShell>
   );
+
 }
 
 function NewHostingDialog({ customers, onDone }: { customers: any[]; onDone: () => void }) {
