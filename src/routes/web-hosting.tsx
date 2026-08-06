@@ -137,13 +137,41 @@ function WebHostingPage() {
     },
     { header: "cPanel user", cell: (r) => <span className="font-mono text-xs">{r.username || "—"}</span> },
     {
-      header: "Quota",
+      header: "Usage",
+      cell: (r) => {
+        const usedGb = r.disk_used_mb != null ? Number(r.disk_used_mb) / 1024 : null;
+        const quota = r.disk_quota_gb ? Number(r.disk_quota_gb) : null;
+        const pct = usedGb != null && quota ? Math.round((usedGb / quota) * 100) : null;
+        return (
+          <div className="text-xs text-muted-foreground">
+            <div>
+              {usedGb != null ? `${usedGb.toFixed(1)} GB` : "—"}
+              {quota ? ` / ${quota} GB` : ""}
+              {pct != null && <span className={pct >= 90 ? " text-destructive" : pct >= 75 ? " text-warning" : ""}> · {pct}%</span>}
+            </div>
+            <div>
+              {r.email_accounts != null ? `${r.email_accounts} mail` : ""}
+              {r.databases_count != null ? ` · ${r.databases_count} db` : ""}
+              {r.php_version ? ` · PHP ${String(r.php_version).replace(/^ea-php/, "")}` : ""}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "WHM",
       cell: (r) => (
-        <span className="text-xs text-muted-foreground">
-          {r.disk_quota_gb ? `${r.disk_quota_gb} GB disk` : "—"}{r.bandwidth_gb ? ` · ${r.bandwidth_gb} GB bw` : ""}
-        </span>
+        <div className="text-xs">
+          <StatusBadge tone={r.provisioning_status === "whm" ? (r.sync_status === "failed" ? "danger" : "success") : "neutral"}>
+            {r.provisioning_status === "whm" ? (r.sync_status === "failed" ? "sync failed" : "provisioned") : "manual"}
+          </StatusBadge>
+          <div className="mt-1 text-muted-foreground">
+            {r.last_sync_at ? `synced ${shortDate(r.last_sync_at)}` : "never synced"}
+          </div>
+        </div>
       ),
     },
+
     { header: "Cost/mo", align: "right", cell: (r) => <span className="font-mono">{money(r.monthly_cost)}</span> },
     {
       header: "Renewal",
