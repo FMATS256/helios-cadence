@@ -372,3 +372,134 @@ function NewHostingDialog({ customers, onDone }: { customers: any[]; onDone: () 
     </Dialog>
   );
 }
+
+function ChangePackageDialog({
+  target, onClose, onSubmit, pending,
+}: { target: any | null; onClose: () => void; onSubmit: (plan: string) => void; pending: boolean }) {
+  const [plan, setPlan] = useState("");
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => { if (!o) { setPlan(""); onClose(); } }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Change hosting package</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-mono">{target?.domain}</span> is currently on{" "}
+            <span className="font-semibold">{target?.plan || "no package"}</span>.
+            {target?.provisioning_status === "whm" && " The new package will be pushed to WHM."}
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="whm-plan">New package</Label>
+            <Input id="whm-plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. business-10gb" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button disabled={!plan.trim() || pending} onClick={() => onSubmit(plan.trim())}>
+            {pending ? "Applying…" : "Change package"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WhmServersDialog() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const listFn = useServerFn(listWhmServers);
+  const saveFn = useServerFn(saveWhmServer);
+  const testFn = useServerFn(testWhmServer);
+  const { data: servers = [], isLoading } = useQuery({
+    queryKey: ["whm-servers"], queryFn: () => listFn(), enabled: open,
+  });
+
+  const [form, setForm] = useState({
+    name: "", hostname: "", port: "2087", api_user: "root",
+    token_secret_name: "WHM_API_TOKEN", default_package: "", is_default: false,
+  });
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: {
+      name: form.name, hostname: form.hostname, port: Number(form.port) || 2087,
+      api_user: form.api_user, token_secret_name: form.token_secret_name,
+      default_package: form.default_package || null, is_default: form.is_default,
+    } }),
+    onSuccess: () => {
+      toast.success("WHM server saved");
+      setForm({ name: "", hostname: "", port: "2087", api_user: "root", token_secret_name: "WHM_API_TOKEN", default_package: "", is_default: false });
+      qc.invalidateQueries({ queryKey: ["whm-servers"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const test = useMutation({
+    mutationFn: (id: string) => testFn({ data: { id } }),
+    onSuccess: (r: any) => {
+      r.ok ? toast.success(`WHM reachable${r.version ? ` — v${r.version}` : ""}`) : toast.error(r.error ?? "Connection failed");
+      qc.invalidateQueries({ queryKey: ["whm-servers"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline"><ServerCog className="h-4 w-4 mr-1.5" />WHM servers</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>WHM servers</DialogTitle></DialogHeader>
+
+        <div className="space-y-3">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading servers…</p>
+          ) : servers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No WHM servers registered yet. Add one below to enable automated provisioning.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {servers.map((s: any) => (
+                <li key={s.id} className="p-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{s.name}</span>
+                      {s.is_default && <StatusBadge tone="solar">default</StatusBadge>}
+                      <StatusBadge tone={s.verified_at ? "success" : s.last_error ? "danger" : "neutral"}>
+                        {s.verified_at ? "verified" : s.last_error ? "error" : "untested"}
+                      </StatusBadge>
+                    </div>
+                    <p className="font-mono text-xs text-muted-foreground truncate">
+                      {s.api_user}@{s.hostname}:{s.port} · secret {s.token_secret_name}
+                    </p>
+                    {s.last_error && <p className="text-xs text-destructive mt-1 line-clamp-2">{s.last_error}</p>}
+                  </div>
+                  <Button size="sm" variant="outline" disabled={test.isPending} onClick={() => test.mutate(s.id)}>
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />Test
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-lg border p-4 space-y-3">
+            <p className="text-sm font-semibold">Add a server</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Primary WHM" /></div>
+              <div className="space-y-1.5"><Label>Hostname</Label><Input value={form.hostname} onChange={(e) => set("hostname", e.target.value)} placeholder="whm.example.com" /></div>
+              <div className="space-y-1.5"><Label>Port</Label><Input value={form.port} onChange={(e) => set("port", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>API user</Label><Input value={form.api_user} onChange={(e) => set("api_user", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Token secret name</Label><Input value={form.token_secret_name} onChange={(e) => set("token_secret_name", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Default package</Label><Input value={form.default_package} onChange={(e) => set("default_package", e.target.value)} placeholder="optional" /></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_default} onCheckedChange={(v) => set("is_default", v)} id="whm-default" />
+              <Label htmlFor="whm-default" className="text-sm font-normal">Use as default provisioning target</Label>
+            </div>
+            <Button size="sm" disabled={save.isPending || !form.name || !form.hostname} onClick={() => save.mutate()}>
+              <Plus className="h-4 w-4 mr-1.5" />{save.isPending ? "Saving…" : "Add server"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
