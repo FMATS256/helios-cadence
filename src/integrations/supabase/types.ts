@@ -551,18 +551,26 @@ export type Database = {
           access_url: string | null
           account_number: string | null
           archived_at: string | null
+          connected_devices: number | null
           created_at: string
           created_by: string | null
           currency: string | null
           customer_id: string | null
           id: string
+          last_backup_at: string | null
+          last_sync_at: string | null
           monthly_cost: number | null
           name: string
           notes: string | null
           provider: string | null
+          provisioning_status: string
           renewal_date: string | null
           status: string | null
           storage_tb: number | null
+          suspend_reason: string | null
+          suspended_at: string | null
+          sync_error: string | null
+          sync_status: string | null
           updated_at: string
           used_tb: number | null
         }
@@ -570,18 +578,26 @@ export type Database = {
           access_url?: string | null
           account_number?: string | null
           archived_at?: string | null
+          connected_devices?: number | null
           created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
           id?: string
+          last_backup_at?: string | null
+          last_sync_at?: string | null
           monthly_cost?: number | null
           name: string
           notes?: string | null
           provider?: string | null
+          provisioning_status?: string
           renewal_date?: string | null
           status?: string | null
           storage_tb?: number | null
+          suspend_reason?: string | null
+          suspended_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           updated_at?: string
           used_tb?: number | null
         }
@@ -589,18 +605,26 @@ export type Database = {
           access_url?: string | null
           account_number?: string | null
           archived_at?: string | null
+          connected_devices?: number | null
           created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
           id?: string
+          last_backup_at?: string | null
+          last_sync_at?: string | null
           monthly_cost?: number | null
           name?: string
           notes?: string | null
           provider?: string | null
+          provisioning_status?: string
           renewal_date?: string | null
           status?: string | null
           storage_tb?: number | null
+          suspend_reason?: string | null
+          suspended_at?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           updated_at?: string
           used_tb?: number | null
         }
@@ -2807,6 +2831,56 @@ export type Database = {
         }
         Relationships: []
       }
+      service_ops_events: {
+        Row: {
+          account_number: string | null
+          action: string
+          actor_id: string | null
+          created_at: string
+          customer_id: string | null
+          detail: Json
+          entity_id: string | null
+          id: string
+          message: string | null
+          service_type: string
+          status: string
+        }
+        Insert: {
+          account_number?: string | null
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          detail?: Json
+          entity_id?: string | null
+          id?: string
+          message?: string | null
+          service_type: string
+          status?: string
+        }
+        Update: {
+          account_number?: string | null
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          detail?: Json
+          entity_id?: string | null
+          id?: string
+          message?: string | null
+          service_type?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_ops_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       starlink_accounts: {
         Row: {
           account_number: string
@@ -3527,69 +3601,114 @@ export type Database = {
       web_hosting_accounts: {
         Row: {
           account_number: string | null
+          addon_domains_count: number | null
           archived_at: string | null
           bandwidth_gb: number | null
+          bandwidth_used_mb: number | null
           control_panel: string | null
           control_panel_url: string | null
           created_at: string
           created_by: string | null
           currency: string | null
           customer_id: string | null
+          databases_count: number | null
           disk_quota_gb: number | null
+          disk_used_mb: number | null
           domain: string
+          email_accounts: number | null
           id: string
+          ip_address: string | null
+          last_sync_at: string | null
           monthly_cost: number | null
           notes: string | null
+          php_version: string | null
           plan: string | null
           provider: string | null
+          provisioning_status: string
           renewal_date: string | null
+          ssl_status: string | null
           status: string | null
+          subdomains_count: number | null
+          suspend_reason: string | null
+          sync_error: string | null
+          sync_status: string | null
           updated_at: string
           username: string | null
+          whm_server_id: string | null
         }
         Insert: {
           account_number?: string | null
+          addon_domains_count?: number | null
           archived_at?: string | null
           bandwidth_gb?: number | null
+          bandwidth_used_mb?: number | null
           control_panel?: string | null
           control_panel_url?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
+          databases_count?: number | null
           disk_quota_gb?: number | null
+          disk_used_mb?: number | null
           domain: string
+          email_accounts?: number | null
           id?: string
+          ip_address?: string | null
+          last_sync_at?: string | null
           monthly_cost?: number | null
           notes?: string | null
+          php_version?: string | null
           plan?: string | null
           provider?: string | null
+          provisioning_status?: string
           renewal_date?: string | null
+          ssl_status?: string | null
           status?: string | null
+          subdomains_count?: number | null
+          suspend_reason?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           updated_at?: string
           username?: string | null
+          whm_server_id?: string | null
         }
         Update: {
           account_number?: string | null
+          addon_domains_count?: number | null
           archived_at?: string | null
           bandwidth_gb?: number | null
+          bandwidth_used_mb?: number | null
           control_panel?: string | null
           control_panel_url?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string | null
           customer_id?: string | null
+          databases_count?: number | null
           disk_quota_gb?: number | null
+          disk_used_mb?: number | null
           domain?: string
+          email_accounts?: number | null
           id?: string
+          ip_address?: string | null
+          last_sync_at?: string | null
           monthly_cost?: number | null
           notes?: string | null
+          php_version?: string | null
           plan?: string | null
           provider?: string | null
+          provisioning_status?: string
           renewal_date?: string | null
+          ssl_status?: string | null
           status?: string | null
+          subdomains_count?: number | null
+          suspend_reason?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           updated_at?: string
           username?: string | null
+          whm_server_id?: string | null
         }
         Relationships: [
           {
@@ -3599,7 +3718,71 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "web_hosting_accounts_whm_server_id_fkey"
+            columns: ["whm_server_id"]
+            isOneToOne: false
+            referencedRelation: "whm_servers"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      whm_servers: {
+        Row: {
+          active: boolean
+          api_user: string
+          created_at: string
+          created_by: string | null
+          default_package: string | null
+          hostname: string
+          id: string
+          is_default: boolean
+          last_error: string | null
+          name: string
+          nameservers: string[] | null
+          notes: string | null
+          port: number
+          token_secret_name: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          api_user?: string
+          created_at?: string
+          created_by?: string | null
+          default_package?: string | null
+          hostname: string
+          id?: string
+          is_default?: boolean
+          last_error?: string | null
+          name: string
+          nameservers?: string[] | null
+          notes?: string | null
+          port?: number
+          token_secret_name?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          api_user?: string
+          created_at?: string
+          created_by?: string | null
+          default_package?: string | null
+          hostname?: string
+          id?: string
+          is_default?: boolean
+          last_error?: string | null
+          name?: string
+          nameservers?: string[] | null
+          notes?: string | null
+          port?: number
+          token_secret_name?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
       }
       workspace_audit_log: {
         Row: {

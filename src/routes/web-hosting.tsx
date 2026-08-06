@@ -14,11 +14,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ExternalLink, Globe, Plus, Server, MoreHorizontal, CalendarClock, DollarSign, PauseCircle, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  ExternalLink, Globe, Plus, Server, MoreHorizontal, CalendarClock, DollarSign, PauseCircle, Search,
+  RefreshCw, ServerCog, ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getHostingOverview } from "@/lib/infra.functions";
+import {
+  provisionHostingAccount, hostingLifecycleAction, hostingSsoLink, syncHosting,
+  listWhmServers, saveWhmServer, testWhmServer,
+} from "@/lib/hosting.functions";
 
 export const Route = createFileRoute("/web-hosting")({
   head: () => ({
@@ -39,12 +47,52 @@ function WebHostingPage() {
   const qc = useQueryClient();
   const overviewFn = useServerFn(getHostingOverview);
   const [search, setSearch] = useState("");
+  const [pkgTarget, setPkgTarget] = useState<any | null>(null);
 
   const overview = useQuery({ queryKey: ["hosting-overview"], queryFn: () => overviewFn() });
   const accounts = overview.data?.accounts ?? [];
   const customers = overview.data?.customers ?? [];
   const stats = overview.data?.stats;
   const refresh = () => qc.invalidateQueries({ queryKey: ["hosting-overview"] });
+
+  const lifecycleFn = useServerFn(hostingLifecycleAction);
+  const provisionFn = useServerFn(provisionHostingAccount);
+  const ssoFn = useServerFn(hostingSsoLink);
+  const syncFn = useServerFn(syncHosting);
+
+  const lifecycle = useMutation({
+    mutationFn: (v: { id: string; action: "suspend" | "unsuspend" | "terminate" | "change_package" | "reset_password"; reason?: string; plan?: string }) =>
+      lifecycleFn({ data: v }),
+    onSuccess: (res: any, v) => {
+      toast.success(
+        v.action === "reset_password" && res?.password
+          ? `Password rotated — saved to the credential vault`
+          : `Hosting ${v.action.replace("_", " ")} completed`,
+        { description: res?.provider },
+      );
+      setPkgTarget(null);
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const provision = useMutation({
+    mutationFn: (id: string) => provisionFn({ data: { id } }),
+    onSuccess: (r: any) => { toast.success(`Provisioned on WHM as ${r.username}`); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sso = useMutation({
+    mutationFn: (id: string) => ssoFn({ data: { id } }),
+    onSuccess: (r: any) => { window.open(r.url, "_blank", "noopener"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sync = useMutation({
+    mutationFn: (id?: string) => syncFn({ data: id ? { id } : {} }),
+    onSuccess: (r: any) => { toast.success(`Synced ${r.synced} account(s)${r.failed ? `, ${r.failed} failed` : ""}`); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -62,6 +110,7 @@ function WebHostingPage() {
       [a.domain, a.username, a.provider, a.plan, a.account_number, a.customer_name]
         .some((v) => String(v ?? "").toLowerCase().includes(q)));
   }, [accounts, search]);
+
 
   const cols: ColumnDef<any>[] = [
     {
@@ -88,13 +137,41 @@ function WebHostingPage() {
     },
     { header: "cPanel user", cell: (r) => <span className="font-mono text-xs">{r.username || "—"}</span> },
     {
-      header: "Quota",
+      header: "Usage",
+      cell: (r) => {
+        const usedGb = r.disk_used_mb != null ? Number(r.disk_used_mb) / 1024 : null;
+        const quota = r.disk_quota_gb ? Number(r.disk_quota_gb) : null;
+        const pct = usedGb != null && quota ? Math.round((usedGb / quota) * 100) : null;
+        return (
+          <div className="text-xs text-muted-foreground">
+            <div>
+              {usedGb != null ? `${usedGb.toFixed(1)} GB` : "—"}
+              {quota ? ` / ${quota} GB` : ""}
+              {pct != null && <span className={pct >= 90 ? " text-destructive" : pct >= 75 ? " text-warning" : ""}> · {pct}%</span>}
+            </div>
+            <div>
+              {r.email_accounts != null ? `${r.email_accounts} mail` : ""}
+              {r.databases_count != null ? ` · ${r.databases_count} db` : ""}
+              {r.php_version ? ` · PHP ${String(r.php_version).replace(/^ea-php/, "")}` : ""}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "WHM",
       cell: (r) => (
-        <span className="text-xs text-muted-foreground">
-          {r.disk_quota_gb ? `${r.disk_quota_gb} GB disk` : "—"}{r.bandwidth_gb ? ` · ${r.bandwidth_gb} GB bw` : ""}
-        </span>
+        <div className="text-xs">
+          <StatusBadge tone={r.provisioning_status === "whm" ? (r.sync_status === "failed" ? "danger" : "success") : "neutral"}>
+            {r.provisioning_status === "whm" ? (r.sync_status === "failed" ? "sync failed" : "provisioned") : "manual"}
+          </StatusBadge>
+          <div className="mt-1 text-muted-foreground">
+            {r.last_sync_at ? `synced ${shortDate(r.last_sync_at)}` : "never synced"}
+          </div>
+        </div>
       ),
     },
+
     { header: "Cost/mo", align: "right", cell: (r) => <span className="font-mono">{money(r.monthly_cost)}</span> },
     {
       header: "Renewal",
@@ -110,36 +187,64 @@ function WebHostingPage() {
     { header: "Status", cell: (r) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
     {
       header: "", align: "right",
-      cell: (r) => (
-        <div className="flex items-center justify-end gap-1">
-          {r.control_panel_url && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={r.control_panel_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3 mr-1" />cPanel</a>
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {r.status !== "suspended" && (
-                <DropdownMenuItem onClick={() => setStatus.mutate({ id: r.id, status: "suspended" })}>Suspend account</DropdownMenuItem>
-              )}
-              {r.status !== "active" && (
-                <DropdownMenuItem onClick={() => setStatus.mutate({ id: r.id, status: "active" })}>Activate account</DropdownMenuItem>
-              )}
-              {r.status !== "cancelled" && (
-                <DropdownMenuItem className="text-destructive" onClick={() => setStatus.mutate({ id: r.id, status: "cancelled" })}>Cancel account</DropdownMenuItem>
-              )}
-              {r.account_number && (
-                <DropdownMenuItem asChild>
-                  <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }}>Open Customer 360</Link>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
+      cell: (r) => {
+        const onWhm = r.provisioning_status === "whm" && !!r.username;
+        const busy = lifecycle.isPending || provision.isPending || sso.isPending || sync.isPending;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {onWhm ? (
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => sso.mutate(r.id)}>
+                <ExternalLink className="h-3 w-3 mr-1" />cPanel
+              </Button>
+            ) : r.control_panel_url ? (
+              <Button size="sm" variant="outline" asChild>
+                <a href={r.control_panel_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3 mr-1" />cPanel</a>
+              </Button>
+            ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!onWhm && r.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => provision.mutate(r.id)}>Provision on WHM</DropdownMenuItem>
+                )}
+                {onWhm && <DropdownMenuItem onClick={() => sync.mutate(r.id)}>Sync usage from cPanel</DropdownMenuItem>}
+                {onWhm && (
+                  <DropdownMenuItem onClick={() => lifecycle.mutate({ id: r.id, action: "reset_password" })}>
+                    Reset cPanel password
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setPkgTarget(r)}>Change package</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {r.status !== "suspended" && r.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => {
+                    const reason = window.prompt("Suspension reason", "Billing suspension");
+                    if (reason !== null) lifecycle.mutate({ id: r.id, action: "suspend", reason });
+                  }}>Suspend account</DropdownMenuItem>
+                )}
+                {r.status === "suspended" && (
+                  <DropdownMenuItem onClick={() => lifecycle.mutate({ id: r.id, action: "unsuspend" })}>Unsuspend account</DropdownMenuItem>
+                )}
+                {r.status !== "cancelled" && (
+                  <DropdownMenuItem className="text-destructive" onClick={() => {
+                    if (window.confirm(`Terminate hosting for ${r.domain}? This removes the cPanel account on WHM.`))
+                      lifecycle.mutate({ id: r.id, action: "terminate" });
+                  }}>Terminate account</DropdownMenuItem>
+                )}
+                {r.account_number && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }}>Open Customer 360</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
   ];
 
@@ -152,10 +257,16 @@ function WebHostingPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <RefreshButton onClick={() => overview.refetch()} loading={overview.isFetching} />
+            <Button variant="outline" disabled={sync.isPending} onClick={() => sync.mutate(undefined)}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} />
+              {sync.isPending ? "Syncing…" : "Sync WHM"}
+            </Button>
+            <WhmServersDialog />
             <NewHostingDialog customers={customers} onDone={refresh} />
           </div>
         }
       />
+
 
       <KpiRow
         cols={5}
@@ -185,8 +296,16 @@ function WebHostingPage() {
           empty={<EmptyState title="No hosting accounts yet" description="Add a cPanel account to start tracking hosting revenue and renewals." icon={Globe} />}
         />
       </DetailCard>
+
+      <ChangePackageDialog
+        target={pkgTarget}
+        onClose={() => setPkgTarget(null)}
+        pending={lifecycle.isPending}
+        onSubmit={(plan) => pkgTarget && lifecycle.mutate({ id: pkgTarget.id, action: "change_package", plan })}
+      />
     </PageShell>
   );
+
 }
 
 function NewHostingDialog({ customers, onDone }: { customers: any[]; onDone: () => void }) {
@@ -249,6 +368,137 @@ function NewHostingDialog({ customers, onDone }: { customers: any[]; onDone: () 
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ChangePackageDialog({
+  target, onClose, onSubmit, pending,
+}: { target: any | null; onClose: () => void; onSubmit: (plan: string) => void; pending: boolean }) {
+  const [plan, setPlan] = useState("");
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => { if (!o) { setPlan(""); onClose(); } }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Change hosting package</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-mono">{target?.domain}</span> is currently on{" "}
+            <span className="font-semibold">{target?.plan || "no package"}</span>.
+            {target?.provisioning_status === "whm" && " The new package will be pushed to WHM."}
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="whm-plan">New package</Label>
+            <Input id="whm-plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. business-10gb" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button disabled={!plan.trim() || pending} onClick={() => onSubmit(plan.trim())}>
+            {pending ? "Applying…" : "Change package"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WhmServersDialog() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const listFn = useServerFn(listWhmServers);
+  const saveFn = useServerFn(saveWhmServer);
+  const testFn = useServerFn(testWhmServer);
+  const { data: servers = [], isLoading } = useQuery({
+    queryKey: ["whm-servers"], queryFn: () => listFn(), enabled: open,
+  });
+
+  const [form, setForm] = useState({
+    name: "", hostname: "", port: "2087", api_user: "root",
+    token_secret_name: "WHM_API_TOKEN", default_package: "", is_default: false,
+  });
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: {
+      name: form.name, hostname: form.hostname, port: Number(form.port) || 2087,
+      api_user: form.api_user, token_secret_name: form.token_secret_name,
+      default_package: form.default_package || null, is_default: form.is_default,
+    } }),
+    onSuccess: () => {
+      toast.success("WHM server saved");
+      setForm({ name: "", hostname: "", port: "2087", api_user: "root", token_secret_name: "WHM_API_TOKEN", default_package: "", is_default: false });
+      qc.invalidateQueries({ queryKey: ["whm-servers"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const test = useMutation({
+    mutationFn: (id: string) => testFn({ data: { id } }),
+    onSuccess: (r: any) => {
+      r.ok ? toast.success(`WHM reachable${r.version ? ` — v${r.version}` : ""}`) : toast.error(r.error ?? "Connection failed");
+      qc.invalidateQueries({ queryKey: ["whm-servers"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline"><ServerCog className="h-4 w-4 mr-1.5" />WHM servers</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>WHM servers</DialogTitle></DialogHeader>
+
+        <div className="space-y-3">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading servers…</p>
+          ) : servers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No WHM servers registered yet. Add one below to enable automated provisioning.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {servers.map((s: any) => (
+                <li key={s.id} className="p-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{s.name}</span>
+                      {s.is_default && <StatusBadge tone="solar">default</StatusBadge>}
+                      <StatusBadge tone={s.verified_at ? "success" : s.last_error ? "danger" : "neutral"}>
+                        {s.verified_at ? "verified" : s.last_error ? "error" : "untested"}
+                      </StatusBadge>
+                    </div>
+                    <p className="font-mono text-xs text-muted-foreground truncate">
+                      {s.api_user}@{s.hostname}:{s.port} · secret {s.token_secret_name}
+                    </p>
+                    {s.last_error && <p className="text-xs text-destructive mt-1 line-clamp-2">{s.last_error}</p>}
+                  </div>
+                  <Button size="sm" variant="outline" disabled={test.isPending} onClick={() => test.mutate(s.id)}>
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />Test
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-lg border p-4 space-y-3">
+            <p className="text-sm font-semibold">Add a server</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Primary WHM" /></div>
+              <div className="space-y-1.5"><Label>Hostname</Label><Input value={form.hostname} onChange={(e) => set("hostname", e.target.value)} placeholder="whm.example.com" /></div>
+              <div className="space-y-1.5"><Label>Port</Label><Input value={form.port} onChange={(e) => set("port", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>API user</Label><Input value={form.api_user} onChange={(e) => set("api_user", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Token secret name</Label><Input value={form.token_secret_name} onChange={(e) => set("token_secret_name", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Default package</Label><Input value={form.default_package} onChange={(e) => set("default_package", e.target.value)} placeholder="optional" /></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_default} onCheckedChange={(v) => set("is_default", v)} id="whm-default" />
+              <Label htmlFor="whm-default" className="text-sm font-normal">Use as default provisioning target</Label>
+            </div>
+            <Button size="sm" disabled={save.isPending || !form.name || !form.hostname} onClick={() => save.mutate()}>
+              <Plus className="h-4 w-4 mr-1.5" />{save.isPending ? "Saving…" : "Add server"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

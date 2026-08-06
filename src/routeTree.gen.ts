@@ -77,6 +77,7 @@ import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/pub
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
+import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
 import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
 import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
@@ -435,6 +436,12 @@ const ApiPublicHooksMonitoringTickRoute =
     path: '/api/public/hooks/monitoring-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksHostingSyncRoute =
+  ApiPublicHooksHostingSyncRouteImport.update({
+    id: '/api/public/hooks/hosting-sync',
+    path: '/api/public/hooks/hosting-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBudgetTickRoute =
   ApiPublicHooksBudgetTickRouteImport.update({
     id: '/api/public/hooks/budget-tick',
@@ -518,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -589,6 +597,7 @@ export interface FileRoutesByTo {
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -664,6 +673,7 @@ export interface FileRoutesById {
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
@@ -740,6 +750,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -811,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -885,6 +897,7 @@ export interface FileRouteTypes {
     | '/api/public/agent/provision'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
@@ -951,6 +964,7 @@ export interface RootRouteChildren {
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
   ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
+  ApiPublicHooksHostingSyncRoute: typeof ApiPublicHooksHostingSyncRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
@@ -1438,6 +1452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/hosting-sync': {
+      id: '/api/public/hooks/hosting-sync'
+      path: '/api/public/hooks/hosting-sync'
+      fullPath: '/api/public/hooks/hosting-sync'
+      preLoaderRoute: typeof ApiPublicHooksHostingSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/budget-tick': {
       id: '/api/public/hooks/budget-tick'
       path: '/api/public/hooks/budget-tick'
@@ -1620,6 +1641,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
   ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
+  ApiPublicHooksHostingSyncRoute: ApiPublicHooksHostingSyncRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
