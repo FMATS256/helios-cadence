@@ -14,11 +14,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ExternalLink, Globe, Plus, Server, MoreHorizontal, CalendarClock, DollarSign, PauseCircle, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  ExternalLink, Globe, Plus, Server, MoreHorizontal, CalendarClock, DollarSign, PauseCircle, Search,
+  RefreshCw, ServerCog, ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getHostingOverview } from "@/lib/infra.functions";
+import {
+  provisionHostingAccount, hostingLifecycleAction, hostingSsoLink, syncHosting,
+  listWhmServers, saveWhmServer, testWhmServer,
+} from "@/lib/hosting.functions";
 
 export const Route = createFileRoute("/web-hosting")({
   head: () => ({
@@ -39,12 +47,52 @@ function WebHostingPage() {
   const qc = useQueryClient();
   const overviewFn = useServerFn(getHostingOverview);
   const [search, setSearch] = useState("");
+  const [pkgTarget, setPkgTarget] = useState<any | null>(null);
 
   const overview = useQuery({ queryKey: ["hosting-overview"], queryFn: () => overviewFn() });
   const accounts = overview.data?.accounts ?? [];
   const customers = overview.data?.customers ?? [];
   const stats = overview.data?.stats;
   const refresh = () => qc.invalidateQueries({ queryKey: ["hosting-overview"] });
+
+  const lifecycleFn = useServerFn(hostingLifecycleAction);
+  const provisionFn = useServerFn(provisionHostingAccount);
+  const ssoFn = useServerFn(hostingSsoLink);
+  const syncFn = useServerFn(syncHosting);
+
+  const lifecycle = useMutation({
+    mutationFn: (v: { id: string; action: "suspend" | "unsuspend" | "terminate" | "change_package" | "reset_password"; reason?: string; plan?: string }) =>
+      lifecycleFn({ data: v }),
+    onSuccess: (res: any, v) => {
+      toast.success(
+        v.action === "reset_password" && res?.password
+          ? `Password rotated — saved to the credential vault`
+          : `Hosting ${v.action.replace("_", " ")} completed`,
+        { description: res?.provider },
+      );
+      setPkgTarget(null);
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const provision = useMutation({
+    mutationFn: (id: string) => provisionFn({ data: { id } }),
+    onSuccess: (r: any) => { toast.success(`Provisioned on WHM as ${r.username}`); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sso = useMutation({
+    mutationFn: (id: string) => ssoFn({ data: { id } }),
+    onSuccess: (r: any) => { window.open(r.url, "_blank", "noopener"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sync = useMutation({
+    mutationFn: (id?: string) => syncFn({ data: id ? { id } : {} }),
+    onSuccess: (r: any) => { toast.success(`Synced ${r.synced} account(s)${r.failed ? `, ${r.failed} failed` : ""}`); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -62,6 +110,7 @@ function WebHostingPage() {
       [a.domain, a.username, a.provider, a.plan, a.account_number, a.customer_name]
         .some((v) => String(v ?? "").toLowerCase().includes(q)));
   }, [accounts, search]);
+
 
   const cols: ColumnDef<any>[] = [
     {
