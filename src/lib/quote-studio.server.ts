@@ -131,7 +131,7 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
       name: c.company_name ?? quote.account_number ?? "Customer",
       email: c.primary_email ?? null,
       phone: c.primary_phone ?? null,
-      address: c.address ?? null,
+      address: c.billing_address ?? null,
     },
     line_items: items.length
       ? items
