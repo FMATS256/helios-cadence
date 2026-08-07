@@ -4,6 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getQuotesOverview } from "@/lib/finance.functions";
+import {
+  pushQuoteToStudio, syncQuoteFromStudio, sendQuoteToCustomer, setQuoteOutcome,
+  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus,
+} from "@/lib/quotes.functions";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
