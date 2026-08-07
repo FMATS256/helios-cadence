@@ -100,7 +100,23 @@ function QuotesPage() {
       return <StatusBadge tone={toneForStatus(expired ? "expired" : r.status)}>{expired ? "expired" : r.status}</StatusBadge>;
     } },
     { header: "Valid until", cell: (r) => r.valid_until ? new Date(r.valid_until).toLocaleDateString() : "—" },
+    { header: "Document", cell: (r) => (
+      <div className="min-w-0 text-xs">
+        <StatusBadge tone={toneForStatus(r.studio_status === "synced" ? "active" : r.studio_status === "failed" ? "failed" : "pending")}>
+          {r.studio_status ?? "not generated"}
+        </StatusBadge>
+        {r.studio_pdf_url && (
+          <a href={r.studio_pdf_url} target="_blank" rel="noreferrer" className="mt-1 block text-solar hover:underline">
+            Open PDF
+          </a>
+        )}
+        {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
+      </div>
+    ) },
     { header: "Created", cell: (r) => new Date(r.created_at).toLocaleDateString() },
+    { header: "", align: "right", cell: (r) => (
+      <Button size="sm" variant="outline" onClick={() => setManaged(r)}>Manage</Button>
+    ) },
   ];
 
   return (
