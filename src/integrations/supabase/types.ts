@@ -2597,6 +2597,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          accepted_at: string | null
           account_number: string
           amount: number
           created_at: string
@@ -2606,12 +2607,20 @@ export type Database = {
           id: string
           notes: string | null
           quote_number: string | null
+          rejected_at: string | null
+          sent_at: string | null
           status: string
+          studio_document_id: string | null
+          studio_error: string | null
+          studio_pdf_url: string | null
+          studio_status: string | null
+          studio_synced_at: string | null
           title: string
           updated_at: string
           valid_until: string | null
         }
         Insert: {
+          accepted_at?: string | null
           account_number: string
           amount?: number
           created_at?: string
@@ -2621,12 +2630,20 @@ export type Database = {
           id?: string
           notes?: string | null
           quote_number?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
           status?: string
+          studio_document_id?: string | null
+          studio_error?: string | null
+          studio_pdf_url?: string | null
+          studio_status?: string | null
+          studio_synced_at?: string | null
           title: string
           updated_at?: string
           valid_until?: string | null
         }
         Update: {
+          accepted_at?: string | null
           account_number?: string
           amount?: number
           created_at?: string
@@ -2636,7 +2653,14 @@ export type Database = {
           id?: string
           notes?: string | null
           quote_number?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
           status?: string
+          studio_document_id?: string | null
+          studio_error?: string | null
+          studio_pdf_url?: string | null
+          studio_status?: string | null
+          studio_synced_at?: string | null
           title?: string
           updated_at?: string
           valid_until?: string | null
