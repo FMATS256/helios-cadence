@@ -262,15 +262,36 @@ function StorageDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const archive = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("cloud_storage_accounts")
-        .update({ archived_at: new Date().toISOString(), status: "cancelled" }).eq("id", record.id);
-      if (error) throw new Error(error.message);
+  const lifecycleFn = useServerFn(storageLifecycleAction);
+  const [pending, setPending] = useState<string | null>(null);
+  const lifecycle = useMutation({
+    mutationFn: async (input: { action: any; reason?: string; storage_tb?: number; used_tb?: number }) => {
+      setPending(input.action);
+      return await lifecycleFn({ data: { id: record.id, ...input } });
     },
-    onSuccess: () => { toast.success("Storage account archived"); onDone(); },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => { toast.success("Storage account updated"); setPending(null); onDone(); },
+    onError: (e: Error) => { setPending(null); toast.error(e.message); },
   });
+
+  function runLifecycle(action: string) {
+    if (action === "resize") {
+      const tb = Number(f.storage_tb);
+      if (!(tb > 0)) return toast.error("Enter the new capacity (TB) above first");
+      return lifecycle.mutate({ action, storage_tb: tb });
+    }
+    if (action === "record_usage") {
+      const used = Number(f.used_tb);
+      if (!Number.isFinite(used)) return toast.error("Enter the consumed capacity (TB) above first");
+      return lifecycle.mutate({ action, used_tb: used });
+    }
+    if (action === "terminate" && !window.confirm(`Terminate ${record.name}? This cancels and archives the account.`)) return;
+    if (action === "suspend") {
+      const reason = window.prompt("Suspension reason", "Billing suspension") ?? undefined;
+      if (reason === undefined) return;
+      return lifecycle.mutate({ action, reason });
+    }
+    lifecycle.mutate({ action });
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
