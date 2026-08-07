@@ -39,6 +39,7 @@ function QuotesPage() {
   const [tab, setTab] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
+  const [managed, setManaged] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["quotes-overview"],
