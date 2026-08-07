@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { getStorageOverview } from "@/lib/infra.functions";
+import { storageLifecycleAction } from "@/lib/hosting.functions";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, type ColumnDef,
