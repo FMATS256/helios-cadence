@@ -322,12 +322,36 @@ function StorageDialog({
             <div className="space-y-2"><Label>Access URL</Label><Input value={f.access_url} onChange={(e) => setF({ ...f, access_url: e.target.value })} placeholder="https://…" /></div>
             <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
           </div>
+
+          {!isNew && (
+            <div className="rounded-xl border bg-muted/10 p-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lifecycle actions</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "provision", label: "Provision", color: "#4f46e5", show: record.status !== "active" },
+                  { key: "resume", label: "Resume", color: "#10b981", show: record.status === "suspended" },
+                  { key: "suspend", label: "Suspend", color: "#f43f5e", show: record.status === "active" },
+                  { key: "resize", label: "Apply new capacity", color: "#0ea5e9", show: true },
+                  { key: "record_usage", label: "Record usage", color: "#f59e0b", show: true },
+                  { key: "terminate", label: "Terminate", color: "#64748b", show: record.status !== "cancelled" },
+                ].filter((b) => b.show).map((b) => (
+                  <Button
+                    key={b.key}
+                    type="button"
+                    size="sm"
+                    disabled={lifecycle.isPending}
+                    onClick={() => runLifecycle(b.key)}
+                    style={{ background: b.color, color: "#fff" }}
+                  >
+                    {pending === b.key ? "Working…" : b.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="gap-2">
-            {!isNew && (
-              <Button type="button" variant="outline" disabled={archive.isPending} onClick={() => archive.mutate()}>
-                {archive.isPending ? "Archiving…" : "Archive account"}
-              </Button>
-            )}
+
             <Button type="submit" disabled={save.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
               {save.isPending ? "Saving…" : isNew ? "Create account" : "Save changes"}
             </Button>
