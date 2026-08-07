@@ -4,6 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getQuotesOverview } from "@/lib/finance.functions";
+import {
+  pushQuoteToStudio, syncQuoteFromStudio, sendQuoteToCustomer, setQuoteOutcome,
+  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus,
+} from "@/lib/quotes.functions";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
@@ -39,6 +43,7 @@ function QuotesPage() {
   const [tab, setTab] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
+  const [managed, setManaged] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["quotes-overview"],
@@ -100,7 +105,23 @@ function QuotesPage() {
       return <StatusBadge tone={toneForStatus(expired ? "expired" : r.status)}>{expired ? "expired" : r.status}</StatusBadge>;
     } },
     { header: "Valid until", cell: (r) => r.valid_until ? new Date(r.valid_until).toLocaleDateString() : "—" },
+    { header: "Document", cell: (r) => (
+      <div className="min-w-0 text-xs">
+        <StatusBadge tone={toneForStatus(r.studio_status === "synced" ? "active" : r.studio_status === "failed" ? "failed" : "pending")}>
+          {r.studio_status ?? "not generated"}
+        </StatusBadge>
+        {r.studio_pdf_url && (
+          <a href={r.studio_pdf_url} target="_blank" rel="noreferrer" className="mt-1 block text-solar hover:underline">
+            Open PDF
+          </a>
+        )}
+        {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
+      </div>
+    ) },
     { header: "Created", cell: (r) => new Date(r.created_at).toLocaleDateString() },
+    { header: "", align: "right", cell: (r) => (
+      <Button size="sm" variant="outline" onClick={() => setManaged(r)}>Manage</Button>
+    ) },
   ];
 
   return (
@@ -173,9 +194,156 @@ function QuotesPage() {
         customers={customers}
         onCreated={() => qc.invalidateQueries({ queryKey: ["quotes-overview"] })}
       />
+
+      {managed && (
+        <QuoteManageDialog
+          quote={managed}
+          onClose={() => setManaged(null)}
+          onDone={() => qc.invalidateQueries({ queryKey: ["quotes-overview"] })}
+        />
+      )}
     </PageShell>
   );
 }
+
+function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: () => void; onDone: () => void }) {
+  const push = useServerFn(pushQuoteToStudio);
+  const sync = useServerFn(syncQuoteFromStudio);
+  const send = useServerFn(sendQuoteToCustomer);
+  const outcome = useServerFn(setQuoteOutcome);
+  const convert = useServerFn(convertQuoteToInvoice);
+  const detailFn = useServerFn(getQuoteDetail);
+  const statusFn = useServerFn(quoteStudioStatus);
+
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const { data: detail } = useQuery({
+    queryKey: ["quote-detail", quote.id],
+    queryFn: () => detailFn({ data: { id: quote.id } }),
+  });
+  const { data: studio } = useQuery({ queryKey: ["quote-studio-status"], queryFn: () => statusFn() });
+
+  const row = detail?.quote ?? quote;
+  const lines = detail?.lines ?? [];
+
+  const run = useMutation({
+    mutationFn: async ({ key, fn }: { key: string; fn: () => Promise<any> }) => {
+      setBusy(key);
+      return await fn();
+    },
+    onSuccess: (res: any, vars) => {
+      setBusy(null);
+      toast.success(
+        vars.key === "convert" ? `Invoice ${res?.invoice_number} created` :
+        vars.key === "send" ? `Quotation sent to ${res?.sent_to}` : "Quote updated",
+      );
+      onDone();
+      if (vars.key === "convert") onClose();
+    },
+    onError: (e: Error) => { setBusy(null); toast.error(e.message); },
+  });
+
+  const act = (key: string, fn: () => Promise<any>) => run.mutate({ key, fn });
+  const label = (key: string, text: string) => (busy === key ? "Working…" : text);
+
+  return (
+    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{row.title} · {row.quote_number || "no number"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 rounded-xl border bg-muted/10 p-4 text-sm sm:grid-cols-4">
+            <div><div className="text-xs text-muted-foreground">Status</div><StatusBadge tone={toneForStatus(row.status)}>{row.status}</StatusBadge></div>
+            <div><div className="text-xs text-muted-foreground">Amount</div><div className="font-mono font-semibold">{money(row.amount ?? 0, row.currency)}</div></div>
+            <div><div className="text-xs text-muted-foreground">Valid until</div><div>{row.valid_until ? new Date(row.valid_until).toLocaleDateString() : "—"}</div></div>
+            <div><div className="text-xs text-muted-foreground">Document</div><div>{row.studio_status ?? "not generated"}</div></div>
+          </div>
+
+          {row.studio_error && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">{row.studio_error}</div>
+          )}
+          {studio && !studio.configured && (
+            <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+              Quote Studio is not connected — documents will not be generated, but sending, acceptance and invoicing still work.
+            </div>
+          )}
+
+          {lines.length > 0 && (
+            <div className="rounded-xl border">
+              <div className="border-b px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Line items</div>
+              <div className="divide-y">
+                {lines.map((l: any) => (
+                  <div key={l.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                    <span className="truncate">{l.description}</span>
+                    <span className="font-mono">{l.quantity} × {money(l.unit_price, row.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Send to</Label>
+              <Input
+                placeholder={row.customers?.primary_email ?? "customer@example.com"}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Covering message</Label>
+              <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional note for the customer" />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={run.isPending} style={{ background: "#4f46e5", color: "#fff" }}
+              onClick={() => act("push", () => push({ data: { id: row.id } }))}>
+              {label("push", row.studio_document_id ? "Regenerate document" : "Generate document")}
+            </Button>
+            <Button size="sm" disabled={run.isPending || !row.studio_document_id} style={{ background: "#0ea5e9", color: "#fff" }}
+              onClick={() => act("sync", () => sync({ data: { id: row.id } }))}>
+              {label("sync", "Sync from Studio")}
+            </Button>
+            <Button size="sm" disabled={run.isPending} style={{ background: "#f59e0b", color: "#fff" }}
+              onClick={() => act("send", () => send({ data: { id: row.id, email: email || undefined, message: message || undefined } }))}>
+              {label("send", "Send to customer")}
+            </Button>
+            <Button size="sm" disabled={run.isPending || row.status === "accepted"} style={{ background: "#10b981", color: "#fff" }}
+              onClick={() => act("accept", () => outcome({ data: { id: row.id, outcome: "accepted" } }))}>
+              {label("accept", "Mark accepted")}
+            </Button>
+            <Button size="sm" disabled={run.isPending || row.status === "rejected"} style={{ background: "#f43f5e", color: "#fff" }}
+              onClick={() => {
+                const reason = window.prompt("Rejection reason") ?? undefined;
+                if (reason === undefined) return;
+                act("reject", () => outcome({ data: { id: row.id, outcome: "rejected", reason } }));
+              }}>
+              {label("reject", "Mark rejected")}
+            </Button>
+            <Button size="sm" disabled={run.isPending || row.status !== "accepted"} style={{ background: "#0f766e", color: "#fff" }}
+              onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
+              {label("convert", "Convert to invoice")}
+            </Button>
+            {row.studio_pdf_url && (
+              <Button size="sm" variant="outline" asChild>
+                <a href={row.studio_pdf_url} target="_blank" rel="noreferrer">Open PDF</a>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter><Button variant="outline" onClick={onClose}>Close</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function NewQuoteDialog({
   open, onOpenChange, customers, onCreated,

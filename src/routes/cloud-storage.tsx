@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { getStorageOverview } from "@/lib/infra.functions";
+import { storageLifecycleAction } from "@/lib/hosting.functions";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, type ColumnDef,
@@ -262,15 +263,36 @@ function StorageDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const archive = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("cloud_storage_accounts")
-        .update({ archived_at: new Date().toISOString(), status: "cancelled" }).eq("id", record.id);
-      if (error) throw new Error(error.message);
+  const lifecycleFn = useServerFn(storageLifecycleAction);
+  const [pending, setPending] = useState<string | null>(null);
+  const lifecycle = useMutation({
+    mutationFn: async (input: { action: any; reason?: string; storage_tb?: number; used_tb?: number }) => {
+      setPending(input.action);
+      return await lifecycleFn({ data: { id: record.id, ...input } });
     },
-    onSuccess: () => { toast.success("Storage account archived"); onDone(); },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => { toast.success("Storage account updated"); setPending(null); onDone(); },
+    onError: (e: Error) => { setPending(null); toast.error(e.message); },
   });
+
+  function runLifecycle(action: string) {
+    if (action === "resize") {
+      const tb = Number(f.storage_tb);
+      if (!(tb > 0)) return toast.error("Enter the new capacity (TB) above first");
+      return lifecycle.mutate({ action, storage_tb: tb });
+    }
+    if (action === "record_usage") {
+      const used = Number(f.used_tb);
+      if (!Number.isFinite(used)) return toast.error("Enter the consumed capacity (TB) above first");
+      return lifecycle.mutate({ action, used_tb: used });
+    }
+    if (action === "terminate" && !window.confirm(`Terminate ${record.name}? This cancels and archives the account.`)) return;
+    if (action === "suspend") {
+      const reason = window.prompt("Suspension reason", "Billing suspension") ?? undefined;
+      if (reason === undefined) return;
+      return lifecycle.mutate({ action, reason });
+    }
+    lifecycle.mutate({ action });
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -301,12 +323,36 @@ function StorageDialog({
             <div className="space-y-2"><Label>Access URL</Label><Input value={f.access_url} onChange={(e) => setF({ ...f, access_url: e.target.value })} placeholder="https://…" /></div>
             <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
           </div>
+
+          {!isNew && (
+            <div className="rounded-xl border bg-muted/10 p-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lifecycle actions</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "provision", label: "Provision", color: "#4f46e5", show: record.status !== "active" },
+                  { key: "resume", label: "Resume", color: "#10b981", show: record.status === "suspended" },
+                  { key: "suspend", label: "Suspend", color: "#f43f5e", show: record.status === "active" },
+                  { key: "resize", label: "Apply new capacity", color: "#0ea5e9", show: true },
+                  { key: "record_usage", label: "Record usage", color: "#f59e0b", show: true },
+                  { key: "terminate", label: "Terminate", color: "#64748b", show: record.status !== "cancelled" },
+                ].filter((b) => b.show).map((b) => (
+                  <Button
+                    key={b.key}
+                    type="button"
+                    size="sm"
+                    disabled={lifecycle.isPending}
+                    onClick={() => runLifecycle(b.key)}
+                    style={{ background: b.color, color: "#fff" }}
+                  >
+                    {pending === b.key ? "Working…" : b.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="gap-2">
-            {!isNew && (
-              <Button type="button" variant="outline" disabled={archive.isPending} onClick={() => archive.mutate()}>
-                {archive.isPending ? "Archiving…" : "Archive account"}
-              </Button>
-            )}
+
             <Button type="submit" disabled={save.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
               {save.isPending ? "Saving…" : isNew ? "Create account" : "Save changes"}
             </Button>
