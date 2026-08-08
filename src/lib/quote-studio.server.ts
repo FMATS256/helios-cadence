@@ -81,7 +81,7 @@ export type StudioLine = {
 };
 
 export type StudioDocumentInput = {
-  type: "quote";
+  type: "quotation";
   reference: string;
   title: string;
   currency: string;
