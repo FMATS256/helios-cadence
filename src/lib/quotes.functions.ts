@@ -164,7 +164,7 @@ export const syncQuoteFromStudio = createServerFn({ method: "POST" })
       throw new Error(res.error);
     }
 
-    const remote: any = (res.data as any)?.data ?? res.data;
+    const remote: any = (res.data as any)?.document ?? res.data;
     const remoteStatus = String(remote?.status ?? "").toLowerCase();
     const patch: Record<string, any> = {
       studio_pdf_url: pdfUrlOf(res.data) ?? quote.studio_pdf_url ?? null,
