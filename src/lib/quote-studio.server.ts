@@ -120,7 +120,7 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
 
   const c = quote.customers ?? {};
   return {
-    type: "quote",
+    type: "quotation",
     reference: quote.quote_number || `Q-${String(quote.id).slice(0, 8).toUpperCase()}`,
     title: quote.title ?? "Quotation",
     currency: quote.currency ?? "USD",
