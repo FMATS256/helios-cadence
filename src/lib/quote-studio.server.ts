@@ -21,9 +21,13 @@ export const STUDIO_NOT_CONFIGURED =
   "Quote Studio is not connected. Add the QUOTE_STUDIO_URL and QUOTE_STUDIO_API_KEY secrets to enable document generation.";
 
 export function studioConfig() {
-  const url = (process.env["QUOTE_STUDIO_URL"] ?? "").replace(/\/+$/, "");
+  let url = (process.env["QUOTE_STUDIO_URL"] ?? "").replace(/\/+$/, "");
   const key = process.env["QUOTE_STUDIO_API_KEY"] ?? "";
   const org = process.env["QUOTE_STUDIO_ORG_ID"] ?? "";
+  // Allow either the app root or the full API path to be stored.
+  if (url && !url.endsWith("/api/public/v1")) {
+    url = `${url}/api/public/v1`;
+  }
   return { url, key, org, configured: Boolean(url && key) };
 }
 
