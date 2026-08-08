@@ -72,12 +72,13 @@ async function request<T = any>(
  * Document payload
  * ------------------------------------------------------------------ */
 
-export type StudioLine = {
-  description: string;
-  quantity: number;
-  unit_price: number;
-  tax_rate?: number | null;
-  line_total?: number | null;
+export type StudioItem = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  qty: number;
+  unitPrice: number;
+  total?: number | null;
 };
 
 export type StudioDocumentInput = {
@@ -88,32 +89,33 @@ export type StudioDocumentInput = {
   valid_until?: string | null;
   notes?: string | null;
   status?: string | null;
-  customer: {
-    reference?: string | null;
+  buyer: {
     name: string;
     email?: string | null;
     phone?: string | null;
     address?: string | null;
+    contact?: string | null;
   };
-  line_items: StudioLine[];
-  totals: { subtotal: number; tax: number; total: number };
+  items: StudioItem[];
+  totals?: { subtotal: number; tax: number; total: number };
   metadata?: Record<string, any>;
 };
 
 /** Build the Studio payload from a quote row + its line items. */
 export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentInput {
-  const items: StudioLine[] = (lines ?? []).map((l) => ({
-    description: l.description ?? "Item",
-    quantity: Number(l.quantity ?? 1),
-    unit_price: Number(l.unit_price ?? 0),
-    tax_rate: l.tax_rate == null ? null : Number(l.tax_rate),
-    line_total: Number(l.line_total ?? Number(l.quantity ?? 1) * Number(l.unit_price ?? 0)),
+  const items: StudioItem[] = (lines ?? []).map((l, i) => ({
+    id: String(l.id ?? i + 1),
+    name: l.description ?? "Item",
+    description: l.description ?? null,
+    qty: Number(l.quantity ?? 1),
+    unitPrice: Number(l.unit_price ?? 0),
+    total: Number(l.line_total ?? Number(l.quantity ?? 1) * Number(l.unit_price ?? 0)),
   }));
 
   const subtotal = items.length
-    ? items.reduce((s, l) => s + Number(l.line_total ?? 0), 0)
+    ? items.reduce((s, it) => s + (it.total ?? it.qty * it.unitPrice), 0)
     : Number(quote.amount ?? 0);
-  const tax = items.reduce(
+  const tax = (lines ?? []).reduce(
     (s, l) => s + (Number(l.line_total ?? 0) * Number(l.tax_rate ?? 0)) / 100,
     0,
   );
@@ -127,16 +129,16 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
     valid_until: quote.valid_until ?? null,
     notes: quote.notes ?? null,
     status: quote.status ?? "draft",
-    customer: {
-      reference: quote.account_number ?? c.account_number ?? null,
+    buyer: {
       name: c.company_name ?? quote.account_number ?? "Customer",
       email: c.primary_email ?? null,
       phone: c.primary_phone ?? null,
       address: c.billing_address ?? null,
+      contact: c.company_name ?? null,
     },
-    line_items: items.length
+    items: items.length
       ? items
-      : [{ description: quote.title ?? "Quotation", quantity: 1, unit_price: Number(quote.amount ?? 0), line_total: Number(quote.amount ?? 0) }],
+      : [{ name: quote.title ?? "Quotation", qty: 1, unitPrice: Number(quote.amount ?? 0), total: Number(quote.amount ?? 0) }],
     totals: { subtotal, tax, total: subtotal + tax },
     metadata: { source: "IMT Operations Platform", quote_id: quote.id, account_number: quote.account_number },
   };
@@ -146,13 +148,18 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
 export function pdfUrlOf(doc: any): string | null {
   return (
     doc?.pdf_url ?? doc?.pdfUrl ?? doc?.download_url ?? doc?.downloadUrl ??
-    doc?.links?.pdf ?? doc?.data?.pdf_url ?? null
+    doc?.links?.pdf ?? doc?.data?.pdf_url ?? doc?.document?.pdf_url ?? null
   );
 }
 
 export function documentIdOf(doc: any): string | null {
-  const id = doc?.id ?? doc?.document_id ?? doc?.documentId ?? doc?.data?.id;
+  const id = doc?.id ?? doc?.document_id ?? doc?.documentId ?? doc?.data?.id ?? doc?.document?.id;
   return id == null ? null : String(id);
+}
+
+export function publicUrlOf(doc: any): string | null {
+  const url = doc?.public_url ?? doc?.publicUrl ?? doc?.url ?? doc?.document?.public_url ?? null;
+  return url ?? null;
 }
 
 /* ------------------------------------------------------------------ *
