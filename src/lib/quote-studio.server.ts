@@ -41,6 +41,7 @@ async function request<T = any>(
     const res = await fetch(`${cfg.url}${path}`, {
       method,
       headers: {
+        "x-api-key": cfg.key,
         Authorization: `Bearer ${cfg.key}`,
         Accept: "application/json",
         ...(body ? { "Content-Type": "application/json" } : {}),
