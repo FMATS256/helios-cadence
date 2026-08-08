@@ -33,9 +33,11 @@ export const QuoteEmail = ({
   tax = 0,
   total = 0,
   items = [],
-  quoteUrl = BRAND.siteUrl,
+  quoteUrl,
   message,
-}: Props) => (
+}: Props) => {
+  const hasDoc = Boolean(quoteUrl && quoteUrl !== BRAND.siteUrl)
+  return (
   <EmailShell
     preview={`Quotation ${quoteNumber} — ${fmt(total, currency)}`}
     kicker="Quotation"
@@ -44,7 +46,9 @@ export const QuoteEmail = ({
   >
     <Text style={styles.text}>Dear {companyName},</Text>
     <Text style={styles.text}>
-      {message || 'Please find your quotation below. The attached document contains the full breakdown and terms.'}
+      {message || (hasDoc
+        ? 'Please find your quotation below. The attached document contains the full breakdown and terms.'
+        : 'Please find your quotation below.')}
     </Text>
 
     <Section style={styles.card}>
@@ -80,11 +84,14 @@ export const QuoteEmail = ({
       </Text>
     </Section>
 
-    <Section style={{ textAlign: 'center', margin: '10px 0 24px' }}>
-      <Button style={styles.button} href={quoteUrl}>View Quotation</Button>
-    </Section>
+    {hasDoc && (
+      <Section style={{ textAlign: 'center', margin: '10px 0 24px' }}>
+        <Button style={styles.button} href={quoteUrl}>View Quotation</Button>
+      </Section>
+    )}
   </EmailShell>
-)
+  )
+}
 
 export default QuoteEmail
 
