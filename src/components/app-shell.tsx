@@ -1,4 +1,5 @@
 import imtLogo from "@/assets/imt-logo.png.asset.json";
+import { Zap } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
