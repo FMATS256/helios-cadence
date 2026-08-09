@@ -1,71 +1,207 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import {
+  PageShell, SectionHeader, StatChipRow, DataGrid, EmptyState, RefreshButton,
+  ActionBar, StatusBadge, shortDate,
+} from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, LifeBuoy, KeyRound, Cloud, Server, Receipt, Warehouse, Activity, FolderKanban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { runReport, emailReport } from "@/lib/reports.functions";
+import { BarChart3, Download, Printer, Mail, Wallet, Receipt, Repeat, TrendingDown, LifeBuoy, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Reports — IMT Operations" }] }),
+  head: () => ({
+    meta: [
+      { title: "Reports & Exports — IMT Operations" },
+      { name: "description", content: "Revenue, receivables, MRR, churn, SLA and service-health reports with CSV export and email delivery." },
+      { property: "og:title", content: "Reports & Exports — IMT Operations" },
+      { property: "og:description", content: "Live operational and financial reporting across the IMT Operations Platform." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ReportsPage,
 });
 
+const REPORTS = [
+  { key: "revenue", title: "Revenue collected" },
+  { key: "ar_ageing", title: "Receivables ageing" },
+  { key: "mrr", title: "Monthly recurring revenue" },
+  { key: "renewals", title: "Renewal pipeline" },
+  { key: "churn", title: "Churn & retention" },
+  { key: "tickets", title: "Support & SLA" },
+  { key: "service_health", title: "Service health" },
+] as const;
+
+const ICONS: Record<string, any> = {
+  revenue: Wallet,
+  ar_ageing: Receipt,
+  mrr: Repeat,
+  renewals: Repeat,
+  churn: TrendingDown,
+  tickets: LifeBuoy,
+  service_health: Activity,
+};
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+function fmtCell(value: any, format?: string) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (format === "money") return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (format === "number") return Number(value).toLocaleString();
+  if (format === "percent") return `${Number(value).toFixed(1)}%`;
+  if (format === "date") return shortDate(value as string);
+  return String(value);
+}
+
+function toCsv(columns: any[], rows: any[]) {
+  const esc = (v: any) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [
+    columns.map((c) => esc(c.label)).join(","),
+    ...rows.map((r) => columns.map((c) => esc(r[c.key])).join(",")),
+  ].join("\n");
+}
+
 function ReportsPage() {
-  const { data: stats } = useQuery({
-    queryKey: ["reports-stats"],
-    queryFn: async () => {
-      const [customers, tickets, credentials, cloud, assets, invoices, inventory, monitoring, projects] = await Promise.all([
-        supabase.from("customers").select("id,status,archived_at").is("archived_at", null),
-        supabase.from("tickets").select("id,status,priority"),
-        supabase.from("credentials").select("id").is("archived_at", null),
-        supabase.from("cloud_services" as any).select("id,monthly_cost,status").is("archived_at", null),
-        supabase.from("assets" as any).select("id,status").is("archived_at", null),
-        supabase.from("invoices" as any).select("id,status,total,currency"),
-        supabase.from("inventory_items" as any).select("id,quantity,reorder_level").is("archived_at", null),
-        supabase.from("monitoring_checks" as any).select("id,status,enabled").is("archived_at", null),
-        supabase.from("projects" as any).select("id,status").is("archived_at", null),
-      ]);
-      return { customers, tickets, credentials, cloud, assets, invoices, inventory, monitoring, projects };
-    },
+  const [key, setKey] = useState<string>("revenue");
+  const [from, setFrom] = useState(iso(new Date(Date.now() - 180 * 86_400_000)));
+  const [to, setTo] = useState(iso(new Date()));
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [recipient, setRecipient] = useState("");
+
+  const run = useServerFn(runReport);
+  const send = useServerFn(emailReport);
+
+  const { data: report, isFetching, refetch } = useQuery({
+    queryKey: ["report", key, from, to],
+    queryFn: () => run({ data: { key, from, to } }),
   });
 
-  const s = stats;
-  const openTickets = (s?.tickets.data ?? []).filter((t: any) => t.status !== "resolved" && t.status !== "closed").length;
-  const mrr = (s?.cloud.data ?? []).filter((c: any) => c.status === "active").reduce((n: number, c: any) => n + Number(c.monthly_cost || 0), 0);
-  const unpaid = (s?.invoices.data ?? []).filter((i: any) => i.status !== "paid" && i.status !== "void").reduce((n: number, i: any) => n + Number(i.total || 0), 0);
-  const lowStock = (s?.inventory.data ?? []).filter((i: any) => i.quantity <= i.reorder_level).length;
-  const downChecks = (s?.monitoring.data ?? []).filter((c: any) => c.status === "down").length;
-  const activeProjects = (s?.projects.data ?? []).filter((p: any) => p.status === "active").length;
+  const emailMut = useMutation({
+    mutationFn: () => send({ data: { key, from, to, email: recipient } }),
+    onSuccess: (r: any) => { toast.success(`Report emailed to ${r.sent_to}`); setEmailOpen(false); },
+    onError: (e: any) => toast.error(e?.message ?? "Could not email the report"),
+  });
 
-  const cards = [
-    { label: "Customers", value: s?.customers.data?.length ?? 0, icon: Users, tone: "info" as const },
-    { label: "Open tickets", value: openTickets, icon: LifeBuoy, tone: openTickets > 0 ? "warning" as const : "success" as const },
-    { label: "Credentials", value: s?.credentials.data?.length ?? 0, icon: KeyRound, tone: "info" as const },
-    { label: "Cloud MRR", value: `$${mrr.toFixed(2)}`, icon: Cloud, tone: "success" as const },
-    { label: "Assets", value: s?.assets.data?.length ?? 0, icon: Server, tone: "info" as const },
-    { label: "Unpaid AR", value: `$${unpaid.toFixed(2)}`, icon: Receipt, tone: unpaid > 0 ? "warning" as const : "success" as const },
-    { label: "Low stock", value: lowStock, icon: Warehouse, tone: lowStock > 0 ? "danger" as const : "success" as const },
-    { label: "Monitors down", value: downChecks, icon: Activity, tone: downChecks > 0 ? "danger" as const : "success" as const },
-    { label: "Active projects", value: activeProjects, icon: FolderKanban, tone: "info" as const },
-  ];
+  const columns = useMemo(
+    () =>
+      (report?.columns ?? []).map((c: any) => ({
+        header: c.label,
+        align: c.align ?? "left",
+        cell: (row: any) =>
+          c.key === "status" ? <StatusBadge>{String(row[c.key] ?? "—")}</StatusBadge> : fmtCell(row[c.key], c.format),
+      })),
+    [report],
+  );
+
+  const download = () => {
+    if (!report) return;
+    const blob = new Blob([toCsv(report.columns, report.rows)], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${report.key}-${from}-to-${to}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success("CSV exported");
+  };
 
   return (
-    <PageContainer>
-      <PageHeader eyebrow="Business" title="Reports" description="Cross-module operational summary." />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {cards.map((c) => (
-          <Card key={c.label}>
-            <CardContent className="p-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">{c.label}</p>
-                <p className="font-display text-3xl font-bold mt-2">{c.value}</p>
-                <div className="mt-3"><StatusPill tone={c.tone}>live</StatusPill></div>
-              </div>
-              <div className="rounded-lg bg-solar/10 p-2.5"><c.icon className="h-5 w-5 text-solar" /></div>
-            </CardContent>
-          </Card>
-        ))}
+    <PageShell>
+      <SectionHeader
+        eyebrow="Business Intelligence"
+        title="Reports & Exports"
+        description="Live reporting across revenue, receivables, recurring revenue, churn, support SLA and service health."
+        actions={<RefreshButton onClick={() => void refetch()} loading={isFetching} />}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+        {REPORTS.map((r) => {
+          const Icon = ICONS[r.key] ?? BarChart3;
+          const active = key === r.key;
+          return (
+            <button
+              key={r.key}
+              onClick={() => setKey(r.key)}
+              className={`p-3 border text-left transition ${active ? "border-solar bg-solar/10" : "border-border hover:bg-muted/40"}`}
+            >
+              <Icon className={`h-4 w-4 mb-2 ${active ? "text-solar" : "text-muted-foreground"}`} />
+              <p className="text-xs font-semibold leading-tight">{r.title}</p>
+            </button>
+          );
+        })}
       </div>
-    </PageContainer>
+
+      <Card>
+        <CardContent className="p-4 flex flex-wrap items-end gap-3">
+          <div>
+            <Label className="text-xs">From</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
+          </div>
+          <div>
+            <Label className="text-xs">To</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
+          </div>
+          <div className="flex-1" />
+          <ActionBar
+            actions={[
+              { tone: "emerald", icon: Download, label: "Export CSV", onClick: download, disabled: !report?.rows?.length },
+              { tone: "sky", icon: Printer, label: "Print / PDF", onClick: () => window.print(), disabled: !report?.rows?.length },
+              { tone: "indigo", icon: Mail, label: "Email report", onClick: () => setEmailOpen(true), disabled: !report },
+            ]}
+          />
+        </CardContent>
+      </Card>
+
+      {report && <StatChipRow chips={report.chips as any} cols={report.chips.length >= 5 ? 5 : 4} />}
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="p-4 border-b border-border">
+            <p className="font-display font-bold">{report?.title ?? "Report"}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {report?.description} · {report?.rows?.length ?? 0} rows
+              {report?.generated_at ? ` · generated ${new Date(report.generated_at).toLocaleString()}` : ""}
+            </p>
+          </div>
+          <DataGrid
+            rows={(report?.rows ?? []) as any[]}
+            columns={columns as any}
+            loading={isFetching && !report}
+            keyOf={(_r, i) => i}
+            empty={<EmptyState title="No data in this window" description="Adjust the date range or pick another report." icon={BarChart3} />}
+          />
+        </CardContent>
+      </Card>
+
+      <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Email “{report?.title}”</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Recipient email</Label>
+            <Input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="finance@imtsolutions.co.zw" />
+            <p className="text-xs text-muted-foreground">
+              Sends the report headline metrics for {from} → {to}. Use Export CSV for the full row detail.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailOpen(false)}>Cancel</Button>
+            <Button onClick={() => emailMut.mutate()} disabled={emailMut.isPending || !recipient}>
+              {emailMut.isPending ? "Sending…" : "Send report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   );
 }
