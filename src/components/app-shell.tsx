@@ -64,6 +64,7 @@ const navGroups = [
       { title: "Inventory", url: "/inventory", icon: Warehouse },
       { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Reports", url: "/reports", icon: BarChart3 },
+      { title: "Automation", url: "/automation", icon: Zap },
     ],
   },
   {
