@@ -15,7 +15,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { runReport, emailReport } from "@/lib/reports.functions";
-import { REPORTS } from "@/lib/reports.server";
 import { BarChart3, Download, Printer, Mail, Wallet, Receipt, Repeat, TrendingDown, LifeBuoy, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/reports")({
@@ -31,6 +30,16 @@ export const Route = createFileRoute("/reports")({
   }),
   component: ReportsPage,
 });
+
+const REPORTS = [
+  { key: "revenue", title: "Revenue collected" },
+  { key: "ar_ageing", title: "Receivables ageing" },
+  { key: "mrr", title: "Monthly recurring revenue" },
+  { key: "renewals", title: "Renewal pipeline" },
+  { key: "churn", title: "Churn & retention" },
+  { key: "tickets", title: "Support & SLA" },
+  { key: "service_health", title: "Service health" },
+] as const;
 
 const ICONS: Record<string, any> = {
   revenue: Wallet,
