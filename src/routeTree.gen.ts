@@ -80,6 +80,7 @@ import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/p
 import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
 import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
 import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
+import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
@@ -454,6 +455,12 @@ const ApiPublicHooksBackupsTickRoute =
     path: '/api/public/hooks/backups-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAutomationTickRoute =
+  ApiPublicHooksAutomationTickRouteImport.update({
+    id: '/api/public/hooks/automation-tick',
+    path: '/api/public/hooks/automation-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
   id: '/api/public/agent/provision',
   path: '/api/public/agent/provision',
@@ -523,6 +530,7 @@ export interface FileRoutesByFullPath {
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -595,6 +603,7 @@ export interface FileRoutesByTo {
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -671,6 +680,7 @@ export interface FileRoutesById {
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/c/$slug/$workspaceKey'
     | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/hosting-sync'
@@ -820,6 +831,7 @@ export interface FileRouteTypes {
     | '/api/public/test-emails'
     | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/hosting-sync'
@@ -895,6 +907,7 @@ export interface FileRouteTypes {
     | '/c/$slug/$workspaceKey'
     | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
+    | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/hosting-sync'
@@ -962,6 +975,7 @@ export interface RootRouteChildren {
   ApiPublicTestEmailsRoute: typeof ApiPublicTestEmailsRoute
   CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
+  ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
   ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
   ApiPublicHooksHostingSyncRoute: typeof ApiPublicHooksHostingSyncRoute
@@ -1473,6 +1487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBackupsTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/automation-tick': {
+      id: '/api/public/hooks/automation-tick'
+      path: '/api/public/hooks/automation-tick'
+      fullPath: '/api/public/hooks/automation-tick'
+      preLoaderRoute: typeof ApiPublicHooksAutomationTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agent/provision': {
       id: '/api/public/agent/provision'
       path: '/api/public/agent/provision'
@@ -1639,6 +1660,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTestEmailsRoute: ApiPublicTestEmailsRoute,
   CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
+  ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
   ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
   ApiPublicHooksHostingSyncRoute: ApiPublicHooksHostingSyncRoute,
