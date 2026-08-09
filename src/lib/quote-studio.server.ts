@@ -148,23 +148,31 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
   };
 }
 
+/** Unwrap the `{ document: {...} }` / `{ data: {...} }` envelopes the API uses. */
+function unwrap(doc: any): any {
+  return doc?.document ?? doc?.data?.document ?? doc?.data ?? doc ?? {};
+}
+
 /** Pull the PDF link out of whatever shape the API returns. */
 export function pdfUrlOf(doc: any): string | null {
+  const d = unwrap(doc);
   return (
-    doc?.pdf_url ?? doc?.pdfUrl ?? doc?.download_url ?? doc?.downloadUrl ??
-    doc?.links?.pdf ?? doc?.data?.pdf_url ?? doc?.document?.pdf_url ?? null
+    d?.pdf_url ?? d?.pdfUrl ?? d?.pdf_api_url ?? d?.download_url ?? d?.downloadUrl ??
+    d?.links?.pdf ?? d?.view_url ?? d?.viewUrl ?? null
   );
 }
 
 export function documentIdOf(doc: any): string | null {
-  const id = doc?.id ?? doc?.document_id ?? doc?.documentId ?? doc?.data?.id ?? doc?.document?.id;
+  const d = unwrap(doc);
+  const id = d?.id ?? d?.document_id ?? d?.documentId;
   return id == null ? null : String(id);
 }
 
 export function publicUrlOf(doc: any): string | null {
-  const url = doc?.public_url ?? doc?.publicUrl ?? doc?.url ?? doc?.document?.public_url ?? null;
-  return url ?? null;
+  const d = unwrap(doc);
+  return d?.view_url ?? d?.viewUrl ?? d?.public_url ?? d?.publicUrl ?? d?.url ?? null;
 }
+
 
 /* ------------------------------------------------------------------ *
  * API surface
