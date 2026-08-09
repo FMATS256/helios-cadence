@@ -9,6 +9,7 @@ import { template as paymentReminderTemplate } from './payment-reminder'
 import { template as renewalReminderTemplate } from './renewal-reminder'
 import { template as ticketUpdateTemplate } from './ticket-update'
 import { template as licenseIssuedTemplate } from './license-issued'
+import { template as opsDigestTemplate } from './ops-digest'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -29,4 +30,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'renewal-reminder': renewalReminderTemplate,
   'ticket-update': ticketUpdateTemplate,
   'license-issued': licenseIssuedTemplate,
+  'ops-digest': opsDigestTemplate,
 }
