@@ -171,6 +171,54 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_runs: {
+        Row: {
+          actioned: number
+          created_at: string
+          details: Json
+          duration_ms: number
+          emailed: number
+          error: string | null
+          id: string
+          notified: number
+          processed: number
+          rule: string
+          started_by: string | null
+          status: string
+          trigger: string
+        }
+        Insert: {
+          actioned?: number
+          created_at?: string
+          details?: Json
+          duration_ms?: number
+          emailed?: number
+          error?: string | null
+          id?: string
+          notified?: number
+          processed?: number
+          rule: string
+          started_by?: string | null
+          status?: string
+          trigger?: string
+        }
+        Update: {
+          actioned?: number
+          created_at?: string
+          details?: Json
+          duration_ms?: number
+          emailed?: number
+          error?: string | null
+          id?: string
+          notified?: number
+          processed?: number
+          rule?: string
+          started_by?: string | null
+          status?: string
+          trigger?: string
+        }
+        Relationships: []
+      }
       backup_schedules: {
         Row: {
           created_at: string
