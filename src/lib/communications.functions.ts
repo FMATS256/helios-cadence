@@ -25,8 +25,8 @@ export const logCommunication = createServerFn({ method: "POST" })
     await assertStaff(context as any);
     if (!data.body?.trim()) throw new Error("Message body is required");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const db = supabaseAdmin;
+    const { admin } = await import("./customer360.server");
+    const db = await admin();
 
     let customer_id: string | null = null;
     if (data.account_number) {
