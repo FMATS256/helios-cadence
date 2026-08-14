@@ -187,6 +187,13 @@ export async function purgeTestData(db: any) {
     await del("subscriptions", "customer_id", cid);
     await del("customer_services", "customer_id", cid);
     await del("cloud_services", "customer_id", cid);
+    try {
+      const { data: docs } = await db.from("customer_documents").select("file_path").eq("customer_id", cid);
+      const paths = (docs ?? []).map((d: any) => d.file_path).filter(Boolean);
+      if (paths.length) await db.storage.from("customer-documents").remove(paths);
+    } catch (e) {
+      console.error("[purgeTestData] storage", e);
+    }
     await del("customer_documents", "customer_id", cid);
     await del("tickets", "customer_id", cid);
     await del("assets", "customer_id", cid);
