@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as SystemTestRouteImport } from './routes/system-test'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -98,6 +99,11 @@ const VoipRoute = VoipRouteImport.update({
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemTestRoute = SystemTestRouteImport.update({
+  id: '/system-test',
+  path: '/system-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
@@ -511,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
@@ -586,6 +593,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
@@ -663,6 +671,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
@@ -742,6 +751,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/starlink'
     | '/subscriptions'
+    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
@@ -817,6 +827,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/starlink'
     | '/subscriptions'
+    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
@@ -893,6 +904,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/starlink'
     | '/subscriptions'
+    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
@@ -971,6 +983,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
+  SystemTestRoute: typeof SystemTestRoute
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
@@ -1022,6 +1035,13 @@ declare module '@tanstack/react-router' {
       path: '/tickets'
       fullPath: '/tickets'
       preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system-test': {
+      id: '/system-test'
+      path: '/system-test'
+      fullPath: '/system-test'
+      preLoaderRoute: typeof SystemTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subscriptions': {
@@ -1663,6 +1683,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
+  SystemTestRoute: SystemTestRoute,
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
