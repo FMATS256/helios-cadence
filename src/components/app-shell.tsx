@@ -76,6 +76,7 @@ const navGroups = [
       { title: "Master Admin", url: "/admin", icon: Shield, masterOnly: true },
       { title: "Email Logs", url: "/email-logs", icon: Mail, masterOnly: true },
       { title: "Email Studio", url: "/email-studio", icon: Mail, masterOnly: true },
+      { title: "System Health", url: "/system-test", icon: ShieldCheck, masterOnly: true },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
