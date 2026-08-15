@@ -53,7 +53,7 @@ export const Route = createFileRoute("/system-test")({
 
 const TEST_MARKER = "[SYSTEM TEST]";
 
-type Verdict = "PASS" | "FAIL" | "WARNING";
+type Verdict = "PASS" | "FAIL" | "WARNING" | "EXTERNAL";
 
 type TestResult = {
   id: string;
@@ -75,8 +75,9 @@ type Step = {
   name: string;
   module: string;
   expected: string;
-  run: (ctx: Ctx) => Promise<{ actual: string; recordId?: string | null; warning?: boolean }>;
+  run: (ctx: Ctx) => Promise<{ actual: string; recordId?: string | null; warning?: boolean; external?: boolean }>;
 };
+
 
 const round2 = (n: number) => Math.round(Number(n || 0) * 100) / 100;
 const near = (a: number, b: number, tol = 0.02) => Math.abs(Number(a) - Number(b)) <= tol;
