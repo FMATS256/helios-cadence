@@ -53,7 +53,7 @@ export const Route = createFileRoute("/system-test")({
 
 const TEST_MARKER = "[SYSTEM TEST]";
 
-type Verdict = "PASS" | "FAIL" | "WARNING";
+type Verdict = "PASS" | "FAIL" | "WARNING" | "EXTERNAL";
 
 type TestResult = {
   id: string;
@@ -75,8 +75,9 @@ type Step = {
   name: string;
   module: string;
   expected: string;
-  run: (ctx: Ctx) => Promise<{ actual: string; recordId?: string | null; warning?: boolean }>;
+  run: (ctx: Ctx) => Promise<{ actual: string; recordId?: string | null; warning?: boolean; external?: boolean }>;
 };
+
 
 const round2 = (n: number) => Math.round(Number(n || 0) * 100) / 100;
 const near = (a: number, b: number, tol = 0.02) => Math.abs(Number(a) - Number(b)) <= tol;
@@ -650,10 +651,33 @@ function buildSteps(email: string): Step[] {
       },
     },
     {
+      id: "audit-coverage", module: "Synchronisation", name: "Every mutation wrote an audit entry",
+      expected: "Audit log contains an entry for each mutating test operation",
+      run: async (ctx) => {
+        const snap = ctx.finalSnapshot ?? (await verifySystemTest({ data: { customer_id: ctx.corp.id } }));
+        const actions: string[] = snap.auditActions ?? [];
+        const blob = actions.join("|");
+        const need = [
+          ["customer created", /customer_created|created_customer/],
+          ["package change", /package/],
+          ["payment", /payment/],
+          ["service state", /suspend|resume|service_/],
+          ["ticket", /ticket/],
+          ["document", /document|kyc/],
+          ["equipment", /asset|equipment/],
+        ] as const;
+        const missing = need.filter(([, re]) => !re.test(blob)).map(([label]) => label);
+        if (!actions.length) throw new Error("no audit entries for the test account");
+        if (missing.length) return { actual: `${actions.length} entries · no audit trail for: ${missing.join(", ")}`, warning: true, recordId: ctx.corp.id };
+        return { actual: `${actions.length} audit entries covering all mutations`, recordId: ctx.corp.id };
+      },
+    },
+    {
       id: "final-360", module: "Customer 360", name: "Customer 360 reflects every module",
       expected: "Aggregator returns services, invoices, payments, tickets, assets and documents",
       run: async (ctx) => {
         const c360: any = await getCustomer360({ data: { account_number: ctx.corp.account_number } });
+        ctx.c360 = c360;
         const counts = {
           subscriptions: (c360.subscriptions ?? []).length,
           invoices: (c360.invoices ?? []).length,
@@ -666,20 +690,62 @@ function buildSteps(email: string): Step[] {
       },
     },
     {
+      id: "sync-realtime", module: "Synchronisation", name: "Live refetch agrees across all modules",
+      expected: "Customer 360, Billing, Invoices, Payments, Subscriptions, Services, Reports and Dashboard report the same figures without a reload",
+      run: async (ctx) => {
+        const [c360, billing, inv, pay, snap, mrrReport] = await Promise.all([
+          getCustomer360({ data: { account_number: ctx.corp.account_number } }) as any,
+          getCustomerBilling({ data: { customer_id: ctx.corp.id } }) as any,
+          getInvoicesOverview({ data: { limit: 500 } }),
+          getPaymentsOverview({ data: { limit: 500 } }),
+          verifySystemTest({ data: { customer_id: ctx.corp.id } }),
+          runReport({ data: { key: "mrr" } }) as any,
+        ]);
+        const mismatches: string[] = [];
+        const invRows = (inv.invoices ?? []).filter((i: any) => i.customer_id === ctx.corp.id);
+        const payRows = (pay.payments ?? []).filter((p: any) => p.customer_id === ctx.corp.id);
+        if (invRows.length !== snap.counts.invoices) mismatches.push(`invoices ledger ${invRows.length} vs 360 ${snap.counts.invoices}`);
+        if (payRows.length !== snap.counts.payments) mismatches.push(`payments ledger ${payRows.length} vs 360 ${snap.counts.payments}`);
+        if (!near(round2(billing.summary.outstanding), round2(snap.summary.outstanding), 0.05))
+          mismatches.push(`outstanding billing ${billing.summary.outstanding} vs 360 ${snap.summary.outstanding}`);
+        const c360Subs = (c360.subscriptions ?? []).length;
+        if (c360Subs !== snap.counts.subscriptions) mismatches.push(`subscriptions 360 ${c360Subs} vs snapshot ${snap.counts.subscriptions}`);
+        const reportRow = (mrrReport.rows ?? []).find((r: any) => String(r.account_number ?? "") === ctx.corp.account_number);
+        if (reportRow && !near(round2(Number(reportRow.mrr ?? reportRow.amount ?? snap.summary.mrr)), round2(snap.summary.mrr), 0.5))
+          mismatches.push(`reports MRR ${reportRow.mrr ?? reportRow.amount} vs 360 ${snap.summary.mrr}`);
+        if (mismatches.length) throw new Error(mismatches.join("; "));
+        return {
+          actual: `invoices ${invRows.length} · payments ${payRows.length} · subs ${c360Subs} · outstanding ${money(snap.summary.outstanding)} · MRR ${money(snap.summary.mrr)} — all modules agree`,
+          recordId: ctx.corp.id,
+        };
+      },
+    },
+    {
       id: "email-suite", module: "Email", name: "Send every email template",
-      expected: `All registered templates delivered to ${email}`,
+      expected: `All registered templates accepted by the email provider for ${email}`,
       run: async () => {
         const res: any = await runEmailTemplateSuite({ data: { to: email } });
-        const failed = res.results.filter((r: any) => !r.ok);
-        if (failed.length === res.total) throw new Error(failed[0]?.reason ?? "all templates failed");
-        if (failed.length) {
-          return { actual: `${res.sent}/${res.total} sent · failed: ${failed.map((f: any) => f.template).join(", ")}`, warning: true };
+        if (res.errors > 0) {
+          throw new Error(`${res.errors}/${res.total} templates failed with integration errors — ${res.firstError}`);
         }
-        return { actual: `${res.sent}/${res.total} templates sent` };
+        if (res.domainPending) {
+          return {
+            actual: `blocked by external dependency — sender domain/DNS verification pending (${res.externalReason ?? "no verified sender"}). Rerun once the domain is active.`,
+            external: true,
+          };
+        }
+        if (res.external > 0 || res.suppressed > 0) {
+          return {
+            actual: `${res.sent}/${res.total} accepted · ${res.external} blocked by pending sender domain · ${res.suppressed} suppressed recipient`,
+            warning: true,
+          };
+        }
+        return { actual: `${res.sent}/${res.total} templates accepted by the email provider` };
       },
     },
   ];
 }
+
 
 function buildCsv(ex: any): string {
   const out: string[] = [];
@@ -696,8 +762,9 @@ function buildCsv(ex: any): string {
 }
 
 function verdictTone(v: Verdict) {
-  return v === "PASS" ? "success" : v === "WARNING" ? "warning" : "danger";
+  return v === "PASS" ? "success" : v === "WARNING" ? "warning" : v === "EXTERNAL" ? "info" : "danger";
 }
+
 
 function SystemTestPage() {
   const qc = useQueryClient();
@@ -717,8 +784,10 @@ function SystemTestPage() {
     const pass = results.filter((r) => r.verdict === "PASS").length;
     const fail = results.filter((r) => r.verdict === "FAIL").length;
     const warn = results.filter((r) => r.verdict === "WARNING").length;
-    return { pass, fail, warn, total: results.length, ms: results.reduce((s, r) => s + r.ms, 0) };
+    const external = results.filter((r) => r.verdict === "EXTERNAL").length;
+    return { pass, fail, warn, external, total: results.length, ms: results.reduce((s, r) => s + r.ms, 0) };
   }, [results]);
+
 
   async function runAll() {
     if (running) return;
@@ -741,7 +810,7 @@ function SystemTestPage() {
         const r = await step.run(ctxRef.current);
         setResults((prev) => [...prev, {
           id: step.id, name: step.name, module: step.module, expected: step.expected,
-          actual: r.actual, verdict: r.warning ? "WARNING" : "PASS",
+          actual: r.actual, verdict: r.external ? "EXTERNAL" : r.warning ? "WARNING" : "PASS",
           at: new Date().toISOString(), ms: Math.round(performance.now() - t0),
           recordId: r.recordId ?? null,
         }]);
@@ -806,15 +875,17 @@ function SystemTestPage() {
       />
 
       <StatChipRow
-        cols={5}
+        cols={6}
         chips={[
           { label: "Tests run", value: stats.total, color: "oklch(0.45 0.05 265)" },
           { label: "Passed", value: stats.pass, color: "oklch(0.6 0.15 150)" },
           { label: "Warnings", value: stats.warn, color: "oklch(0.75 0.16 75)", text: "oklch(0.25 0.08 75)" },
           { label: "Failed", value: stats.fail, color: "oklch(0.6 0.2 20)" },
-          { label: "Duration", value: `${(stats.ms / 1000).toFixed(1)}s`, color: "oklch(0.6 0.14 240)" },
+          { label: "External deps", value: stats.external, color: "oklch(0.6 0.14 240)" },
+          { label: "Duration", value: `${(stats.ms / 1000).toFixed(1)}s`, color: "oklch(0.5 0.06 265)" },
         ]}
       />
+
 
       <Card>
         <CardContent className="p-4 space-y-4">
@@ -830,7 +901,9 @@ function SystemTestPage() {
                 { tone: "sky", icon: Mail, label: "Email suite only", disabled: running || purging, onClick: async () => {
                   try {
                     const res: any = await runEmailTemplateSuite({ data: { to: email.trim() } });
-                    toast.success(`${res.sent}/${res.total} templates sent`);
+                    if (res.errors > 0) toast.error(`${res.errors}/${res.total} templates failed — ${res.firstError}`);
+                    else if (res.domainPending) toast.warning(`Sender domain verification still pending — 0/${res.total} sent`);
+                    else toast.success(`${res.sent}/${res.total} templates accepted`);
                   } catch (e: any) { toast.error(e?.message ?? "Email suite failed"); }
                 } },
                 { tone: "indigo", icon: Download, label: "Export results", onClick: downloadCsv, disabled: !results.length },

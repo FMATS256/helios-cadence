@@ -86,7 +86,29 @@ export const uploadTestDocument = createServerFn({ method: "POST" })
     return { file_path: path, file_name: path.split("/").pop()!, mime_type: "text/plain", file_size: body.byteLength };
   });
 
-/** Send every registered email template to a target inbox and report per-template status. */
+/**
+ * Send every registered email template to a target inbox.
+ * Each result is classified so the dashboard can tell an application/integration
+ * failure apart from an external dependency (sender domain / DNS not verified yet).
+ */
+const EXTERNAL_EMAIL_CODES = new Set([
+  "no_matching_sender",
+  "domain_not_verified",
+  "domain_not_found",
+  "sender_domain_not_verified",
+  "emails_disabled",
+]);
+
+function classifyEmailError(e: any): { kind: "external" | "error"; reason: string } {
+  const code = String(e?.code ?? "");
+  const msg = String(e?.message ?? e ?? "");
+  const blob = `${code} ${msg}`.toLowerCase();
+  const external =
+    EXTERNAL_EMAIL_CODES.has(code) ||
+    /no_matching_sender|domain_not_verified|not verified|awaiting_dns|provisioning|no matching sender|emails_disabled/.test(blob);
+  return { kind: external ? "external" : "error", reason: code ? `${code}: ${msg}` : msg };
+}
+
 export const runEmailTemplateSuite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { to: string }) => input)
@@ -96,20 +118,41 @@ export const runEmailTemplateSuite = createServerFn({ method: "POST" })
     if (!/@/.test(data.to || "")) throw new Error("A valid recipient email is required");
     const { TEMPLATES } = await import("./email-templates/registry");
     const { sendTemplateEmail } = await import("./email-templates/send-email");
-    const results: Array<{ template: string; ok: boolean; reason?: string }> = [];
+    const results: Array<{ template: string; ok: boolean; kind: "sent" | "suppressed" | "external" | "error"; reason?: string }> = [];
     for (const [name, tpl] of Object.entries(TEMPLATES)) {
       try {
         const res = await sendTemplateEmail(name, data.to, {
           templateData: (tpl as any).previewData ?? {},
           idempotencyKey: `systest-${name}-${Date.now()}`,
         });
-        results.push({ template: name, ok: res.sent, reason: res.sent ? undefined : res.reason });
+        results.push(
+          res.sent
+            ? { template: name, ok: true, kind: "sent" }
+            : { template: name, ok: false, kind: "suppressed", reason: res.reason },
+        );
       } catch (e: any) {
-        results.push({ template: name, ok: false, reason: e?.message ?? String(e) });
+        const { kind, reason } = classifyEmailError(e);
+        results.push({ template: name, ok: false, kind, reason });
       }
     }
-    return { results, sent: results.filter((r) => r.ok).length, total: results.length };
+    const sent = results.filter((r) => r.kind === "sent").length;
+    const external = results.filter((r) => r.kind === "external").length;
+    const suppressed = results.filter((r) => r.kind === "suppressed").length;
+    const errors = results.filter((r) => r.kind === "error");
+    return {
+      results,
+      sent,
+      external,
+      suppressed,
+      errors: errors.length,
+      total: results.length,
+      // true when nothing could be sent purely because the sender domain is pending
+      domainPending: sent === 0 && external > 0 && errors.length === 0,
+      firstError: errors[0]?.reason ?? null,
+      externalReason: results.find((r) => r.kind === "external")?.reason ?? null,
+    };
   });
+
 
 /** Remove every record created by the test suite. Real customers are never touched. */
 export const purgeSystemTestData = createServerFn({ method: "POST" })
