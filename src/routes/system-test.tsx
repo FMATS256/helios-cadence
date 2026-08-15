@@ -784,8 +784,10 @@ function SystemTestPage() {
     const pass = results.filter((r) => r.verdict === "PASS").length;
     const fail = results.filter((r) => r.verdict === "FAIL").length;
     const warn = results.filter((r) => r.verdict === "WARNING").length;
-    return { pass, fail, warn, total: results.length, ms: results.reduce((s, r) => s + r.ms, 0) };
+    const external = results.filter((r) => r.verdict === "EXTERNAL").length;
+    return { pass, fail, warn, external, total: results.length, ms: results.reduce((s, r) => s + r.ms, 0) };
   }, [results]);
+
 
   async function runAll() {
     if (running) return;
