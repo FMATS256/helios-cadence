@@ -875,15 +875,17 @@ function SystemTestPage() {
       />
 
       <StatChipRow
-        cols={5}
+        cols={6}
         chips={[
           { label: "Tests run", value: stats.total, color: "oklch(0.45 0.05 265)" },
           { label: "Passed", value: stats.pass, color: "oklch(0.6 0.15 150)" },
           { label: "Warnings", value: stats.warn, color: "oklch(0.75 0.16 75)", text: "oklch(0.25 0.08 75)" },
           { label: "Failed", value: stats.fail, color: "oklch(0.6 0.2 20)" },
-          { label: "Duration", value: `${(stats.ms / 1000).toFixed(1)}s`, color: "oklch(0.6 0.14 240)" },
+          { label: "External deps", value: stats.external, color: "oklch(0.6 0.14 240)" },
+          { label: "Duration", value: `${(stats.ms / 1000).toFixed(1)}s`, color: "oklch(0.5 0.06 265)" },
         ]}
       />
+
 
       <Card>
         <CardContent className="p-4 space-y-4">
