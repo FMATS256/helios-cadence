@@ -810,7 +810,7 @@ function SystemTestPage() {
         const r = await step.run(ctxRef.current);
         setResults((prev) => [...prev, {
           id: step.id, name: step.name, module: step.module, expected: step.expected,
-          actual: r.actual, verdict: r.warning ? "WARNING" : "PASS",
+          actual: r.actual, verdict: r.external ? "EXTERNAL" : r.warning ? "WARNING" : "PASS",
           at: new Date().toISOString(), ms: Math.round(performance.now() - t0),
           recordId: r.recordId ?? null,
         }]);
