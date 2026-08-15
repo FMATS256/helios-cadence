@@ -901,7 +901,9 @@ function SystemTestPage() {
                 { tone: "sky", icon: Mail, label: "Email suite only", disabled: running || purging, onClick: async () => {
                   try {
                     const res: any = await runEmailTemplateSuite({ data: { to: email.trim() } });
-                    toast.success(`${res.sent}/${res.total} templates sent`);
+                    if (res.errors > 0) toast.error(`${res.errors}/${res.total} templates failed — ${res.firstError}`);
+                    else if (res.domainPending) toast.warning(`Sender domain verification still pending — 0/${res.total} sent`);
+                    else toast.success(`${res.sent}/${res.total} templates accepted`);
                   } catch (e: any) { toast.error(e?.message ?? "Email suite failed"); }
                 } },
                 { tone: "indigo", icon: Download, label: "Export results", onClick: downloadCsv, disabled: !results.length },
