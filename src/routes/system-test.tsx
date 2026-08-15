@@ -762,8 +762,9 @@ function buildCsv(ex: any): string {
 }
 
 function verdictTone(v: Verdict) {
-  return v === "PASS" ? "success" : v === "WARNING" ? "warning" : "danger";
+  return v === "PASS" ? "success" : v === "WARNING" ? "warning" : v === "EXTERNAL" ? "info" : "danger";
 }
+
 
 function SystemTestPage() {
   const qc = useQueryClient();
