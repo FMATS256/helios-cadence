@@ -6,8 +6,8 @@ import { renderTemplateHtml } from './render.server'
 // Server-only: reads LOVABLE_API_KEY. Never import from client components.
 
 const SITE_NAME = "helios-cadence"
-const SENDER_DOMAIN = "notify.management.imtsolutions.co.zw"
-const FROM_DOMAIN = "management.imtsolutions.co.zw"
+const SENDER_DOMAIN = "notify.notifications.imtsolutions.co.zw"
+const FROM_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 
 export type SendTemplateEmailResult =
   | { sent: true }
