@@ -10,9 +10,9 @@ import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 // Configuration
 const SITE_NAME = "helios-cadence"
-const SENDER_DOMAIN = "notify.management.imtsolutions.co.zw"
+const SENDER_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 const ROOT_DOMAIN = "management.imtsolutions.co.zw"
-const FROM_DOMAIN = "management.imtsolutions.co.zw"
+const FROM_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 const SITE_URL = `https://${ROOT_DOMAIN}`
 
 // The SDK handler owns verification, dispatch, and retry semantics; this file

@@ -126,8 +126,8 @@ export async function sendRawEmail(opts: {
     await sendLovableEmail(
       {
         to: opts.to,
-        from: `IMT Solutions <noreply@management.imtsolutions.co.zw>`,
-        sender_domain: "notify.management.imtsolutions.co.zw",
+        from: `IMT Solutions <noreply@notify.notifications.imtsolutions.co.zw>`,
+        sender_domain: "notify.notifications.imtsolutions.co.zw",
         subject: opts.subject,
         html,
         text: opts.body,
