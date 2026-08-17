@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, EmailShell, styles } from './_brand'
+import { BRAND, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   subject?: string
   message?: string
   recipientName?: string
+  title?: string
   senderName?: string
 }
 
@@ -14,6 +15,7 @@ export const GeneralMessageEmail = ({
   subject = 'A message from ' + BRAND.name,
   message = '',
   recipientName,
+  title,
   senderName,
 }: Props) => (
   <EmailShell
