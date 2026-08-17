@@ -250,7 +250,19 @@ function OnboardingWizard() {
                   ? "Corporate accounts require a designated contact person for portal invites and billing notices."
                   : "Personal accounts can leave this blank — we'll use the client's name as the contact."}
               </div>
-              <div className="space-y-2"><Label>{isCorporate ? "Full name *" : "Full name"}</Label><Input value={contact.full_name} onChange={(e) => setContact({ ...contact, full_name: e.target.value })} /></div>
+              <div className="grid grid-cols-[110px_1fr] gap-2">
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Select value={contact.title || "none"} onValueChange={(v) => setContact({ ...contact, title: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {TITLES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>{isCorporate ? "Full name *" : "Full name"}</Label><Input value={contact.full_name} onChange={(e) => setContact({ ...contact, full_name: e.target.value })} /></div>
+              </div>
               <div className="space-y-2"><Label>Role</Label><Input value={contact.role} onChange={(e) => setContact({ ...contact, role: e.target.value })} placeholder="IT Manager, CFO…" /></div>
               <div className="space-y-2"><Label>Email</Label><Input type="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} /></div>
               <div className="space-y-2"><Label>Phone</Label><Input value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} /></div>
