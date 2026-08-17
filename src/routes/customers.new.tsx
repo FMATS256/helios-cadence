@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TITLES } from "@/lib/email-templates/_brand";
+import { TITLES } from "@/lib/titles";
 import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight, Search, UserSquare2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
