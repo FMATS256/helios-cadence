@@ -19,6 +19,30 @@ export interface SendTemplateEmailOptions {
   replyTo?: string
 }
 
+async function lookupTitle(supabase: any, email: string): Promise<string | undefined> {
+  try {
+    const [contact, customer] = await Promise.all([
+      supabase
+        .from('customer_contacts')
+        .select('title')
+        .ilike('email', email)
+        .not('title', 'is', null)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('customers')
+        .select('title')
+        .ilike('primary_email', email)
+        .not('title', 'is', null)
+        .limit(1)
+        .maybeSingle(),
+    ])
+    return (contact?.data?.title || customer?.data?.title) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 function serverSupabase() {
   const url = process.env.SUPABASE_URL!
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
