@@ -6,7 +6,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 interface LineItem { description: string; quantity: number; unit_price: number; line_total: number }
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   invoiceNumber?: string
   issueDate?: string
   dueDate?: string
@@ -23,7 +23,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const InvoiceEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   invoiceNumber = '—',
   issueDate,
   dueDate,
@@ -40,7 +40,7 @@ export const InvoiceEmail = ({
     title={`Invoice ${invoiceNumber}`}
     subtitle={`Total ${fmt(total, currency)} · Due ${dueDate ?? '—'}`}
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       A new invoice has been issued to your account. Full details are below.
     </Text>

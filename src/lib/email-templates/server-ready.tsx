@@ -5,7 +5,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   serverName?: string
   provider?: string
   ipAddress?: string
@@ -17,7 +17,7 @@ interface Props {
 
 export const ServerReadyEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   serverName = 'your server',
   provider,
   ipAddress,
@@ -32,7 +32,7 @@ export const ServerReadyEmail = ({
     title="Your server is live"
     subtitle="Provisioning completed successfully. Below are your access details."
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       Your new cloud server has been provisioned and is ready to use. Root credentials have
       been generated automatically and securely stored in your credentials vault.

@@ -5,7 +5,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   receiptNumber?: string
   amount?: number
   currency?: string
@@ -20,7 +20,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const ReceiptEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   receiptNumber = '—',
   amount = 0,
   currency = 'USD',
@@ -35,7 +35,7 @@ export const ReceiptEmail = ({
     title="Thank you for your payment"
     subtitle={`${fmt(amount, currency)} received. Receipt ${receiptNumber}.`}
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       We've received your payment. This email is your official receipt — please retain it for your
       records.

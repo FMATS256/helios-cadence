@@ -5,7 +5,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   planName?: string
   renewalDate?: string
   daysUntilRenewal?: number
@@ -20,7 +20,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const RenewalReminderEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   planName = 'Your subscription',
   renewalDate,
   daysUntilRenewal = 0,
@@ -35,7 +35,7 @@ export const RenewalReminderEmail = ({
     title={`${planName} renews soon`}
     subtitle={`Auto-renewal on ${renewalDate ?? '—'} · ${fmt(amount, currency)} / ${billingCycle}`}
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       Your subscription is scheduled to renew in <strong>{daysUntilRenewal} day(s)</strong>.
       No action is required — service will continue uninterrupted and an invoice will be issued

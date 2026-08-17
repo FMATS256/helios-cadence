@@ -5,7 +5,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   accountNumber?: string
   accountManagerName?: string
   accountManagerEmail?: string
@@ -16,7 +16,7 @@ interface Props {
 
 export const WelcomeEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   accountNumber = '—',
   accountManagerName,
   accountManagerEmail,
@@ -30,7 +30,7 @@ export const WelcomeEmail = ({
     title={`Welcome to ${BRAND.name}`}
     subtitle="Your account is ready. Everything you need to manage your services is one click away."
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       Thank you for choosing {BRAND.name}. We're delighted to have you on board. Below are your
       account details and your dedicated account manager's contact information.

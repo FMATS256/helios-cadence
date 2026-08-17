@@ -5,7 +5,7 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
-  title?: string
+  recipientTitle?: string
   productName?: string
   activationCode?: string
   seats?: number
@@ -16,7 +16,7 @@ interface Props {
 
 export const LicenseIssuedEmail = ({
   companyName = '',
-  title,
+  recipientTitle,
   productName = 'Your license',
   activationCode = 'XXXX-XXXX-XXXX-XXXX',
   seats,
@@ -30,7 +30,7 @@ export const LicenseIssuedEmail = ({
     title={`Get ready to activate ${productName}`}
     subtitle="Your activation code is ready. Details below."
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       Thank you for your order. Your license has been issued. Use the activation code below during
       product setup.

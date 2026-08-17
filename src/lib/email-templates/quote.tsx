@@ -6,9 +6,8 @@ import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 interface LineItem { description: string; quantity: number; unit_price: number; line_total: number }
 interface Props {
   companyName?: string
-  title?: string
   quoteNumber?: string
-  title?: string
+  recipientTitle?: string
   issueDate?: string
   validUntil?: string
   currency?: string
@@ -25,7 +24,6 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const QuoteEmail = ({
   companyName = '',
-  title,
   quoteNumber = '—',
   title = 'Quotation',
   issueDate,
@@ -46,7 +44,7 @@ export const QuoteEmail = ({
     title={`Quote ${quoteNumber}`}
     subtitle={`${title} · ${fmt(total, currency)}`}
   >
-    <Text style={styles.text}>{greeting(title, companyName)}</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       {message || (hasDoc
         ? 'Please find your quotation below. The attached document contains the full breakdown and terms.'
