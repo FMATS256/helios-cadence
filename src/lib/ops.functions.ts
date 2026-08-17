@@ -743,6 +743,7 @@ export const updateCustomerRecord = createServerFn({ method: "POST" })
   .inputValidator((input: {
     customer_id: string;
     company_name?: string;
+    title?: string;
     industry?: string;
     primary_email?: string;
     primary_phone?: string;
@@ -756,7 +757,7 @@ export const updateCustomerRecord = createServerFn({ method: "POST" })
     if (!hasRole) throw new Error("Your account needs a staff role to edit customers.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const patch: any = {};
-    for (const k of ["company_name","industry","primary_email","primary_phone","website","status","billing_address","notes"] as const) {
+    for (const k of ["company_name","title","industry","primary_email","primary_phone","website","status","billing_address","notes"] as const) {
       if (data[k] !== undefined) patch[k] = (data[k] as any) === "" ? null : data[k];
     }
     const { data: before } = await supabaseAdmin
