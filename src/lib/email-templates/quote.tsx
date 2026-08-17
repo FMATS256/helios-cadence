@@ -24,6 +24,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const QuoteEmail = ({
   companyName = '',
+  recipientTitle,
   quoteNumber = '—',
   title = 'Quotation',
   issueDate,
