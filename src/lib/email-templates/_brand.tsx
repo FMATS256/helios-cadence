@@ -6,11 +6,35 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
   Text,
 } from '@react-email/components'
+
+/** Courtesy titles we support across the platform. */
+export const TITLES = [
+  'Mr',
+  'Mrs',
+  'Ms',
+  'Miss',
+  'Dr',
+  'Prof',
+  'Eng',
+  'Rev',
+  'Hon',
+  'Sr',
+] as const
+export type Title = (typeof TITLES)[number]
+
+/** "Dear Mr Matare," / "Dear Acme Ltd," / "Hello there," */
+export function greeting(title?: string | null, name?: string | null) {
+  const clean = (name ?? '').trim()
+  const t = (title ?? '').trim().replace(/\.$/, '')
+  if (!clean) return 'Hello there,'
+  return `Dear ${t ? `${t} ` : ''}${clean},`
+}
 
 // Stripe / Linear / Vercel–inspired minimal transactional shell.
 // White canvas, generous whitespace, single teal accent, hairline dividers,
