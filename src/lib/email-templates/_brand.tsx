@@ -6,11 +6,15 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
   Text,
 } from '@react-email/components'
+
+export { TITLES, greeting } from '@/lib/titles'
+export type { Title } from '@/lib/titles'
 
 // Stripe / Linear / Vercel–inspired minimal transactional shell.
 // White canvas, generous whitespace, single teal accent, hairline dividers,
@@ -18,10 +22,12 @@ import {
 
 export const BRAND = {
   name: 'IMT Solutions',
-  tagline: 'Cloud · Cybersecurity · Managed IT',
-  teal: '#0F9F87',
-  tealDark: '#0B806D',
-  navy: '#0B1E3F',
+  tagline: 'Your Trusted Partner for Business Technologies',
+  /** Primary brand blue (from the IMT Solutions mark). `teal` kept as alias. */
+  primary: '#1F6BE0',
+  teal: '#1F6BE0',
+  tealDark: '#1550AE',
+  navy: '#16233F',
   ink: '#0B1220',
   body: '#3B4658',
   mute: '#6B7280',
@@ -33,7 +39,8 @@ export const BRAND = {
   supportPhone: '+263 (0) 8677 000 000',
   address: 'IMT Solutions, Harare, Zimbabwe',
   siteUrl: 'https://management.imtsolutions.co.zw',
-  logoUrl: 'https://management.imtsolutions.co.zw/favicon.ico',
+  logoUrl:
+    'https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png',
 }
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -49,8 +56,10 @@ export const styles = {
     overflow: 'hidden' as const,
   },
 
-  // Header — thin wordmark bar, no colour block
-  header: { padding: '28px 40px 8px' },
+  // Header — brand bar + logo lockup
+  brandBar: { height: '4px', lineHeight: '4px', fontSize: 0, backgroundColor: BRAND.primary },
+  header: { padding: '26px 40px 6px' },
+  headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
   headerBrand: {
     color: BRAND.ink,
     fontSize: '15px',
@@ -58,11 +67,17 @@ export const styles = {
     letterSpacing: '-0.01em',
     margin: 0,
   },
+  headerTagline: {
+    color: BRAND.faint,
+    fontSize: '11px',
+    letterSpacing: '0.06em',
+    margin: '10px 0 0',
+  },
   headerAccent: {
     display: 'inline-block',
     width: '22px',
     height: '3px',
-    backgroundColor: BRAND.teal,
+    backgroundColor: BRAND.primary,
     borderRadius: '2px',
     margin: '14px 0 0',
   },
@@ -190,9 +205,16 @@ export function EmailShell({
       <Preview>{preview}</Preview>
       <Body style={styles.main}>
         <Container style={styles.container}>
+          <Section style={styles.brandBar}>&nbsp;</Section>
           <Section style={styles.header}>
-            <Text style={styles.headerBrand}>{BRAND.name}</Text>
-            <span style={styles.headerAccent as React.CSSProperties} />
+            <Img
+              src={BRAND.logoUrl}
+              alt={BRAND.name}
+              width="196"
+              height="45"
+              style={styles.headerLogo}
+            />
+            <Text style={styles.headerTagline}>{BRAND.tagline}</Text>
           </Section>
           <Section style={styles.hero}>
             {kicker && <Text style={styles.heroKicker}>{kicker}</Text>}

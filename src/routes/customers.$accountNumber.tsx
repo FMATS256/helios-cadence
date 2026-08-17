@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TITLES } from "@/lib/titles";
 import { toast } from "sonner";
 import {
   KeyRound, LifeBuoy, FileText, CreditCard, Receipt, Server, DollarSign, TrendingUp,
@@ -220,7 +222,7 @@ function Customer360() {
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
 
   const [editCustOpen, setEditCustOpen] = useState(false);
-  const [custForm, setCustForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", billing_address: "" });
+  const [custForm, setCustForm] = useState({ company_name: "", title: "", industry: "", primary_email: "", primary_phone: "", website: "", billing_address: "" });
   const editCustomer = useMutation({
     mutationFn: async () => updateCust({ data: { customer_id: view!.customer.id, ...custForm } }),
     onSuccess: () => { setEditCustOpen(false); qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] }); toast.success("Customer updated"); },
@@ -450,7 +452,7 @@ function Customer360() {
           <Button size="sm" variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => { if (confirm(`Suspend ${customer.company_name}?`)) toggleLifecycle.mutate("suspend"); }}>
             <XCircle className="h-4 w-4 mr-1.5" />{customer.status === "active" ? "Suspend" : "Terminate"}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}>
+          <Button size="sm" variant="outline" onClick={() => { setCustForm({ company_name: customer.company_name || "", title: (customer as any).title || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}>
             <Pencil className="h-4 w-4 mr-1.5" />Details
           </Button>
         </div>
@@ -494,7 +496,7 @@ function Customer360() {
           stats={stats}
           onLifecycle={(a: "suspend" | "resume") => toggleLifecycle.mutate(a)}
           onSendReminder={() => sendReminder.mutate()}
-          onEdit={() => { setCustForm({ company_name: customer.company_name || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}
+          onEdit={() => { setCustForm({ company_name: customer.company_name || "", title: (customer as any).title || "", industry: customer.industry || "", primary_email: customer.primary_email || "", primary_phone: customer.primary_phone || "", website: customer.website || "", billing_address: (customer as any).billing_address || "" }); setEditCustOpen(true); }}
           onRefresh={() => qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] })}
         />
       </div>
@@ -506,7 +508,17 @@ function Customer360() {
         <DialogContent>
           <DialogHeader><DialogTitle>Edit customer · {customer.company_name}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1"><Label>Company name</Label><Input value={custForm.company_name} onChange={(e) => setCustForm({ ...custForm, company_name: e.target.value })} /></div>
+            <div className="space-y-1">
+              <Label>Title</Label>
+              <Select value={custForm.title || "none"} onValueChange={(v) => setCustForm({ ...custForm, title: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {TITLES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><Label>Name</Label><Input value={custForm.company_name} onChange={(e) => setCustForm({ ...custForm, company_name: e.target.value })} /></div>
             <div className="space-y-1"><Label>Industry</Label><Input value={custForm.industry} onChange={(e) => setCustForm({ ...custForm, industry: e.target.value })} /></div>
             <div className="space-y-1"><Label>Website</Label><Input value={custForm.website} onChange={(e) => setCustForm({ ...custForm, website: e.target.value })} /></div>
             <div className="space-y-1"><Label>Primary email</Label><Input type="email" value={custForm.primary_email} onChange={(e) => setCustForm({ ...custForm, primary_email: e.target.value })} /></div>

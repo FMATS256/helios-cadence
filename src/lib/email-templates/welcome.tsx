@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  recipientTitle?: string
   accountNumber?: string
   accountManagerName?: string
   accountManagerEmail?: string
@@ -14,7 +15,8 @@ interface Props {
 }
 
 export const WelcomeEmail = ({
-  companyName = 'there',
+  companyName = '',
+  recipientTitle,
   accountNumber = '—',
   accountManagerName,
   accountManagerEmail,
@@ -28,7 +30,7 @@ export const WelcomeEmail = ({
     title={`Welcome to ${BRAND.name}`}
     subtitle="Your account is ready. Everything you need to manage your services is one click away."
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       Thank you for choosing {BRAND.name}. We're delighted to have you on board. Below are your
       account details and your dedicated account manager's contact information.

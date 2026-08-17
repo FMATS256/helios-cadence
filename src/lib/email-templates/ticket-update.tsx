@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  recipientTitle?: string
   ticketNumber?: string
   subject?: string
   status?: string
@@ -23,7 +24,8 @@ const statusColor = (s?: string) => {
 }
 
 export const TicketUpdateEmail = ({
-  companyName = 'there',
+  companyName = '',
+  recipientTitle,
   ticketNumber = '—',
   subject = 'Your support request',
   status = 'open',
@@ -38,7 +40,7 @@ export const TicketUpdateEmail = ({
     title={subject}
     subtitle={`Ticket ${ticketNumber} — Status updated to ${status}`}
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       There's an update on your support request. Full details are below.
     </Text>

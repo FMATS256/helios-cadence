@@ -1075,6 +1075,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           role: string | null
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -1090,6 +1091,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           role?: string | null
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -1105,6 +1107,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           role?: string | null
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1433,6 +1436,7 @@ export type Database = {
           primary_phone: string | null
           status: string
           tags: string[]
+          title: string | null
           updated_at: string
           website: string | null
         }
@@ -1452,6 +1456,7 @@ export type Database = {
           primary_phone?: string | null
           status?: string
           tags?: string[]
+          title?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -1471,6 +1476,7 @@ export type Database = {
           primary_phone?: string | null
           status?: string
           tags?: string[]
+          title?: string | null
           updated_at?: string
           website?: string | null
         }

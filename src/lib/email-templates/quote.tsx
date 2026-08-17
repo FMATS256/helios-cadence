@@ -1,13 +1,14 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface LineItem { description: string; quantity: number; unit_price: number; line_total: number }
 interface Props {
   companyName?: string
   quoteNumber?: string
   title?: string
+  recipientTitle?: string
   issueDate?: string
   validUntil?: string
   currency?: string
@@ -23,7 +24,8 @@ const fmt = (n?: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n) || 0)
 
 export const QuoteEmail = ({
-  companyName = 'there',
+  companyName = '',
+  recipientTitle,
   quoteNumber = '—',
   title = 'Quotation',
   issueDate,
@@ -44,7 +46,7 @@ export const QuoteEmail = ({
     title={`Quote ${quoteNumber}`}
     subtitle={`${title} · ${fmt(total, currency)}`}
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       {message || (hasDoc
         ? 'Please find your quotation below. The attached document contains the full breakdown and terms.'

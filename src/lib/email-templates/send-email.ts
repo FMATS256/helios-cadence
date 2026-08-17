@@ -5,7 +5,7 @@ import { renderTemplateHtml } from './render.server'
 
 // Server-only: reads LOVABLE_API_KEY. Never import from client components.
 
-const SITE_NAME = "helios-cadence"
+const SITE_NAME = "IMT Solutions"
 const SENDER_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 const FROM_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 
@@ -17,6 +17,30 @@ export interface SendTemplateEmailOptions {
   templateData?: Record<string, any>
   idempotencyKey?: string
   replyTo?: string
+}
+
+async function lookupTitle(supabase: any, email: string): Promise<string | undefined> {
+  try {
+    const [contact, customer] = await Promise.all([
+      supabase
+        .from('customer_contacts')
+        .select('title')
+        .ilike('email', email)
+        .not('title', 'is', null)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('customers')
+        .select('title')
+        .ilike('primary_email', email)
+        .not('title', 'is', null)
+        .limit(1)
+        .maybeSingle(),
+    ])
+    return (contact?.data?.title || customer?.data?.title) ?? undefined
+  } catch {
+    return undefined
+  }
 }
 
 function serverSupabase() {
@@ -48,9 +72,17 @@ export async function sendTemplateEmail(
   if (!recipient) throw new Error('Recipient is required')
 
   const supabase = serverSupabase()
+
+  // Courtesy title (Mr/Mrs/Dr/Prof…) — resolved from the CRM when the caller
+  // did not supply one, so every email addresses the person properly.
+  const templateData = { ...(options.templateData ?? {}) }
+  if (!templateData.recipientTitle && recipient) {
+    templateData.recipientTitle = await lookupTitle(supabase, recipient)
+  }
+
   const { html, text, subject } = await renderTemplateHtml({
     templateName,
-    sampleDataOverride: options.templateData,
+    sampleDataOverride: templateData,
     supabase,
   })
 

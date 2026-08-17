@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, EmailShell, styles } from './_brand'
+import { BRAND, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   subject?: string
   message?: string
   recipientName?: string
+  recipientTitle?: string
   senderName?: string
 }
 
@@ -14,6 +15,7 @@ export const GeneralMessageEmail = ({
   subject = 'A message from ' + BRAND.name,
   message = '',
   recipientName,
+  recipientTitle,
   senderName,
 }: Props) => (
   <EmailShell
@@ -22,7 +24,7 @@ export const GeneralMessageEmail = ({
     title={subject}
     subtitle={`From the ${BRAND.name} team`}
   >
-    {recipientName && <Text style={styles.text}>Dear {recipientName},</Text>}
+    {recipientName && <Text style={styles.text}>{greeting(recipientTitle, recipientName)}</Text>}
     <Section style={styles.card}>
       {String(message)
         .split(/\n{2,}/)

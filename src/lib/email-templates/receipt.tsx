@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  recipientTitle?: string
   receiptNumber?: string
   amount?: number
   currency?: string
@@ -18,7 +19,8 @@ const fmt = (n?: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n) || 0)
 
 export const ReceiptEmail = ({
-  companyName = 'there',
+  companyName = '',
+  recipientTitle,
   receiptNumber = '—',
   amount = 0,
   currency = 'USD',
@@ -33,7 +35,7 @@ export const ReceiptEmail = ({
     title="Thank you for your payment"
     subtitle={`${fmt(amount, currency)} received. Receipt ${receiptNumber}.`}
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
     <Text style={styles.text}>
       We've received your payment. This email is your official receipt — please retain it for your
       records.
