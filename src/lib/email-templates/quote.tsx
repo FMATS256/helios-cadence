@@ -7,6 +7,7 @@ interface LineItem { description: string; quantity: number; unit_price: number; 
 interface Props {
   companyName?: string
   quoteNumber?: string
+  title?: string
   recipientTitle?: string
   issueDate?: string
   validUntil?: string
