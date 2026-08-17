@@ -48,9 +48,17 @@ export async function sendTemplateEmail(
   if (!recipient) throw new Error('Recipient is required')
 
   const supabase = serverSupabase()
+
+  // Courtesy title (Mr/Mrs/Dr/Prof…) — resolved from the CRM when the caller
+  // did not supply one, so every email addresses the person properly.
+  const templateData = { ...(options.templateData ?? {}) }
+  if (!templateData.recipientTitle && recipient) {
+    templateData.recipientTitle = await lookupTitle(supabase, recipient)
+  }
+
   const { html, text, subject } = await renderTemplateHtml({
     templateName,
-    sampleDataOverride: options.templateData,
+    sampleDataOverride: templateData,
     supabase,
   })
 
