@@ -9,7 +9,7 @@ import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 // Configuration
-const SITE_NAME = "helios-cadence"
+const SITE_NAME = "IMT Solutions"
 const SENDER_DOMAIN = "notify.notifications.imtsolutions.co.zw"
 const ROOT_DOMAIN = "management.imtsolutions.co.zw"
 const FROM_DOMAIN = "notify.notifications.imtsolutions.co.zw"
