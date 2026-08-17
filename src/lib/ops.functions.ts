@@ -5,6 +5,7 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
     company_name: string;
+    title?: string;
     account_type?: "corporate" | "personal";
     industry?: string;
     primary_email?: string;
@@ -24,6 +25,7 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
       .from("customers")
       .insert({
         company_name: data.company_name.trim(),
+        title: data.title?.trim() || null,
         account_type: data.account_type || "corporate",
         industry: data.industry?.trim() || null,
         primary_email: data.primary_email?.trim() || null,
