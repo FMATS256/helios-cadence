@@ -15,7 +15,6 @@ import {
 
 export { TITLES, greeting } from '@/lib/titles'
 export type { Title } from '@/lib/titles'
-import { greeting } from '@/lib/titles'
 
 // Stripe / Linear / Vercel–inspired minimal transactional shell.
 // White canvas, generous whitespace, single teal accent, hairline dividers,
