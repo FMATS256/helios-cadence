@@ -225,9 +225,16 @@ export function EmailShell({
       <Preview>{preview}</Preview>
       <Body style={styles.main}>
         <Container style={styles.container}>
+          <Section style={styles.brandBar}>&nbsp;</Section>
           <Section style={styles.header}>
-            <Text style={styles.headerBrand}>{BRAND.name}</Text>
-            <span style={styles.headerAccent as React.CSSProperties} />
+            <Img
+              src={BRAND.logoUrl}
+              alt={BRAND.name}
+              width="196"
+              height="45"
+              style={styles.headerLogo}
+            />
+            <Text style={styles.headerTagline}>{BRAND.tagline}</Text>
           </Section>
           <Section style={styles.hero}>
             {kicker && <Text style={styles.heroKicker}>{kicker}</Text>}
