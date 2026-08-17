@@ -76,8 +76,10 @@ export const styles = {
     overflow: 'hidden' as const,
   },
 
-  // Header — thin wordmark bar, no colour block
-  header: { padding: '28px 40px 8px' },
+  // Header — brand bar + logo lockup
+  brandBar: { height: '4px', lineHeight: '4px', fontSize: 0, backgroundColor: BRAND.primary },
+  header: { padding: '26px 40px 6px' },
+  headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
   headerBrand: {
     color: BRAND.ink,
     fontSize: '15px',
@@ -85,11 +87,17 @@ export const styles = {
     letterSpacing: '-0.01em',
     margin: 0,
   },
+  headerTagline: {
+    color: BRAND.faint,
+    fontSize: '11px',
+    letterSpacing: '0.06em',
+    margin: '10px 0 0',
+  },
   headerAccent: {
     display: 'inline-block',
     width: '22px',
     height: '3px',
-    backgroundColor: BRAND.teal,
+    backgroundColor: BRAND.primary,
     borderRadius: '2px',
     margin: '14px 0 0',
   },
