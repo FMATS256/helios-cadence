@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TITLES } from "@/lib/email-templates/_brand";
 import { Check, ChevronRight, ChevronLeft, Building2, User, Package, Sparkles, ArrowRight, Search, UserSquare2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,7 @@ function OnboardingWizard() {
   const [step, setStep] = useState(0);
   const [accountType, setAccountType] = useState<AccountType>("corporate");
   const [company, setCompany] = useState({ company_name: "", industry: "", website: "", status: "active", notes: "" });
-  const [contact, setContact] = useState({ full_name: "", email: "", phone: "", role: "Primary contact" });
+  const [contact, setContact] = useState({ full_name: "", title: "", email: "", phone: "", role: "Primary contact" });
   const [selected, setSelected] = useState<Record<string, { qty: number; price?: number }>>({});
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<string>("all");
@@ -93,6 +94,7 @@ function OnboardingWizard() {
       const cust = await createCustomer({
         data: {
           company_name: company.company_name,
+          title: isCorporate ? undefined : (contact.title || undefined),
           account_type: accountType,
           industry: isCorporate ? company.industry : "Personal",
           primary_email: isCorporate ? contact.email : (contact.email || undefined),
@@ -112,6 +114,7 @@ function OnboardingWizard() {
           customer_id: customerId,
           account_number: accountNumber,
           name: contactName,
+          title: contact.title || null,
           email: contact.email || null,
           phone: contact.phone || null,
           role: contact.role || null,
