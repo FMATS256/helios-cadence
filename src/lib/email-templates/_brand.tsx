@@ -42,10 +42,12 @@ export function greeting(title?: string | null, name?: string | null) {
 
 export const BRAND = {
   name: 'IMT Solutions',
-  tagline: 'Cloud · Cybersecurity · Managed IT',
-  teal: '#0F9F87',
-  tealDark: '#0B806D',
-  navy: '#0B1E3F',
+  tagline: 'Your Trusted Partner for Business Technologies',
+  /** Primary brand blue (from the IMT Solutions mark). `teal` kept as alias. */
+  primary: '#1F6BE0',
+  teal: '#1F6BE0',
+  tealDark: '#1550AE',
+  navy: '#16233F',
   ink: '#0B1220',
   body: '#3B4658',
   mute: '#6B7280',
