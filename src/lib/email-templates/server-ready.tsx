@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  title?: string
   serverName?: string
   provider?: string
   ipAddress?: string
@@ -16,6 +17,7 @@ interface Props {
 
 export const ServerReadyEmail = ({
   companyName = 'there',
+  title,
   serverName = 'your server',
   provider,
   ipAddress,
@@ -30,7 +32,7 @@ export const ServerReadyEmail = ({
     title="Your server is live"
     subtitle="Provisioning completed successfully. Below are your access details."
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(title, companyName)}</Text>
     <Text style={styles.text}>
       Your new cloud server has been provisioned and is ready to use. Root credentials have
       been generated automatically and securely stored in your credentials vault.

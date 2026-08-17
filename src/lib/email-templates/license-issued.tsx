@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  title?: string
   productName?: string
   activationCode?: string
   seats?: number
@@ -15,6 +16,7 @@ interface Props {
 
 export const LicenseIssuedEmail = ({
   companyName = 'there',
+  title,
   productName = 'Your license',
   activationCode = 'XXXX-XXXX-XXXX-XXXX',
   seats,
@@ -28,7 +30,7 @@ export const LicenseIssuedEmail = ({
     title={`Get ready to activate ${productName}`}
     subtitle="Your activation code is ready. Details below."
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(title, companyName)}</Text>
     <Text style={styles.text}>
       Thank you for your order. Your license has been issued. Use the activation code below during
       product setup.

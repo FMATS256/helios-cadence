@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  title?: string
   invoiceNumber?: string
   amountDue?: number
   currency?: string
@@ -18,6 +19,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const PaymentReminderEmail = ({
   companyName = 'there',
+  title,
   invoiceNumber = '—',
   amountDue = 0,
   currency = 'USD',
@@ -37,7 +39,7 @@ export const PaymentReminderEmail = ({
           : `Invoice ${invoiceNumber} is due in ${daysUntilDue} day(s).`
       }
     >
-      <Text style={styles.text}>Dear {companyName},</Text>
+      <Text style={styles.text}>{greeting(title, companyName)}</Text>
       <Text style={styles.text}>
         {isOverdue
           ? 'Our records show the following invoice is past its due date. To avoid service interruption, please settle it at your earliest convenience.'

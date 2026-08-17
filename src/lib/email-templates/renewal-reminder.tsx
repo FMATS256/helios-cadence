@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { Button, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, styles } from './_brand'
+import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
 
 interface Props {
   companyName?: string
+  title?: string
   planName?: string
   renewalDate?: string
   daysUntilRenewal?: number
@@ -19,6 +20,7 @@ const fmt = (n?: number, c = 'USD') =>
 
 export const RenewalReminderEmail = ({
   companyName = 'there',
+  title,
   planName = 'Your subscription',
   renewalDate,
   daysUntilRenewal = 0,
@@ -33,7 +35,7 @@ export const RenewalReminderEmail = ({
     title={`${planName} renews soon`}
     subtitle={`Auto-renewal on ${renewalDate ?? '—'} · ${fmt(amount, currency)} / ${billingCycle}`}
   >
-    <Text style={styles.text}>Dear {companyName},</Text>
+    <Text style={styles.text}>{greeting(title, companyName)}</Text>
     <Text style={styles.text}>
       Your subscription is scheduled to renew in <strong>{daysUntilRenewal} day(s)</strong>.
       No action is required — service will continue uninterrupted and an invoice will be issued
