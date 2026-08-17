@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const LicenseIssuedEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   productName = 'Your license',
   activationCode = 'XXXX-XXXX-XXXX-XXXX',

@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const WelcomeEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   accountNumber = '—',
   accountManagerName,

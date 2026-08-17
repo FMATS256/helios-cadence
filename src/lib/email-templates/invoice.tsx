@@ -22,7 +22,7 @@ const fmt = (n?: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n) || 0)
 
 export const InvoiceEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   invoiceNumber = '—',
   issueDate,

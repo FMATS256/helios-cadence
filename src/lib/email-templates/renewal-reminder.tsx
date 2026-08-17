@@ -19,7 +19,7 @@ const fmt = (n?: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n) || 0)
 
 export const RenewalReminderEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   planName = 'Your subscription',
   renewalDate,

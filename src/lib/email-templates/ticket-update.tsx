@@ -24,7 +24,7 @@ const statusColor = (s?: string) => {
 }
 
 export const TicketUpdateEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   ticketNumber = '—',
   subject = 'Your support request',

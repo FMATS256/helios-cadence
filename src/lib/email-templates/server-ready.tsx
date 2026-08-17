@@ -16,7 +16,7 @@ interface Props {
 }
 
 export const ServerReadyEmail = ({
-  companyName = 'there',
+  companyName = '',
   title,
   serverName = 'your server',
   provider,
