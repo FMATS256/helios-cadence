@@ -37,6 +37,14 @@ export const Route = createFileRoute("/finance")({
 
 // ----- data ---------------------------------------------------------------
 
+const CYCLE_TO_MONTHLY: Record<string, number> = {
+  monthly: 1, quarterly: 1 / 3, semi_annual: 1 / 6, semiannual: 1 / 6,
+  annual: 1 / 12, yearly: 1 / 12, weekly: 4.345, daily: 30.44, one_time: 0,
+};
+const monthlyOf = (s: any) =>
+  Number(s.amount || 0) * (CYCLE_TO_MONTHLY[String(s.billing_cycle || "monthly").toLowerCase()] ?? 1);
+
+
 async function loadFinanceOverview() {
   const [invoices, payments, subs, quotes, customers, catalog, assets, inventory] = await Promise.all([
     (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
