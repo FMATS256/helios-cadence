@@ -1936,6 +1936,36 @@ export type Database = {
           },
         ]
       }
+      geo_locations: {
+        Row: {
+          display_name: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          provider: string
+          query: string
+          resolved_at: string
+        }
+        Insert: {
+          display_name?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          provider?: string
+          query: string
+          resolved_at?: string
+        }
+        Update: {
+          display_name?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          provider?: string
+          query?: string
+          resolved_at?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           archived_at: string | null
