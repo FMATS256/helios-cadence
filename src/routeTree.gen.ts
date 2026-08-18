@@ -31,6 +31,7 @@ import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as EmailStudioRouteImport } from './routes/email-studio'
 import { Route as EmailLogsRouteImport } from './routes/email-logs'
 import { Route as CredentialsRouteImport } from './routes/credentials'
@@ -194,6 +195,11 @@ const InventoryRoute = InventoryRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailStudioRoute = EmailStudioRouteImport.update({
@@ -499,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/credentials': typeof CredentialsRoute
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
+  '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -577,6 +584,7 @@ export interface FileRoutesByTo {
   '/credentials': typeof CredentialsRoute
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
+  '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -653,6 +661,7 @@ export interface FileRoutesById {
   '/credentials': typeof CredentialsRoute
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
+  '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -733,6 +742,7 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/email-logs'
     | '/email-studio'
+    | '/expenses'
     | '/finance'
     | '/inventory'
     | '/knowledge'
@@ -811,6 +821,7 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/email-logs'
     | '/email-studio'
+    | '/expenses'
     | '/finance'
     | '/inventory'
     | '/knowledge'
@@ -886,6 +897,7 @@ export interface FileRouteTypes {
     | '/credentials'
     | '/email-logs'
     | '/email-studio'
+    | '/expenses'
     | '/finance'
     | '/inventory'
     | '/knowledge'
@@ -965,6 +977,7 @@ export interface RootRouteChildren {
   CredentialsRoute: typeof CredentialsRoute
   EmailLogsRoute: typeof EmailLogsRoute
   EmailStudioRoute: typeof EmailStudioRoute
+  ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRouteWithChildren
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
@@ -1168,6 +1181,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email-studio': {
@@ -1665,6 +1685,7 @@ const rootRouteChildren: RootRouteChildren = {
   CredentialsRoute: CredentialsRoute,
   EmailLogsRoute: EmailLogsRoute,
   EmailStudioRoute: EmailStudioRoute,
+  ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRouteWithChildren,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
