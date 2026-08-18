@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid,
+  Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { IMT_COLORS } from "./charts";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,11 @@ import {
   Users, UserPlus, LifeBuoy, ServerOff, Plus, TicketPlus, FileText,
   DollarSign, KeyRound, Rocket, Server, Cloud, ChevronRight, Wallet,
   Receipt, CreditCard, Repeat, Package, Warehouse, ShieldCheck, BarChart3, FolderKanban,
+  ArrowUpRight, TrendingUp, TrendingDown,
 } from "lucide-react";
 
 const USD = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+
 
 async function load() {
   const [customers, tickets, monitoring, invoices, payments, servers] = await Promise.all([
