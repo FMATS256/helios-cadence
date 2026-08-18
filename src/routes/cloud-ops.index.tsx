@@ -9,6 +9,7 @@ import { listProvisioningPlans, approveProvisioningPlan, rejectProvisioningPlan,
 import { listAllBackups, listBackupSchedules, createBackupNow, upsertBackupSchedule, deleteBackupSchedule, restoreBackup } from "@/lib/backups.functions";
 import { listCustomerBudgets, upsertCustomerBudget, deleteCustomerBudget, getCustomerSpendSnapshot, listBudgetAlerts } from "@/lib/budgets.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
+import { StatChip, InfoRow, ActionBtn, KpiTile } from "@/components/enterprise";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/cloud-ops/")({
 
 function CloudOpsPage() {
   const qc = useQueryClient();
+  const [tab, setTab] = useState("servers");
   const fnVerify = useServerFn(verifyKamatera);
   const fnSync = useServerFn(syncProviderServers);
 
@@ -198,7 +200,7 @@ function CloudOpsPage() {
 
 
       {/* Unified servers + services tabs */}
-      <Tabs defaultValue="servers" className="mb-4">
+      <Tabs value={tab} onValueChange={setTab} className="mb-4">
         <TabsList>
           <TabsTrigger value="servers"><Server className="h-3.5 w-3.5 mr-1.5" />Servers ({servers.length})</TabsTrigger>
           <TabsTrigger value="services"><Package className="h-3.5 w-3.5 mr-1.5" />Managed services ({services.length})</TabsTrigger>
