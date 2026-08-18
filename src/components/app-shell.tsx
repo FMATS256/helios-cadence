@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
-  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet, Banknote,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet, Banknote, MapPin,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -50,6 +50,7 @@ const navGroups = [
       { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
       { title: "Monitoring", url: "/monitoring", icon: Activity },
+      { title: "Service Map", url: "/service-map", icon: MapPin },
       { title: "Projects", url: "/projects", icon: FolderKanban },
     ],
   },
