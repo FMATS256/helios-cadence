@@ -95,13 +95,36 @@ function RootComponent() {
 
 function AuthGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const isConsent = pathname === "/.lovable/oauth/consent";
   const isPortalRoute = pathname === "/portal" || pathname.startsWith("/portal/");
-  const isPublic = pathname === "/services" || pathname.startsWith("/services/");
+  const isPublic =
+    pathname === "/auth" ||
+    isConsent ||
+    pathname === "/services" ||
+    pathname.startsWith("/services/");
 
-  if (pathname === "/auth") return <Outlet />;
-  if (isConsent) return <Outlet />;
+  useEffect(() => {
+    if (isPublic || loading || user) return;
+    navigate({
+      to: "/auth",
+      search: { next: pathname + window.location.search },
+      replace: true,
+    } as any);
+  }, [isPublic, loading, user, pathname, navigate]);
+
   if (isPublic) return <Outlet />;
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Checking your session…</p>
+      </div>
+    );
+  }
+
   if (isPortalRoute) return <PortalShell><Outlet /></PortalShell>;
   return <AppShell><Outlet /></AppShell>;
 }
+
