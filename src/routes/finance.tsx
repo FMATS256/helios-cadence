@@ -68,7 +68,19 @@ async function loadFinanceOverview() {
   const ast = (assets.data ?? []) as any[];
   const invn = (inventory.data ?? []) as any[];
 
+  // Net each invoice against its payment allocations so partial settlements
+  // reduce receivables instead of showing the full invoice value.
+  const allocMap = new Map<string, number>();
+  for (const a of ((allocations as any)?.data ?? []) as any[]) {
+    allocMap.set(a.invoice_id, (allocMap.get(a.invoice_id) || 0) + Number(a.amount || 0));
+  }
+  for (const i of inv) {
+    i.allocated = allocMap.get(i.id) || 0;
+    i.balance = Math.max(0, Math.round((Number(i.total || 0) - i.allocated) * 100) / 100);
+  }
+
   const amt = (r: any) => Number(r.total ?? 0);
+  const bal = (r: any) => Number(r.balance ?? r.total ?? 0);
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -84,8 +96,9 @@ async function loadFinanceOverview() {
 
   const currentUnpaid = unpaid
     .filter((x) => !x.due_date || new Date(x.due_date) >= today)
-    .reduce((a, x) => a + amt(x), 0);
-  const overdueUnpaid = overdue.reduce((a, x) => a + amt(x), 0);
+    .reduce((a, x) => a + bal(x), 0);
+  const overdueUnpaid = overdue.reduce((a, x) => a + bal(x), 0);
+
 
   const revenue = (from: Date) =>
     pay.filter((p) => p.paid_at && new Date(p.paid_at) >= from).reduce((a, x) => a + Number(x.amount || 0), 0);
