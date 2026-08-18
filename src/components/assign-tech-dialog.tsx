@@ -13,10 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, toneForStatus, EmptyState } from "@/components/enterprise";
 import { Wrench, UserCog } from "lucide-react";
 import { listAssignableStaff } from "@/lib/client-actions.functions";
-import {
-  createServiceTask, listServiceTasks, updateServiceTask,
-  TASK_TYPES, SERVICE_TYPES, TASK_STATUSES,
-} from "@/lib/service-tasks.functions";
+import { createServiceTask, listServiceTasks, updateServiceTask } from "@/lib/service-tasks.functions";
+import { TASK_TYPES, SERVICE_TYPES, TASK_STATUSES } from "@/lib/service-tasks.shared";
 import type { ClientContext } from "@/components/client-action-dialogs";
 
 export function useTechnicians() {

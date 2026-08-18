@@ -1,30 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const TASK_STATUSES = ["pending", "assigned", "in_progress", "completed", "cancelled"] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number];
-
-export const TASK_TYPES = [
-  { value: "deployment", label: "Server / service deployment" },
-  { value: "number_provisioning", label: "VoIP number provisioning" },
-  { value: "installation", label: "On-site installation" },
-  { value: "configuration", label: "Configuration / setup" },
-  { value: "migration", label: "Migration" },
-  { value: "maintenance", label: "Maintenance" },
-  { value: "decommission", label: "Decommission" },
-  { value: "site_visit", label: "Site visit" },
-];
-
-export const SERVICE_TYPES = [
-  { value: "cloud", label: "Cloud / VPS" },
-  { value: "voip", label: "VoIP" },
-  { value: "hosting", label: "Web hosting" },
-  { value: "starlink", label: "Starlink" },
-  { value: "storage", label: "Storage / NAS" },
-  { value: "network", label: "Network" },
-  { value: "hardware", label: "Hardware / assets" },
-  { value: "general", label: "General" },
-];
+import { TASK_STATUSES, type TaskStatus } from "./service-tasks.shared";
 
 async function requireStaff(ctx: { supabase: any; userId: string }) {
   const { data: ok, error } = await ctx.supabase.rpc("has_any_role", { _user_id: ctx.userId });

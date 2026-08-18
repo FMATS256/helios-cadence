@@ -1,10 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const LEAD_STATUSES = [
-  "new", "contacted", "qualified", "proposal", "negotiation", "won", "lost",
-] as const;
-export type LeadStatus = (typeof LEAD_STATUSES)[number];
+import { LEAD_STATUSES, type LeadStatus } from "./service-tasks.shared";
 
 async function requireStaff(ctx: { supabase: any; userId: string }) {
   const { data: ok, error } = await ctx.supabase.rpc("has_any_role", { _user_id: ctx.userId });
