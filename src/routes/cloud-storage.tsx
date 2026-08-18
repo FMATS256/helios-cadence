@@ -20,8 +20,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Cloud, Database, HardDrive, Plus, Search, TriangleAlert, WalletCards } from "lucide-react";
 import { toast } from "sonner";
+import { WorkspaceTabs } from "@/components/workspace-tabs";
+import { ManagedNasPage } from "@/components/workspaces/nas-workspace";
 
 export const Route = createFileRoute("/cloud-storage")({
+  validateSearch: (q: Record<string, unknown>): { tab?: string } =>
+    typeof q.tab === "string" ? { tab: q.tab } : {},
   head: () => ({
     meta: [
       { title: "Cloud Storage — IMT Operations" },
@@ -32,8 +36,24 @@ export const Route = createFileRoute("/cloud-storage")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: CloudStoragePage,
+  component: StorageHub,
 });
+
+const STORAGE_TABS = [
+  { key: "storage", label: "Cloud Storage" },
+  { key: "nas", label: "Managed NAS" },
+] as const;
+
+function StorageHub() {
+  const { tab } = Route.useSearch();
+  const active = tab === "nas" ? "nas" : "storage";
+  return (
+    <div>
+      <WorkspaceTabs tabs={STORAGE_TABS} active={active} to="/cloud-storage" />
+      {active === "storage" ? <CloudStoragePage /> : <ManagedNasPage />}
+    </div>
+  );
+}
 
 const EMPTY = {
   id: "", name: "", provider: "", customer_id: "", access_url: "",

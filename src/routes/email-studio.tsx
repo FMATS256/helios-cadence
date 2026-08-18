@@ -32,7 +32,11 @@ import {
 
 const EmailEditor = lazy(() => import("react-email-editor"));
 
+import { EmailLogsPage } from "@/components/workspaces/email-logs-workspace";
+
 export const Route = createFileRoute("/email-studio")({
+  validateSearch: (q: Record<string, unknown>): { tab?: string } =>
+    typeof q.tab === "string" ? { tab: q.tab } : {},
   head: () => ({
     meta: [
       { title: "Email Studio — IMT Operations" },
@@ -43,6 +47,7 @@ export const Route = createFileRoute("/email-studio")({
 });
 
 function EmailStudioPage() {
+  const { tab } = Route.useSearch();
   const { user, loading } = useAuth();
   const { isMaster } = useRoles();
 
@@ -72,16 +77,18 @@ function EmailStudioPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="templates" className="space-y-6">
+      <Tabs defaultValue={tab ?? "templates"} className="space-y-6">
         <TabsList>
           <TabsTrigger value="templates"><Mail className="h-4 w-4 mr-2" />Templates</TabsTrigger>
           <TabsTrigger value="theme"><Palette className="h-4 w-4 mr-2" />Brand theme</TabsTrigger>
           <TabsTrigger value="deliverability"><Activity className="h-4 w-4 mr-2" />Deliverability</TabsTrigger>
+          <TabsTrigger value="logs"><Activity className="h-4 w-4 mr-2" />Delivery logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates"><TemplatesPanel /></TabsContent>
         <TabsContent value="theme"><ThemePanel /></TabsContent>
         <TabsContent value="deliverability"><DeliverabilityPanel /></TabsContent>
+        <TabsContent value="logs"><EmailLogsPage /></TabsContent>
       </Tabs>
     </div>
   );
