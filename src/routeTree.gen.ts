@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
@@ -79,6 +80,11 @@ import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/p
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
+const WorkOrdersRoute = WorkOrdersRouteImport.update({
+  id: '/work-orders',
+  path: '/work-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WebHostingRoute = WebHostingRouteImport.update({
   id: '/web-hosting',
   path: '/web-hosting',
@@ -478,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -549,6 +556,7 @@ export interface FileRoutesByTo {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -620,6 +628,7 @@ export interface FileRoutesById {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets_/$id': typeof AssetsIdRoute
@@ -693,6 +702,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -764,6 +774,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -834,6 +845,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets_/$id'
@@ -906,6 +918,7 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
+  WorkOrdersRoute: typeof WorkOrdersRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AssetsIdRoute: typeof AssetsIdRoute
@@ -936,6 +949,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/work-orders': {
+      id: '/work-orders'
+      path: '/work-orders'
+      fullPath: '/work-orders'
+      preLoaderRoute: typeof WorkOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/web-hosting': {
       id: '/web-hosting'
       path: '/web-hosting'
@@ -1505,6 +1525,7 @@ const rootRouteChildren: RootRouteChildren = {
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
+  WorkOrdersRoute: WorkOrdersRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
