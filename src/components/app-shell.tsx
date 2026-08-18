@@ -1,4 +1,6 @@
 import imtLogo from "@/assets/imt-logo.png.asset.json";
+import { useEffect, useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Zap } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -25,64 +27,162 @@ import { useRoles } from "@/hooks/use-roles";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
-const navGroups = [
+type NavLeaf = { title: string; url: string; icon: any; masterOnly?: boolean };
+type NavNode = NavLeaf & { children?: NavLeaf[] };
+
+const siteNav: NavNode[] = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Customers", url: "/customers", icon: Users },
+  { title: "Packages", url: "/catalog", icon: Package },
   {
-    label: "Operations",
-    items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
-      { title: "Customers", url: "/customers", icon: Users },
-      { title: "Service Catalog", url: "/catalog", icon: Package },
-      { title: "Support Desk", url: "/tickets", icon: LifeBuoy },
-      { title: "Credential Vault", url: "/credentials", icon: KeyRound },
-    ],
-  },
-  {
-    label: "Services",
-    items: [
+    title: "Services", url: "/services", icon: Server,
+    children: [
       { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Managed Services", url: "/cloud", icon: Server },
       { title: "Starlink", url: "/starlink", icon: Satellite },
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
       { title: "Cloud Storage", url: "/cloud-storage", icon: HardDrive },
       { title: "Managed NAS", url: "/managed-nas", icon: Database },
-      { title: "Service Pages", url: "/services", icon: BookOpen },
-      { title: "Assets", url: "/assets", icon: Server },
-      { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
+      { title: "Service Pages", url: "/services", icon: BookOpen },
+    ],
+  },
+  {
+    title: "Network", url: "/monitoring", icon: Activity,
+    children: [
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Service Map", url: "/service-map", icon: MapPin },
-      { title: "Projects", url: "/projects", icon: FolderKanban },
+      { title: "Assets", url: "/assets", icon: Server },
+      { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
     ],
   },
   {
-    label: "Business",
-    items: [
-      { title: "Finance", url: "/finance", icon: Wallet },
-      { title: "Quotes", url: "/quotes", icon: FileText },
+    title: "Finance", url: "/finance", icon: Wallet,
+    children: [
+      { title: "Overview", url: "/finance", icon: Wallet },
       { title: "Billing", url: "/billing", icon: Receipt },
       { title: "Payments", url: "/payments", icon: CreditCard },
-      { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
+      { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Subscriptions", url: "/subscriptions", icon: Repeat },
-      { title: "Licenses", url: "/licenses", icon: ShieldCheck },
-      { title: "Inventory", url: "/inventory", icon: Warehouse },
-      { title: "Communications", url: "/communications", icon: MessageSquare },
-      { title: "Reports", url: "/reports", icon: BarChart3 },
-      { title: "Automation", url: "/automation", icon: Zap },
+      { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
     ],
   },
   {
-    label: "System",
-    items: [
+    title: "CRM", url: "/communications", icon: MessageSquare,
+    children: [
+      { title: "Communications", url: "/communications", icon: MessageSquare },
+      { title: "Projects", url: "/projects", icon: FolderKanban },
       { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
-      { title: "Notifications", url: "/notifications", icon: Bell },
-      { title: "Master Admin", url: "/admin", icon: Shield, masterOnly: true },
-      { title: "Email Logs", url: "/email-logs", icon: Mail, masterOnly: true },
-      { title: "Email Studio", url: "/email-studio", icon: Mail, masterOnly: true },
-      { title: "System Health", url: "/system-test", icon: ShieldCheck, masterOnly: true },
-      { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
-] as const;
+  { title: "Tickets", url: "/tickets", icon: LifeBuoy },
+  {
+    title: "Inventory", url: "/inventory", icon: Warehouse,
+    children: [
+      { title: "Stock", url: "/inventory", icon: Warehouse },
+      { title: "Licenses", url: "/licenses", icon: ShieldCheck },
+    ],
+  },
+  { title: "Reports", url: "/reports", icon: BarChart3 },
+  {
+    title: "Tools", url: "/automation", icon: Zap,
+    children: [
+      { title: "Automation", url: "/automation", icon: Zap },
+      { title: "Credential Vault", url: "/credentials", icon: KeyRound },
+      { title: "Notifications", url: "/notifications", icon: Bell },
+    ],
+  },
+];
+
+const configNav: NavNode[] = [
+  { title: "Config", url: "/settings", icon: Settings },
+  {
+    title: "Email", url: "/email-studio", icon: Mail, masterOnly: true,
+    children: [
+      { title: "Email Studio", url: "/email-studio", icon: Mail },
+      { title: "Email Logs", url: "/email-logs", icon: Mail },
+    ],
+  },
+  { title: "Permissions", url: "/admin", icon: Shield, masterOnly: true },
+  { title: "System Health", url: "/system-test", icon: ShieldCheck, masterOnly: true },
+];
+
+function NavSection({
+  label, nodes, isActive, isMaster,
+}: { label: string; nodes: NavNode[]; isActive: (u: string) => boolean; isMaster: boolean }) {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel className="text-sidebar-foreground/45 text-[10px] tracking-[2px] font-semibold uppercase">
+        {label}
+      </SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu className="gap-0.5">
+          {nodes.filter((n) => !n.masterOnly || isMaster).map((node) =>
+            node.children ? (
+              <NavParent key={node.title} node={node} isActive={isActive} />
+            ) : (
+              <SidebarMenuItem key={node.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(node.url)}
+                  tooltip={node.title}
+                  className="h-10 rounded-lg data-[active=true]:bg-solar/15 data-[active=true]:text-solar data-[active=true]:font-semibold"
+                >
+                  <Link to={node.url} className="gap-3">
+                    <node.icon className="h-4 w-4" />
+                    <span>{node.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          )}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
+function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) => boolean }) {
+  const childActive = (node.children ?? []).some((c) => isActive(c.url));
+  const [open, setOpen] = useState(childActive);
+  useEffect(() => { if (childActive) setOpen(true); }, [childActive]);
+
+  return (
+    <SidebarMenuItem>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            isActive={childActive && !open}
+            tooltip={node.title}
+            className="h-10 rounded-lg data-[active=true]:bg-solar/15 data-[active=true]:text-solar"
+          >
+            <node.icon className="h-4 w-4" />
+            <span>{node.title}</span>
+            <ChevronDown className={`ml-auto h-3.5 w-3.5 opacity-60 transition-transform ${open ? "" : "-rotate-90"}`} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="group-data-[collapsible=icon]:hidden">
+          <div className="ml-[1.15rem] mt-0.5 border-l border-sidebar-border pl-2 space-y-0.5">
+            {(node.children ?? []).map((c) => (
+              <Link
+                key={c.title + c.url}
+                to={c.url}
+                className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  isActive(c.url)
+                    ? "bg-solar/15 text-solar font-semibold"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                }`}
+              >
+                <c.icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{c.title}</span>
+              </Link>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
 
 function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -106,27 +206,8 @@ function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-1">
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-sidebar-foreground/50 text-[10px] tracking-widest font-semibold uppercase">
-              {group.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.filter((i: any) => !i.masterOnly || isMaster).map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <Link to={item.url} className="gap-3">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} />
+        <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
