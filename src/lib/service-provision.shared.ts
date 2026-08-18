@@ -64,9 +64,10 @@ export const PROVISION_FIELDS: Record<ProvisionKind, ProvisionField[]> = {
     { key: "license_key", label: "License key" },
   ],
   voip: [
-    { key: "voip_number", label: "VoIP number", required: true, placeholder: "+263..." },
+    { key: "voip_number", label: "VoIP number", required: true, placeholder: "+263 8677..." },
     { key: "sip_username", label: "SIP username" },
-    { key: "extensions", label: "Extensions", type: "number" },
+    { key: "extensions", label: "Extensions (comma separated)", placeholder: "101, 102" },
+    { key: "dandemutande_account", label: "Provider account #" },
   ],
   none: [],
 };
