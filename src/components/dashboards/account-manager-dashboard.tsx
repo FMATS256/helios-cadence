@@ -55,7 +55,7 @@ async function loadAM() {
 
 export function AccountManagerDashboard({ displayName }: { displayName: string }) {
   const { data: s } = useQuery({ queryKey: ["dash-am"], queryFn: loadAM });
-  const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
+  const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   return (
     <>
       <HeroPanel
@@ -129,7 +129,7 @@ export function AccountManagerDashboard({ displayName }: { displayName: string }
               <div key={q.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                 <div className="h-9 w-9 rounded-md bg-warning/15 text-[oklch(0.45_0.13_75)] flex items-center justify-center font-semibold text-[10px]">{q.quote_number}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{money(Number(q.total || 0))} <span className="text-xs text-muted-foreground">{q.currency}</span></p>
+                  <p className="text-sm font-semibold">{money(Number(q.amount || 0))} <span className="text-xs text-muted-foreground">{q.currency}</span></p>
                   <p className="text-xs text-muted-foreground">{q.account_number}</p>
                 </div>
                 <StatusPill tone={q.status === "accepted" ? "success" : q.status === "sent" ? "info" : "neutral"}>{q.status}</StatusPill>
