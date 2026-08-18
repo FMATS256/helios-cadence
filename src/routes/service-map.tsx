@@ -83,9 +83,8 @@ function ServiceMapPage() {
   return (
     <PageShell>
       <SectionHeader
-        icon={MapPin}
         title="Service Map"
-        subtitle="Every location IMT has deployed, installed or serviced — plotted from live operational records."
+        description="Every location IMT has deployed, installed or serviced — plotted from live operational records."
         actions={<RefreshButton loading={q.isFetching} onClick={() => qc.invalidateQueries({ queryKey: ["service-map"] })} />}
       />
 
@@ -104,7 +103,7 @@ function ServiceMapPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <DetailCard title="Network map" icon={MapPin}>
+        <DetailCard title="Network map">
           {mounted ? (
             <Suspense fallback={<div className="h-[560px] animate-pulse rounded-xl bg-muted" />}>
               <ServiceMapView sites={filtered} onSelect={setSelected} />
@@ -160,8 +159,7 @@ function ServiceMapPage() {
 
       <DetailCard
         title={`Locations (${filtered.length})`}
-        icon={MapPin}
-        actions={
+        action={
           <div className="relative w-64">
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8" placeholder="Search site, customer, address…" value={search} onChange={(e) => setSearch(e.target.value)} />
