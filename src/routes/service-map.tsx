@@ -166,7 +166,7 @@ function ServiceMapPage() {
                 key={i}
                 className="px-3 py-1.5 rounded-lg border border-white/20 shadow-lg backdrop-blur-xl text-white text-xs font-semibold"
                 style={{ backgroundColor: `${chip.color}E6` }}
-                title={chip.hint}
+                
               >
                 <span className="opacity-90 uppercase tracking-wider text-[10px]">{chip.label}</span>
                 <span className="ml-2 font-display text-sm tabular-nums">{chip.value}</span>
