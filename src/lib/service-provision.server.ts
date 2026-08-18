@@ -1,47 +1,6 @@
-/**
- * Maps a service_catalog category to the operational table that must be
- * created when the service is assigned to a customer from Customer 360.
- */
+import { kindForCategory } from "./service-provision.shared";
 
 export type ProvisionInput = Record<string, string | undefined>;
-
-export type ProvisionField = {
-  key: string;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-};
-
-export type ProvisionKind =
-  | "starlink"
-  | "hosting"
-  | "domain"
-  | "cloud-storage"
-  | "managed-nas"
-  | "vps"
-  | "license"
-  | "voip"
-  | "cloud"
-  | "none";
-
-/** Shared with the client via service-provision.shared.ts (kept in sync). */
-export function kindForCategory(category: string): ProvisionKind {
-  switch ((category || "").toLowerCase()) {
-    case "connectivity": return "starlink";
-    case "hosting":
-    case "email-hosting": return "hosting";
-    case "domain": return "domain";
-    case "cloud-storage": return "cloud-storage";
-    case "managed-nas": return "managed-nas";
-    case "vps": return "vps";
-    case "m365":
-    case "productivity":
-    case "licensing": return "license";
-    case "voip": return "voip";
-    case "cloud": return "cloud";
-    default: return "none";
-  }
-}
 
 type Ctx = {
   admin: any;
