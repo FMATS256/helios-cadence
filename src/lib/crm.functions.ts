@@ -57,7 +57,7 @@ export const upsertLead = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStaff(context);
     if (!data.company_name?.trim()) throw new Error("Company name is required");
-    const payload: Record<string, unknown> = {
+    const payload = {
       company_name: data.company_name.trim(),
       contact_name: data.contact_name?.trim() || null,
       title: data.title?.trim() || null,
@@ -74,12 +74,12 @@ export const upsertLead = createServerFn({ method: "POST" })
       lost_reason: data.lost_reason?.trim() || null,
     };
     if (data.id) {
-      const { error } = await context.supabase.from("leads").update(payload).eq("id", data.id);
+      const { error } = await context.supabase.from("leads").update(payload as any).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
     const { data: row, error } = await context.supabase
-      .from("leads").insert({ ...payload, created_by: context.userId }).select("id").single();
+      .from("leads").insert({ ...payload, created_by: context.userId } as any).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: row.id };
   });
