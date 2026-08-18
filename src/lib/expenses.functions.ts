@@ -47,11 +47,10 @@ export const getCashWorkspace = createServerFn({ method: "GET" })
       const moved = movements
         .filter((m) => m.account_id === a.id)
         .reduce((s, m) => s + (m.kind === "withdrawal" || m.kind === "transfer_out" ? -Number(m.amount || 0) : Number(m.amount || 0)), 0);
+      // Cash collected from customers lands in the default cash drawer.
       const collected = defaultCash && a.id === defaultCash.id
         ? payments.filter((p) => isCash(p.method)).reduce((s, p) => s + Number(p.amount || 0), 0)
-        : a.kind !== "cash"
-          ? payments.filter((p) => !isCash(p.method)).reduce((s, p) => s + Number(p.amount || 0), 0) * 0
-          : 0;
+        : 0;
       return {
         ...a,
         spent,
