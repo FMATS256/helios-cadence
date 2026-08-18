@@ -23,17 +23,35 @@ export function useAuth() {
       );
     };
 
+    let lastUserId: string | null | undefined = undefined;
+
+    const apply = (s: Session | null) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      const uid = s?.user?.id ?? null;
+      if (uid !== lastUserId) {
+        lastUserId = uid;
+        void loadProfile(s?.user ?? null);
+      }
+      setLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      void loadProfile(s?.user ?? null);
+      apply(s);
     });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      void loadProfile(s?.user ?? null).finally(() => setLoading(false));
-    });
-    return () => subscription.unsubscribe();
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: s } }) => apply(s))
+      .catch(() => apply(null));
+
+    // Safety net: never leave the app stuck on "Checking your session…"
+    const timer = setTimeout(() => setLoading(false), 5000);
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const displayName =
