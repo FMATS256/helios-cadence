@@ -1548,7 +1548,8 @@ function IspHeroPane(props: {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <ActionBtn tone="indigo"  icon={PackageIcon} label="Change/Add Package" onClick={() => setOpen("service")} />
+        <ActionBtn tone="violet"  icon={Plus}        label="Add Service"        onClick={() => setOpen("service")} />
+        <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
