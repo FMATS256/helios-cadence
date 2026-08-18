@@ -108,101 +108,94 @@ function CloudOpsPage() {
   }, {});
   const unassigned = servers.filter((s) => !s.customer_id).length;
 
+  const blocked = verify.data && !verify.data.ok;
+
+  const chips = [
+    { label: "TOTAL SERVERS", value: total, color: "#7c3aed", text: "#ffffff" },
+    { label: "RUNNING", value: active, color: "#2563eb", text: "#ffffff" },
+    { label: "STOPPED", value: stopped, color: "#0891b2", text: "#ffffff" },
+    { label: "PROVISIONING", value: provisioning, color: "#d97706", text: "#ffffff" },
+    { label: "FAILED", value: failed, color: "#dc2626", text: "#ffffff" },
+    { label: "MANAGED SERVICES", value: services.length, color: "#059669", text: "#ffffff" },
+  ];
+
+  const topRegion = Object.entries(byDc).sort((a, b) => b[1] - a[1])[0];
+  const topImage = Object.entries(byImage).sort((a, b) => b[1] - a[1])[0];
+  const quickInfo: { label: string; value: React.ReactNode; sub?: string }[] = [
+    { label: "Providers connected", value: ["kamatera", "vultr", "contabo"].filter((p) => servers.some((s) => s.provider === p)).length || "—" },
+    { label: "Kamatera status", value: verify.isLoading ? "Checking…" : verify.data?.ok ? "Connected" : "Blocked", sub: verify.data?.ok ? `${verify.data.datacenterCount} regions reachable` : verify.data?.error ?? undefined },
+    { label: "Top region", value: topRegion ? topRegion[0] : "—", sub: topRegion ? `${topRegion[1]} server(s)` : undefined },
+    { label: "Top image", value: topImage ? topImage[0] : "—", sub: topImage ? `${topImage[1]} server(s)` : undefined },
+    { label: "Unassigned servers", value: unassigned, sub: unassigned ? "Not linked to a customer" : "All servers assigned" },
+    { label: "Gross margin / mo", value: `$${margin.toFixed(2)}`, sub: `Cost $${monthlyCost.toFixed(2)} · Revenue $${monthlyRevenue.toFixed(2)}` },
+  ];
+
   return (
     <PageContainer>
       <PageHeader
         eyebrow="Cloud"
         title="Cloud Operations"
         description="Servers, managed services and cloud spend across all providers."
-        actions={
-          <div className="flex gap-2">
-            <AiDeployButton />
-            <Link to="/cloud-ops/new">
-              <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-                <Plus className="h-4 w-4 mr-1.5" />
-                New server
-              </Button>
-            </Link>
-          </div>
-        }
       />
 
-      {/* Provider recommendation + integration status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-600" />
-              <div>
-                <p className="text-sm font-semibold">Recommended provider: Vultr</p>
-                <p className="text-xs text-muted-foreground">
-                  Fixed plans, predictable pricing, and the simplest API for reselling. Choose a region + package and deploy.
-                </p>
+      {/* Hero chips — Customer 360 pattern */}
+      <div className="space-y-4 mb-6">
+        <div className="grid grid-cols-3 gap-2">
+          {chips.slice(0, 3).map((c, i) => <StatChip key={`a${i}`} {...c} value={String(c.value)} />)}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {chips.slice(3, 6).map((c, i) => <StatChip key={`b${i}`} {...c} value={String(c.value)} />)}
+        </div>
+
+        {blocked && (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="p-4 flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Kamatera provisioning is blocked</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{verify.data?.error}</p>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="outline" onClick={() => verify.refetch()}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-check
+                  </Button>
+                  <Link to="/cloud-ops/new"><Button size="sm" variant="ghost">Deploy on Vultr instead</Button></Link>
+                </div>
               </div>
-            </div>
-            <Link to="/cloud-ops/new">
-              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-                <Plus className="h-4 w-4 mr-1.5" /> Deploy
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {verify.data?.ok ? (
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
-              ) : (
-                <ShieldAlert className="h-5 w-5 text-red-600" />
-              )}
-              <div>
-                <p className="text-sm font-semibold">Kamatera integration</p>
-                <p className="text-xs text-muted-foreground">
-                  {verify.isLoading
-                    ? "Checking credentials…"
-                    : verify.data?.ok
-                      ? `Connected — ${verify.data.datacenterCount} datacenters reachable`
-                      : `Not connected: ${verify.data?.error ?? "Unknown error"}`}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
-                <RefreshCw className={`h-4 w-4 mr-1.5 ${sync.isPending ? "animate-spin" : ""}`} /> Sync
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => verify.refetch()}>Re-check</Button>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between py-3">
+            <CardTitle className="text-sm font-display uppercase tracking-wider">Quick Information</CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => { qc.invalidateQueries({ queryKey: ["cloud_servers"] }); qc.invalidateQueries({ queryKey: ["cloud_services_list"] }); verify.refetch(); }}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
+            </Button>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 pt-0">
+            {quickInfo.map((r, i) => <InfoRow key={i} label={r.label} value={r.value} sub={r.sub} />)}
           </CardContent>
         </Card>
+
+        <div className="flex flex-wrap gap-2">
+          <ActionBtn tone="indigo" icon={Plus} label="New Server" onClick={() => { window.location.href = "/cloud-ops/new"; }} />
+          <ActionBtn tone="sky" icon={RefreshCw} label={sync.isPending ? "Syncing…" : "Sync Providers"} onClick={() => sync.mutate()} disabled={sync.isPending} />
+          <ActionBtn tone="emerald" icon={Package} label="Managed Services" onClick={() => { window.location.href = "/cloud"; }} />
+          <ActionBtn tone="amber" icon={HardDrive} label="Backups & DR" onClick={() => setTab("backups")} />
+          <ActionBtn tone="rose" icon={Wallet} label="Budgets & Alerts" onClick={() => setTab("budgets")} />
+          <ActionBtn tone="slate" icon={ShieldCheck} label="Re-check Providers" onClick={() => verify.refetch()} />
+          <AiDeployButton />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <KpiTile icon={Server} label="Fleet" value={total} tone="info" hint={`${Object.keys(byDc).length} region(s)`} />
+          <KpiTile icon={Activity} label="Healthy" value={active} tone={failed > 0 ? "warning" : "success"} hint={failed ? `${failed} failed` : "No failures"} />
+          <KpiTile icon={DollarSign} label="Cost / mo" value={`$${monthlyCost.toFixed(2)}`} tone="neutral" />
+          <KpiTile icon={DollarSign} label="Revenue / mo" value={`$${monthlyRevenue.toFixed(2)}`} tone="success" />
+          <KpiTile icon={CloudIcon} label="Margin / mo" value={`$${margin.toFixed(2)}`} tone={margin >= 0 ? "success" : "danger"} />
+        </div>
       </div>
 
-      {/* Top KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
-        <Stat label="Total servers" value={total} icon={Server} />
-        <Stat label="Active" value={active} tone="success" />
-        <Stat label="Stopped" value={stopped} />
-        <Stat label="Provisioning" value={provisioning} tone="warning" />
-        <Stat label="Failed" value={failed} tone="danger" />
-        <Stat label="Provider cost / mo" value={`$${monthlyCost.toFixed(2)}`} icon={DollarSign} />
-        <Stat label="Revenue / mo" value={`$${monthlyRevenue.toFixed(2)}`} tone={margin >= 0 ? "success" : "danger"} />
-      </div>
-
-      {/* Agenda / dashboard sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <AgendaCard title="Fleet by region" icon={MapPin} rows={Object.entries(byDc).map(([k, v]) => [k, `${v} server${v === 1 ? "" : "s"}`])} emptyLabel="No servers yet" />
-        <AgendaCard title="OS distribution" icon={Server} rows={Object.entries(byImage).map(([k, v]) => [k, `${v}`])} emptyLabel="No servers yet" />
-        <AgendaCard
-          title="Margin snapshot"
-          icon={DollarSign}
-          rows={[
-            ["Provider cost", `$${monthlyCost.toFixed(2)}`],
-            ["Customer revenue", `$${monthlyRevenue.toFixed(2)}`],
-            ["Gross margin", `$${margin.toFixed(2)}`],
-            ["Unassigned servers", `${unassigned}`],
-          ]}
-        />
-      </div>
 
       {/* Unified servers + services tabs */}
       <Tabs defaultValue="servers" className="mb-4">
