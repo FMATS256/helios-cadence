@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
-  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet, Banknote, MapPin,
+  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet, Banknote, MapPin, Target, Wrench,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -43,6 +43,7 @@ const siteNav: NavNode[] = [
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
       { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
+      { title: "Work Orders", url: "/work-orders", icon: Wrench },
     ],
   },
   {
@@ -56,13 +57,14 @@ const siteNav: NavNode[] = [
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
-      { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
     ],
   },
   {
-    title: "CRM", url: "/communications", icon: MessageSquare,
+    title: "CRM", url: "/leads", icon: MessageSquare,
     children: [
+      { title: "Leads", url: "/leads", icon: Target },
+      { title: "Quotations", url: "/quotes", icon: FileText },
       { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Projects", url: "/projects", icon: FolderKanban },
       { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
