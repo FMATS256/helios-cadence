@@ -20,11 +20,11 @@ function tone(site: MapSite) {
 export default function ServiceMapView({
   sites,
   onSelect,
-  height = 560,
+  height,
 }: {
   sites: MapSite[];
   onSelect?: (s: MapSite) => void;
-  height?: number;
+  height?: number | string;
 }) {
   const points = sites.filter((s) => s.lat != null && s.lng != null);
   const center: [number, number] = points.length
@@ -39,8 +39,8 @@ export default function ServiceMapView({
       center={center}
       zoom={points.length > 1 ? 6 : 12}
       scrollWheelZoom
-      style={{ height, width: "100%" }}
-      className="rounded-xl"
+      style={{ height: height ?? "100%", width: "100%" }}
+      className="bg-muted"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -69,3 +69,4 @@ export default function ServiceMapView({
     </MapContainer>
   );
 }
+
