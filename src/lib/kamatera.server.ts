@@ -11,6 +11,49 @@ function creds() {
   return { clientId, secret };
 }
 
+/** Kamatera frequently answers HTTP 200 with an error envelope; normalise both shapes. */
+export class KamateraError extends Error {
+  code: string;
+  constructor(message: string, code = "kamatera_error") {
+    super(message);
+    this.name = "KamateraError";
+    this.code = code;
+  }
+}
+
+function friendly(raw: string): { message: string; code: string } {
+  const low = raw.toLowerCase();
+  if (low.includes("billing profile") || low.includes("account state")) {
+    return {
+      code: "account_denied",
+      message:
+        "Kamatera rejected the request: the API account has no usable billing profile (or is suspended). Provisioning stays blocked until a valid payment method is attached to the Kamatera account and the API key is re-enabled.",
+    };
+  }
+  if (low.includes("authentication") || low.includes("unauthorized") || low.includes("access denied")) {
+    return { code: "auth_failed", message: `Kamatera authentication failed: ${raw}` };
+  }
+  return { code: "kamatera_error", message: `Kamatera API error: ${raw}` };
+}
+
+function assertOk(data: any, status: number, text: string) {
+  const errs = Array.isArray(data?.errors) ? data.errors : null;
+  if (errs?.length) {
+    const raw = errs.map((e: any) => e?.info ?? e?.message ?? JSON.stringify(e)).join("; ");
+    const f = friendly(raw);
+    throw new KamateraError(f.message, f.code);
+  }
+  if (data && data.error === true && data.message) {
+    const f = friendly(String(data.message));
+    throw new KamateraError(f.message, f.code);
+  }
+  if (status < 200 || status >= 300) {
+    const raw = data?.message || data?.error || text || `HTTP ${status}`;
+    const f = friendly(String(raw));
+    throw new KamateraError(f.message, f.code);
+  }
+}
+
 export async function kamateraRequest<T = any>(
   path: string,
   init: { method?: string; body?: any; query?: Record<string, string> } = {},
@@ -18,31 +61,55 @@ export async function kamateraRequest<T = any>(
   const { clientId, secret } = creds();
   const url = new URL(BASE + path);
   if (init.query) for (const [k, v] of Object.entries(init.query)) url.searchParams.set(k, v);
-  const res = await fetch(url.toString(), {
-    method: init.method ?? "GET",
-    headers: {
-      AuthClientId: clientId,
-      AuthSecret: secret,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: init.body ? JSON.stringify(init.body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method: init.method ?? "GET",
+      headers: {
+        AuthClientId: clientId,
+        AuthSecret: secret,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+    });
+  } catch (e: any) {
+    throw new KamateraError(`Could not reach the Kamatera API: ${e?.message ?? e}`, "network");
+  }
   const text = await res.text();
   let data: any;
   try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
-  if (!res.ok) {
-    const msg = data?.message || data?.error || text || `Kamatera ${res.status}`;
-    throw new Error(`Kamatera API error (${res.status}): ${msg}`);
-  }
+  assertOk(data, res.status, text);
   return data as T;
 }
 
 export type KamateraDatacenter = { id: string; name?: string; region?: string; subCategory?: string; category?: string };
 
+/** Static fallback — the public datacenters option endpoint is currently failing upstream. */
+const FALLBACK_DATACENTERS: KamateraDatacenter[] = [
+  { id: "EU", name: "Amsterdam, Netherlands", region: "Europe" },
+  { id: "EU-LO", name: "London, United Kingdom", region: "Europe" },
+  { id: "EU-FR", name: "Frankfurt, Germany", region: "Europe" },
+  { id: "EU-ES", name: "Madrid, Spain", region: "Europe" },
+  { id: "US-NY2", name: "New York, USA", region: "North America" },
+  { id: "US-TX", name: "Dallas, USA", region: "North America" },
+  { id: "US-SC", name: "Santa Clara, USA", region: "North America" },
+  { id: "US-CH", name: "Chicago, USA", region: "North America" },
+  { id: "CA-TR", name: "Toronto, Canada", region: "North America" },
+  { id: "IL", name: "Rosh Haayin, Israel", region: "Middle East" },
+  { id: "AS", name: "Hong Kong, China", region: "Asia" },
+];
+
 export async function listDatacenters() {
-  const raw = await kamateraRequest<any[]>("/service/server/options/datacenters");
-  return (raw ?? []).map((d) => ({ ...d, name: d.name ?? d.region ?? d.id })) as KamateraDatacenter[];
+  try {
+    const raw = await kamateraRequest<any[]>("/service/server/options/datacenters");
+    if (Array.isArray(raw) && raw.length) {
+      return raw.map((d) => ({ ...d, name: d.name ?? d.region ?? d.id })) as KamateraDatacenter[];
+    }
+  } catch (e: any) {
+    if (e instanceof KamateraError && (e.code === "account_denied" || e.code === "auth_failed")) throw e;
+  }
+  return FALLBACK_DATACENTERS;
 }
 
 export type KamateraCapabilities = {
@@ -153,7 +220,13 @@ export async function terminateServer(idOrName: string, force = true) {
 }
 
 export async function ping() {
-  // Cheap sanity check that credentials work.
-  const dcs = await listDatacenters();
-  return { ok: true, datacenterCount: Array.isArray(dcs) ? dcs.length : 0 };
+  // The servers endpoint is the only call that proves the account can actually
+  // provision — options endpoints answer even for blocked accounts.
+  const servers = await listServers();
+  const dcs = await listDatacenters().catch(() => []);
+  return {
+    ok: true,
+    datacenterCount: Array.isArray(dcs) ? dcs.length : 0,
+    serverCount: Array.isArray(servers) ? servers.length : 0,
+  };
 }

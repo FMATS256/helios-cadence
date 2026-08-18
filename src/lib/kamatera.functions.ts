@@ -23,9 +23,21 @@ export const verifyKamatera = createServerFn({ method: "GET" }).handler(async ()
   try {
     const { ping } = await import("./kamatera.server");
     const res = await ping();
-    return { ok: true as const, datacenterCount: res.datacenterCount, error: null };
+    return {
+      ok: true as const,
+      datacenterCount: res.datacenterCount,
+      serverCount: res.serverCount,
+      code: null as string | null,
+      error: null as string | null,
+    };
   } catch (e: any) {
-    return { ok: false as const, datacenterCount: 0, error: (e.message as string) ?? "Unknown error" };
+    return {
+      ok: false as const,
+      datacenterCount: 0,
+      serverCount: 0,
+      code: (e?.code as string) ?? "kamatera_error",
+      error: (e?.message as string) ?? "Unknown error",
+    };
   }
 });
 
@@ -51,8 +63,12 @@ export const provisionServer = createServerFn({ method: "POST" })
     notes?: string;
   }) => d)
   .handler(async ({ data }) => {
-    const { createServer } = await import("./kamatera.server");
+    const { createServer, ping } = await import("./kamatera.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Pre-flight: fail fast with a clear reason instead of leaving a half-created record.
+    await ping();
+
 
     let account_number: string | null = null;
     if (data.customer_id) {
