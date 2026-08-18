@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
@@ -25,6 +26,7 @@ import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ManagedNasRouteImport } from './routes/managed-nas'
 import { Route as LicensesRouteImport } from './routes/licenses'
+import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -78,6 +80,11 @@ import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/p
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
+const WorkOrdersRoute = WorkOrdersRouteImport.update({
+  id: '/work-orders',
+  path: '/work-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WebHostingRoute = WebHostingRouteImport.update({
   id: '/web-hosting',
   path: '/web-hosting',
@@ -156,6 +163,11 @@ const ManagedNasRoute = ManagedNasRouteImport.update({
 const LicensesRoute = LicensesRouteImport.update({
   id: '/licenses',
   path: '/licenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
@@ -455,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
@@ -471,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -525,6 +539,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
@@ -541,6 +556,7 @@ export interface FileRoutesByTo {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -595,6 +611,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
+  '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
@@ -611,6 +628,7 @@ export interface FileRoutesById {
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets_/$id': typeof AssetsIdRoute
@@ -667,6 +685,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/leads'
     | '/licenses'
     | '/managed-nas'
     | '/mcp'
@@ -683,6 +702,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -737,6 +757,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/leads'
     | '/licenses'
     | '/managed-nas'
     | '/mcp'
@@ -753,6 +774,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -806,6 +828,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
+    | '/leads'
     | '/licenses'
     | '/managed-nas'
     | '/mcp'
@@ -822,6 +845,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/voip'
     | '/web-hosting'
+    | '/work-orders'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets_/$id'
@@ -877,6 +901,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
+  LeadsRoute: typeof LeadsRoute
   LicensesRoute: typeof LicensesRoute
   ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
@@ -893,6 +918,7 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
+  WorkOrdersRoute: typeof WorkOrdersRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AssetsIdRoute: typeof AssetsIdRoute
@@ -923,6 +949,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/work-orders': {
+      id: '/work-orders'
+      path: '/work-orders'
+      fullPath: '/work-orders'
+      preLoaderRoute: typeof WorkOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/web-hosting': {
       id: '/web-hosting'
       path: '/web-hosting'
@@ -1033,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/licenses'
       fullPath: '/licenses'
       preLoaderRoute: typeof LicensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/laptop-tracking': {
@@ -1468,6 +1508,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
+  LeadsRoute: LeadsRoute,
   LicensesRoute: LicensesRoute,
   ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
@@ -1484,6 +1525,7 @@ const rootRouteChildren: RootRouteChildren = {
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
+  WorkOrdersRoute: WorkOrdersRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,

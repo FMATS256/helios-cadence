@@ -2171,6 +2171,83 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string
+          contact_name: string | null
+          converted_at: string | null
+          converted_customer_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          email: string | null
+          estimated_value: number
+          id: string
+          interest: string | null
+          lost_reason: string | null
+          next_follow_up: string | null
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name: string
+          contact_name?: string | null
+          converted_at?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          email?: string | null
+          estimated_value?: number
+          id?: string
+          interest?: string | null
+          lost_reason?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string
+          contact_name?: string | null
+          converted_at?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          email?: string | null
+          estimated_value?: number
+          id?: string
+          interest?: string | null
+          lost_reason?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_customer_id_fkey"
+            columns: ["converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licenses: {
         Row: {
           account_number: string | null
@@ -3146,6 +3223,110 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_tasks: {
+        Row: {
+          account_number: string | null
+          assigned_to: string | null
+          catalog_id: string | null
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string
+          customer_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          metadata: Json
+          priority: string
+          requested_by: string | null
+          scheduled_at: string | null
+          service_type: string
+          started_at: string | null
+          status: string
+          subscription_id: string | null
+          task_type: string
+          ticket_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          assigned_to?: string | null
+          catalog_id?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          metadata?: Json
+          priority?: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          service_type?: string
+          started_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          task_type?: string
+          ticket_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          assigned_to?: string | null
+          catalog_id?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          metadata?: Json
+          priority?: string
+          requested_by?: string | null
+          scheduled_at?: string | null
+          service_type?: string
+          started_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          task_type?: string
+          ticket_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_tasks_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tasks_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_tasks_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]

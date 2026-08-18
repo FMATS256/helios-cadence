@@ -43,6 +43,8 @@ import {
 import {
   Customer360Workspace, type WorkspaceKind,
 } from "@/components/customer360-workspaces";
+import { AssignTechDialog, CustomerTasksCard } from "@/components/assign-tech-dialog";
+import { Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
@@ -1503,7 +1505,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm">(null);
+  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech">(null);
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
   const wsCtx = {
     customerId: customer.id,
@@ -1551,6 +1553,7 @@ function IspHeroPane(props: {
       <div className="flex flex-wrap gap-2">
         <ActionBtn tone="violet"  icon={Plus}        label="Add Service"        onClick={() => setOpen("service")} />
         <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
+        <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
@@ -1608,6 +1611,9 @@ function IspHeroPane(props: {
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "tech"    && <AssignTechDialog    ctx={ctx} onClose={() => setOpen(null)} defaults={{ service_type: view.cloudServers.length ? "cloud" : view.voip.length ? "voip" : "general" }} />}
+      <CustomerTasksCard ctx={ctx} />
+
       {ws && <Customer360Workspace kind={ws} ctx={wsCtx} onClose={() => setWs(null)} />}
     </div>
   );
