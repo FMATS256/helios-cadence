@@ -909,7 +909,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
   const debtorAgg: Record<string, number> = {};
   for (const x of unpaidInv) {
     if (!x.customer_id) continue;
-    debtorAgg[x.customer_id] = (debtorAgg[x.customer_id] || 0) + amt(x);
+    debtorAgg[x.customer_id] = (debtorAgg[x.customer_id] || 0) + bal(x);
   }
   const nameFor = (id: string) => {
     const c: any = custMap.get(id);
