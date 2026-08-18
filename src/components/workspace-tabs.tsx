@@ -17,7 +17,7 @@ export function WorkspaceTabs({
           <Link
             key={t.key}
             to={to as any}
-            search={{ tab: t.key }}
+            search={{ tab: t.key } as any}
             className={cn(
               "shrink-0 px-3 sm:px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
               active === t.key

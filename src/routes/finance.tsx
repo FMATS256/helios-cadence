@@ -20,11 +20,14 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WorkspaceTabs } from "@/components/workspace-tabs";
+import { BillingPage } from "@/components/workspaces/invoices-workspace";
+import { PaymentsPage } from "@/components/workspaces/payments-workspace";
+import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspace";
 
 export const Route = createFileRoute("/finance")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    tab: typeof s.tab === "string" ? s.tab : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { tab?: string } =>
+    typeof s.tab === "string" ? { tab: s.tab } : {},
   head: () => ({
     meta: [
       { title: "Finance Workspace — IMT Operations" },
