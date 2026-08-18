@@ -1521,13 +1521,12 @@ function IspHeroPane(props: {
   const hasCloud = view.cloudServers.length > 0;
   const hasOverdue = stats.openInvoiceTotal > 0;
   const slot5: { label: string; icon: any; onClick: () => void } =
-    hasPrepaid
-      ? { label: "Recharge", icon: RefreshCw, onClick: () => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; } }
-      : hasCloud
-        ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
-        : hasOverdue
-          ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
-          : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };
+    hasCloud
+      ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
+      : hasOverdue && hasPrepaid
+        ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
+        : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };
+
 
   return (
     <div className="space-y-4">
