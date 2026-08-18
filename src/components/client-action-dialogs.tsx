@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package } from "lucide-react";
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
+import { PROVISION_FIELDS, KIND_LABEL, kindForCategory } from "@/lib/service-provision.shared";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
 import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
 import {
