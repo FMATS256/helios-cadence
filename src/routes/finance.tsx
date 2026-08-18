@@ -156,7 +156,7 @@ async function loadFinanceOverview() {
       overdueCount: overdue.length,
       paidCount: paidInvoices.length,
       draftCount: draftInvoices.length,
-      renewalsSoon: activeSubs.filter((x) => x.next_renewal && new Datex.next_renewal < in30).length,
+      renewalsSoon: activeSubs.filter((x) => x.next_renewal && new Date(x.next_renewal) < in30).length,
       activeCustomers: cust.filter((c) => c.status !== "inactive").length,
       activeSubs: activeSubs.length,
       products: cat.length,
