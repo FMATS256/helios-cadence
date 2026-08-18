@@ -1360,9 +1360,10 @@ function InfoRow({ label, value, sub, link }: { label: string; value: React.Reac
   );
 }
 
-function ActionBtn({ tone, icon: Icon, label, onClick }: { tone: "indigo" | "amber" | "emerald" | "sky" | "rose" | "slate"; icon: any; label: string; onClick?: () => void }) {
+function ActionBtn({ tone, icon: Icon, label, onClick }: { tone: "indigo" | "amber" | "emerald" | "sky" | "rose" | "slate" | "violet"; icon: any; label: string; onClick?: () => void }) {
   const map: Record<string, string> = {
     indigo: "bg-[oklch(0.55_0.18_265)] hover:bg-[oklch(0.5_0.18_265)] text-white",
+    violet: "bg-[oklch(0.55_0.2_300)] hover:bg-[oklch(0.5_0.2_300)] text-white",
     amber: "bg-[oklch(0.75_0.16_75)] hover:bg-[oklch(0.7_0.16_75)] text-[oklch(0.25_0.08_75)]",
     emerald: "bg-[oklch(0.6_0.15_150)] hover:bg-[oklch(0.55_0.15_150)] text-white",
     sky: "bg-[oklch(0.6_0.14_240)] hover:bg-[oklch(0.55_0.14_240)] text-white",
@@ -1521,13 +1522,12 @@ function IspHeroPane(props: {
   const hasCloud = view.cloudServers.length > 0;
   const hasOverdue = stats.openInvoiceTotal > 0;
   const slot5: { label: string; icon: any; onClick: () => void } =
-    hasPrepaid
-      ? { label: "Recharge", icon: RefreshCw, onClick: () => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; } }
-      : hasCloud
-        ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
-        : hasOverdue
-          ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
-          : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };
+    hasCloud
+      ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
+      : hasOverdue && hasPrepaid
+        ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
+        : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };
+
 
   return (
     <div className="space-y-4">
@@ -1549,7 +1549,8 @@ function IspHeroPane(props: {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <ActionBtn tone="indigo"  icon={PackageIcon} label="Change/Add Package" onClick={() => setOpen("service")} />
+        <ActionBtn tone="violet"  icon={Plus}        label="Add Service"        onClick={() => setOpen("service")} />
+        <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
@@ -1567,7 +1568,7 @@ function IspHeroPane(props: {
             <DropdownMenuItem onClick={() => setOpen("comm")}><Mail className="h-4 w-4 mr-2" />Log Communication</DropdownMenuItem>
             <DropdownMenuItem onClick={onSendReminder}><Bell className="h-4 w-4 mr-2" />Send Payment Reminder</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setWs("package")}><PackageIcon className="h-4 w-4 mr-2" />Change Package</DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setWs("billing")}><CreditCard className="h-4 w-4 mr-2" />Billing</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setWs("timeline")}><Activity className="h-4 w-4 mr-2" />Customer Timeline</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setWs("comms")}><MailIcon className="h-4 w-4 mr-2" />Communication Center</DropdownMenuItem>
