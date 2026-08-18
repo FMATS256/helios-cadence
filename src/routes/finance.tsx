@@ -928,7 +928,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <NetzurStat icon={ClipboardList} label="Unpaid Invoices"
-          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#e07a5f" />
+          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e07a5f" />
         <NetzurStat icon={FileText} label="Open Quotes"
           value={`${openQuotes.length} (${money(openQuotes.reduce((a, x) => a + Number(x.total || 0), 0), currency)})`} bg="#4a5c6a" />
         <NetzurStat icon={Receipt} label="Today's Invoices"
