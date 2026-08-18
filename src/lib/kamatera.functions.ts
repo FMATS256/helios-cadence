@@ -63,8 +63,12 @@ export const provisionServer = createServerFn({ method: "POST" })
     notes?: string;
   }) => d)
   .handler(async ({ data }) => {
-    const { createServer } = await import("./kamatera.server");
+    const { createServer, ping } = await import("./kamatera.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Pre-flight: fail fast with a clear reason instead of leaving a half-created record.
+    await ping();
+
 
     let account_number: string | null = null;
     if (data.customer_id) {
