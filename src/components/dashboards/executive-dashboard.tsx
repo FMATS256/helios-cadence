@@ -23,8 +23,8 @@ async function load() {
     supabase.from("customers").select("id,status,created_at").is("archived_at", null),
     supabase.from("tickets").select("id,status,created_at").is("archived_at", null),
     (supabase.from as any)("monitoring_checks").select("id,status").is("archived_at", null),
-    (supabase.from as any)("invoices").select("id,amount_total,status,issued_at,due_date").is("archived_at", null),
-    (supabase.from as any)("payments").select("id,amount,created_at").is("archived_at", null),
+    (supabase.from as any)("invoices").select("id,total,status,issue_date,due_date").is("archived_at", null),
+    (supabase.from as any)("payments").select("id,amount,status,paid_at"),
     (supabase.from as any)("cloud_servers").select("id,status,created_at").is("archived_at", null),
   ]);
 
@@ -32,7 +32,7 @@ async function load() {
   const t = tickets.data ?? [];
   const m = (monitoring.data ?? []) as any[];
   const inv = (invoices.data ?? []) as any[];
-  const pays = (payments.data ?? []) as any[];
+  const pays = ((payments.data ?? []) as any[]).filter((p) => p.status !== "void" && p.status !== "cancelled" && p.status !== "failed");
   const srv = (servers.data ?? []) as any[];
 
   const now = new Date();
@@ -56,8 +56,8 @@ async function load() {
     chart.push({ label: d.toLocaleDateString("en", { month: "short" }), new: nw, active: cum });
   }
 
-  const invIn = (start: Date, end: Date) => inv.filter((x) => x.issued_at && new Date(x.issued_at) >= start && new Date(x.issued_at) < end);
-  const payIn = (start: Date, end: Date) => pays.filter((x) => x.created_at && new Date(x.created_at) >= start && new Date(x.created_at) < end);
+  const invIn = (start: Date, end: Date) => inv.filter((x) => x.issue_date && new Date(x.issue_date) >= start && new Date(x.issue_date) < end);
+  const payIn = (start: Date, end: Date) => pays.filter((x) => x.paid_at && new Date(x.paid_at) >= start && new Date(x.paid_at) < end);
 
   const buildFin = (start: Date, end: Date) => {
     const ii = invIn(start, end);
@@ -68,11 +68,11 @@ async function load() {
       paymentsCount: pp.length,
       paymentsTotal: pp.reduce((s, x) => s + Number(x.amount || 0), 0),
       paidCount: paid.length,
-      paidTotal: paid.reduce((s, x) => s + Number(x.amount_total || 0), 0),
+      paidTotal: paid.reduce((s, x) => s + Number(x.total || 0), 0),
       unpaidCount: unpaid.length,
-      unpaidTotal: unpaid.reduce((s, x) => s + Number(x.amount_total || 0), 0),
+      unpaidTotal: unpaid.reduce((s, x) => s + Number(x.total || 0), 0),
       creditCount: ii.filter((x) => x.status === "credit").length,
-      creditTotal: ii.filter((x) => x.status === "credit").reduce((s, x) => s + Number(x.amount_total || 0), 0),
+      creditTotal: ii.filter((x) => x.status === "credit").reduce((s, x) => s + Number(x.total || 0), 0),
     };
   };
   const current = buildFin(startOfThisMonth, new Date(now.getFullYear(), now.getMonth() + 1, 1));
