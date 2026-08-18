@@ -78,11 +78,19 @@ export const assignServices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
     customer_id: string;
-    items: { catalog_id: string; quantity: number; unit_price?: number; notes?: string }[];
+    items: { catalog_id: string; quantity: number; unit_price?: number; notes?: string; provision?: Record<string, string | undefined> }[];
   }) => input)
   .handler(async ({ data, context }) => {
     await assertAnyRole(context, ["operations_manager", "finance", "sales", "account_manager"]);
-    if (!data.items?.length) return { ok: true, created: 0 };
+    if (!data.items?.length) return { ok: true, created: 0, provisioned: [] as { table: string; id: string }[] };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { provisionServiceRecord } = await import("./service-provision.server");
+    const { recordCustomerEvent } = await import("./customer-events.server");
+
+    const { data: customer, error: custErr } = await supabaseAdmin
+      .from("customers").select("id, account_number, company_name").eq("id", data.customer_id).single();
+    if (custErr || !customer) throw new Error(custErr?.message || "Customer not found");
 
     const { data: catalog, error: catErr } = await context.supabase
       .from("service_catalog").select("*").in("id", data.items.map((i) => i.catalog_id));
@@ -90,6 +98,7 @@ export const assignServices = createServerFn({ method: "POST" })
     const catMap = new Map((catalog || []).map((c: any) => [c.id, c]));
 
     let created = 0;
+    const provisioned: { table: string; id: string }[] = [];
     for (const item of data.items) {
       const cat: any = catMap.get(item.catalog_id);
       if (!cat) continue;
@@ -126,10 +135,39 @@ export const assignServices = createServerFn({ method: "POST" })
         assigned_by: context.userId,
       });
       if (csErr) throw new Error(csErr.message);
+
+      const rec = await provisionServiceRecord({
+        admin: supabaseAdmin,
+        customerId: customer.id,
+        accountNumber: customer.account_number,
+        userId: context.userId,
+        catalog: cat,
+        quantity: qty,
+        unitPrice,
+        provision: item.provision || {},
+      });
+      if (rec) provisioned.push(rec);
+
+      await recordCustomerEvent(supabaseAdmin, {
+        customer_id: customer.id,
+        account_number: customer.account_number,
+        event_type: "service_assigned",
+        title: `Service assigned · ${cat.name}`,
+        description: `${cat.code} · ${qty} × $${Number(unitPrice).toFixed(2)} ${cat.billing_cycle}${rec ? ` · provisioned in ${rec.table}` : ""}`,
+        module: "services",
+        entity_type: rec?.table ?? "subscriptions",
+        entity_id: rec?.id ?? sub?.id ?? null,
+        new_value: { code: cat.code, quantity: qty, unit_price: unitPrice, billing_cycle: cat.billing_cycle },
+        major: true,
+        actor_id: context.userId,
+        actor_email: context.claims?.email ?? null,
+      });
+
       created++;
     }
-    return { ok: true, created };
+    return { ok: true, created, provisioned };
   });
+
 
 export const removeCustomerService = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
