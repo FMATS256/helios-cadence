@@ -220,7 +220,13 @@ export async function terminateServer(idOrName: string, force = true) {
 }
 
 export async function ping() {
-  // Cheap sanity check that credentials work.
-  const dcs = await listDatacenters();
-  return { ok: true, datacenterCount: Array.isArray(dcs) ? dcs.length : 0 };
+  // The servers endpoint is the only call that proves the account can actually
+  // provision — options endpoints answer even for blocked accounts.
+  const servers = await listServers();
+  const dcs = await listDatacenters().catch(() => []);
+  return {
+    ok: true,
+    datacenterCount: Array.isArray(dcs) ? dcs.length : 0,
+    serverCount: Array.isArray(servers) ? servers.length : 0,
+  };
 }
