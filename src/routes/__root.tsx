@@ -7,9 +7,7 @@ import { useEffect } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/app-shell";
-import { PortalShell } from "@/components/portal-shell";
 import { useAuth } from "@/hooks/use-auth";
-import { usePortal } from "@/hooks/use-portal";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 function NotFoundComponent() {
@@ -98,12 +96,7 @@ function AuthGate() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const isConsent = pathname === "/.lovable/oauth/consent";
-  const isPortalRoute = pathname === "/portal" || pathname.startsWith("/portal/");
-  const isPublic =
-    pathname === "/auth" ||
-    isConsent ||
-    pathname === "/services" ||
-    pathname.startsWith("/services/");
+  const isPublic = pathname === "/auth" || isConsent;
 
   useEffect(() => {
     if (isPublic || loading || user) return;
@@ -124,7 +117,6 @@ function AuthGate() {
     );
   }
 
-  if (isPortalRoute) return <PortalShell><Outlet /></PortalShell>;
   return <AppShell><Outlet /></AppShell>;
 }
 
