@@ -8,12 +8,19 @@ import {
   DollarSign, FileText, Receipt, TrendingUp, AlertTriangle, Plus, ArrowUpRight, Repeat,
 } from "lucide-react";
 
+const CYCLE_TO_MONTHLY: Record<string, number> = {
+  monthly: 1, quarterly: 1 / 3, semi_annual: 1 / 6, semiannual: 1 / 6,
+  annual: 1 / 12, yearly: 1 / 12, weekly: 4.345, daily: 30.44, one_time: 0,
+};
+const monthlyOf = (s: any) =>
+  Number(s.amount || 0) * (CYCLE_TO_MONTHLY[String(s.billing_cycle || "monthly").toLowerCase()] ?? 1);
+
 async function loadFinance() {
   const [invoices, payments, subs, quotes] = await Promise.all([
-    (supabase.from as any)("invoices").select("id,invoice_number,amount_total,currency,status,due_date,account_number,issue_date").is("archived_at", null).order("issue_date", { ascending: false }),
-    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,account_number").is("archived_at", null).order("paid_at", { ascending: false }),
-    (supabase.from as any)("subscriptions").select("id,mrr,status,billing_cycle,renews_at,account_number").is("archived_at", null),
-    (supabase.from as any)("quotes").select("id,quote_number,total,currency,status,valid_until,account_number").is("archived_at", null).order("created_at", { ascending: false }),
+    (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,account_number,issue_date").is("archived_at", null).order("issue_date", { ascending: false }),
+    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,account_number").order("paid_at", { ascending: false }),
+    (supabase.from as any)("subscriptions").select("id,amount,billing_cycle,status,next_renewal,account_number"),
+    (supabase.from as any)("quotes").select("id,quote_number,amount,currency,status,valid_until,account_number").order("created_at", { ascending: false }),
   ]);
   const inv = (invoices.data ?? []) as any[];
   const pay = (payments.data ?? []) as any[];
@@ -21,27 +28,31 @@ async function loadFinance() {
   const q = (quotes.data ?? []) as any[];
   const today = new Date();
   const in30 = new Date(); in30.setDate(in30.getDate() + 30);
-  const unpaid = inv.filter((x) => x.status !== "paid" && x.status !== "void");
+  const unpaid = inv.filter((x) => x.status !== "paid" && x.status !== "void" && x.status !== "cancelled");
   const overdue = unpaid.filter((x) => x.due_date && new Date(x.due_date) < today);
-  const mtdPayments = pay.filter((x) => x.paid_at && new Date(x.paid_at).getMonth() === today.getMonth() && new Date(x.paid_at).getFullYear() === today.getFullYear());
+  const received = pay.filter((x) => x.status !== "void" && x.status !== "cancelled" && x.status !== "failed");
+  const mtdPayments = received.filter((x) => x.paid_at && new Date(x.paid_at).getMonth() === today.getMonth() && new Date(x.paid_at).getFullYear() === today.getFullYear());
+  const activeSubs = s.filter((x) => x.status === "active");
+  const mrr = activeSubs.reduce((a, x) => a + monthlyOf(x), 0);
   return {
-    mrr: s.filter((x) => x.status === "active").reduce((a, x) => a + Number(x.mrr || 0), 0),
-    arr: s.filter((x) => x.status === "active").reduce((a, x) => a + Number(x.mrr || 0), 0) * 12,
-    unpaidTotal: unpaid.reduce((a, x) => a + Number(x.amount_total || 0), 0),
+    mrr,
+    arr: mrr * 12,
+    unpaidTotal: unpaid.reduce((a, x) => a + Number(x.total || 0), 0),
     unpaidCount: unpaid.length,
-    overdueTotal: overdue.reduce((a, x) => a + Number(x.amount_total || 0), 0),
+    overdueTotal: overdue.reduce((a, x) => a + Number(x.total || 0), 0),
     overdueCount: overdue.length,
     mtdCollected: mtdPayments.reduce((a, x) => a + Number(x.amount || 0), 0),
     openQuotes: q.filter((x) => x.status === "sent" || x.status === "draft"),
-    renewalsSoon: s.filter((x) => x.status === "active" && x.renews_at && new Date(x.renews_at) < in30),
+    renewalsSoon: activeSubs.filter((x) => x.next_renewal && new Date(x.next_renewal) < in30),
     recentInvoices: inv.slice(0, 6),
-    recentPayments: pay.slice(0, 5),
+    recentPayments: received.slice(0, 5),
   };
 }
 
+
 export function FinanceDashboard({ displayName }: { displayName: string }) {
   const { data: s } = useQuery({ queryKey: ["dash-finance"], queryFn: loadFinance });
-  const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
+  const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   return (
     <>
       <HeroPanel
@@ -93,7 +104,7 @@ export function FinanceDashboard({ displayName }: { displayName: string }) {
               <div key={i.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                 <div className="h-10 w-10 rounded-lg bg-warning/15 text-[oklch(0.45_0.13_75)] flex items-center justify-center font-semibold text-xs">{i.invoice_number}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{money(Number(i.amount_total || 0))} <span className="text-xs text-muted-foreground">{i.currency}</span></p>
+                  <p className="text-sm font-semibold">{money(Number(i.total || 0))} <span className="text-xs text-muted-foreground">{i.currency}</span></p>
                   <p className="text-xs text-muted-foreground">{i.account_number} · due {i.due_date ? new Date(i.due_date).toLocaleDateString() : "—"}</p>
                 </div>
                 <StatusPill tone={i.status === "paid" ? "success" : i.status === "overdue" ? "danger" : "warning"}>{i.status}</StatusPill>

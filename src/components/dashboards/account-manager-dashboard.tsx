@@ -8,12 +8,19 @@ import {
   Users, Briefcase, FileText, TrendingUp, Plus, ArrowUpRight, Repeat, HandCoins,
 } from "lucide-react";
 
+const CYCLE_TO_MONTHLY: Record<string, number> = {
+  monthly: 1, quarterly: 1 / 3, semi_annual: 1 / 6, semiannual: 1 / 6,
+  annual: 1 / 12, yearly: 1 / 12, weekly: 4.345, daily: 30.44, one_time: 0,
+};
+const monthlyOf = (s: any) =>
+  Number(s.amount || 0) * (CYCLE_TO_MONTHLY[String(s.billing_cycle || "monthly").toLowerCase()] ?? 1);
+
 async function loadAM() {
   const [customers, quotes, projects, subs, tickets] = await Promise.all([
     supabase.from("customers").select("id,account_number,company_name,status,industry,created_at").is("archived_at", null).order("created_at", { ascending: false }),
-    (supabase.from as any)("quotes").select("id,quote_number,total,currency,status,valid_until,account_number,created_at").is("archived_at", null).order("created_at", { ascending: false }),
+    (supabase.from as any)("quotes").select("id,quote_number,amount,currency,status,valid_until,account_number,created_at").order("created_at", { ascending: false }),
     (supabase.from as any)("projects").select("id,project_code,name,status,budget,account_number").is("archived_at", null),
-    (supabase.from as any)("subscriptions").select("id,mrr,status,renews_at,account_number,service_name").is("archived_at", null),
+    (supabase.from as any)("subscriptions").select("id,amount,billing_cycle,status,next_renewal,account_number,plan_name"),
     supabase.from("tickets").select("id,account_number,status").is("archived_at", null),
   ]);
   const c = customers.data ?? [];
@@ -32,11 +39,12 @@ async function loadAM() {
     activeCount: activeCustomers.length,
     prospectCount: c.filter((x: any) => x.status === "prospect" || x.status === "lead").length,
     openQuotes: q.filter((x) => x.status === "sent"),
-    openQuotesValue: q.filter((x) => x.status === "sent").reduce((a, x) => a + Number(x.total || 0), 0),
+    openQuotesValue: q.filter((x) => x.status === "sent").reduce((a, x) => a + Number(x.amount || 0), 0),
     acceptedThisMonth: q.filter((x) => x.status === "accepted" && new Date(x.created_at).getMonth() === new Date().getMonth()).length,
     activeProjects: p.filter((x) => x.status === "active" || x.status === "in_progress"),
-    renewalsSoon: s.filter((x) => x.status === "active" && x.renews_at && new Date(x.renews_at) < in30),
-    mrr: s.filter((x) => x.status === "active").reduce((a, x) => a + Number(x.mrr || 0), 0),
+    renewalsSoon: s.filter((x) => x.status === "active" && x.next_renewal && new Date(x.next_renewal) < in30),
+    mrr: s.filter((x) => x.status === "active").reduce((a, x) => a + monthlyOf(x), 0),
+
     topAccounts: activeCustomers.slice(0, 6).map((c: any) => ({
       ...c,
       openTickets: openTicketsByAcct.get(c.account_number) || 0,
@@ -47,7 +55,7 @@ async function loadAM() {
 
 export function AccountManagerDashboard({ displayName }: { displayName: string }) {
   const { data: s } = useQuery({ queryKey: ["dash-am"], queryFn: loadAM });
-  const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
+  const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   return (
     <>
       <HeroPanel
@@ -121,7 +129,7 @@ export function AccountManagerDashboard({ displayName }: { displayName: string }
               <div key={q.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                 <div className="h-9 w-9 rounded-md bg-warning/15 text-[oklch(0.45_0.13_75)] flex items-center justify-center font-semibold text-[10px]">{q.quote_number}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{money(Number(q.total || 0))} <span className="text-xs text-muted-foreground">{q.currency}</span></p>
+                  <p className="text-sm font-semibold">{money(Number(q.amount || 0))} <span className="text-xs text-muted-foreground">{q.currency}</span></p>
                   <p className="text-xs text-muted-foreground">{q.account_number}</p>
                 </div>
                 <StatusPill tone={q.status === "accepted" ? "success" : q.status === "sent" ? "info" : "neutral"}>{q.status}</StatusPill>
