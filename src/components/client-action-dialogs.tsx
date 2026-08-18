@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package } from "lucide-react";
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
+import { PROVISION_FIELDS, KIND_LABEL, kindForCategory } from "@/lib/service-provision.shared";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
 import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
 import {
@@ -85,17 +86,33 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
   });
   const active = catalog.filter((c: any) => c.is_active);
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState<Record<string, { qty: number; price: number }>>({});
+  const [cat, setCat] = useState("all");
+  const [sel, setSel] = useState<Record<string, { qty: number; price: number; provision: Record<string, string> }>>({});
+  const categories = useMemo(() => Array.from(new Set(active.map((c: any) => c.category))).sort(), [active]);
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
-    return active.filter((c: any) => !s || c.name.toLowerCase().includes(s) || c.code.toLowerCase().includes(s) || c.category.toLowerCase().includes(s));
-  }, [active, q]);
+    return active.filter((c: any) =>
+      (cat === "all" || c.category === cat) &&
+      (!s || c.name.toLowerCase().includes(s) || c.code.toLowerCase().includes(s) || c.category.toLowerCase().includes(s)));
+  }, [active, q, cat]);
   const items = Object.entries(sel).map(([id, v]) => ({ ...active.find((c: any) => c.id === id), ...v }));
   const total = items.reduce((s, i: any) => s + i.qty * i.price, 0);
 
+  const missing = items.find((i: any) =>
+    PROVISION_FIELDS[kindForCategory(i.category)].some((f) => f.required && !i.provision?.[f.key]?.trim()));
+
   const mut = useMutation({
-    mutationFn: async () => assignFn({ data: { customer_id: ctx.customerId, items: items.map((i: any) => ({ catalog_id: i.id, quantity: i.qty, unit_price: i.price })) } }),
-    onSuccess: () => { toast.success(`Added ${items.length} service${items.length === 1 ? "" : "s"} to ${ctx.companyName}`); refresh(); onClose(); },
+    mutationFn: async () => assignFn({
+      data: {
+        customer_id: ctx.customerId,
+        items: items.map((i: any) => ({ catalog_id: i.id, quantity: i.qty, unit_price: i.price, provision: i.provision })),
+      },
+    }),
+    onSuccess: (res: any) => {
+      const p = res?.provisioned?.length ?? 0;
+      toast.success(`Added ${items.length} service${items.length === 1 ? "" : "s"}${p ? ` · ${p} provisioned` : ""}`);
+      refresh(); onClose();
+    },
     onError: (e: any) => toast.error(e?.message || "Failed to add service"),
   });
 
@@ -104,17 +121,28 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
       <DialogContent className="max-w-3xl">
         <DialogHeader><DialogTitle>Add service · {ctx.companyName}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Input placeholder="Search catalog (code, name, category)…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-2">
+            <Input placeholder="Search catalog (code, name, category)…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Select value={cat} onValueChange={setCat}>
+              <SelectTrigger><SelectValue placeholder="All categories" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((c: any) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="max-h-[420px] overflow-y-auto rounded-lg border divide-y">
             {filtered.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">No packages match.</p>}
-            {filtered.slice(0, 100).map((c: any) => {
+            {filtered.slice(0, 200).map((c: any) => {
               const s = sel[c.id];
+              const kind = kindForCategory(c.category);
+              const fields = PROVISION_FIELDS[kind];
               return (
-                <div key={c.id} className={`p-3 cursor-pointer ${s ? "bg-solar/5" : "hover:bg-muted/40"}`} onClick={() => setSel((p) => { const n = { ...p }; if (n[c.id]) delete n[c.id]; else n[c.id] = { qty: 1, price: Number(c.unit_price) }; return n; })}>
+                <div key={c.id} className={`p-3 cursor-pointer ${s ? "bg-solar/5" : "hover:bg-muted/40"}`} onClick={() => setSel((p) => { const n = { ...p }; if (n[c.id]) delete n[c.id]; else n[c.id] = { qty: 1, price: Number(c.unit_price), provision: {} }; return n; })}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2"><span className="font-mono text-xs text-solar bg-solar/10 px-1.5 py-0.5 rounded">{c.code}</span><span className="font-semibold text-sm">{c.name}</span></div>
-                      <div className="text-xs text-muted-foreground capitalize">{c.category} · {c.billing_cycle}</div>
+                      <div className="text-xs text-muted-foreground capitalize">{c.category} · {c.billing_cycle}{KIND_LABEL[kind] ? ` · creates ${KIND_LABEL[kind]}` : ""}</div>
                     </div>
                     <span className="font-mono text-sm">${Number(c.unit_price).toFixed(2)}</span>
                   </div>
@@ -122,6 +150,18 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
                     <div className="mt-2 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                       <div><Label className="text-xs">Qty</Label><Input type="number" min={1} value={s.qty} onChange={(e) => setSel((p) => ({ ...p, [c.id]: { ...p[c.id], qty: Math.max(1, Number(e.target.value) || 1) } }))} className="h-8" /></div>
                       <div><Label className="text-xs">Unit price</Label><Input type="number" step="0.01" value={s.price} onChange={(e) => setSel((p) => ({ ...p, [c.id]: { ...p[c.id], price: Number(e.target.value) || 0 } }))} className="h-8" /></div>
+                      {fields.map((f) => (
+                        <div key={f.key}>
+                          <Label className="text-xs">{f.label}{f.required && " *"}</Label>
+                          <Input
+                            type={f.type === "number" ? "number" : "text"}
+                            placeholder={f.placeholder}
+                            value={s.provision?.[f.key] ?? ""}
+                            onChange={(e) => setSel((p) => ({ ...p, [c.id]: { ...p[c.id], provision: { ...p[c.id].provision, [f.key]: e.target.value } } }))}
+                            className="h-8"
+                          />
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -129,10 +169,11 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
             })}
           </div>
           {items.length > 0 && <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm"><span>{items.length} selected</span><span className="font-bold text-solar">${total.toFixed(2)}</span></div>}
+          {missing && <p className="text-xs text-destructive">Fill the required provisioning fields for {(missing as any).name}.</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={items.length === 0 || mut.isPending} onClick={() => mut.mutate()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+          <Button disabled={items.length === 0 || !!missing || mut.isPending} onClick={() => mut.mutate()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
             {mut.isPending ? "Adding…" : `Add ${items.length || ""} service${items.length === 1 ? "" : "s"}`}
           </Button>
         </DialogFooter>
@@ -140,6 +181,7 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
     </Dialog>
   );
 }
+
 
 /* =============================== Record Payment ============================== */
 export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
