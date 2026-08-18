@@ -163,10 +163,11 @@ async function loadFinanceOverview() {
       ytdRevenue: revenue(yearStart),
       mrr,
       arr: mrr * 12,
-      ar: unpaid.reduce((a, x) => a + amt(x), 0),
+      ar: unpaid.reduce((a, x) => a + bal(x), 0),
       currentUnpaid,
       overdueUnpaid,
-      overdueTotal: overdue.reduce((a, x) => a + amt(x), 0),
+      overdueTotal: overdue.reduce((a, x) => a + bal(x), 0),
+
       unpaidCount: unpaid.length,
       overdueCount: overdue.length,
       paidCount: paidInvoices.length,
