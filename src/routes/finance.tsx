@@ -844,6 +844,8 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
   const customers: any[] = data?.customers ?? [];
 
   const amt = (r: any) => Number(r.total ?? 0);
+  const bal = (r: any) => Number(r.balance ?? r.total ?? 0);
+
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const today = new Date();
