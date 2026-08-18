@@ -125,24 +125,24 @@ function LeadsPage() {
   ];
 
   const columns: ColumnDef<any>[] = [
-    { key: "company_name", header: "Company", render: (r) => (
+    { header: "Company", cell: (r: any) => (
       <div>
         <div className="font-medium">{r.company_name}</div>
         <div className="text-xs text-muted-foreground">{[r.title, r.contact_name].filter(Boolean).join(" ") || "—"}</div>
       </div>
     ) },
-    { key: "contact", header: "Contact", render: (r) => (
+    { header: "Contact", cell: (r: any) => (
       <div className="text-xs">
         <div>{r.email || "—"}</div>
         <div className="text-muted-foreground">{r.phone || ""}</div>
       </div>
     ) },
-    { key: "interest", header: "Interest", render: (r) => r.interest || "—" },
-    { key: "source", header: "Source", render: (r) => String(r.source ?? "").replace(/_/g, " ") },
-    { key: "estimated_value", header: "Value", render: (r) => money(r.estimated_value, r.currency) },
-    { key: "next_follow_up", header: "Follow-up", render: (r) => (r.next_follow_up ? shortDate(r.next_follow_up) : "—") },
-    { key: "status", header: "Status", render: (r) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
-    { key: "actions", header: "", render: (r) => (
+    { header: "Interest", cell: (r: any) => r.interest || "—" },
+    { header: "Source", cell: (r: any) => String(r.source ?? "").replace(/_/g, " ") },
+    { header: "Value", cell: (r: any) => money(r.estimated_value, r.currency) },
+    { header: "Follow-up", cell: (r: any) => (r.next_follow_up ? shortDate(r.next_follow_up) : "—") },
+    { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
+    { header: "", cell: (r: any) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -210,7 +210,7 @@ function LeadsPage() {
           {!isLoading && filtered.length === 0 ? (
             <EmptyState title="No leads here" description="Create a lead to start tracking this prospect." icon={Target} />
           ) : (
-            <DataGrid data={filtered} columns={columns} loading={isLoading} />
+            <DataGrid rows={filtered} columns={columns} loading={isLoading} />
           )}
         </CardContent>
       </Card>
