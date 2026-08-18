@@ -60,6 +60,7 @@ const navGroups = [
       { title: "Quotes", url: "/quotes", icon: FileText },
       { title: "Billing", url: "/billing", icon: Receipt },
       { title: "Payments", url: "/payments", icon: CreditCard },
+      { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
       { title: "Subscriptions", url: "/subscriptions", icon: Repeat },
       { title: "Licenses", url: "/licenses", icon: ShieldCheck },
       { title: "Inventory", url: "/inventory", icon: Warehouse },
