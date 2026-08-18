@@ -39,13 +39,13 @@ export const Route = createFileRoute("/finance")({
 
 async function loadFinanceOverview() {
   const [invoices, payments, subs, quotes, customers, catalog, assets, inventory] = await Promise.all([
-    (supabase.from as any)("invoices").select("id,invoice_number,amount_total,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
-    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
-    (supabase.from as any)("subscriptions").select("id,plan_name,amount,mrr,status,billing_cycle,renews_at,next_renewal,account_number,customer_id,created_at").is("archived_at", null),
-    (supabase.from as any)("quotes").select("id,quote_number,total,currency,status,valid_until,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(50),
+    (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
+    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(400),
+    (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,next_renewal,account_number,customer_id,created_at"),
+    (supabase.from as any)("quotes").select("id,quote_number,amount,currency,status,valid_until,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(50),
     supabase.from("customers").select("id,company_name,account_number,status,created_at").is("archived_at", null),
-    (supabase.from as any)("service_catalog").select("id,name,category,price"),
-    (supabase.from as any)("assets").select("id,purchase_price,status,category").is("archived_at", null),
+    (supabase.from as any)("service_catalog").select("id,name,category,unit_price,billing_cycle"),
+    (supabase.from as any)("assets").select("id,cost,status,asset_type").is("archived_at", null),
     (supabase.from as any)("inventory_items").select("id,quantity,unit_cost,category").is("archived_at", null),
   ]);
 
@@ -58,7 +58,7 @@ async function loadFinanceOverview() {
   const ast = (assets.data ?? []) as any[];
   const invn = (inventory.data ?? []) as any[];
 
-  const amt = (r: any) => Number(r.amount_total ?? r.total ?? 0);
+  const amt = (r: any) => Number(r.total ?? 0);
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -70,7 +70,7 @@ async function loadFinanceOverview() {
   const unpaid = inv.filter((x) => x.status !== "paid" && x.status !== "void");
   const overdue = unpaid.filter((x) => x.due_date && new Date(x.due_date) < today);
   const activeSubs = s.filter((x) => x.status === "active");
-  const mrr = activeSubs.reduce((a, x) => a + Number(x.mrr ?? x.amount ?? 0), 0);
+  const mrr = activeSubs.reduce((a, x) => a + monthlyOf(x), 0);
 
   const currentUnpaid = unpaid
     .filter((x) => !x.due_date || new Date(x.due_date) >= today)
@@ -102,7 +102,7 @@ async function loadFinanceOverview() {
   }
   // Expenses: sum of unpaid invoices you'd have to service + operating costs proxy from asset depreciation (simple 24-month straight-line)
   for (const a of ast) {
-    const monthly = Number(a.purchase_price || 0) / 24;
+    const monthly = Number(a.cost || 0) / 24;
     for (const m of months) m.expense += monthly * 0.35; // depreciation proxy
   }
 
@@ -113,8 +113,8 @@ async function loadFinanceOverview() {
   // Top expense categories from inventory + assets
   const expenseByCat: Record<string, number> = {};
   for (const a of ast) {
-    const k = a.category || "Assets";
-    expenseByCat[k] = (expenseByCat[k] || 0) + Number(a.purchase_price || 0) / 24;
+    const k = a.asset_type || "Assets";
+    expenseByCat[k] = (expenseByCat[k] || 0) + Number(a.cost || 0) / 24;
   }
   for (const it of invn) {
     const k = it.category || "Inventory";
@@ -148,12 +148,12 @@ async function loadFinanceOverview() {
       overdueCount: overdue.length,
       paidCount: paidInvoices.length,
       draftCount: draftInvoices.length,
-      renewalsSoon: activeSubs.filter((x) => (x.renews_at || x.next_renewal) && new Date(x.renews_at || x.next_renewal) < in30).length,
+      renewalsSoon: activeSubs.filter((x) => x.next_renewal && new Datex.next_renewal < in30).length,
       activeCustomers: cust.filter((c) => c.status !== "inactive").length,
       activeSubs: activeSubs.length,
       products: cat.length,
       inventoryValue,
-      assetValue: ast.reduce((a, x) => a + Number(x.purchase_price || 0), 0),
+      assetValue: ast.reduce((a, x) => a + Number(x.cost || 0), 0),
       payablesCurrent,
       payablesOverdue,
       incomingTotal,
@@ -166,9 +166,9 @@ async function loadFinanceOverview() {
 async function loadCustomerFinancial(customerId: string) {
   const [cust, invs, pays, subs] = await Promise.all([
     supabase.from("customers").select("*").eq("id", customerId).maybeSingle(),
-    (supabase.from as any)("invoices").select("id,invoice_number,amount_total,total,currency,status,due_date,issue_date,paid_at").eq("customer_id", customerId).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
-    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number").eq("customer_id", customerId).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
-    (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,renews_at,next_renewal").eq("customer_id", customerId).is("archived_at", null),
+    (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at").eq("customer_id", customerId).is("archived_at", null).order("created_at", { ascending: false }).limit(20),
+    (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number").eq("customer_id", customerId).order("created_at", { ascending: false }).limit(20),
+    (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,next_renewal").eq("customer_id", customerId),
   ]);
   return {
     customer: cust.data,
@@ -549,7 +549,7 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
         <Link key={i.id} to="/invoices/$id" params={{ id: i.id }} className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Receipt className="h-3 w-3" />Invoice · {i.status}</div>
           <div className="text-sm font-semibold truncate">{i.invoice_number}</div>
-          <div className="text-xs text-muted-foreground">{i.account_number} · {money(Number(i.amount_total ?? i.total ?? 0))}</div>
+          <div className="text-xs text-muted-foreground">{i.account_number} · {money(Number(i.total ?? 0))}</div>
         </Link>
       ))}
       {results.payments.map((p: any) => (
@@ -577,7 +577,7 @@ function SearchResults({ q, data, onPickCustomer }: { q: string; data: any; onPi
         <Link key={p.id} to="/catalog" className="text-left rounded-lg border border-border p-2.5 hover:bg-muted transition">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Package className="h-3 w-3" />Product</div>
           <div className="text-sm font-semibold truncate">{p.name}</div>
-          <div className="text-xs text-muted-foreground">{p.category} · {money(Number(p.price || 0))}</div>
+          <div className="text-xs text-muted-foreground">{p.category} · {money(Number(p.unit_price || 0))}</div>
         </Link>
       ))}
       {empty && <p className="col-span-full text-sm text-muted-foreground text-center py-4">No matches</p>}
@@ -594,7 +594,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         id: `inv-${i.id}`, when: i.created_at || i.issue_date,
         icon: Receipt, tone: "warning",
         title: `Invoice ${i.invoice_number} · ${i.status}`,
-        sub: `${i.account_number ?? "—"} · ${money(Number(i.amount_total ?? i.total ?? 0))}`,
+        sub: `${i.account_number ?? "—"} · ${money(Number(i.total ?? 0))}`,
         accountNumber: i.account_number, to: `/invoices/${i.id}`,
       });
     }
@@ -621,7 +621,7 @@ function ActivityFeed({ data, onPickCustomer }: { data: any; onPickCustomer: (id
         id: `q-${q.id}`, when: q.created_at,
         icon: FileText, tone: "info",
         title: `Quote ${q.quote_number} · ${q.status}`,
-        sub: `${q.account_number ?? "—"} · ${money(Number(q.total || 0))}`,
+        sub: `${q.account_number ?? "—"} · ${money(Number(q.amount || 0))}`,
         accountNumber: q.account_number,
       });
     }
@@ -720,7 +720,7 @@ function CustomerPanel({
 
   const balance = useMemo(() => {
     const owed = invs.filter((i: any) => i.status !== "paid" && i.status !== "void")
-      .reduce((a: number, i: any) => a + Number(i.amount_total ?? i.total ?? 0), 0);
+      .reduce((a: number, i: any) => a + Number(i.total ?? 0), 0);
     const revenue = pays.reduce((a: number, p: any) => a + Number(p.amount || 0), 0);
     return { owed, revenue };
   }, [invs, pays]);
@@ -746,7 +746,7 @@ function CustomerPanel({
               <div key={i.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border last:border-0">
                 <span className="font-mono text-xs">{i.invoice_number}</span>
                 <span className="text-muted-foreground text-xs">{i.status}</span>
-                <span className="font-semibold tabular-nums">{money(Number(i.amount_total ?? i.total ?? 0), currency)}</span>
+                <span className="font-semibold tabular-nums">{money(Number(i.total ?? 0), currency)}</span>
               </div>
             ))}
             {invs.length === 0 && <p className="text-xs text-muted-foreground">No invoices</p>}
@@ -819,7 +819,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
   const quotes: any[] = data?.quotes ?? [];
   const customers: any[] = data?.customers ?? [];
 
-  const amt = (r: any) => Number(r.amount_total ?? r.total ?? 0);
+  const amt = (r: any) => Number(r.total ?? 0);
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const today = new Date();
