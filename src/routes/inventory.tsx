@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { WorkspaceTabs } from "@/components/workspace-tabs";
+import { AssetsPage } from "@/components/workspaces/assets-workspace";
+import { LicensesPage } from "@/components/workspaces/licenses-workspace";
+import { LaptopTrackingPage } from "@/components/workspaces/laptop-workspace";
 import { ModulePage } from "@/components/module-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,9 +10,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusPill } from "@/components/page";
 
 export const Route = createFileRoute("/inventory")({
-  head: () => ({ meta: [{ title: "Inventory — IMT Operations" }] }),
-  component: InventoryPage,
+  validateSearch: (q: Record<string, unknown>): { tab?: string } =>
+    typeof q.tab === "string" ? { tab: q.tab } : {},
+  head: () => ({
+    meta: [
+      { title: "Inventory & Assets — IMT Operations" },
+      { name: "description", content: "Warehouse stock, managed assets, software licenses and tracked laptops in one workspace." },
+      { property: "og:title", content: "Inventory & Assets — IMT Operations" },
+      { property: "og:description", content: "Stock, assets, licenses and laptop tracking in one operations workspace." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: InventoryHub,
 });
+
+const INVENTORY_TABS = [
+  { key: "stock", label: "Stock" },
+  { key: "assets", label: "Assets" },
+  { key: "licenses", label: "Licenses" },
+  { key: "laptops", label: "Laptop Tracking" },
+] as const;
+
+function InventoryHub() {
+  const { tab } = Route.useSearch();
+  const active = INVENTORY_TABS.some((t) => t.key === tab) ? tab! : "stock";
+  return (
+    <div>
+      <WorkspaceTabs tabs={INVENTORY_TABS} active={active} to="/inventory" />
+      {active === "stock" && <InventoryPage />}
+      {active === "assets" && <AssetsPage />}
+      {active === "licenses" && <LicensesPage />}
+      {active === "laptops" && <LaptopTrackingPage />}
+    </div>
+  );
+}
 
 function InventoryPage() {
   return (

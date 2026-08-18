@@ -35,16 +35,14 @@ const siteNav: NavNode[] = [
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Packages", url: "/catalog", icon: Package },
   {
-    title: "Services", url: "/services", icon: Server,
+    title: "Services", url: "/cloud-ops", icon: Server,
     children: [
       { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Managed Services", url: "/cloud", icon: Server },
       { title: "Starlink", url: "/starlink", icon: Satellite },
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
-      { title: "Cloud Storage", url: "/cloud-storage", icon: HardDrive },
-      { title: "Managed NAS", url: "/managed-nas", icon: Database },
+      { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
-      { title: "Service Pages", url: "/services", icon: BookOpen },
     ],
   },
   {
@@ -52,18 +50,13 @@ const siteNav: NavNode[] = [
     children: [
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Service Map", url: "/service-map", icon: MapPin },
-      { title: "Assets", url: "/assets", icon: Server },
-      { title: "Laptop Tracking", url: "/laptop-tracking", icon: Laptop },
     ],
   },
   {
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
-      { title: "Overview", url: "/finance", icon: Wallet },
-      { title: "Billing", url: "/billing", icon: Receipt },
-      { title: "Payments", url: "/payments", icon: CreditCard },
+      { title: "Finance Workspace", url: "/finance", icon: Wallet },
       { title: "Quotes", url: "/quotes", icon: FileText },
-      { title: "Subscriptions", url: "/subscriptions", icon: Repeat },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
     ],
   },
@@ -77,11 +70,7 @@ const siteNav: NavNode[] = [
   },
   { title: "Tickets", url: "/tickets", icon: LifeBuoy },
   {
-    title: "Inventory", url: "/inventory", icon: Warehouse,
-    children: [
-      { title: "Stock", url: "/inventory", icon: Warehouse },
-      { title: "Licenses", url: "/licenses", icon: ShieldCheck },
-    ],
+    title: "Inventory & Assets", url: "/inventory", icon: Warehouse,
   },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   {
@@ -96,15 +85,8 @@ const siteNav: NavNode[] = [
 
 const configNav: NavNode[] = [
   { title: "Config", url: "/settings", icon: Settings },
-  {
-    title: "Email", url: "/email-studio", icon: Mail, masterOnly: true,
-    children: [
-      { title: "Email Studio", url: "/email-studio", icon: Mail },
-      { title: "Email Logs", url: "/email-logs", icon: Mail },
-    ],
-  },
+  { title: "Email Studio", url: "/email-studio", icon: Mail, masterOnly: true },
   { title: "Permissions", url: "/admin", icon: Shield, masterOnly: true },
-  { title: "System Health", url: "/system-test", icon: ShieldCheck, masterOnly: true },
 ];
 
 function NavSection({
@@ -236,7 +218,7 @@ function TopBar() {
             <DropdownMenuLabel>Create</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link to="/customers">New Customer</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/payments">Record Payment</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/finance" search={{ tab: "payments" }}>Record Payment</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/starlink">New Starlink Account</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/cloud">New Managed Service</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/tickets">New Ticket</Link></DropdownMenuItem>

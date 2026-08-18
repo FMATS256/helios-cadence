@@ -12,16 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as TicketsRouteImport } from './routes/tickets'
-import { Route as SystemTestRouteImport } from './routes/system-test'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ServiceMapRouteImport } from './routes/service-map'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
@@ -46,24 +43,17 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ServicesIndexRouteImport } from './routes/services.index'
-import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
-import { Route as ServicesSlugRouteImport } from './routes/services.$slug'
-import { Route as PortalTicketsRouteImport } from './routes/portal.tickets'
-import { Route as PortalInvoicesRouteImport } from './routes/portal.invoices'
-import { Route as PortalAssetsRouteImport } from './routes/portal.assets'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
-import { Route as AssetsIdRouteImport } from './routes/assets.$id'
+import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as FinanceCustomersAccountNumberRouteImport } from './routes/finance.customers.$accountNumber'
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -103,11 +93,6 @@ const TicketsRoute = TicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SystemTestRoute = SystemTestRouteImport.update({
-  id: '/system-test',
-  path: '/system-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
@@ -121,11 +106,6 @@ const StarlinkRoute = StarlinkRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicesRoute = ServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiceMapRoute = ServiceMapRouteImport.update({
@@ -146,11 +126,6 @@ const QuotesRoute = QuotesRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortalRoute = PortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -273,16 +248,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServicesIndexRoute = ServicesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ServicesRoute,
-} as any)
-const PortalIndexRoute = PortalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PortalRoute,
-} as any)
 const CustomersIndexRoute = CustomersIndexRouteImport.update({
   id: '/customers/',
   path: '/customers/',
@@ -297,26 +262,6 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => TicketsRoute,
-} as any)
-const ServicesSlugRoute = ServicesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => ServicesRoute,
-} as any)
-const PortalTicketsRoute = PortalTicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalInvoicesRoute = PortalInvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
-  getParentRoute: () => PortalRoute,
-} as any)
-const PortalAssetsRoute = PortalAssetsRouteImport.update({
-  id: '/assets',
-  path: '/assets',
-  getParentRoute: () => PortalRoute,
 } as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
@@ -344,9 +289,9 @@ const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssetsIdRoute = AssetsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AssetsRoute,
+  id: '/assets_/$id',
+  path: '/assets/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -359,12 +304,6 @@ const Char91DotmcpChar93ListToolsRoute =
     id: '/.mcp/list-tools',
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
-  } as any)
-const FinanceCustomersAccountNumberRoute =
-  FinanceCustomersAccountNumberRouteImport.update({
-    id: '/customers/$accountNumber',
-    path: '/customers/$accountNumber',
-    getParentRoute: () => FinanceRoute,
   } as any)
 const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
   id: '/c/$slug/$workspaceKey',
@@ -500,7 +439,7 @@ const CSlugWorkspaceKeyServersServerIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -512,7 +451,7 @@ export interface FileRoutesByFullPath {
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -522,16 +461,13 @@ export interface FileRoutesByFullPath {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
-  '/portal': typeof PortalRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/service-map': typeof ServiceMapRoute
-  '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
@@ -543,20 +479,13 @@ export interface FileRoutesByFullPath {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
-  '/portal/assets': typeof PortalAssetsRoute
-  '/portal/invoices': typeof PortalInvoicesRoute
-  '/portal/tickets': typeof PortalTicketsRoute
-  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
-  '/portal/': typeof PortalIndexRoute
-  '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
-  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -580,7 +509,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -592,7 +521,7 @@ export interface FileRoutesByTo {
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -609,7 +538,6 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
@@ -621,19 +549,12 @@ export interface FileRoutesByTo {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
-  '/portal/assets': typeof PortalAssetsRoute
-  '/portal/invoices': typeof PortalInvoicesRoute
-  '/portal/tickets': typeof PortalTicketsRoute
-  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/customers': typeof CustomersIndexRoute
-  '/portal': typeof PortalIndexRoute
-  '/services': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
-  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -658,7 +579,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -670,7 +591,7 @@ export interface FileRoutesById {
   '/email-logs': typeof EmailLogsRoute
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -680,41 +601,31 @@ export interface FileRoutesById {
   '/monitoring': typeof MonitoringRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
-  '/portal': typeof PortalRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
   '/service-map': typeof ServiceMapRoute
-  '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/system-test': typeof SystemTestRoute
   '/tickets': typeof TicketsRouteWithChildren
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/assets/$id': typeof AssetsIdRoute
+  '/assets_/$id': typeof AssetsIdRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
-  '/portal/assets': typeof PortalAssetsRoute
-  '/portal/invoices': typeof PortalInvoicesRoute
-  '/portal/tickets': typeof PortalTicketsRoute
-  '/services/$slug': typeof ServicesSlugRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
-  '/portal/': typeof PortalIndexRoute
-  '/services/': typeof ServicesIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
-  '/finance/customers/$accountNumber': typeof FinanceCustomersAccountNumberRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -762,16 +673,13 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
-    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
     | '/service-map'
-    | '/services'
     | '/settings'
     | '/starlink'
     | '/subscriptions'
-    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
@@ -783,20 +691,13 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
-    | '/portal/assets'
-    | '/portal/invoices'
-    | '/portal/tickets'
-    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
-    | '/portal/'
-    | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
-    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -849,7 +750,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/starlink'
     | '/subscriptions'
-    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
@@ -861,19 +761,12 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
-    | '/portal/assets'
-    | '/portal/invoices'
-    | '/portal/tickets'
-    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops'
     | '/customers'
-    | '/portal'
-    | '/services'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
-    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -919,41 +812,31 @@ export interface FileRouteTypes {
     | '/monitoring'
     | '/notifications'
     | '/payments'
-    | '/portal'
     | '/projects'
     | '/quotes'
     | '/reports'
     | '/service-map'
-    | '/services'
     | '/settings'
     | '/starlink'
     | '/subscriptions'
-    | '/system-test'
     | '/tickets'
     | '/voip'
     | '/web-hosting'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
-    | '/assets/$id'
+    | '/assets_/$id'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
-    | '/portal/assets'
-    | '/portal/invoices'
-    | '/portal/tickets'
-    | '/services/$slug'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
-    | '/portal/'
-    | '/services/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
-    | '/finance/customers/$accountNumber'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -978,7 +861,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  AssetsRoute: typeof AssetsRouteWithChildren
+  AssetsRoute: typeof AssetsRoute
   AuthRoute: typeof AuthRoute
   AutomationRoute: typeof AutomationRoute
   BillingRoute: typeof BillingRoute
@@ -990,7 +873,7 @@ export interface RootRouteChildren {
   EmailLogsRoute: typeof EmailLogsRoute
   EmailStudioRoute: typeof EmailStudioRoute
   ExpensesRoute: typeof ExpensesRoute
-  FinanceRoute: typeof FinanceRouteWithChildren
+  FinanceRoute: typeof FinanceRoute
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
@@ -1000,21 +883,19 @@ export interface RootRouteChildren {
   MonitoringRoute: typeof MonitoringRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentsRoute: typeof PaymentsRoute
-  PortalRoute: typeof PortalRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
   ServiceMapRoute: typeof ServiceMapRoute
-  ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
-  SystemTestRoute: typeof SystemTestRoute
   TicketsRoute: typeof TicketsRouteWithChildren
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AssetsIdRoute: typeof AssetsIdRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
   CloudOpsNewRoute: typeof CloudOpsNewRoute
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
@@ -1063,13 +944,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/system-test': {
-      id: '/system-test'
-      path: '/system-test'
-      fullPath: '/system-test'
-      preLoaderRoute: typeof SystemTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/subscriptions': {
       id: '/subscriptions'
       path: '/subscriptions'
@@ -1089,13 +963,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/services': {
-      id: '/services'
-      path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/service-map': {
@@ -1124,13 +991,6 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portal': {
-      id: '/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -1301,20 +1161,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/services/': {
-      id: '/services/'
-      path: '/'
-      fullPath: '/services/'
-      preLoaderRoute: typeof ServicesIndexRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/portal/': {
-      id: '/portal/'
-      path: '/'
-      fullPath: '/portal/'
-      preLoaderRoute: typeof PortalIndexRouteImport
-      parentRoute: typeof PortalRoute
-    }
     '/customers/': {
       id: '/customers/'
       path: '/customers'
@@ -1335,34 +1181,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/tickets/$id'
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
-    }
-    '/services/$slug': {
-      id: '/services/$slug'
-      path: '/$slug'
-      fullPath: '/services/$slug'
-      preLoaderRoute: typeof ServicesSlugRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/portal/tickets': {
-      id: '/portal/tickets'
-      path: '/tickets'
-      fullPath: '/portal/tickets'
-      preLoaderRoute: typeof PortalTicketsRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/invoices': {
-      id: '/portal/invoices'
-      path: '/invoices'
-      fullPath: '/portal/invoices'
-      preLoaderRoute: typeof PortalInvoicesRouteImport
-      parentRoute: typeof PortalRoute
-    }
-    '/portal/assets': {
-      id: '/portal/assets'
-      path: '/assets'
-      fullPath: '/portal/assets'
-      preLoaderRoute: typeof PortalAssetsRouteImport
-      parentRoute: typeof PortalRoute
     }
     '/invoices/$id': {
       id: '/invoices/$id'
@@ -1399,12 +1217,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudOpsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assets/$id': {
-      id: '/assets/$id'
-      path: '/$id'
+    '/assets_/$id': {
+      id: '/assets_/$id'
+      path: '/assets/$id'
       fullPath: '/assets/$id'
       preLoaderRoute: typeof AssetsIdRouteImport
-      parentRoute: typeof AssetsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -1419,13 +1237,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/.mcp/list-tools'
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/finance/customers/$accountNumber': {
-      id: '/finance/customers/$accountNumber'
-      path: '/customers/$accountNumber'
-      fullPath: '/finance/customers/$accountNumber'
-      preLoaderRoute: typeof FinanceCustomersAccountNumberRouteImport
-      parentRoute: typeof FinanceRoute
     }
     '/c/$slug/$workspaceKey': {
       id: '/c/$slug/$workspaceKey'
@@ -1591,59 +1402,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AssetsRouteChildren {
-  AssetsIdRoute: typeof AssetsIdRoute
-}
-
-const AssetsRouteChildren: AssetsRouteChildren = {
-  AssetsIdRoute: AssetsIdRoute,
-}
-
-const AssetsRouteWithChildren =
-  AssetsRoute._addFileChildren(AssetsRouteChildren)
-
-interface FinanceRouteChildren {
-  FinanceCustomersAccountNumberRoute: typeof FinanceCustomersAccountNumberRoute
-}
-
-const FinanceRouteChildren: FinanceRouteChildren = {
-  FinanceCustomersAccountNumberRoute: FinanceCustomersAccountNumberRoute,
-}
-
-const FinanceRouteWithChildren =
-  FinanceRoute._addFileChildren(FinanceRouteChildren)
-
-interface PortalRouteChildren {
-  PortalAssetsRoute: typeof PortalAssetsRoute
-  PortalInvoicesRoute: typeof PortalInvoicesRoute
-  PortalTicketsRoute: typeof PortalTicketsRoute
-  PortalIndexRoute: typeof PortalIndexRoute
-}
-
-const PortalRouteChildren: PortalRouteChildren = {
-  PortalAssetsRoute: PortalAssetsRoute,
-  PortalInvoicesRoute: PortalInvoicesRoute,
-  PortalTicketsRoute: PortalTicketsRoute,
-  PortalIndexRoute: PortalIndexRoute,
-}
-
-const PortalRouteWithChildren =
-  PortalRoute._addFileChildren(PortalRouteChildren)
-
-interface ServicesRouteChildren {
-  ServicesSlugRoute: typeof ServicesSlugRoute
-  ServicesIndexRoute: typeof ServicesIndexRoute
-}
-
-const ServicesRouteChildren: ServicesRouteChildren = {
-  ServicesSlugRoute: ServicesSlugRoute,
-  ServicesIndexRoute: ServicesIndexRoute,
-}
-
-const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
-  ServicesRouteChildren,
-)
-
 interface TicketsRouteChildren {
   TicketsIdRoute: typeof TicketsIdRoute
 }
@@ -1694,7 +1452,7 @@ const CSlugWorkspaceKeyRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  AssetsRoute: AssetsRouteWithChildren,
+  AssetsRoute: AssetsRoute,
   AuthRoute: AuthRoute,
   AutomationRoute: AutomationRoute,
   BillingRoute: BillingRoute,
@@ -1706,7 +1464,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailLogsRoute: EmailLogsRoute,
   EmailStudioRoute: EmailStudioRoute,
   ExpensesRoute: ExpensesRoute,
-  FinanceRoute: FinanceRouteWithChildren,
+  FinanceRoute: FinanceRoute,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
@@ -1716,22 +1474,20 @@ const rootRouteChildren: RootRouteChildren = {
   MonitoringRoute: MonitoringRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentsRoute: PaymentsRoute,
-  PortalRoute: PortalRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
   ServiceMapRoute: ServiceMapRoute,
-  ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
   StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
-  SystemTestRoute: SystemTestRoute,
   TicketsRoute: TicketsRouteWithChildren,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AssetsIdRoute: AssetsIdRoute,
   CloudOpsIdRoute: CloudOpsIdRoute,
   CloudOpsNewRoute: CloudOpsNewRoute,
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
