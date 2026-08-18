@@ -17,6 +17,7 @@ import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ServiceMapRouteImport } from './routes/service-map'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
@@ -125,6 +126,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceMapRoute = ServiceMapRouteImport.update({
+  id: '/service-map',
+  path: '/service-map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -520,6 +526,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/service-map': typeof ServiceMapRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
@@ -598,6 +605,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
@@ -676,6 +684,7 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/service-map': typeof ServiceMapRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
@@ -757,6 +766,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/service-map'
     | '/services'
     | '/settings'
     | '/starlink'
@@ -835,6 +845,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/service-map'
     | '/settings'
     | '/starlink'
     | '/subscriptions'
@@ -912,6 +923,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/service-map'
     | '/services'
     | '/settings'
     | '/starlink'
@@ -992,6 +1004,7 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
+  ServiceMapRoute: typeof ServiceMapRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   StarlinkRoute: typeof StarlinkRoute
@@ -1083,6 +1096,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service-map': {
+      id: '/service-map'
+      path: '/service-map'
+      fullPath: '/service-map'
+      preLoaderRoute: typeof ServiceMapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -1700,6 +1720,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
+  ServiceMapRoute: ServiceMapRoute,
   ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
   StarlinkRoute: StarlinkRoute,
