@@ -310,6 +310,92 @@ export type Database = {
           },
         ]
       }
+      cash_accounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          kind: string
+          name: string
+          opening_balance: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind?: string
+          name: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          kind?: string
+          name?: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cash_movements: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          kind: string
+          notes: string | null
+          occurred_at: string
+          reference: string | null
+        }
+        Insert: {
+          account_id: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          occurred_at?: string
+          reference?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          occurred_at?: string
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_activity: {
         Row: {
           action: string
@@ -1774,6 +1860,81 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      expenses: {
+        Row: {
+          account_id: string | null
+          amount: number
+          attachment_url: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          description: string
+          expense_date: string
+          id: string
+          notes: string | null
+          payment_method: string
+          reference: string | null
+          status: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          attachment_url?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          attachment_url?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_items: {
         Row: {
