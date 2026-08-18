@@ -60,7 +60,7 @@ import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
 import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
-import { Route as AssetsIdRouteImport } from './routes/assets.$id'
+import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as FinanceCustomersAccountNumberRouteImport } from './routes/finance.customers.$accountNumber'
@@ -344,9 +344,9 @@ const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssetsIdRoute = AssetsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AssetsRoute,
+  id: '/assets_/$id',
+  path: '/assets/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -500,7 +500,7 @@ const CSlugWorkspaceKeyServersServerIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -580,7 +580,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -658,7 +658,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/assets': typeof AssetsRouteWithChildren
+  '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -695,7 +695,7 @@ export interface FileRoutesById {
   '/web-hosting': typeof WebHostingRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/assets/$id': typeof AssetsIdRoute
+  '/assets_/$id': typeof AssetsIdRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -934,7 +934,7 @@ export interface FileRouteTypes {
     | '/web-hosting'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
-    | '/assets/$id'
+    | '/assets_/$id'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
@@ -978,7 +978,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  AssetsRoute: typeof AssetsRouteWithChildren
+  AssetsRoute: typeof AssetsRoute
   AuthRoute: typeof AuthRoute
   AutomationRoute: typeof AutomationRoute
   BillingRoute: typeof BillingRoute
@@ -1015,6 +1015,7 @@ export interface RootRouteChildren {
   WebHostingRoute: typeof WebHostingRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AssetsIdRoute: typeof AssetsIdRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
   CloudOpsNewRoute: typeof CloudOpsNewRoute
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
@@ -1399,12 +1400,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudOpsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assets/$id': {
-      id: '/assets/$id'
-      path: '/$id'
+    '/assets_/$id': {
+      id: '/assets_/$id'
+      path: '/assets/$id'
       fullPath: '/assets/$id'
       preLoaderRoute: typeof AssetsIdRouteImport
-      parentRoute: typeof AssetsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -1591,17 +1592,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AssetsRouteChildren {
-  AssetsIdRoute: typeof AssetsIdRoute
-}
-
-const AssetsRouteChildren: AssetsRouteChildren = {
-  AssetsIdRoute: AssetsIdRoute,
-}
-
-const AssetsRouteWithChildren =
-  AssetsRoute._addFileChildren(AssetsRouteChildren)
-
 interface FinanceRouteChildren {
   FinanceCustomersAccountNumberRoute: typeof FinanceCustomersAccountNumberRoute
 }
@@ -1694,7 +1684,7 @@ const CSlugWorkspaceKeyRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  AssetsRoute: AssetsRouteWithChildren,
+  AssetsRoute: AssetsRoute,
   AuthRoute: AuthRoute,
   AutomationRoute: AutomationRoute,
   BillingRoute: BillingRoute,
@@ -1732,6 +1722,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AssetsIdRoute: AssetsIdRoute,
   CloudOpsIdRoute: CloudOpsIdRoute,
   CloudOpsNewRoute: CloudOpsNewRoute,
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,

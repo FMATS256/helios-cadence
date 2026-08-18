@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const EVENT_TYPES = ["deployed", "moved", "serviced", "warranty_renewed", "reassigned", "retired", "lost", "note"];
 
-export const Route = createFileRoute("/assets/$id")({
+export const Route = createFileRoute("/assets_/$id")({
   head: () => ({ meta: [{ title: "Asset — IMT Operations" }] }),
   component: AssetDetail,
 });
