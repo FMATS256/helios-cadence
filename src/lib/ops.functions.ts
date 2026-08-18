@@ -678,8 +678,23 @@ export const getCustomer360 = createServerFn({ method: "POST" })
     };
     const isActive = (s: any) => ["active", "running", "on", "up"].includes(String(s?.status || "").toLowerCase());
 
-    const openInvoiceTotal = (invoices as any[]).filter((i) => ["sent", "partial", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i.total || 0), 0);
+    // Net of payment allocations so partially-settled invoices report the true balance.
+    const openInvoices = (invoices as any[]).filter((i) => ["sent", "partial", "overdue"].includes(i.status));
+    const allocByInvoice = new Map<string, number>();
+    if (openInvoices.length) {
+      const { data: allocs } = await supabaseAdmin
+        .from("payment_allocations")
+        .select("invoice_id, amount")
+        .in("invoice_id", openInvoices.map((i) => i.id));
+      for (const a of (allocs ?? []) as any[]) {
+        allocByInvoice.set(a.invoice_id, (allocByInvoice.get(a.invoice_id) || 0) + Number(a.amount || 0));
+      }
+    }
+    const invoiceBalance = (i: any) =>
+      Math.max(0, Math.round((Number(i.total || 0) - (allocByInvoice.get(i.id) || 0)) * 100) / 100);
+    const openInvoiceTotal = Math.round(openInvoices.reduce((s, i) => s + invoiceBalance(i), 0) * 100) / 100;
     const overdueInvoiceCount = (invoices as any[]).filter((i) => i.status === "overdue").length;
+
     const mrr = (subscriptions as any[]).filter((s) => s.status === "active").reduce((sum, s) => {
       const amt = Number(s.amount) || 0;
       const cyc = String(s.billing_cycle || "monthly").toLowerCase();

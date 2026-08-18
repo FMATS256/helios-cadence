@@ -46,7 +46,7 @@ const monthlyOf = (s: any) =>
 
 
 async function loadFinanceOverview() {
-  const [invoices, payments, subs, quotes, customers, catalog, assets, inventory] = await Promise.all([
+  const [invoices, payments, subs, quotes, customers, catalog, assets, inventory, allocations] = await Promise.all([
     (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,next_renewal,account_number,customer_id,created_at"),
@@ -55,7 +55,9 @@ async function loadFinanceOverview() {
     (supabase.from as any)("service_catalog").select("id,name,category,unit_price,billing_cycle"),
     (supabase.from as any)("assets").select("id,cost,status,asset_type").is("archived_at", null),
     (supabase.from as any)("inventory_items").select("id,quantity,unit_cost,category").is("archived_at", null),
+    (supabase.from as any)("payment_allocations").select("invoice_id,amount"),
   ]);
+
 
   const inv = (invoices.data ?? []) as any[];
   const pay = (payments.data ?? []) as any[];
@@ -66,7 +68,19 @@ async function loadFinanceOverview() {
   const ast = (assets.data ?? []) as any[];
   const invn = (inventory.data ?? []) as any[];
 
+  // Net each invoice against its payment allocations so partial settlements
+  // reduce receivables instead of showing the full invoice value.
+  const allocMap = new Map<string, number>();
+  for (const a of ((allocations as any)?.data ?? []) as any[]) {
+    allocMap.set(a.invoice_id, (allocMap.get(a.invoice_id) || 0) + Number(a.amount || 0));
+  }
+  for (const i of inv) {
+    i.allocated = allocMap.get(i.id) || 0;
+    i.balance = Math.max(0, Math.round((Number(i.total || 0) - i.allocated) * 100) / 100);
+  }
+
   const amt = (r: any) => Number(r.total ?? 0);
+  const bal = (r: any) => Number(r.balance ?? r.total ?? 0);
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -82,8 +96,9 @@ async function loadFinanceOverview() {
 
   const currentUnpaid = unpaid
     .filter((x) => !x.due_date || new Date(x.due_date) >= today)
-    .reduce((a, x) => a + amt(x), 0);
-  const overdueUnpaid = overdue.reduce((a, x) => a + amt(x), 0);
+    .reduce((a, x) => a + bal(x), 0);
+  const overdueUnpaid = overdue.reduce((a, x) => a + bal(x), 0);
+
 
   const revenue = (from: Date) =>
     pay.filter((p) => p.paid_at && new Date(p.paid_at) >= from).reduce((a, x) => a + Number(x.amount || 0), 0);
@@ -148,10 +163,11 @@ async function loadFinanceOverview() {
       ytdRevenue: revenue(yearStart),
       mrr,
       arr: mrr * 12,
-      ar: unpaid.reduce((a, x) => a + amt(x), 0),
+      ar: unpaid.reduce((a, x) => a + bal(x), 0),
       currentUnpaid,
       overdueUnpaid,
-      overdueTotal: overdue.reduce((a, x) => a + amt(x), 0),
+      overdueTotal: overdue.reduce((a, x) => a + bal(x), 0),
+
       unpaidCount: unpaid.length,
       overdueCount: overdue.length,
       paidCount: paidInvoices.length,
@@ -828,6 +844,8 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
   const customers: any[] = data?.customers ?? [];
 
   const amt = (r: any) => Number(r.total ?? 0);
+  const bal = (r: any) => Number(r.balance ?? r.total ?? 0);
+
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const today = new Date();
@@ -873,7 +891,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
     return {
       total: { count: range.length, amount: range.reduce((a, x) => a + amt(x), 0) },
       paid: { count: paid.length, amount: paid.reduce((a, x) => a + amt(x), 0) },
-      unpaid: { count: unpaid.length, amount: unpaid.reduce((a, x) => a + amt(x), 0) },
+      unpaid: { count: unpaid.length, amount: unpaid.reduce((a, x) => a + bal(x), 0) },
       quotes: { count: rangeQuotes.length, amount: rangeQuotes.reduce((a, x) => a + Number(x.total || 0), 0) },
     };
   };
@@ -891,7 +909,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
   const debtorAgg: Record<string, number> = {};
   for (const x of unpaidInv) {
     if (!x.customer_id) continue;
-    debtorAgg[x.customer_id] = (debtorAgg[x.customer_id] || 0) + amt(x);
+    debtorAgg[x.customer_id] = (debtorAgg[x.customer_id] || 0) + bal(x);
   }
   const nameFor = (id: string) => {
     const c: any = custMap.get(id);
@@ -910,7 +928,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <NetzurStat icon={ClipboardList} label="Unpaid Invoices"
-          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#e07a5f" />
+          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e07a5f" />
         <NetzurStat icon={FileText} label="Open Quotes"
           value={`${openQuotes.length} (${money(openQuotes.reduce((a, x) => a + Number(x.total || 0), 0), currency)})`} bg="#4a5c6a" />
         <NetzurStat icon={Receipt} label="Today's Invoices"
