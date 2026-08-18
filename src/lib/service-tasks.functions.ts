@@ -208,7 +208,7 @@ export const updateServiceTask = createServerFn({ method: "POST" })
       const { recordCustomerEvent } = await import("./customer-events.server");
       await recordCustomerEvent(supabaseAdmin, {
         customer_id: existing.customer_id,
-        account_number: existing.account_number,
+        account_number: existing.account_number ?? "",
         event_type: "technical_task_updated",
         title: `Technical task ${patch.status ?? existing.status} · ${existing.title}`,
         description: data.completion_notes?.trim() || null,
