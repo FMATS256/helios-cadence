@@ -142,15 +142,22 @@ export async function provisionServiceRecord(ctx: Ctx): Promise<{ table: string;
         auto_renew: true,
       });
 
-    case "voip":
+    case "voip": {
       if (!provision.voip_number?.trim()) throw new Error(`${catalog.name}: VoIP number is required`);
+      const exts = (provision.extensions || "")
+        .split(/[,\s]+/)
+        .map((e) => e.trim())
+        .filter(Boolean);
       return insert("voip_accounts", {
         ...base,
         voip_number: provision.voip_number.trim(),
         sip_username: provision.sip_username?.trim() || null,
-        extensions: Number(provision.extensions) || ctx.quantity,
+        dandemutande_account: provision.dandemutande_account?.trim() || null,
+        extensions: exts,
+        notes: catalog.name,
         status: "active",
       });
+    }
 
     default:
       return null;
