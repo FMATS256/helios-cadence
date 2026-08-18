@@ -1360,9 +1360,10 @@ function InfoRow({ label, value, sub, link }: { label: string; value: React.Reac
   );
 }
 
-function ActionBtn({ tone, icon: Icon, label, onClick }: { tone: "indigo" | "amber" | "emerald" | "sky" | "rose" | "slate"; icon: any; label: string; onClick?: () => void }) {
+function ActionBtn({ tone, icon: Icon, label, onClick }: { tone: "indigo" | "amber" | "emerald" | "sky" | "rose" | "slate" | "violet"; icon: any; label: string; onClick?: () => void }) {
   const map: Record<string, string> = {
     indigo: "bg-[oklch(0.55_0.18_265)] hover:bg-[oklch(0.5_0.18_265)] text-white",
+    violet: "bg-[oklch(0.55_0.2_300)] hover:bg-[oklch(0.5_0.2_300)] text-white",
     amber: "bg-[oklch(0.75_0.16_75)] hover:bg-[oklch(0.7_0.16_75)] text-[oklch(0.25_0.08_75)]",
     emerald: "bg-[oklch(0.6_0.15_150)] hover:bg-[oklch(0.55_0.15_150)] text-white",
     sky: "bg-[oklch(0.6_0.14_240)] hover:bg-[oklch(0.55_0.14_240)] text-white",
