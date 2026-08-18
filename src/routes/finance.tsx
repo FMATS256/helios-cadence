@@ -22,18 +22,43 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/finance")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Finance Workspace — IMT Operations" },
-      { name: "description", content: "Central accounting command center: revenue, receivables, payables, subscriptions, cash flow, and reports — one workspace." },
+      { name: "description", content: "Central accounting command center: revenue, receivables, invoices, payments, subscriptions and cash flow — one workspace." },
       { property: "og:title", content: "Finance Workspace — IMT Operations" },
-      { property: "og:description", content: "Enterprise finance dashboard with receivables, payables, cash flow, income vs expense, and top expenses." },
+      { property: "og:description", content: "Enterprise finance workspace with invoices, payments, subscriptions, receivables and cash flow." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: FinanceWorkspace,
+  component: FinanceHub,
 });
+
+const FINANCE_TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "invoices", label: "Invoices" },
+  { key: "payments", label: "Payments" },
+  { key: "subscriptions", label: "Subscriptions" },
+] as const;
+
+function FinanceHub() {
+  const { tab } = Route.useSearch();
+  const active = FINANCE_TABS.some((t) => t.key === tab) ? tab! : "overview";
+  return (
+    <div>
+      <WorkspaceTabs tabs={FINANCE_TABS as any} active={active} to="/finance" />
+      {active === "overview" && <FinanceWorkspace />}
+      {active === "invoices" && <BillingPage />}
+      {active === "payments" && <PaymentsPage />}
+      {active === "subscriptions" && <SubscriptionsPage />}
+    </div>
+  );
+}
+
 
 // ----- data ---------------------------------------------------------------
 
