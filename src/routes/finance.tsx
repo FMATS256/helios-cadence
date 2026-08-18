@@ -46,7 +46,7 @@ const monthlyOf = (s: any) =>
 
 
 async function loadFinanceOverview() {
-  const [invoices, payments, subs, quotes, customers, catalog, assets, inventory] = await Promise.all([
+  const [invoices, payments, subs, quotes, customers, catalog, assets, inventory, allocations] = await Promise.all([
     (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,next_renewal,account_number,customer_id,created_at"),
@@ -55,7 +55,9 @@ async function loadFinanceOverview() {
     (supabase.from as any)("service_catalog").select("id,name,category,unit_price,billing_cycle"),
     (supabase.from as any)("assets").select("id,cost,status,asset_type").is("archived_at", null),
     (supabase.from as any)("inventory_items").select("id,quantity,unit_cost,category").is("archived_at", null),
+    (supabase.from as any)("payment_allocations").select("invoice_id,amount"),
   ]);
+
 
   const inv = (invoices.data ?? []) as any[];
   const pay = (payments.data ?? []) as any[];
