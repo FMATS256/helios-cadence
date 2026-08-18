@@ -131,6 +131,21 @@ export function AddServiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-wrap gap-1.5">
+            {["all", ...categories].map((c: any) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCat(c)}
+                className={`rounded-full border px-2.5 py-1 text-xs capitalize transition ${
+                  cat === c ? "border-solar bg-solar/10 text-solar font-semibold" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {c === "all" ? "All" : c.replace(/-/g, " ")}
+                {c !== "all" && <span className="ml-1 opacity-60">{active.filter((a: any) => a.category === c).length}</span>}
+              </button>
+            ))}
+          </div>
           <div className="max-h-[420px] overflow-y-auto rounded-lg border divide-y">
             {filtered.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">No packages match.</p>}
             {filtered.slice(0, 200).map((c: any) => {
