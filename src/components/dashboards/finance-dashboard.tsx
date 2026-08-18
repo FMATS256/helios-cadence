@@ -52,7 +52,7 @@ async function loadFinance() {
 
 export function FinanceDashboard({ displayName }: { displayName: string }) {
   const { data: s } = useQuery({ queryKey: ["dash-finance"], queryFn: loadFinance });
-  const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
+  const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   return (
     <>
       <HeroPanel
@@ -104,7 +104,7 @@ export function FinanceDashboard({ displayName }: { displayName: string }) {
               <div key={i.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                 <div className="h-10 w-10 rounded-lg bg-warning/15 text-[oklch(0.45_0.13_75)] flex items-center justify-center font-semibold text-xs">{i.invoice_number}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{money(Number(i.amount_total || 0))} <span className="text-xs text-muted-foreground">{i.currency}</span></p>
+                  <p className="text-sm font-semibold">{money(Number(i.total || 0))} <span className="text-xs text-muted-foreground">{i.currency}</span></p>
                   <p className="text-xs text-muted-foreground">{i.account_number} · due {i.due_date ? new Date(i.due_date).toLocaleDateString() : "—"}</p>
                 </div>
                 <StatusPill tone={i.status === "paid" ? "success" : i.status === "overdue" ? "danger" : "warning"}>{i.status}</StatusPill>
