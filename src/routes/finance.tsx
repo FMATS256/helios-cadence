@@ -891,7 +891,7 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
     return {
       total: { count: range.length, amount: range.reduce((a, x) => a + amt(x), 0) },
       paid: { count: paid.length, amount: paid.reduce((a, x) => a + amt(x), 0) },
-      unpaid: { count: unpaid.length, amount: unpaid.reduce((a, x) => a + amt(x), 0) },
+      unpaid: { count: unpaid.length, amount: unpaid.reduce((a, x) => a + bal(x), 0) },
       quotes: { count: rangeQuotes.length, amount: rangeQuotes.reduce((a, x) => a + Number(x.total || 0), 0) },
     };
   };
