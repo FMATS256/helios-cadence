@@ -439,6 +439,140 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   );
 }
 
+/* --------------------------------------------- 2b. billing attachments */
+
+const ATTACHMENT_KINDS = [
+  { key: "receipt", label: "Receipt" },
+  { key: "invoice", label: "Invoice" },
+  { key: "quotation", label: "Quotation" },
+  { key: "proof_of_payment", label: "Proof of payment" },
+  { key: "statement", label: "Statement" },
+  { key: "purchase_order", label: "Purchase order" },
+  { key: "other", label: "Other document" },
+];
+
+function BillingAttachments({ ctx }: { ctx: WorkspaceCtx }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(getBillingAttachments);
+  const saveFn = useServerFn(saveCustomerDocument);
+  const linkFn = useServerFn(getDocumentLink);
+  const delFn = useServerFn(deleteCustomerDocument);
+  const key = ["c360-billing-docs", ctx.customerId];
+  const { data: docs = [], isLoading } = useQuery({
+    queryKey: key,
+    queryFn: () => listFn({ data: { customer_id: ctx.customerId } }),
+  });
+
+  const [kind, setKind] = useState("receipt");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function onFile(file?: File | null) {
+    if (!file) return;
+    const meta = ATTACHMENT_KINDS.find((k) => k.key === kind)!;
+    setBusy(true);
+    try {
+      const path = `${ctx.customerId}/billing/${kind}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      const { error } = await supabase.storage.from("customer-documents").upload(path, file, { upsert: false });
+      if (error) throw error;
+      await saveFn({
+        data: {
+          customer_id: ctx.customerId,
+          doc_key: kind,
+          doc_label: meta.label,
+          category: "billing",
+          file_path: path,
+          file_name: file.name,
+          mime_type: file.type,
+          file_size: file.size,
+          notes: note.trim() || null,
+        },
+      });
+      toast.success(`${meta.label} attached`);
+      setNote("");
+      qc.invalidateQueries({ queryKey: key });
+    } catch (e: any) {
+      toast.error(e.message ?? "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function open(id: string) {
+    try {
+      const r: any = await linkFn({ data: { document_id: id } });
+      if (r?.url) window.open(r.url, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not open file");
+    }
+  }
+
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { document_id: id } }),
+    onSuccess: () => { toast.success("Attachment removed"); qc.invalidateQueries({ queryKey: key }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-3 pt-3">
+      <Card><CardContent className="p-4 grid gap-3 md:grid-cols-[200px_1fr_auto] md:items-end">
+        <div className="space-y-1">
+          <Label>Document type</Label>
+          <Select value={kind} onValueChange={setKind}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {ATTACHMENT_KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>Reference / note</Label>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Invoice number, txn ref…" />
+        </div>
+        <div>
+          <input
+            id="billing-attach"
+            type="file"
+            className="hidden"
+            onChange={(e) => { void onFile(e.target.files?.[0]); e.currentTarget.value = ""; }}
+          />
+          <Button asChild disabled={busy} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+            <label htmlFor="billing-attach" className="cursor-pointer">
+              <Upload className="h-4 w-4 mr-1.5" />{busy ? "Uploading…" : "Attach file"}
+            </label>
+          </Button>
+        </div>
+      </CardContent></Card>
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">Loading attachments…</p>
+      ) : (
+        <DataGrid
+          rows={docs as any[]}
+          columns={[
+            { header: "Type", cell: (r: any) => r.doc_label },
+            { header: "File", cell: (r: any) => <span className="truncate max-w-[220px] inline-block">{r.file_name ?? "—"}</span> },
+            { header: "Note", cell: (r: any) => r.notes ?? "—" },
+            { header: "Uploaded", cell: (r: any) => shortDate(r.created_at) },
+            {
+              header: "", align: "right", cell: (r: any) => (
+                <div className="flex justify-end gap-1">
+                  <Button size="sm" variant="outline" onClick={() => open(r.id)}><Download className="h-3.5 w-3.5" /></Button>
+                  <Button size="sm" variant="outline" onClick={() => remove.mutate(r.id)} disabled={remove.isPending}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              ),
+            },
+          ] as ColumnDef<any>[]}
+          empty={<EmptyState icon={FileText} title="No attachments" description="Attach receipts, invoices or quotations for this account." />}
+        />
+      )}
+    </div>
+  );
+}
+
+
 /* ------------------------------------------------------------ 3. timeline */
 
 function TimelineWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void }) {
