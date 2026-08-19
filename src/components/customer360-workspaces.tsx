@@ -33,6 +33,7 @@ import {
   recordRefund, addCustomerCredit, addBillingNote, getCustomerHistory,
   getCustomerConversations, sendCustomerMessage, getCustomerDocuments,
   saveCustomerDocument, setDocumentStatus, deleteCustomerDocument, getDocumentLink,
+  getBillingAttachments,
   getCustomerEquipment, assignEquipment, releaseEquipment, updateEquipment, generateContract,
   getCustomerStatement, getCustomerProfileExport,
 } from "@/lib/customer360.functions";
