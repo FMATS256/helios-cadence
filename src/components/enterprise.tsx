@@ -43,17 +43,17 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn(
-      "flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-6 border-b border-border",
+      "flex flex-col md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-border",
       className,
     )}>
-      <div>
+      <div className="min-w-0">
         {eyebrow && (
-          <p className="text-xs uppercase tracking-[3px] text-solar font-semibold mb-2">{eyebrow}</p>
+          <p className="text-[10px] sm:text-xs uppercase tracking-[3px] text-solar font-semibold mb-1.5 sm:mb-2">{eyebrow}</p>
         )}
-        <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight break-words">
           {title}
         </h1>
-        {description && <p className="text-muted-foreground mt-2 max-w-2xl">{description}</p>}
+        {description && <p className="text-sm sm:text-base text-muted-foreground mt-1.5 sm:mt-2 max-w-2xl">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
