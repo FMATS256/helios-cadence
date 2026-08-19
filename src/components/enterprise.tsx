@@ -121,7 +121,7 @@ export type KpiTileDef = {
 export function KpiTile({ label, value, icon: Icon, tone = "info", hint }: KpiTileDef) {
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
@@ -170,7 +170,7 @@ export function SummaryCard({
     tone === "info" ? "border-info/40 bg-info/5" : "";
   return (
     <Card className={toneClass}>
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
         <div className="mt-2 text-2xl font-bold">{value}</div>
         {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
@@ -214,11 +214,11 @@ export function InfoCard({
   const grid = cols === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2";
   return (
     <Card className={className}>
-      <div className="flex flex-row items-center justify-between px-6 py-3">
+      <div className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6 py-3">
         <h3 className="text-sm font-display uppercase tracking-wider font-semibold">{title}</h3>
         {action}
       </div>
-      <CardContent className={cn("grid gap-x-6 gap-y-2 pt-0", grid)}>
+      <CardContent className={cn("grid gap-x-6 gap-y-2 px-4 sm:px-6 pt-0", grid)}>
         {visible.map((r, i) => <InfoRow key={i} {...r} />)}
       </CardContent>
     </Card>
@@ -237,11 +237,11 @@ export function DetailCard({
 }) {
   return (
     <Card className={className}>
-      <div className="flex flex-row items-center justify-between px-6 py-3 border-b border-border">
+      <div className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6 py-3 border-b border-border">
         <h3 className="text-sm font-display uppercase tracking-wider font-semibold">{title}</h3>
         {action}
       </div>
-      <CardContent className={padded ? "p-6" : "p-0"}>{children}</CardContent>
+      <CardContent className={padded ? "p-4 sm:p-6" : "p-0"}>{children}</CardContent>
     </Card>
   );
 }
@@ -277,7 +277,7 @@ export function ActionBtn({ tone, icon: Icon, label, onClick, disabled }: Action
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed",
+        "inline-flex min-h-9 items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed",
         ACTION_TONE[tone],
       )}
     >
@@ -308,7 +308,7 @@ export function ActionBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition",
+              "inline-flex min-h-9 items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition",
               ACTION_TONE.slate,
             )}>
               <MoreHorizontal className="h-3.5 w-3.5" />
