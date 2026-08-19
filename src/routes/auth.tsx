@@ -71,7 +71,7 @@ function AuthPage() {
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       {/* Left — welcome panel */}
       <aside
-        className="relative overflow-hidden text-navy-foreground p-8 lg:p-12 flex flex-col justify-between min-h-[240px] lg:min-h-screen"
+        className="relative hidden overflow-hidden text-navy-foreground p-8 lg:p-12 lg:flex flex-col justify-between lg:min-h-screen"
         style={{ background: "var(--gradient-navy)" }}
       >
         {/* Decorative blobs */}
