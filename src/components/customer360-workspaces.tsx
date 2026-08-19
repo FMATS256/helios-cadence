@@ -344,8 +344,13 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
               <TabsTrigger value="ageing">Ageing</TabsTrigger>
               <TabsTrigger value="recurring">Recurring</TabsTrigger>
               <TabsTrigger value="refunds">Refunds & credits</TabsTrigger>
+              <TabsTrigger value="attachments">Attachments</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="attachments">
+              <BillingAttachments ctx={ctx} />
+            </TabsContent>
 
             <TabsContent value="invoices">
               <DataGrid rows={data.invoices} columns={[
