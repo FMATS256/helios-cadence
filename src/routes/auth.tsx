@@ -135,15 +135,23 @@ function AuthPage() {
       </aside>
 
       {/* Right — sign in card */}
-      <main className="flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
-          <div className="flex items-center justify-between mb-8 lg:hidden">
-            <img src={imtLogo.url} alt="IMT" className="h-10 w-10 object-contain" />
+      <main className="flex min-h-screen flex-col justify-center px-5 py-8 sm:p-10 lg:p-12 lg:min-h-0 lg:items-center">
+        <div className="w-full max-w-md mx-auto">
+          {/* Mobile brand bar */}
+          <div
+            className="mb-6 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-navy-foreground shadow-[var(--shadow-elegant)] lg:hidden"
+            style={{ background: "var(--gradient-navy)" }}
+          >
+            <img src={imtLogo.url} alt="IMT Solutions" className="h-9 w-9 shrink-0 object-contain" />
+            <div className="min-w-0">
+              <div className="font-display text-sm font-bold leading-none truncate">IMT Solutions</div>
+              <div className="mt-1 text-[9px] uppercase tracking-[2.5px] text-navy-foreground/70">Operations Platform</div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="font-display text-3xl font-bold text-foreground">
+          <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
                 {mode === "signin" ? "Sign In" : "Reset Password"}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
