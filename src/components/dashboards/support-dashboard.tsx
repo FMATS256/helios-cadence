@@ -45,7 +45,7 @@ export function SupportDashboard({ displayName }: { displayName: string }) {
     <>
       <HeroPanel
         eyebrow="Support Operations"
-        title={`Service Desk · ${displayName}`}
+        title={`Welcome, ${displayName}`}
         accent={(s?.monitorsDown ?? 0) > 0 || (s?.critical ?? 0) > 0 ? "warning" : "info"}
         subtitle={
           <>
