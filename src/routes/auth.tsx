@@ -171,13 +171,13 @@ function AuthPage() {
                 <Label htmlFor="si-email">Email</Label>
                 <Input id="si-email" type="email" required autoComplete="email"
                   placeholder="you@company.com"
-                  value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 text-base" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="si-pw">Password</Label>
                 <Input id="si-pw" type="password" required autoComplete="current-password"
                   placeholder="••••••••"
-                  value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+                  value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 text-base" />
               </div>
 
               <div className="flex items-center justify-between text-sm">
@@ -225,7 +225,7 @@ function AuthPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="rs-email">Email</Label>
                 <Input id="rs-email" type="email" required autoComplete="email"
-                  value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+                  value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 text-base" />
               </div>
               <Button type="submit" disabled={busy}
                 className="w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
