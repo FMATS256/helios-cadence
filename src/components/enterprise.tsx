@@ -76,11 +76,11 @@ export type StatChipDef = {
 export function StatChip({ label, value, color, text = "#ffffff", hint }: StatChipDef) {
   return (
     <div
-      className="p-4 border border-border flex flex-col items-center justify-center text-center"
+      className="p-3 sm:p-4 border border-border flex flex-col items-center justify-center text-center"
       style={{ backgroundColor: color, color: text }}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{label}</p>
-      <p className="font-display font-bold text-xl mt-1 tabular-nums">{String(value)}</p>
+      <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider opacity-80 leading-tight">{label}</p>
+      <p className="font-display font-bold text-lg sm:text-xl mt-1 tabular-nums">{String(value)}</p>
       {hint && <p className="text-[10px] opacity-70 mt-0.5">{hint}</p>}
     </div>
   );
