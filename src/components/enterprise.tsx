@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 /** Standard page wrapper — same padding/rhythm as Customer 360. */
 export function PageShell({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("p-6 md:p-8 space-y-6", className)}>{children}</div>;
+  return <div className={cn("p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6", className)}>{children}</div>;
 }
 
 /** Page header with eyebrow / title / description / actions. */
@@ -43,17 +43,17 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn(
-      "flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-6 border-b border-border",
+      "flex flex-col md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-border",
       className,
     )}>
-      <div>
+      <div className="min-w-0">
         {eyebrow && (
-          <p className="text-xs uppercase tracking-[3px] text-solar font-semibold mb-2">{eyebrow}</p>
+          <p className="text-[10px] sm:text-xs uppercase tracking-[3px] text-solar font-semibold mb-1.5 sm:mb-2">{eyebrow}</p>
         )}
-        <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight break-words">
           {title}
         </h1>
-        {description && <p className="text-muted-foreground mt-2 max-w-2xl">{description}</p>}
+        {description && <p className="text-sm sm:text-base text-muted-foreground mt-1.5 sm:mt-2 max-w-2xl">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -76,11 +76,11 @@ export type StatChipDef = {
 export function StatChip({ label, value, color, text = "#ffffff", hint }: StatChipDef) {
   return (
     <div
-      className="p-4 border border-border flex flex-col items-center justify-center text-center"
+      className="p-3 sm:p-4 border border-border flex flex-col items-center justify-center text-center"
       style={{ backgroundColor: color, color: text }}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{label}</p>
-      <p className="font-display font-bold text-xl mt-1 tabular-nums">{String(value)}</p>
+      <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider opacity-80 leading-tight">{label}</p>
+      <p className="font-display font-bold text-lg sm:text-xl mt-1 tabular-nums">{String(value)}</p>
       {hint && <p className="text-[10px] opacity-70 mt-0.5">{hint}</p>}
     </div>
   );
@@ -121,7 +121,7 @@ export type KpiTileDef = {
 export function KpiTile({ label, value, icon: Icon, tone = "info", hint }: KpiTileDef) {
   return (
     <Card>
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
@@ -170,7 +170,7 @@ export function SummaryCard({
     tone === "info" ? "border-info/40 bg-info/5" : "";
   return (
     <Card className={toneClass}>
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
         <div className="mt-2 text-2xl font-bold">{value}</div>
         {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
@@ -214,11 +214,11 @@ export function InfoCard({
   const grid = cols === 1 ? "grid-cols-1" : cols === 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2";
   return (
     <Card className={className}>
-      <div className="flex flex-row items-center justify-between px-6 py-3">
+      <div className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6 py-3">
         <h3 className="text-sm font-display uppercase tracking-wider font-semibold">{title}</h3>
         {action}
       </div>
-      <CardContent className={cn("grid gap-x-6 gap-y-2 pt-0", grid)}>
+      <CardContent className={cn("grid gap-x-6 gap-y-2 px-4 sm:px-6 pt-0", grid)}>
         {visible.map((r, i) => <InfoRow key={i} {...r} />)}
       </CardContent>
     </Card>
@@ -237,11 +237,11 @@ export function DetailCard({
 }) {
   return (
     <Card className={className}>
-      <div className="flex flex-row items-center justify-between px-6 py-3 border-b border-border">
+      <div className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6 py-3 border-b border-border">
         <h3 className="text-sm font-display uppercase tracking-wider font-semibold">{title}</h3>
         {action}
       </div>
-      <CardContent className={padded ? "p-6" : "p-0"}>{children}</CardContent>
+      <CardContent className={padded ? "p-4 sm:p-6" : "p-0"}>{children}</CardContent>
     </Card>
   );
 }
@@ -277,7 +277,7 @@ export function ActionBtn({ tone, icon: Icon, label, onClick, disabled }: Action
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed",
+        "inline-flex min-h-9 items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed",
         ACTION_TONE[tone],
       )}
     >
@@ -308,7 +308,7 @@ export function ActionBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition",
+              "inline-flex min-h-9 items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition",
               ACTION_TONE.slate,
             )}>
               <MoreHorizontal className="h-3.5 w-3.5" />
