@@ -57,7 +57,7 @@ export function FinanceDashboard({ displayName }: { displayName: string }) {
     <>
       <HeroPanel
         eyebrow="Finance"
-        title={`Revenue Desk · ${displayName}`}
+        title={`Welcome, ${displayName}`}
         accent="success"
         subtitle={
           <>

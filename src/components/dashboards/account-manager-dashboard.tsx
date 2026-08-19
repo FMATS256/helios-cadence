@@ -60,7 +60,7 @@ export function AccountManagerDashboard({ displayName }: { displayName: string }
     <>
       <HeroPanel
         eyebrow="Account Management"
-        title={`Portfolio · ${displayName}`}
+        title={`Welcome, ${displayName}`}
         accent="info"
         subtitle={
           <>

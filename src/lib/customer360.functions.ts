@@ -703,6 +703,7 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
     customer_id: string;
     doc_key: string;
     doc_label: string;
+    category?: string;
     file_path?: string | null;
     file_name?: string | null;
     mime_type?: string | null;
@@ -721,7 +722,7 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
       account_number: cust.account_number,
       doc_key: data.doc_key,
       doc_label: data.doc_label,
-      category: "kyc",
+      category: data.category?.trim() || "kyc",
       file_path: data.file_path || null,
       file_name: data.file_name || null,
       mime_type: data.mime_type || null,
@@ -822,6 +823,21 @@ export const getDocumentLink = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { url: signed?.signedUrl };
   });
+
+/** Billing attachments — receipts, invoices, quotations, statements, POPs. */
+export const getBillingAttachments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const db = await admin();
+    const cust = await loadCustomer(db, data.customer_id);
+    const { data: docs } = await db.from("customer_documents").select("*")
+      .eq("customer_id", cust.id).eq("category", "billing")
+      .order("created_at", { ascending: false });
+    return (docs ?? []) as any[];
+  });
+
 
 /* =========================================================================
  * EQUIPMENT & ASSETS
