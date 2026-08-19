@@ -11,7 +11,7 @@ export function WorkspaceTabs({
   tabs, active, to,
 }: { tabs: readonly WorkspaceTab[]; active: string; to: string }) {
   return (
-    <div className="sticky top-16 z-20 -mb-2 border-b border-border bg-background/85 backdrop-blur-xl">
+    <div className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur-xl">
       <div className="flex gap-1 overflow-x-auto px-3 sm:px-6">
         {tabs.map((t) => (
           <Link
