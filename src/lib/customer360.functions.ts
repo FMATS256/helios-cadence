@@ -703,6 +703,7 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
     customer_id: string;
     doc_key: string;
     doc_label: string;
+    category?: string;
     file_path?: string | null;
     file_name?: string | null;
     mime_type?: string | null;
@@ -721,7 +722,7 @@ export const saveCustomerDocument = createServerFn({ method: "POST" })
       account_number: cust.account_number,
       doc_key: data.doc_key,
       doc_label: data.doc_label,
-      category: "kyc",
+      category: data.category?.trim() || "kyc",
       file_path: data.file_path || null,
       file_name: data.file_name || null,
       mime_type: data.mime_type || null,
