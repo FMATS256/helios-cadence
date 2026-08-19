@@ -824,6 +824,21 @@ export const getDocumentLink = createServerFn({ method: "POST" })
     return { url: signed?.signedUrl };
   });
 
+/** Billing attachments — receipts, invoices, quotations, statements, POPs. */
+export const getBillingAttachments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const db = await admin();
+    const cust = await loadCustomer(db, data.customer_id);
+    const { data: docs } = await db.from("customer_documents").select("*")
+      .eq("customer_id", cust.id).eq("category", "billing")
+      .order("created_at", { ascending: false });
+    return (docs ?? []) as any[];
+  });
+
+
 /* =========================================================================
  * EQUIPMENT & ASSETS
  * =======================================================================*/
