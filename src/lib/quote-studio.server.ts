@@ -179,7 +179,8 @@ export function publicUrlOf(doc: any): string | null {
  * ------------------------------------------------------------------ */
 
 export const quoteStudio = {
-  settings: () => request("GET", "/settings"),
+  /** The API root doubles as a health/discovery endpoint. */
+  settings: () => request("GET", ""),
   listDocuments: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request("GET", `/documents${qs ? `?${qs}` : ""}`);
@@ -187,8 +188,9 @@ export const quoteStudio = {
   getDocument: (id: string) => request("GET", `/documents/${encodeURIComponent(id)}`),
   createDocument: (payload: StudioDocumentInput) => request("POST", "/documents", payload),
   updateDocument: (id: string, payload: StudioDocumentInput) =>
-    request("PUT", `/documents/${encodeURIComponent(id)}`, payload),
+    request("PATCH", `/documents/${encodeURIComponent(id)}`, payload),
   patchDocument: (id: string, patch: Record<string, any>) =>
     request("PATCH", `/documents/${encodeURIComponent(id)}`, patch),
   deleteDocument: (id: string) => request("DELETE", `/documents/${encodeURIComponent(id)}`),
 };
+
