@@ -20,8 +20,10 @@ import { Route as ServiceMapRouteImport } from './routes/service-map'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as NocRouteImport } from './routes/noc'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ManagedNasRouteImport } from './routes/managed-nas'
@@ -135,6 +137,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProcurementRoute = ProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaymentsRoute = PaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -143,6 +150,11 @@ const PaymentsRoute = PaymentsRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NocRoute = NocRouteImport.update({
+  id: '/noc',
+  path: '/noc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MonitoringRoute = MonitoringRouteImport.update({
@@ -472,8 +484,10 @@ export interface FileRoutesByFullPath {
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
+  '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -544,8 +558,10 @@ export interface FileRoutesByTo {
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
+  '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -616,8 +632,10 @@ export interface FileRoutesById {
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
+  '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
@@ -690,8 +708,10 @@ export interface FileRouteTypes {
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
+    | '/noc'
     | '/notifications'
     | '/payments'
+    | '/procurement'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -762,8 +782,10 @@ export interface FileRouteTypes {
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
+    | '/noc'
     | '/notifications'
     | '/payments'
+    | '/procurement'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -833,8 +855,10 @@ export interface FileRouteTypes {
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
+    | '/noc'
     | '/notifications'
     | '/payments'
+    | '/procurement'
     | '/projects'
     | '/quotes'
     | '/reports'
@@ -906,8 +930,10 @@ export interface RootRouteChildren {
   ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
   MonitoringRoute: typeof MonitoringRoute
+  NocRoute: typeof NocRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentsRoute: typeof PaymentsRoute
+  ProcurementRoute: typeof ProcurementRoute
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
@@ -1026,6 +1052,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/procurement': {
+      id: '/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/payments': {
       id: '/payments'
       path: '/payments'
@@ -1038,6 +1071,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/noc': {
+      id: '/noc'
+      path: '/noc'
+      fullPath: '/noc'
+      preLoaderRoute: typeof NocRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/monitoring': {
@@ -1513,8 +1553,10 @@ const rootRouteChildren: RootRouteChildren = {
   ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
   MonitoringRoute: MonitoringRoute,
+  NocRoute: NocRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentsRoute: PaymentsRoute,
+  ProcurementRoute: ProcurementRoute,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,

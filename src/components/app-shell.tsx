@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
-  Globe, HardDrive, Database, ShieldCheck, MessageSquare, Mail, Wallet, Banknote, MapPin, Target, Wrench,
+  Globe, HardDrive, Database, ShieldCheck, ShoppingCart, MessageSquare, Mail, Wallet, Banknote, MapPin, Target, Wrench,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -49,6 +49,7 @@ const siteNav: NavNode[] = [
   {
     title: "Network", url: "/monitoring", icon: Activity,
     children: [
+      { title: "NOC Command Centre", url: "/noc", icon: ShieldCheck },
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Service Map", url: "/service-map", icon: MapPin },
     ],
@@ -58,6 +59,7 @@ const siteNav: NavNode[] = [
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
+      { title: "Procurement & Vendors", url: "/procurement", icon: ShoppingCart },
     ],
   },
   {
