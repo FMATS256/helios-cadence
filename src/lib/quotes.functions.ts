@@ -497,7 +497,9 @@ interface QuoteLineInput {
 
 interface SaveQuoteInput {
   id?: string;
-  customer_id: string;
+  /** Empty for walk-in clients (no account on the platform). */
+  customer_id?: string | null;
+  walk_in?: { name: string; email?: string | null; phone?: string | null; address?: string | null } | null;
   quote_number?: string;
   title: string;
   currency?: string;
@@ -507,6 +509,7 @@ interface SaveQuoteInput {
   lines: QuoteLineInput[];
   push?: boolean;
 }
+
 
 export const saveQuote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
