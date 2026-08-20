@@ -269,6 +269,8 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     total: amount,
   };
 
+  const repName = (rep?.name ?? "").trim() || null;
+
   return {
     type: "quotation",
     docType: "quotation",
