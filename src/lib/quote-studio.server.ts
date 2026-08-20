@@ -197,8 +197,18 @@ export type StudioDocumentInput = {
   buyer: StudioDocumentInput["customer"];
   items: StudioItem[];
   totals?: { subtotal: number; tax: number; total: number };
+  /** Sales representative attribution (account owner). */
+  salesRep?: string | null;
+  sales_rep?: string | null;
+  salesRepEmail?: string | null;
+  salesRepPhone?: string | null;
+  preparedBy?: string | null;
+  agent?: string | null;
   metadata?: Record<string, any>;
 };
+
+/** Sales representative (the staff member who owns the account). */
+export type StudioRep = { name?: string | null; email?: string | null; phone?: string | null };
 
 /** dd/mm/yyyy — the format the engine stores dates in. */
 function engineDate(value: string | null | undefined): string | null {
@@ -210,7 +220,7 @@ function engineDate(value: string | null | undefined): string | null {
 }
 
 /** Build the engine payload from a quote row + its line items. */
-export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentInput {
+export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep | null): StudioDocumentInput {
   const items: StudioItem[] = (lines ?? []).map((l, i) => {
     const quantity = Number(l.quantity ?? 1);
     const unitPrice = Number(l.unit_price ?? 0);
@@ -259,6 +269,8 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
     total: amount,
   };
 
+  const repName = (rep?.name ?? "").trim() || null;
+
   return {
     type: "quotation",
     docType: "quotation",
@@ -281,7 +293,18 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
     buyer: customer,
     items: items.length ? items : [fallback],
     totals: { subtotal, tax, total: subtotal + tax },
-    metadata: { source: "IMT Operations Platform", quote_id: quote.id, account_number: quote.account_number },
+    salesRep: repName,
+    sales_rep: repName,
+    salesRepEmail: rep?.email ?? null,
+    salesRepPhone: rep?.phone ?? null,
+    preparedBy: repName,
+    agent: repName,
+    metadata: {
+      source: "IMT Operations Platform",
+      quote_id: quote.id,
+      account_number: quote.account_number,
+      sales_rep: repName,
+    },
   };
 }
 

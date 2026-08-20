@@ -10,7 +10,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const QUOTE_ROLES = ["operations_manager", "sales", "finance", "account_manager"];
 
 const QUOTE_SELECT =
-  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
+  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address,account_manager_id)";
 
 /** Identity forwarded to the headless engine for attribution. */
 function actorOf(ctx: { userId: string; claims?: any }) {
@@ -21,7 +21,29 @@ function actorOf(ctx: { userId: string; claims?: any }) {
   };
 }
 
-  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
+/**
+ * Sales representative shown on the quotation = the staff member who owns the
+ * account (its account manager), falling back to whoever created the quote and
+ * finally to the acting user.
+ */
+async function salesRepOf(db: any, quote: any, ctx: { userId: string; claims?: any }) {
+  const ids = [quote.customers?.account_manager_id, quote.created_by, ctx.userId].filter(Boolean);
+  for (const id of ids) {
+    const { data } = await db
+      .from("profiles")
+      .select("full_name,email,phone")
+      .eq("id", id)
+      .maybeSingle();
+    const name = (data?.full_name ?? "").trim();
+    if (name) return { name, email: data?.email ?? null, phone: (data as any)?.phone ?? null };
+  }
+  const claims: any = ctx.claims ?? {};
+  return {
+    name: claims.user_metadata?.full_name ?? claims.email ?? null,
+    email: claims.email ?? null,
+    phone: null,
+  };
+}
 
 async function loadQuote(db: any, id: string) {
   const { data, error } = await db.from("quotes").select(QUOTE_SELECT).eq("id", id).maybeSingle();
@@ -119,7 +141,7 @@ export const pushQuoteToStudio = createServerFn({ method: "POST" })
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be pushed to Quote Studio");
 
     const { quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } = await import("./quote-studio.server");
-    const payload = buildDocumentPayload(quote, lines);
+    const payload = buildDocumentPayload(quote, lines, await salesRepOf(db, quote, context));
     const actor = actorOf(context);
     const res = quote.studio_document_id
       ? await quoteStudio.updateDocument(quote.studio_document_id, payload, actor)
@@ -241,7 +263,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     let studioError: string | null = null;
 
     if (studioConfig().configured) {
-      const payload = buildDocumentPayload(quote, lines);
+      const payload = buildDocumentPayload(quote, lines, await salesRepOf(db, quote, context));
       const actor = actorOf(context);
       const res = docId
         ? await quoteStudio.updateDocument(docId, payload, actor)
@@ -445,7 +467,10 @@ export const getQuotePdf = createServerFn({ method: "POST" })
     // Prefer the stored document; fall back to a stateless render.
     const res = quote.studio_document_id
       ? await quoteStudio.documentPdf(quote.studio_document_id, actor)
-      : await quoteStudio.renderPdf(buildDocumentPayload(quote, lines), actor);
+      : await quoteStudio.renderPdf(
+          buildDocumentPayload(quote, lines, await salesRepOf(context.supabase, quote, context)),
+          actor,
+        );
     if (!res.ok) throw new Error(res.error);
 
     let binary = "";
