@@ -10,7 +10,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const QUOTE_ROLES = ["operations_manager", "sales", "finance", "account_manager"];
 
 const QUOTE_SELECT =
-  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
+  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address,account_manager_id)";
 
 /** Identity forwarded to the headless engine for attribution. */
 function actorOf(ctx: { userId: string; claims?: any }) {
