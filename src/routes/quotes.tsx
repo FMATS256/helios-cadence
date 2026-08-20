@@ -93,12 +93,17 @@ function QuotesPage() {
     ) },
     { header: "Customer", cell: (r) => (
       <div className="min-w-0">
-        <div className="font-medium truncate">{r.customers?.company_name ?? "—"}</div>
-        <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">
-          {r.account_number}
-        </Link>
+        <div className="font-medium truncate">{r.customers?.company_name ?? r.walkin_name ?? "—"}</div>
+        {r.account_number ? (
+          <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">
+            {r.account_number}
+          </Link>
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground">Walk-in</span>
+        )}
       </div>
     ) },
+
     { header: "Amount", align: "right", cell: (r) => <span className="font-mono font-semibold">{money(r.amount ?? r.total ?? 0, r.currency)}</span> },
     { header: "Status", cell: (r) => {
       const expired = r.valid_until && new Date(r.valid_until).getTime() < now && r.status !== "accepted";
