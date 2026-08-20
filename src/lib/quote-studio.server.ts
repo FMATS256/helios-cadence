@@ -169,14 +169,23 @@ export type StudioItem = {
 
 export type StudioDocumentInput = {
   type: "quotation";
+  /** Native engine document fields. */
+  docType: "quotation";
   reference: string;
   externalId?: string | null;
+  externalClientId?: string | null;
   title: string;
   currency: string;
   status?: StudioStatus;
   validUntil?: string | null;
   valid_until?: string | null;
+  expiry?: string | null;
   notes?: string | null;
+  customerName: string;
+  customerEmail?: string | null;
+  customerAddress?: string | null;
+  customerAccount?: string | null;
+  account?: string | null;
   customer: {
     name: string;
     email?: string | null;
@@ -191,19 +200,31 @@ export type StudioDocumentInput = {
   metadata?: Record<string, any>;
 };
 
+/** dd/mm/yyyy — the format the engine stores dates in. */
+function engineDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
 /** Build the engine payload from a quote row + its line items. */
 export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentInput {
   const items: StudioItem[] = (lines ?? []).map((l, i) => {
     const quantity = Number(l.quantity ?? 1);
     const unitPrice = Number(l.unit_price ?? 0);
+    const taxRate = Number(l.tax_rate ?? 0);
     return {
       id: String(l.id ?? i + 1),
       name: l.description ?? "Item",
-      description: l.description ?? null,
+      description: l.description ?? "Item",
       quantity,
       qty: quantity,
       unitPrice,
-      taxRate: Number(l.tax_rate ?? 0),
+      price: unitPrice,
+      vat: taxRate,
+      taxRate,
       total: Number(l.line_total ?? quantity * unitPrice),
     };
   });
@@ -224,24 +245,38 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
     address: c.billing_address ?? null,
     reference: quote.account_number ?? null,
   };
-  const fallback = {
+  const amount = Number(quote.amount ?? 0);
+  const fallback: StudioItem = {
+    id: "1",
     name: quote.title ?? "Quotation",
+    description: quote.title ?? "Quotation",
     quantity: 1,
     qty: 1,
-    unitPrice: Number(quote.amount ?? 0),
-    total: Number(quote.amount ?? 0),
-  } satisfies StudioItem;
+    unitPrice: amount,
+    price: amount,
+    vat: 0,
+    taxRate: 0,
+    total: amount,
+  };
 
   return {
     type: "quotation",
+    docType: "quotation",
     reference: quote.quote_number || `Q-${String(quote.id).slice(0, 8).toUpperCase()}`,
     externalId: String(quote.id),
+    externalClientId: quote.customer_id ? String(quote.customer_id) : null,
     title: quote.title ?? "Quotation",
     currency: quote.currency ?? "USD",
     status: toStudioStatus(quote.status),
     validUntil: quote.valid_until ?? null,
     valid_until: quote.valid_until ?? null,
+    expiry: engineDate(quote.valid_until),
     notes: quote.notes ?? null,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    customerAddress: customer.address,
+    customerAccount: quote.account_number ?? null,
+    account: quote.account_number ?? null,
     customer,
     buyer: customer,
     items: items.length ? items : [fallback],
@@ -249,6 +284,7 @@ export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentIn
     metadata: { source: "IMT Operations Platform", quote_id: quote.id, account_number: quote.account_number },
   };
 }
+
 
 /** Unwrap the `{ document: {...} }` / `{ data: {...} }` envelopes the API uses. */
 function unwrap(doc: any): any {
