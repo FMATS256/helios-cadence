@@ -71,7 +71,7 @@ function QuotesPage() {
     const headers = ["Quote #", "Title", "Account", "Customer", "Status", "Currency", "Amount", "Valid until", "Created"];
     const lines = [headers.join(",")].concat(
       filtered.map((r) => [
-        r.quote_number ?? "", r.title, r.account_number, r.customers?.company_name ?? "",
+        r.quote_number ?? "", r.title, r.account_number ?? "Walk-in", r.customers?.company_name ?? r.walkin_name ?? "",
         r.status, r.currency, r.amount ?? r.total ?? 0, r.valid_until ?? "",
         new Date(r.created_at).toISOString(),
       ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
@@ -93,12 +93,17 @@ function QuotesPage() {
     ) },
     { header: "Customer", cell: (r) => (
       <div className="min-w-0">
-        <div className="font-medium truncate">{r.customers?.company_name ?? "—"}</div>
-        <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">
-          {r.account_number}
-        </Link>
+        <div className="font-medium truncate">{r.customers?.company_name ?? r.walkin_name ?? "—"}</div>
+        {r.account_number ? (
+          <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">
+            {r.account_number}
+          </Link>
+        ) : (
+          <span className="font-mono text-xs text-muted-foreground">Walk-in</span>
+        )}
       </div>
     ) },
+
     { header: "Amount", align: "right", cell: (r) => <span className="font-mono font-semibold">{money(r.amount ?? r.total ?? 0, r.currency)}</span> },
     { header: "Status", cell: (r) => {
       const expired = r.valid_until && new Date(r.valid_until).getTime() < now && r.status !== "accepted";

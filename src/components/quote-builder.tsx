@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Eye, Save, Loader2, Building2 } from "lucide-react";
+import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export interface QuoteLineDraft {
@@ -45,8 +45,13 @@ export function QuoteBuilderDialog({
   const pdfFn = useServerFn(getQuotePdf);
 
   const [tab, setTab] = useState("details");
+  const [walkIn, setWalkIn] = useState(false);
   const [form, setForm] = useState<any>({
     customer_id: defaultCustomerId ?? "",
+    walkin_name: "",
+    walkin_email: "",
+    walkin_phone: "",
+    walkin_address: "",
     quote_number: "",
     title: "",
     currency: "USD",
@@ -58,6 +63,7 @@ export function QuoteBuilderDialog({
   const [savedId, setSavedId] = useState<string | null>(quoteId ?? null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [pdfFile, setPdfFile] = useState<{ name: string; url: string } | null>(null);
 
   // Load an existing quotation for editing.
   const { data: existing } = useQuery({
@@ -70,8 +76,13 @@ export function QuoteBuilderDialog({
     if (!open) return;
     if (existing?.quote) {
       const q: any = existing.quote;
+      setWalkIn(!q.customer_id);
       setForm({
         customer_id: q.customer_id ?? "",
+        walkin_name: q.walkin_name ?? "",
+        walkin_email: q.walkin_email ?? "",
+        walkin_phone: q.walkin_phone ?? "",
+        walkin_address: q.walkin_address ?? "",
         quote_number: q.quote_number ?? "",
         title: q.title ?? "",
         currency: q.currency ?? "USD",
@@ -96,7 +107,7 @@ export function QuoteBuilderDialog({
   // Selected customer profile — shown so the rep can confirm what prints.
   const { data: customer } = useQuery({
     queryKey: ["quote-customer", form.customer_id],
-    enabled: !!form.customer_id,
+    enabled: !!form.customer_id && !walkIn,
     queryFn: async () =>
       (
         await supabase
@@ -121,7 +132,9 @@ export function QuoteBuilderDialog({
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   const reset = () => {
-    setForm({ customer_id: defaultCustomerId ?? "", quote_number: "", title: "", currency: "USD", valid_until: "", discount: "0", notes: "" });
+    setWalkIn(false);
+    setPdfFile(null);
+    setForm({ customer_id: defaultCustomerId ?? "", walkin_name: "", walkin_email: "", walkin_phone: "", walkin_address: "", quote_number: "", title: "", currency: "USD", valid_until: "", discount: "0", notes: "" });
     setLines([emptyLine()]);
     setSavedId(null);
     setPreviewUrl(null);
@@ -133,7 +146,15 @@ export function QuoteBuilderDialog({
       await save({
         data: {
           id: savedId ?? undefined,
-          customer_id: form.customer_id,
+          customer_id: walkIn ? null : form.customer_id,
+          walk_in: walkIn
+            ? {
+                name: form.walkin_name,
+                email: form.walkin_email || null,
+                phone: form.walkin_phone || null,
+                address: form.walkin_address || null,
+              }
+            : null,
           quote_number: form.quote_number || undefined,
           title: form.title,
           currency: form.currency,
@@ -166,7 +187,9 @@ export function QuoteBuilderDialog({
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      setPreviewUrl(url);
+      setPdfFile({ name: file.filename ?? "quotation.pdf", url });
       setTab("preview");
     } catch (e: any) {
       toast.error(e.message ?? "Preview failed");
@@ -197,19 +220,51 @@ export function QuoteBuilderDialog({
 
           <TabsContent value="details" className="space-y-4 pt-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Customer *</Label>
-                <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="sm:col-span-2 flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant={walkIn ? "outline" : "default"} onClick={() => setWalkIn(false)}>
+                  <Building2 className="h-4 w-4 mr-1.5" />Existing customer
+                </Button>
+                <Button type="button" size="sm" variant={walkIn ? "default" : "outline"} onClick={() => setWalkIn(true)}>
+                  <UserPlus className="h-4 w-4 mr-1.5" />Walk-in client
+                </Button>
               </div>
 
-              {customer && (
+              {!walkIn && (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Customer *</Label>
+                  <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {walkIn && (
+                <>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Client name *</Label>
+                    <Input value={form.walkin_name} onChange={(e) => setForm({ ...form, walkin_name: e.target.value })} placeholder="John Moyo / Acme Traders" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" value={form.walkin_email} onChange={(e) => setForm({ ...form, walkin_email: e.target.value })} placeholder="client@example.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input value={form.walkin_phone} onChange={(e) => setForm({ ...form, walkin_phone: e.target.value })} placeholder="+263 …" />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Address</Label>
+                    <Input value={form.walkin_address} onChange={(e) => setForm({ ...form, walkin_address: e.target.value })} placeholder="Street, city" />
+                  </div>
+                </>
+              )}
+
+              {!walkIn && customer && (
                 <div className="sm:col-span-2 rounded-xl border bg-muted/10 p-4 text-sm">
                   <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <Building2 className="h-3.5 w-3.5" /> Bill to
@@ -304,7 +359,19 @@ export function QuoteBuilderDialog({
 
           <TabsContent value="preview" className="pt-4">
             {previewUrl ? (
-              <iframe title="Quotation preview" src={previewUrl} className="h-[60vh] w-full rounded-xl border" />
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <a href={pdfFile?.url ?? previewUrl} download={pdfFile?.name ?? "quotation.pdf"}>
+                      <Download className="h-4 w-4 mr-1.5" />Download PDF
+                    </a>
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => window.open(previewUrl!, "_blank")}>
+                    <Eye className="h-4 w-4 mr-1.5" />Open in new tab
+                  </Button>
+                </div>
+                <iframe title="Quotation preview" src={previewUrl} className="h-[60vh] w-full rounded-xl border" />
+              </div>
             ) : (
               <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
                 Save and generate the document to preview the quotation PDF.

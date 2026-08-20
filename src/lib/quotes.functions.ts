@@ -252,7 +252,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     const { quote, lines } = await loadQuote(db, data.id);
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be sent");
 
-    const to = (data.email || quote.customers?.primary_email || "").trim();
+    const to = (data.email || quote.customers?.primary_email || quote.walkin_email || "").trim();
     if (!/@/.test(to)) throw new Error("No customer email on file — enter a recipient address");
 
     // Make sure a fresh document exists before we email the link.
@@ -296,7 +296,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
       "quote",
       to,
       {
-        companyName: quote.customers?.company_name ?? quote.account_number ?? "there",
+        companyName: quote.customers?.company_name ?? quote.walkin_name ?? quote.account_number ?? "there",
         quoteNumber: quote.quote_number ?? "",
         title: quote.title ?? "Quotation",
         issueDate: (quote.created_at ?? "").slice(0, 10),
@@ -497,7 +497,9 @@ interface QuoteLineInput {
 
 interface SaveQuoteInput {
   id?: string;
-  customer_id: string;
+  /** Empty for walk-in clients (no account on the platform). */
+  customer_id?: string | null;
+  walk_in?: { name: string; email?: string | null; phone?: string | null; address?: string | null } | null;
   quote_number?: string;
   title: string;
   currency?: string;
@@ -508,6 +510,7 @@ interface SaveQuoteInput {
   push?: boolean;
 }
 
+
 export const saveQuote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: SaveQuoteInput) => d)
@@ -516,7 +519,9 @@ export const saveQuote = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
 
-    if (!data.customer_id) throw new Error("Select a customer");
+    const walkIn = data.walk_in && (data.walk_in.name ?? "").trim() ? data.walk_in : null;
+    if (!data.customer_id && !walkIn) throw new Error("Select a customer, or enter walk-in client details");
+
     if (!data.title?.trim()) throw new Error("Quotation title is required");
     const lines = (data.lines ?? [])
       .filter((l) => (l.description ?? "").trim())
@@ -534,13 +539,18 @@ export const saveQuote = createServerFn({ method: "POST" })
       });
     if (!lines.length) throw new Error("Add at least one line item");
 
-    const { data: cust, error: custErr } = await db
-      .from("customers")
-      .select("id,account_number,company_name")
-      .eq("id", data.customer_id)
-      .maybeSingle();
-    if (custErr) throw new Error(custErr.message);
-    if (!cust) throw new Error("Customer not found");
+    let cust: any = null;
+    if (data.customer_id) {
+      const { data: found, error: custErr } = await db
+        .from("customers")
+        .select("id,account_number,company_name")
+        .eq("id", data.customer_id)
+        .maybeSingle();
+      if (custErr) throw new Error(custErr.message);
+      if (!found) throw new Error("Customer not found");
+      cust = found;
+    }
+
 
     const subtotal = lines.reduce((s, l) => s + l.line_total, 0);
     const tax = lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0);
@@ -565,14 +575,19 @@ export const saveQuote = createServerFn({ method: "POST" })
       : data.notes || null;
 
     const base = {
-      customer_id: cust.id,
-      account_number: cust.account_number,
+      customer_id: cust?.id ?? null,
+      account_number: cust?.account_number ?? null,
+      walkin_name: walkIn ? walkIn.name.trim() : null,
+      walkin_email: walkIn ? walkIn.email || null : null,
+      walkin_phone: walkIn ? walkIn.phone || null : null,
+      walkin_address: walkIn ? walkIn.address || null : null,
       title: data.title.trim(),
       currency: (data.currency || "USD").toUpperCase(),
       amount: total,
       valid_until: data.valid_until || null,
       notes,
     };
+
 
     let quoteId = data.id ?? null;
     if (quoteId) {
@@ -659,7 +674,7 @@ export const shareQuoteExternally = createServerFn({ method: "POST" })
     const db = await admin();
     const { quote } = await loadQuote(db, data.id);
 
-    const phone = String(data.phone || quote.customers?.primary_phone || "").replace(/[^\d]/g, "");
+    const phone = String(data.phone || quote.customers?.primary_phone || quote.walkin_phone || "").replace(/[^\d]/g, "");
     if (data.channel !== "link" && !phone) throw new Error("No phone number on file — enter one to share");
 
     const rep = await salesRepOf(db, quote, context);
@@ -667,7 +682,7 @@ export const shareQuoteExternally = createServerFn({ method: "POST" })
     const message =
       data.message?.trim() ||
       [
-        `Good day ${quote.customers?.company_name ?? ""}`.trim() + ",",
+        `Good day ${quote.customers?.company_name ?? quote.walkin_name ?? ""}`.trim() + ",",
         "",
         `Please find our quotation ${quote.quote_number ?? ""} — ${quote.title} (${money}).`,
         quote.valid_until ? `Valid until ${new Date(quote.valid_until).toLocaleDateString()}.` : "",

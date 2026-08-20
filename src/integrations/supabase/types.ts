@@ -2920,12 +2920,12 @@ export type Database = {
       quotes: {
         Row: {
           accepted_at: string | null
-          account_number: string
+          account_number: string | null
           amount: number
           created_at: string
           created_by: string | null
           currency: string
-          customer_id: string
+          customer_id: string | null
           id: string
           notes: string | null
           quote_number: string | null
@@ -2940,15 +2940,19 @@ export type Database = {
           title: string
           updated_at: string
           valid_until: string | null
+          walkin_address: string | null
+          walkin_email: string | null
+          walkin_name: string | null
+          walkin_phone: string | null
         }
         Insert: {
           accepted_at?: string | null
-          account_number: string
+          account_number?: string | null
           amount?: number
           created_at?: string
           created_by?: string | null
           currency?: string
-          customer_id: string
+          customer_id?: string | null
           id?: string
           notes?: string | null
           quote_number?: string | null
@@ -2963,15 +2967,19 @@ export type Database = {
           title: string
           updated_at?: string
           valid_until?: string | null
+          walkin_address?: string | null
+          walkin_email?: string | null
+          walkin_name?: string | null
+          walkin_phone?: string | null
         }
         Update: {
           accepted_at?: string | null
-          account_number?: string
+          account_number?: string | null
           amount?: number
           created_at?: string
           created_by?: string | null
           currency?: string
-          customer_id?: string
+          customer_id?: string | null
           id?: string
           notes?: string | null
           quote_number?: string | null
@@ -2986,6 +2994,10 @@ export type Database = {
           title?: string
           updated_at?: string
           valid_until?: string | null
+          walkin_address?: string | null
+          walkin_email?: string | null
+          walkin_name?: string | null
+          walkin_phone?: string | null
         }
         Relationships: [
           {
