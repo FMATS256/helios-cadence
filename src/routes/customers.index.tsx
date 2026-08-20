@@ -174,12 +174,9 @@ function DataPanel({
               </Popover>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search:" className="h-8 w-52 pl-8 text-xs" />
-              </div>
-              {action}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search:" className="h-8 w-52 pl-8 text-xs" />
             </div>
           </div>
 
