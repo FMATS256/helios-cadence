@@ -71,7 +71,7 @@ function QuotesPage() {
     const headers = ["Quote #", "Title", "Account", "Customer", "Status", "Currency", "Amount", "Valid until", "Created"];
     const lines = [headers.join(",")].concat(
       filtered.map((r) => [
-        r.quote_number ?? "", r.title, r.account_number, r.customers?.company_name ?? "",
+        r.quote_number ?? "", r.title, r.account_number ?? "Walk-in", r.customers?.company_name ?? r.walkin_name ?? "",
         r.status, r.currency, r.amount ?? r.total ?? 0, r.valid_until ?? "",
         new Date(r.created_at).toISOString(),
       ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
