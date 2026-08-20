@@ -197,8 +197,18 @@ export type StudioDocumentInput = {
   buyer: StudioDocumentInput["customer"];
   items: StudioItem[];
   totals?: { subtotal: number; tax: number; total: number };
+  /** Sales representative attribution (account owner). */
+  salesRep?: string | null;
+  sales_rep?: string | null;
+  salesRepEmail?: string | null;
+  salesRepPhone?: string | null;
+  preparedBy?: string | null;
+  agent?: string | null;
   metadata?: Record<string, any>;
 };
+
+/** Sales representative (the staff member who owns the account). */
+export type StudioRep = { name?: string | null; email?: string | null; phone?: string | null };
 
 /** dd/mm/yyyy — the format the engine stores dates in. */
 function engineDate(value: string | null | undefined): string | null {
