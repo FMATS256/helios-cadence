@@ -351,11 +351,11 @@ function CustomersPage() {
             ) : (
               <>
                 <TabsContent value="accounts" className="m-0">
-                  <DataPanel title="Corporate" rows={corporate} industries={industries} action={AddCustomer} />
-                  <DataPanel title="Individual" rows={individual} industries={industries} action={AddCustomer} />
+                  <DataPanel title="Corporate" rows={corporate} industries={industries} />
+                  <DataPanel title="Individual" rows={individual} industries={industries} />
                 </TabsContent>
                 <TabsContent value="pipeline" className="m-0">
-                  <DataPanel title="Prospects" rows={prospects} industries={industries} action={AddCustomer} />
+                  <DataPanel title="Prospects" rows={prospects} industries={industries} />
                   <DataPanel title="Suspended" rows={suspended} industries={industries} />
                 </TabsContent>
               </>
