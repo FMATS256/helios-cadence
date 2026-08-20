@@ -245,10 +245,14 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
   const detailFn = useServerFn(getQuoteDetail);
   const statusFn = useServerFn(quoteStudioStatus);
   const openPdf = useServerFn(getQuotePdf);
+  const share = useServerFn(shareQuoteExternally);
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const { data: detail } = useQuery({
     queryKey: ["quote-detail", quote.id],
@@ -275,6 +279,32 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
     },
     onError: (e: Error) => { setBusy(null); toast.error(e.message); },
   });
+
+  async function loadPreview() {
+    setLoadingPreview(true);
+    try {
+      const file: any = await openPdf({ data: { id: row.id } });
+      const bin = atob(file.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      setPreviewUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
+  async function shareWhatsApp() {
+    try {
+      const res: any = await share({ data: { id: row.id, channel: "whatsapp", phone: phone || undefined, message: message || undefined } });
+      window.open(`https://wa.me/${res.phone}?text=${encodeURIComponent(res.message)}`, "_blank");
+      toast.success("WhatsApp message prepared");
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
 
   const act = (key: string, fn: () => Promise<any>) => run.mutate({ key, fn });
   const label = (key: string, text: string) => (busy === key ? "Working…" : text);
@@ -327,6 +357,14 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               />
             </div>
             <div className="space-y-2">
+              <Label>WhatsApp number</Label>
+              <Input
+                placeholder={row.customers?.primary_phone ?? "+263…"}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
               <Label>Covering message</Label>
               <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional note for the customer" />
             </div>
@@ -361,12 +399,26 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
               {label("convert", "Convert to invoice")}
             </Button>
+            <Button size="sm" style={{ background: "#25D366", color: "#fff" }} onClick={shareWhatsApp}>
+              <MessageCircle className="h-4 w-4 mr-1.5" />Send via WhatsApp
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onEdit(row.id)} disabled={!["draft", "sent"].includes(row.status)}>
+              <Pencil className="h-4 w-4 mr-1.5" />Edit quotation
+            </Button>
+            <Button size="sm" variant="outline" disabled={loadingPreview} onClick={loadPreview}>
+              {loadingPreview ? "Loading…" : "Preview"}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => openPdf({ data: { id: row.id } })
               .then((f: any) => downloadPdf(f))
               .catch((e: Error) => toast.error(e.message))}>
               Open PDF
             </Button>
           </div>
+        </div>
+
+          {previewUrl && (
+            <iframe title="Quotation preview" src={previewUrl} className="h-[55vh] w-full rounded-xl border" />
+          )}
         </div>
 
         <DialogFooter><Button variant="outline" onClick={onClose}>Close</Button></DialogFooter>
