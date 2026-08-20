@@ -21,6 +21,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProcurementRouteImport } from './routes/procurement'
+import { Route as PosRouteImport } from './routes/pos'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as NocRouteImport } from './routes/noc'
@@ -140,6 +141,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const ProcurementRoute = ProcurementRouteImport.update({
   id: '/procurement',
   path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRoute = PosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -487,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/pos': typeof PosRoute
   '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
@@ -561,6 +568,7 @@ export interface FileRoutesByTo {
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/pos': typeof PosRoute
   '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
@@ -635,6 +643,7 @@ export interface FileRoutesById {
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
   '/payments': typeof PaymentsRoute
+  '/pos': typeof PosRoute
   '/procurement': typeof ProcurementRoute
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
@@ -711,6 +720,7 @@ export interface FileRouteTypes {
     | '/noc'
     | '/notifications'
     | '/payments'
+    | '/pos'
     | '/procurement'
     | '/projects'
     | '/quotes'
@@ -785,6 +795,7 @@ export interface FileRouteTypes {
     | '/noc'
     | '/notifications'
     | '/payments'
+    | '/pos'
     | '/procurement'
     | '/projects'
     | '/quotes'
@@ -858,6 +869,7 @@ export interface FileRouteTypes {
     | '/noc'
     | '/notifications'
     | '/payments'
+    | '/pos'
     | '/procurement'
     | '/projects'
     | '/quotes'
@@ -933,6 +945,7 @@ export interface RootRouteChildren {
   NocRoute: typeof NocRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentsRoute: typeof PaymentsRoute
+  PosRoute: typeof PosRoute
   ProcurementRoute: typeof ProcurementRoute
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
@@ -1057,6 +1070,13 @@ declare module '@tanstack/react-router' {
       path: '/procurement'
       fullPath: '/procurement'
       preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -1556,6 +1576,7 @@ const rootRouteChildren: RootRouteChildren = {
   NocRoute: NocRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentsRoute: PaymentsRoute,
+  PosRoute: PosRoute,
   ProcurementRoute: ProcurementRoute,
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,

@@ -2025,15 +2025,18 @@ export type Database = {
       inventory_items: {
         Row: {
           archived_at: string | null
+          barcode: string | null
           category: string | null
           created_at: string
           created_by: string | null
           description: string | null
           id: string
+          is_sellable: boolean
           location: string | null
           name: string
           quantity: number
           reorder_level: number
+          sale_price: number
           sku: string
           supplier: string | null
           unit_cost: number | null
@@ -2041,15 +2044,18 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          barcode?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          is_sellable?: boolean
           location?: string | null
           name: string
           quantity?: number
           reorder_level?: number
+          sale_price?: number
           sku: string
           supplier?: string | null
           unit_cost?: number | null
@@ -2057,15 +2063,18 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          barcode?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
+          is_sellable?: boolean
           location?: string | null
           name?: string
           quantity?: number
           reorder_level?: number
+          sale_price?: number
           sku?: string
           supplier?: string | null
           unit_cost?: number | null
@@ -2775,6 +2784,150 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sale_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          line_total: number
+          name: string
+          quantity: number
+          sale_id: string
+          sku: string | null
+          unit_cost: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          line_total?: number
+          name: string
+          quantity?: number
+          sale_id: string
+          sku?: string | null
+          unit_cost?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          line_total?: number
+          name?: string
+          quantity?: number
+          sale_id?: string
+          sku?: string | null
+          unit_cost?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sale_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sales: {
+        Row: {
+          account_id: string | null
+          account_number: string | null
+          amount_paid: number
+          change_due: number
+          created_at: string
+          currency: string
+          customer_id: string | null
+          discount: number
+          id: string
+          notes: string | null
+          payment_method: string
+          sale_number: string
+          sold_by: string | null
+          sold_by_name: string | null
+          status: string
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          voided_at: string | null
+          walkin_name: string | null
+          walkin_phone: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          account_number?: string | null
+          amount_paid?: number
+          change_due?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          sale_number: string
+          sold_by?: string | null
+          sold_by_name?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          walkin_name?: string | null
+          walkin_phone?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          account_number?: string | null
+          amount_paid?: number
+          change_due?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          sale_number?: string
+          sold_by?: string | null
+          sold_by_name?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          walkin_name?: string | null
+          walkin_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sales_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
