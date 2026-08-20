@@ -1,6 +1,7 @@
 // Procurement, vendor management and multi-currency server functions.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { latestRateMap, toBase } from "./currency.shared";
 
 type Ctx = { supabase: any; userId: string };
 
@@ -16,25 +17,6 @@ async function assertProcurement(ctx: Ctx) {
 }
 
 /* ---------------- Currency ---------------- */
-
-/** Latest rate per currency, keyed by currency code (units of currency per 1 USD). */
-export function latestRateMap(rows: any[]): Record<string, number> {
-  const map: Record<string, { rate: number; date: string }> = {};
-  for (const r of rows) {
-    const cur = String(r.currency).toUpperCase();
-    if (!map[cur] || String(r.effective_date) > map[cur]!.date) {
-      map[cur] = { rate: Number(r.rate) || 1, date: String(r.effective_date) };
-    }
-  }
-  const out: Record<string, number> = { USD: 1 };
-  for (const [k, v] of Object.entries(map)) out[k] = v.rate;
-  return out;
-}
-
-export const toBase = (amount: number, currency: string, rates: Record<string, number>) => {
-  const r = rates[String(currency || "USD").toUpperCase()] ?? 1;
-  return r > 0 ? Number(amount || 0) / r : Number(amount || 0);
-};
 
 export const listExchangeRates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
