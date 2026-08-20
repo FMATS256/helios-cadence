@@ -219,6 +219,12 @@ function engineDate(value: string | null | undefined): string | null {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+/** The engine's schema rejects nulls on its string fields. */
+const str = (v: any, fallback = ""): string => {
+  const s = v == null ? "" : String(v).trim();
+  return s || fallback;
+};
+
 /** Build the engine payload from a quote row + its line items. */
 export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep | null): StudioDocumentInput {
   const items: StudioItem[] = (lines ?? []).map((l, i) => {
@@ -227,8 +233,8 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     const taxRate = Number(l.tax_rate ?? 0);
     return {
       id: String(l.id ?? i + 1),
-      name: l.description ?? "Item",
-      description: l.description ?? "Item",
+      name: str(l.description, "Item"),
+      description: str(l.description, "Item"),
       quantity,
       qty: quantity,
       unitPrice,
@@ -248,18 +254,19 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
   );
 
   const c = quote.customers ?? {};
+  // Walk-in clients have no customer record — their details live on the quote.
   const customer = {
-    name: c.company_name ?? quote.account_number ?? "Customer",
-    email: c.primary_email ?? null,
-    phone: c.primary_phone ?? null,
-    address: c.billing_address ?? null,
-    reference: quote.account_number ?? null,
+    name: str(c.company_name ?? quote.walkin_name ?? quote.account_number, "Walk-in client"),
+    email: str(c.primary_email ?? quote.walkin_email),
+    phone: str(c.primary_phone ?? quote.walkin_phone),
+    address: str(c.billing_address ?? quote.walkin_address),
+    reference: str(quote.account_number, "WALK-IN"),
   };
   const amount = Number(quote.amount ?? 0);
   const fallback: StudioItem = {
     id: "1",
-    name: quote.title ?? "Quotation",
-    description: quote.title ?? "Quotation",
+    name: str(quote.title, "Quotation"),
+    description: str(quote.title, "Quotation"),
     quantity: 1,
     qty: 1,
     unitPrice: amount,
@@ -269,44 +276,45 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     total: amount,
   };
 
-  const repName = (rep?.name ?? "").trim() || null;
+  const repName = str(rep?.name, "IMT Solutions");
 
   return {
     type: "quotation",
     docType: "quotation",
     reference: quote.quote_number || `Q-${String(quote.id).slice(0, 8).toUpperCase()}`,
     externalId: String(quote.id),
-    externalClientId: quote.customer_id ? String(quote.customer_id) : null,
-    title: quote.title ?? "Quotation",
-    currency: quote.currency ?? "USD",
+    externalClientId: quote.customer_id ? String(quote.customer_id) : "",
+    title: str(quote.title, "Quotation"),
+    currency: str(quote.currency, "USD"),
     status: toStudioStatus(quote.status),
-    validUntil: quote.valid_until ?? null,
-    valid_until: quote.valid_until ?? null,
-    expiry: engineDate(quote.valid_until),
-    notes: quote.notes ?? null,
+    validUntil: str(quote.valid_until),
+    valid_until: str(quote.valid_until),
+    expiry: str(engineDate(quote.valid_until)),
+    notes: str(quote.notes),
     customerName: customer.name,
     customerEmail: customer.email,
     customerAddress: customer.address,
-    customerAccount: quote.account_number ?? null,
-    account: quote.account_number ?? null,
+    customerAccount: customer.reference,
+    account: customer.reference,
     customer,
     buyer: customer,
     items: items.length ? items : [fallback],
     totals: { subtotal, tax, total: subtotal + tax },
     salesRep: repName,
     sales_rep: repName,
-    salesRepEmail: rep?.email ?? null,
-    salesRepPhone: rep?.phone ?? null,
+    salesRepEmail: str(rep?.email),
+    salesRepPhone: str(rep?.phone),
     preparedBy: repName,
     agent: repName,
     metadata: {
       source: "IMT Operations Platform",
       quote_id: quote.id,
-      account_number: quote.account_number,
+      account_number: str(quote.account_number, "WALK-IN"),
       sales_rep: repName,
     },
   };
 }
+
 
 
 /** Unwrap the `{ document: {...} }` / `{ data: {...} }` envelopes the API uses. */
