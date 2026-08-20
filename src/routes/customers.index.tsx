@@ -66,8 +66,8 @@ function toCsv(rows: Row[], cols: ColKey[]) {
 /* ---------------- grouped data panel ---------------- */
 
 function DataPanel({
-  title, rows, industries, action,
-}: { title: string; rows: Row[]; industries: string[]; action?: React.ReactNode }) {
+  title, rows, industries,
+}: { title: string; rows: Row[]; industries: string[] }) {
   const [openGroup, setOpenGroup] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
