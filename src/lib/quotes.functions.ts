@@ -575,14 +575,19 @@ export const saveQuote = createServerFn({ method: "POST" })
       : data.notes || null;
 
     const base = {
-      customer_id: cust.id,
-      account_number: cust.account_number,
+      customer_id: cust?.id ?? null,
+      account_number: cust?.account_number ?? null,
+      walkin_name: walkIn ? walkIn.name.trim() : null,
+      walkin_email: walkIn ? walkIn.email || null : null,
+      walkin_phone: walkIn ? walkIn.phone || null : null,
+      walkin_address: walkIn ? walkIn.address || null : null,
       title: data.title.trim(),
       currency: (data.currency || "USD").toUpperCase(),
       amount: total,
       valid_until: data.valid_until || null,
       notes,
     };
+
 
     let quoteId = data.id ?? null;
     if (quoteId) {
