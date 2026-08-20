@@ -141,7 +141,7 @@ export const pushQuoteToStudio = createServerFn({ method: "POST" })
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be pushed to Quote Studio");
 
     const { quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } = await import("./quote-studio.server");
-    const payload = buildDocumentPayload(quote, lines);
+    const payload = buildDocumentPayload(quote, lines, await salesRepOf(db, quote, context));
     const actor = actorOf(context);
     const res = quote.studio_document_id
       ? await quoteStudio.updateDocument(quote.studio_document_id, payload, actor)
@@ -263,7 +263,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     let studioError: string | null = null;
 
     if (studioConfig().configured) {
-      const payload = buildDocumentPayload(quote, lines);
+      const payload = buildDocumentPayload(quote, lines, await salesRepOf(db, quote, context));
       const actor = actorOf(context);
       const res = docId
         ? await quoteStudio.updateDocument(docId, payload, actor)
@@ -467,7 +467,10 @@ export const getQuotePdf = createServerFn({ method: "POST" })
     // Prefer the stored document; fall back to a stateless render.
     const res = quote.studio_document_id
       ? await quoteStudio.documentPdf(quote.studio_document_id, actor)
-      : await quoteStudio.renderPdf(buildDocumentPayload(quote, lines), actor);
+      : await quoteStudio.renderPdf(
+          buildDocumentPayload(quote, lines, await salesRepOf(context.supabase, quote, context)),
+          actor,
+        );
     if (!res.ok) throw new Error(res.error);
 
     let binary = "";
