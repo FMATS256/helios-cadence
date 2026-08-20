@@ -75,7 +75,12 @@ const siteNav: NavNode[] = [
   { title: "Tickets", url: "/tickets", icon: LifeBuoy },
   {
     title: "Inventory & Assets", url: "/inventory", icon: Warehouse,
+    children: [
+      { title: "Inventory & Assets", url: "/inventory", icon: Warehouse },
+      { title: "Mini POS", url: "/pos", icon: ShoppingCart },
+    ],
   },
+
   { title: "Reports", url: "/reports", icon: BarChart3 },
   {
     title: "Tools", url: "/automation", icon: Zap,
