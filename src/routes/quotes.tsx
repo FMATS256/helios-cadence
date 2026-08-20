@@ -414,7 +414,6 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               Open PDF
             </Button>
           </div>
-        </div>
 
           {previewUrl && (
             <iframe title="Quotation preview" src={previewUrl} className="h-[55vh] w-full rounded-xl border" />
