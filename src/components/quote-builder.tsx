@@ -101,7 +101,7 @@ export function QuoteBuilderDialog({
       (
         await supabase
           .from("customers")
-          .select("id,account_number,company_name,primary_email,primary_phone,billing_address,city,country,vat_number")
+          .select("id,account_number,company_name,primary_email,primary_phone,billing_address")
           .eq("id", form.customer_id)
           .maybeSingle()
       ).data,
@@ -220,7 +220,7 @@ export function QuoteBuilderDialog({
                     <div>{customer.primary_email || "No email on file"}</div>
                     <div>{customer.primary_phone || "No phone on file"}</div>
                     <div className="sm:col-span-2 text-muted-foreground">
-                      {[customer.billing_address, (customer as any).city, (customer as any).country].filter(Boolean).join(", ") || "No billing address"}
+                      {[customer.billing_address].filter(Boolean).join(", ") || "No billing address"}
                     </div>
                   </div>
                 </div>
