@@ -291,7 +291,18 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     buyer: customer,
     items: items.length ? items : [fallback],
     totals: { subtotal, tax, total: subtotal + tax },
-    metadata: { source: "IMT Operations Platform", quote_id: quote.id, account_number: quote.account_number },
+    salesRep: repName,
+    sales_rep: repName,
+    salesRepEmail: rep?.email ?? null,
+    salesRepPhone: rep?.phone ?? null,
+    preparedBy: repName,
+    agent: repName,
+    metadata: {
+      source: "IMT Operations Platform",
+      quote_id: quote.id,
+      account_number: quote.account_number,
+      sales_rep: repName,
+    },
   };
 }
 
