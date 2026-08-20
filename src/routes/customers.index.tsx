@@ -272,12 +272,7 @@ function DataPanel({
 
 function CustomersPage() {
   const { q } = Route.useSearch();
-  const { user } = useAuth();
-  const qc = useQueryClient();
   const navigate = useNavigate();
-  const createCustomer = useServerFn(createCustomerRecord);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", status: "active", notes: "" });
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["customers"],
