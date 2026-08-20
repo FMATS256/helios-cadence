@@ -1,0 +1,342 @@
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { saveQuote, getQuoteDetail, getQuotePdf } from "@/lib/quotes.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Eye, Save, Loader2, Building2 } from "lucide-react";
+import { toast } from "sonner";
+
+export interface QuoteLineDraft {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  tax_rate: string;
+}
+
+const emptyLine = (): QuoteLineDraft => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
+
+const fmt = (n: number, cur: string) =>
+  `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export function QuoteBuilderDialog({
+  open,
+  onOpenChange,
+  customers,
+  quoteId,
+  defaultCustomerId,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  customers: any[];
+  quoteId?: string | null;
+  defaultCustomerId?: string;
+  onSaved?: (id: string) => void;
+}) {
+  const save = useServerFn(saveQuote);
+  const detailFn = useServerFn(getQuoteDetail);
+  const pdfFn = useServerFn(getQuotePdf);
+
+  const [tab, setTab] = useState("details");
+  const [form, setForm] = useState<any>({
+    customer_id: defaultCustomerId ?? "",
+    quote_number: "",
+    title: "",
+    currency: "USD",
+    valid_until: "",
+    discount: "0",
+    notes: "",
+  });
+  const [lines, setLines] = useState<QuoteLineDraft[]>([emptyLine()]);
+  const [savedId, setSavedId] = useState<string | null>(quoteId ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+
+  // Load an existing quotation for editing.
+  const { data: existing } = useQuery({
+    queryKey: ["quote-builder", quoteId],
+    queryFn: () => detailFn({ data: { id: quoteId! } }),
+    enabled: !!quoteId && open,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    if (existing?.quote) {
+      const q: any = existing.quote;
+      setForm({
+        customer_id: q.customer_id ?? "",
+        quote_number: q.quote_number ?? "",
+        title: q.title ?? "",
+        currency: q.currency ?? "USD",
+        valid_until: q.valid_until ?? "",
+        discount: "0",
+        notes: q.notes ?? "",
+      });
+      setLines(
+        (existing.lines ?? []).length
+          ? (existing.lines as any[]).map((l) => ({
+              description: l.description ?? "",
+              quantity: String(l.quantity ?? 1),
+              unit_price: String(l.unit_price ?? 0),
+              tax_rate: String(l.tax_rate ?? 0),
+            }))
+          : [emptyLine()],
+      );
+      setSavedId(q.id);
+    }
+  }, [existing, open]);
+
+  // Selected customer profile — shown so the rep can confirm what prints.
+  const { data: customer } = useQuery({
+    queryKey: ["quote-customer", form.customer_id],
+    enabled: !!form.customer_id,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("customers")
+          .select("id,account_number,company_name,primary_email,primary_phone,billing_address,city,country,vat_number")
+          .eq("id", form.customer_id)
+          .maybeSingle()
+      ).data,
+  });
+
+  const totals = useMemo(() => {
+    const subtotal = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unit_price) || 0), 0);
+    const tax = lines.reduce(
+      (s, l) => s + ((Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * (Number(l.tax_rate) || 0)) / 100,
+      0,
+    );
+    const discount = Number(form.discount) || 0;
+    return { subtotal, tax, discount, total: subtotal + tax - discount };
+  }, [lines, form.discount]);
+
+  const setLine = (i: number, patch: Partial<QuoteLineDraft>) =>
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+
+  const reset = () => {
+    setForm({ customer_id: defaultCustomerId ?? "", quote_number: "", title: "", currency: "USD", valid_until: "", discount: "0", notes: "" });
+    setLines([emptyLine()]);
+    setSavedId(null);
+    setPreviewUrl(null);
+    setTab("details");
+  };
+
+  const persist = useMutation({
+    mutationFn: async () =>
+      await save({
+        data: {
+          id: savedId ?? undefined,
+          customer_id: form.customer_id,
+          quote_number: form.quote_number || undefined,
+          title: form.title,
+          currency: form.currency,
+          valid_until: form.valid_until || null,
+          notes: form.notes || null,
+          discount: Number(form.discount) || 0,
+          lines: lines.map((l) => ({
+            description: l.description,
+            quantity: Number(l.quantity) || 0,
+            unit_price: Number(l.unit_price) || 0,
+            tax_rate: Number(l.tax_rate) || 0,
+          })),
+        },
+      }),
+    onSuccess: (res: any) => {
+      setSavedId(res.id);
+      if (!form.quote_number && res.quote_number) setForm((f: any) => ({ ...f, quote_number: res.quote_number }));
+      toast.success(`Quotation ${res.quote_number ?? ""} saved`);
+      onSaved?.(res.id);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function preview() {
+    setPreviewing(true);
+    try {
+      const res: any = await persist.mutateAsync();
+      const file: any = await pdfFn({ data: { id: res.id } });
+      const bin = atob(file.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+      setTab("preview");
+    } catch (e: any) {
+      toast.error(e.message ?? "Preview failed");
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        if (!v && !quoteId) reset();
+      }}
+    >
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{quoteId || savedId ? "Edit quotation" : "Create quotation"}</DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="details">Customer &amp; details</TabsTrigger>
+            <TabsTrigger value="items">Line items</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4 pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Customer *</Label>
+                <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {customer && (
+                <div className="sm:col-span-2 rounded-xl border bg-muted/10 p-4 text-sm">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5" /> Bill to
+                  </div>
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    <div className="font-semibold">{customer.company_name}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{customer.account_number}</div>
+                    <div>{customer.primary_email || "No email on file"}</div>
+                    <div>{customer.primary_phone || "No phone on file"}</div>
+                    <div className="sm:col-span-2 text-muted-foreground">
+                      {[customer.billing_address, (customer as any).city, (customer as any).country].filter(Boolean).join(", ") || "No billing address"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Quotation title *</Label>
+                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Managed Cloud VPS Package" />
+              </div>
+              <div className="space-y-2">
+                <Label>Quote number</Label>
+                <Input value={form.quote_number} onChange={(e) => setForm({ ...form, quote_number: e.target.value })} placeholder="Auto-generated" />
+              </div>
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Input value={form.currency} maxLength={3} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Valid until</Label>
+                <Input type="date" value={form.valid_until ?? ""} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Discount ({form.currency})</Label>
+                <Input type="number" step="0.01" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Notes / terms</Label>
+                <Textarea rows={3} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, scope notes, exclusions…" />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="items" className="space-y-3 pt-4">
+            <div className="overflow-x-auto rounded-xl border">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="p-2 text-left">Description</th>
+                    <th className="p-2 text-right w-20">Qty</th>
+                    <th className="p-2 text-right w-32">Unit price</th>
+                    <th className="p-2 text-right w-20">Tax %</th>
+                    <th className="p-2 text-right w-32">Total</th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {lines.map((l, i) => (
+                    <tr key={i}>
+                      <td className="p-2">
+                        <Input value={l.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Item description" />
+                      </td>
+                      <td className="p-2"><Input className="text-right" type="number" step="1" value={l.quantity} onChange={(e) => setLine(i, { quantity: e.target.value })} /></td>
+                      <td className="p-2"><Input className="text-right" type="number" step="0.01" value={l.unit_price} onChange={(e) => setLine(i, { unit_price: e.target.value })} /></td>
+                      <td className="p-2"><Input className="text-right" type="number" step="0.01" value={l.tax_rate} onChange={(e) => setLine(i, { tax_rate: e.target.value })} /></td>
+                      <td className="p-2 text-right font-mono">
+                        {fmt((Number(l.quantity) || 0) * (Number(l.unit_price) || 0), form.currency)}
+                      </td>
+                      <td className="p-2 text-right">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => setLines((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p))}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
+              <Plus className="h-4 w-4 mr-1.5" />Add line
+            </Button>
+
+            <div className="ml-auto w-full max-w-xs space-y-1 rounded-xl border bg-muted/10 p-4 text-sm">
+              <Row label="Subtotal" value={fmt(totals.subtotal, form.currency)} />
+              <Row label="Tax" value={fmt(totals.tax, form.currency)} />
+              <Row label="Discount" value={`- ${fmt(totals.discount, form.currency)}`} />
+              <div className="mt-2 flex items-center justify-between border-t pt-2 text-base font-semibold">
+                <span>Total</span><span className="font-mono">{fmt(totals.total, form.currency)}</span>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="pt-4">
+            {previewUrl ? (
+              <iframe title="Quotation preview" src={previewUrl} className="h-[60vh] w-full rounded-xl border" />
+            ) : (
+              <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+                Save and generate the document to preview the quotation PDF.
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button variant="outline" disabled={previewing || persist.isPending} onClick={preview}>
+            {previewing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Eye className="h-4 w-4 mr-1.5" />}
+            Save &amp; preview
+          </Button>
+          <Button
+            disabled={persist.isPending}
+            className="text-solar-foreground"
+            style={{ background: "var(--gradient-solar)" }}
+            onClick={() => persist.mutate()}
+          >
+            <Save className="h-4 w-4 mr-1.5" />{persist.isPending ? "Saving…" : "Save quotation"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-muted-foreground">
+      <span>{label}</span><span className="font-mono text-foreground">{value}</span>
+    </div>
+  );
+}
