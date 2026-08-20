@@ -220,7 +220,7 @@ function engineDate(value: string | null | undefined): string | null {
 }
 
 /** Build the engine payload from a quote row + its line items. */
-export function buildDocumentPayload(quote: any, lines: any[]): StudioDocumentInput {
+export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep | null): StudioDocumentInput {
   const items: StudioItem[] = (lines ?? []).map((l, i) => {
     const quantity = Number(l.quantity ?? 1);
     const unitPrice = Number(l.unit_price ?? 0);
