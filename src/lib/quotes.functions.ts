@@ -12,6 +12,17 @@ const QUOTE_ROLES = ["operations_manager", "sales", "finance", "account_manager"
 const QUOTE_SELECT =
   "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
 
+/** Identity forwarded to the headless engine for attribution. */
+function actorOf(ctx: { userId: string; claims?: any }) {
+  const claims: any = ctx.claims ?? {};
+  return {
+    userId: ctx.userId,
+    userName: claims.user_metadata?.full_name ?? claims.email ?? null,
+  };
+}
+
+  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
+
 async function loadQuote(db: any, id: string) {
   const { data, error } = await db.from("quotes").select(QUOTE_SELECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
