@@ -21,7 +21,29 @@ function actorOf(ctx: { userId: string; claims?: any }) {
   };
 }
 
-  "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address)";
+/**
+ * Sales representative shown on the quotation = the staff member who owns the
+ * account (its account manager), falling back to whoever created the quote and
+ * finally to the acting user.
+ */
+async function salesRepOf(db: any, quote: any, ctx: { userId: string; claims?: any }) {
+  const ids = [quote.customers?.account_manager_id, quote.created_by, ctx.userId].filter(Boolean);
+  for (const id of ids) {
+    const { data } = await db
+      .from("profiles")
+      .select("full_name,email,phone")
+      .eq("id", id)
+      .maybeSingle();
+    const name = (data?.full_name ?? "").trim();
+    if (name) return { name, email: data?.email ?? null, phone: (data as any)?.phone ?? null };
+  }
+  const claims: any = ctx.claims ?? {};
+  return {
+    name: claims.user_metadata?.full_name ?? claims.email ?? null,
+    email: claims.email ?? null,
+    phone: null,
+  };
+}
 
 async function loadQuote(db: any, id: string) {
   const { data, error } = await db.from("quotes").select(QUOTE_SELECT).eq("id", id).maybeSingle();
