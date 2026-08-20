@@ -156,11 +156,15 @@ function unwrap(doc: any): any {
 /** Pull the PDF link out of whatever shape the API returns. */
 export function pdfUrlOf(doc: any): string | null {
   const d = unwrap(doc);
-  return (
+  const direct =
     d?.pdf_url ?? d?.pdfUrl ?? d?.pdf_api_url ?? d?.download_url ?? d?.downloadUrl ??
-    d?.links?.pdf ?? d?.view_url ?? d?.viewUrl ?? null
-  );
+    d?.links?.pdf ?? d?.view_url ?? d?.viewUrl ?? null;
+  if (direct) return direct;
+  const id = d?.id ?? d?.document_id ?? d?.documentId;
+  const cfg = studioConfig();
+  return id && cfg.configured ? `${cfg.url}/documents/${encodeURIComponent(String(id))}/pdf` : null;
 }
+
 
 export function documentIdOf(doc: any): string | null {
   const d = unwrap(doc);
