@@ -252,7 +252,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     const { quote, lines } = await loadQuote(db, data.id);
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be sent");
 
-    const to = (data.email || quote.customers?.primary_email || "").trim();
+    const to = (data.email || quote.customers?.primary_email || quote.walkin_email || "").trim();
     if (!/@/.test(to)) throw new Error("No customer email on file — enter a recipient address");
 
     // Make sure a fresh document exists before we email the link.
@@ -296,7 +296,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
       "quote",
       to,
       {
-        companyName: quote.customers?.company_name ?? quote.account_number ?? "there",
+        companyName: quote.customers?.company_name ?? quote.walkin_name ?? quote.account_number ?? "there",
         quoteNumber: quote.quote_number ?? "",
         title: quote.title ?? "Quotation",
         issueDate: (quote.created_at ?? "").slice(0, 10),
@@ -674,7 +674,7 @@ export const shareQuoteExternally = createServerFn({ method: "POST" })
     const db = await admin();
     const { quote } = await loadQuote(db, data.id);
 
-    const phone = String(data.phone || quote.customers?.primary_phone || "").replace(/[^\d]/g, "");
+    const phone = String(data.phone || quote.customers?.primary_phone || quote.walkin_phone || "").replace(/[^\d]/g, "");
     if (data.channel !== "link" && !phone) throw new Error("No phone number on file — enter one to share");
 
     const rep = await salesRepOf(db, quote, context);
@@ -682,7 +682,7 @@ export const shareQuoteExternally = createServerFn({ method: "POST" })
     const message =
       data.message?.trim() ||
       [
-        `Good day ${quote.customers?.company_name ?? ""}`.trim() + ",",
+        `Good day ${quote.customers?.company_name ?? quote.walkin_name ?? ""}`.trim() + ",",
         "",
         `Please find our quotation ${quote.quote_number ?? ""} — ${quote.title} (${money}).`,
         quote.valid_until ? `Valid until ${new Date(quote.valid_until).toLocaleDateString()}.` : "",
