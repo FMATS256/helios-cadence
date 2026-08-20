@@ -1861,6 +1861,39 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_date: string
+          id: string
+          rate: number
+          source: string
+        }
+        Insert: {
+          base_currency?: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          effective_date?: string
+          id?: string
+          rate: number
+          source?: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_date?: string
+          id?: string
+          rate?: number
+          source?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           account_id: string | null
@@ -1873,13 +1906,16 @@ export type Database = {
           customer_id: string | null
           description: string
           expense_date: string
+          fx_rate: number
           id: string
           notes: string | null
           payment_method: string
+          purchase_order_id: string | null
           reference: string | null
           status: string
           updated_at: string
           vendor: string | null
+          vendor_id: string | null
         }
         Insert: {
           account_id?: string | null
@@ -1892,13 +1928,16 @@ export type Database = {
           customer_id?: string | null
           description: string
           expense_date?: string
+          fx_rate?: number
           id?: string
           notes?: string | null
           payment_method?: string
+          purchase_order_id?: string | null
           reference?: string | null
           status?: string
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
         }
         Update: {
           account_id?: string | null
@@ -1911,13 +1950,16 @@ export type Database = {
           customer_id?: string | null
           description?: string
           expense_date?: string
+          fx_rate?: number
           id?: string
           notes?: string | null
           payment_method?: string
+          purchase_order_id?: string | null
           reference?: string | null
           status?: string
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -1932,6 +1974,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -2466,6 +2522,7 @@ export type Database = {
       }
       monitoring_incidents: {
         Row: {
+          ack_note: string | null
           acknowledged_at: string | null
           acknowledged_by: string | null
           check_id: string
@@ -2473,9 +2530,11 @@ export type Database = {
           ended_at: string | null
           id: string
           last_error: string | null
+          severity: string
           started_at: string
         }
         Insert: {
+          ack_note?: string | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           check_id: string
@@ -2483,9 +2542,11 @@ export type Database = {
           ended_at?: string | null
           id?: string
           last_error?: string | null
+          severity?: string
           started_at?: string
         }
         Update: {
+          ack_note?: string | null
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           check_id?: string
@@ -2493,6 +2554,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           last_error?: string | null
+          severity?: string
           started_at?: string
         }
         Relationships: [
@@ -2539,6 +2601,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      noc_shift_notes: {
+        Row: {
+          author_email: string | null
+          author_id: string | null
+          created_at: string
+          id: string
+          note: string
+          shift: string
+          shift_date: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          shift?: string
+          shift_date?: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          shift?: string
+          shift_date?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -2869,6 +2961,135 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          inventory_item_id: string | null
+          line_total: number | null
+          po_id: string
+          quantity: number
+          received_qty: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          inventory_item_id?: string | null
+          line_total?: number | null
+          po_id: string
+          quantity?: number
+          received_qty?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          inventory_item_id?: string | null
+          line_total?: number | null
+          po_id?: string
+          quantity?: number
+          received_qty?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          expected_date: string | null
+          fx_rate: number
+          id: string
+          notes: string | null
+          order_date: string
+          po_number: string | null
+          received_date: string | null
+          status: string
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          expected_date?: string | null
+          fx_rate?: number
+          id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: string | null
+          received_date?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          expected_date?: string | null
+          fx_rate?: number
+          id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: string | null
+          received_date?: string | null
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -3857,6 +4078,72 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          category: string
+          code: string | null
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          payment_terms: string
+          phone: string | null
+          rating: number
+          status: string
+          tax_number: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string
+          code?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          payment_terms?: string
+          phone?: string | null
+          rating?: number
+          status?: string
+          tax_number?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          code?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_terms?: string
+          phone?: string | null
+          rating?: number
+          status?: string
+          tax_number?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
