@@ -428,3 +428,33 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
     });
     return { invoice_id: inv.id as string, invoice_number: inv.invoice_number as string };
   });
+
+/* ------------------------------------------------------------------ *
+ * PDF proxy — the engine's PDF endpoint needs the API key, so the
+ * browser cannot fetch it directly. We stream it through the server.
+ * ------------------------------------------------------------------ */
+
+export const getQuotePdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { quote, lines } = await loadQuote(context.supabase, data.id);
+    const { quoteStudio, buildDocumentPayload } = await import("./quote-studio.server");
+    const actor = actorOf(context);
+
+    // Prefer the stored document; fall back to a stateless render.
+    const res = quote.studio_document_id
+      ? await quoteStudio.documentPdf(quote.studio_document_id, actor)
+      : await quoteStudio.renderPdf(buildDocumentPayload(quote, lines), actor);
+    if (!res.ok) throw new Error(res.error);
+
+    let binary = "";
+    const bytes = res.data.bytes;
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    return {
+      filename: `${quote.quote_number || quote.title || "quotation"}.pdf`.replace(/[^\w.-]+/g, "-"),
+      base64: btoa(binary),
+    };
+  });
