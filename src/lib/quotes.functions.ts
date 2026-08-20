@@ -598,7 +598,7 @@ export const saveQuote = createServerFn({ method: "POST" })
 
     const { error: lineErr } = await db
       .from("quote_line_items")
-      .insert(lines.map((l) => ({ ...l, quote_id: quoteId })));
+      .insert(lines.map(({ line_total: _lt, ...l }) => ({ ...l, quote_id: quoteId })));
     if (lineErr) throw new Error(lineErr.message);
 
     const { quote } = await loadQuote(db, quoteId!);
