@@ -120,9 +120,10 @@ export const pushQuoteToStudio = createServerFn({ method: "POST" })
 
     const { quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } = await import("./quote-studio.server");
     const payload = buildDocumentPayload(quote, lines);
+    const actor = actorOf(context);
     const res = quote.studio_document_id
-      ? await quoteStudio.updateDocument(quote.studio_document_id, payload)
-      : await quoteStudio.createDocument(payload);
+      ? await quoteStudio.updateDocument(quote.studio_document_id, payload, actor)
+      : await quoteStudio.createDocument(payload, actor);
 
     if (!res.ok) {
       await db.from("quotes").update({
@@ -170,7 +171,7 @@ export const syncQuoteFromStudio = createServerFn({ method: "POST" })
     if (!quote.studio_document_id) throw new Error("This quote has not been pushed to Quote Studio yet");
 
     const { quoteStudio, pdfUrlOf } = await import("./quote-studio.server");
-    const res = await quoteStudio.getDocument(quote.studio_document_id);
+    const res = await quoteStudio.getDocument(quote.studio_document_id, actorOf(context));
     if (!res.ok) {
       await db.from("quotes").update({
         studio_status: res.configured ? "failed" : "not_configured",
@@ -189,7 +190,7 @@ export const syncQuoteFromStudio = createServerFn({ method: "POST" })
       studio_synced_at: new Date().toISOString(),
     };
     // Studio is authoritative for customer-facing decisions.
-    if (["accepted", "approved", "signed"].includes(remoteStatus) && quote.status !== "accepted") {
+    if (["accepted", "approved", "signed", "final"].includes(remoteStatus) && quote.status !== "accepted") {
       patch.status = "accepted";
       patch.accepted_at = new Date().toISOString();
     } else if (["declined", "rejected"].includes(remoteStatus) && quote.status !== "rejected") {
@@ -241,12 +242,18 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
 
     if (studioConfig().configured) {
       const payload = buildDocumentPayload(quote, lines);
+      const actor = actorOf(context);
       const res = docId
-        ? await quoteStudio.updateDocument(docId, payload)
-        : await quoteStudio.createDocument(payload);
+        ? await quoteStudio.updateDocument(docId, payload, actor)
+        : await quoteStudio.createDocument(payload, actor);
       if (res.ok) {
         docId = documentIdOf(res.data) ?? docId;
         pdfUrl = pdfUrlOf(res.data) ?? pdfUrl;
+        // Tell the engine the document has gone out so its lifecycle matches ours.
+        if (docId) {
+          const marked = await quoteStudio.sendDocument(docId, to, actor);
+          if (!marked.ok) studioError = marked.error;
+        }
       } else {
         studioError = res.error;
       }
@@ -336,8 +343,17 @@ export const setQuoteOutcome = createServerFn({ method: "POST" })
 
     // Mirror the decision into Quote Studio when connected.
     if (quote.studio_document_id) {
-      const { quoteStudio } = await import("./quote-studio.server");
-      await quoteStudio.patchDocument(quote.studio_document_id, { status: data.outcome });
+      const { quoteStudio, toStudioStatus } = await import("./quote-studio.server");
+      if (data.outcome === "cancelled") {
+        await quoteStudio.deleteDocument(quote.studio_document_id, actorOf(context));
+      } else {
+        await quoteStudio.setStatus(
+          quote.studio_document_id,
+          toStudioStatus(data.outcome),
+          undefined,
+          actorOf(context),
+        );
+      }
     }
 
     await record(db, context, quote, {
