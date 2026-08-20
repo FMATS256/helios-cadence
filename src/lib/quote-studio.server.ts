@@ -156,11 +156,15 @@ function unwrap(doc: any): any {
 /** Pull the PDF link out of whatever shape the API returns. */
 export function pdfUrlOf(doc: any): string | null {
   const d = unwrap(doc);
-  return (
+  const direct =
     d?.pdf_url ?? d?.pdfUrl ?? d?.pdf_api_url ?? d?.download_url ?? d?.downloadUrl ??
-    d?.links?.pdf ?? d?.view_url ?? d?.viewUrl ?? null
-  );
+    d?.links?.pdf ?? d?.view_url ?? d?.viewUrl ?? null;
+  if (direct) return direct;
+  const id = d?.id ?? d?.document_id ?? d?.documentId;
+  const cfg = studioConfig();
+  return id && cfg.configured ? `${cfg.url}/documents/${encodeURIComponent(String(id))}/pdf` : null;
 }
+
 
 export function documentIdOf(doc: any): string | null {
   const d = unwrap(doc);
@@ -179,7 +183,8 @@ export function publicUrlOf(doc: any): string | null {
  * ------------------------------------------------------------------ */
 
 export const quoteStudio = {
-  settings: () => request("GET", "/settings"),
+  /** The API root doubles as a health/discovery endpoint. */
+  settings: () => request("GET", ""),
   listDocuments: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request("GET", `/documents${qs ? `?${qs}` : ""}`);
@@ -187,8 +192,9 @@ export const quoteStudio = {
   getDocument: (id: string) => request("GET", `/documents/${encodeURIComponent(id)}`),
   createDocument: (payload: StudioDocumentInput) => request("POST", "/documents", payload),
   updateDocument: (id: string, payload: StudioDocumentInput) =>
-    request("PUT", `/documents/${encodeURIComponent(id)}`, payload),
+    request("PATCH", `/documents/${encodeURIComponent(id)}`, payload),
   patchDocument: (id: string, patch: Record<string, any>) =>
     request("PATCH", `/documents/${encodeURIComponent(id)}`, patch),
   deleteDocument: (id: string) => request("DELETE", `/documents/${encodeURIComponent(id)}`),
 };
+

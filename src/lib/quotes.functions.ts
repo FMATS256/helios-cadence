@@ -71,12 +71,17 @@ export const quoteStudioStatus = createServerFn({ method: "GET" })
     const { studioConfig, quoteStudio } = await import("./quote-studio.server");
     const cfg = studioConfig();
     if (!cfg.configured) return { configured: false, reachable: false, error: null as string | null };
-    const res = await quoteStudio.settings();
+    // Some Studio builds don't expose /settings — fall back to a documents probe.
+    let res = await quoteStudio.settings();
+    if (!res.ok && /404|Unsupported/i.test((res as any).error ?? "")) {
+      res = await quoteStudio.listDocuments({ limit: "1" });
+    }
     return {
       configured: true,
       reachable: res.ok,
       error: res.ok ? null : (res as any).error,
     };
+
   });
 
 export const getQuoteDetail = createServerFn({ method: "GET" })
