@@ -539,13 +539,18 @@ export const saveQuote = createServerFn({ method: "POST" })
       });
     if (!lines.length) throw new Error("Add at least one line item");
 
-    const { data: cust, error: custErr } = await db
-      .from("customers")
-      .select("id,account_number,company_name")
-      .eq("id", data.customer_id)
-      .maybeSingle();
-    if (custErr) throw new Error(custErr.message);
-    if (!cust) throw new Error("Customer not found");
+    let cust: any = null;
+    if (data.customer_id) {
+      const { data: found, error: custErr } = await db
+        .from("customers")
+        .select("id,account_number,company_name")
+        .eq("id", data.customer_id)
+        .maybeSingle();
+      if (custErr) throw new Error(custErr.message);
+      if (!found) throw new Error("Customer not found");
+      cust = found;
+    }
+
 
     const subtotal = lines.reduce((s, l) => s + l.line_total, 0);
     const tax = lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0);
