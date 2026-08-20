@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getQuotesOverview } from "@/lib/finance.functions";
 import {
   pushQuoteToStudio, syncQuoteFromStudio, sendQuoteToCustomer, setQuoteOutcome,
-  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus,
+  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus, getQuotePdf,
 } from "@/lib/quotes.functions";
 import { useCustomersLite } from "@/components/module-page";
 import {
@@ -110,11 +110,7 @@ function QuotesPage() {
         <StatusBadge tone={toneForStatus(r.studio_status === "synced" ? "active" : r.studio_status === "failed" ? "failed" : "pending")}>
           {r.studio_status ?? "not generated"}
         </StatusBadge>
-        {r.studio_pdf_url && (
-          <a href={r.studio_pdf_url} target="_blank" rel="noreferrer" className="mt-1 block text-solar hover:underline">
-            Open PDF
-          </a>
-        )}
+        {r.studio_document_id && <PdfLink id={r.id} className="mt-1 block text-solar hover:underline" />}
         {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
       </div>
     ) },
@@ -206,6 +202,35 @@ function QuotesPage() {
   );
 }
 
+function downloadPdf(file: { filename: string; base64: string }) {
+  const bin = atob(file.base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function PdfLink({ id, className }: { id: string; className?: string }) {
+  const fetchPdf = useServerFn(getQuotePdf);
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      className={className}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try { downloadPdf(await fetchPdf({ data: { id } }) as any); }
+        catch (e: any) { toast.error(e.message); }
+        finally { setBusy(false); }
+      }}
+    >
+      {busy ? "Opening…" : "Open PDF"}
+    </button>
+  );
+}
+
 function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: () => void; onDone: () => void }) {
   const push = useServerFn(pushQuoteToStudio);
   const sync = useServerFn(syncQuoteFromStudio);
@@ -214,6 +239,7 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
   const convert = useServerFn(convertQuoteToInvoice);
   const detailFn = useServerFn(getQuoteDetail);
   const statusFn = useServerFn(quoteStudioStatus);
+  const openPdf = useServerFn(getQuotePdf);
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -330,11 +356,11 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
               onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
               {label("convert", "Convert to invoice")}
             </Button>
-            {row.studio_pdf_url && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={row.studio_pdf_url} target="_blank" rel="noreferrer">Open PDF</a>
-              </Button>
-            )}
+            <Button size="sm" variant="outline" onClick={() => openPdf({ data: { id: row.id } })
+              .then((f: any) => downloadPdf(f))
+              .catch((e: Error) => toast.error(e.message))}>
+              Open PDF
+            </Button>
           </div>
         </div>
 
