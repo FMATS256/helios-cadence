@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getQuotesOverview } from "@/lib/finance.functions";
 import {
   pushQuoteToStudio, syncQuoteFromStudio, sendQuoteToCustomer, setQuoteOutcome,
-  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus, getQuotePdf,
+  convertQuoteToInvoice, getQuoteDetail, quoteStudioStatus, getQuotePdf, shareQuoteExternally,
 } from "@/lib/quotes.functions";
+import { QuoteBuilderDialog } from "@/components/quote-builder";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
@@ -17,11 +17,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Download, FileSignature, CheckCircle2, Clock, AlertTriangle, Percent } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Search, Download, FileSignature, CheckCircle2, Clock, AlertTriangle, Percent, MessageCircle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES = ["draft", "sent", "accepted", "rejected", "expired"];
@@ -44,6 +43,7 @@ function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [managed, setManaged] = useState<any | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["quotes-overview"],
@@ -184,17 +184,22 @@ function QuotesPage() {
         </CardContent>
       </Card>
 
-      <NewQuoteDialog
+      <QuoteBuilderDialog
         open={openDialog}
-        onOpenChange={setOpenDialog}
+        onOpenChange={(v) => { setOpenDialog(v); if (!v) setEditingId(null); }}
         customers={customers}
-        onCreated={() => qc.invalidateQueries({ queryKey: ["quotes-overview"] })}
+        quoteId={editingId}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["quotes-overview"] });
+          if (editingId) qc.invalidateQueries({ queryKey: ["quote-detail", editingId] });
+        }}
       />
 
       {managed && (
         <QuoteManageDialog
           quote={managed}
           onClose={() => setManaged(null)}
+          onEdit={(id) => { setManaged(null); setEditingId(id); setOpenDialog(true); }}
           onDone={() => qc.invalidateQueries({ queryKey: ["quotes-overview"] })}
         />
       )}
@@ -231,7 +236,7 @@ function PdfLink({ id, className }: { id: string; className?: string }) {
   );
 }
 
-function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: () => void; onDone: () => void }) {
+function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onClose: () => void; onDone: () => void; onEdit: (id: string) => void }) {
   const push = useServerFn(pushQuoteToStudio);
   const sync = useServerFn(syncQuoteFromStudio);
   const send = useServerFn(sendQuoteToCustomer);
@@ -240,10 +245,14 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
   const detailFn = useServerFn(getQuoteDetail);
   const statusFn = useServerFn(quoteStudioStatus);
   const openPdf = useServerFn(getQuotePdf);
+  const share = useServerFn(shareQuoteExternally);
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const { data: detail } = useQuery({
     queryKey: ["quote-detail", quote.id],
@@ -270,6 +279,32 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
     },
     onError: (e: Error) => { setBusy(null); toast.error(e.message); },
   });
+
+  async function loadPreview() {
+    setLoadingPreview(true);
+    try {
+      const file: any = await openPdf({ data: { id: row.id } });
+      const bin = atob(file.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      setPreviewUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
+  async function shareWhatsApp() {
+    try {
+      const res: any = await share({ data: { id: row.id, channel: "whatsapp", phone: phone || undefined, message: message || undefined } });
+      window.open(`https://wa.me/${res.phone}?text=${encodeURIComponent(res.message)}`, "_blank");
+      toast.success("WhatsApp message prepared");
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
 
   const act = (key: string, fn: () => Promise<any>) => run.mutate({ key, fn });
   const label = (key: string, text: string) => (busy === key ? "Working…" : text);
@@ -322,6 +357,14 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
               />
             </div>
             <div className="space-y-2">
+              <Label>WhatsApp number</Label>
+              <Input
+                placeholder={row.customers?.primary_phone ?? "+263…"}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
               <Label>Covering message</Label>
               <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional note for the customer" />
             </div>
@@ -356,84 +399,28 @@ function QuoteManageDialog({ quote, onClose, onDone }: { quote: any; onClose: ()
               onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
               {label("convert", "Convert to invoice")}
             </Button>
+            <Button size="sm" style={{ background: "#25D366", color: "#fff" }} onClick={shareWhatsApp}>
+              <MessageCircle className="h-4 w-4 mr-1.5" />Send via WhatsApp
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onEdit(row.id)} disabled={!["draft", "sent"].includes(row.status)}>
+              <Pencil className="h-4 w-4 mr-1.5" />Edit quotation
+            </Button>
+            <Button size="sm" variant="outline" disabled={loadingPreview} onClick={loadPreview}>
+              {loadingPreview ? "Loading…" : "Preview"}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => openPdf({ data: { id: row.id } })
               .then((f: any) => downloadPdf(f))
               .catch((e: Error) => toast.error(e.message))}>
               Open PDF
             </Button>
           </div>
+
+          {previewUrl && (
+            <iframe title="Quotation preview" src={previewUrl} className="h-[55vh] w-full rounded-xl border" />
+          )}
         </div>
 
         <DialogFooter><Button variant="outline" onClick={onClose}>Close</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-
-function NewQuoteDialog({
-  open, onOpenChange, customers, onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  customers: any[];
-  onCreated: () => void;
-}) {
-  const empty = {
-    customer_id: "", quote_number: "", title: "", amount: "0",
-    currency: "USD", status: "draft", valid_until: "", notes: "",
-  };
-  const [form, setForm] = useState<any>(empty);
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!form.customer_id) throw new Error("Customer required");
-      if (!form.title) throw new Error("Title required");
-      const cust = customers.find((c) => c.id === form.customer_id);
-      if (!cust) throw new Error("Customer not found");
-      const { error } = await supabase.from("quotes").insert({
-        customer_id: form.customer_id,
-        account_number: cust.account_number,
-        quote_number: form.quote_number || null,
-        title: form.title,
-        amount: Number(form.amount) || 0,
-        currency: form.currency,
-        status: form.status,
-        valid_until: form.valid_until || null,
-        notes: form.notes || null,
-      } as any);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Quote created"); onCreated(); onOpenChange(false); setForm(empty); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setForm(empty); }}>
-      <DialogTrigger asChild><span /></DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>New quote</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 space-y-2">
-            <Label>Customer *</Label>
-            <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent>{customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2"><Label>Quote number</Label><Input value={form.quote_number} onChange={(e) => setForm({ ...form, quote_number: e.target.value })} placeholder="Q-2026-001" /></div>
-          <div className="space-y-2"><Label>Title *</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Amount</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Currency</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} /></div>
-          <div className="space-y-2"><Label>Status</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2"><Label>Valid until</Label><Input type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} /></div>
-          <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          <DialogFooter className="col-span-2"><Button type="submit" disabled={create.isPending}>Create quote</Button></DialogFooter>
-        </form>
       </DialogContent>
     </Dialog>
   );

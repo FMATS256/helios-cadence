@@ -483,3 +483,212 @@ export const getQuotePdf = createServerFn({ method: "POST" })
       base64: btoa(binary),
     };
   });
+
+/* ------------------------------------------------------------------ *
+ * Quotation builder — create / edit a full quotation with line items
+ * ------------------------------------------------------------------ */
+
+interface QuoteLineInput {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  tax_rate?: number;
+}
+
+interface SaveQuoteInput {
+  id?: string;
+  customer_id: string;
+  quote_number?: string;
+  title: string;
+  currency?: string;
+  valid_until?: string | null;
+  notes?: string | null;
+  discount?: number;
+  lines: QuoteLineInput[];
+  push?: boolean;
+}
+
+export const saveQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: SaveQuoteInput) => d)
+  .handler(async ({ data, context }) => {
+    const { assertRole, admin } = await import("./hosting.server");
+    await assertRole(context, QUOTE_ROLES);
+    const db = await admin();
+
+    if (!data.customer_id) throw new Error("Select a customer");
+    if (!data.title?.trim()) throw new Error("Quotation title is required");
+    const lines = (data.lines ?? [])
+      .filter((l) => (l.description ?? "").trim())
+      .map((l, i) => {
+        const qty = Number(l.quantity ?? 1) || 0;
+        const price = Number(l.unit_price ?? 0) || 0;
+        return {
+          description: l.description.trim(),
+          quantity: qty,
+          unit_price: price,
+          tax_rate: Number(l.tax_rate ?? 0) || 0,
+          line_total: Number((qty * price).toFixed(2)),
+          position: i,
+        };
+      });
+    if (!lines.length) throw new Error("Add at least one line item");
+
+    const { data: cust, error: custErr } = await db
+      .from("customers")
+      .select("id,account_number,company_name")
+      .eq("id", data.customer_id)
+      .maybeSingle();
+    if (custErr) throw new Error(custErr.message);
+    if (!cust) throw new Error("Customer not found");
+
+    const subtotal = lines.reduce((s, l) => s + l.line_total, 0);
+    const tax = lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0);
+    const discount = Number(data.discount ?? 0) || 0;
+    const total = Number((subtotal + tax - discount).toFixed(2));
+
+    let quoteNumber = (data.quote_number ?? "").trim() || null;
+    if (!data.id && !quoteNumber) {
+      const year = new Date().getFullYear();
+      const { data: last } = await db
+        .from("quotes")
+        .select("quote_number")
+        .like("quote_number", `QT-${year}-%`)
+        .order("quote_number", { ascending: false })
+        .limit(1);
+      const seq = Number(String(last?.[0]?.quote_number ?? "").split("-").pop() ?? 0) + 1;
+      quoteNumber = `QT-${year}-${String(seq).padStart(4, "0")}`;
+    }
+
+    const notes = discount
+      ? `${data.notes ? `${data.notes}\n` : ""}Discount applied: ${discount.toFixed(2)}`
+      : data.notes || null;
+
+    const base = {
+      customer_id: cust.id,
+      account_number: cust.account_number,
+      title: data.title.trim(),
+      currency: (data.currency || "USD").toUpperCase(),
+      amount: total,
+      valid_until: data.valid_until || null,
+      notes,
+    };
+
+    let quoteId = data.id ?? null;
+    if (quoteId) {
+      const { data: existing } = await db.from("quotes").select("status").eq("id", quoteId).maybeSingle();
+      if (existing && !["draft", "sent"].includes(existing.status)) {
+        throw new Error(`A ${existing.status} quotation can no longer be edited`);
+      }
+      const { error } = await db
+        .from("quotes")
+        .update({ ...base, ...(quoteNumber ? { quote_number: quoteNumber } : {}) })
+        .eq("id", quoteId);
+      if (error) throw new Error(error.message);
+      await db.from("quote_line_items").delete().eq("quote_id", quoteId);
+    } else {
+      const { data: created, error } = await db
+        .from("quotes")
+        .insert({ ...base, quote_number: quoteNumber, status: "draft", created_by: context.userId })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      quoteId = created.id as string;
+    }
+
+    const { error: lineErr } = await db
+      .from("quote_line_items")
+      .insert(lines.map((l) => ({ ...l, quote_id: quoteId })));
+    if (lineErr) throw new Error(lineErr.message);
+
+    const { quote } = await loadQuote(db, quoteId!);
+    await record(db, context, quote, {
+      event: data.id ? "quote_updated" : "quote_created",
+      title: `Quote ${quote.quote_number ?? ""} ${data.id ? "updated" : "created"}`.trim(),
+      description: `${lines.length} line item(s) · ${base.currency} ${total.toFixed(2)}`,
+      new: { total, lines: lines.length },
+      major: false,
+    });
+
+    // Best-effort document generation so a preview is instantly available.
+    if (data.push !== false) {
+      try {
+        const { studioConfig, quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } =
+          await import("./quote-studio.server");
+        if (studioConfig().configured) {
+          const { lines: fresh } = await loadQuote(db, quoteId!);
+          const payload = buildDocumentPayload(quote, fresh, await salesRepOf(db, quote, context));
+          const actor = actorOf(context);
+          const res = quote.studio_document_id
+            ? await quoteStudio.updateDocument(quote.studio_document_id, payload, actor)
+            : await quoteStudio.createDocument(payload, actor);
+          await db
+            .from("quotes")
+            .update(
+              res.ok
+                ? {
+                    studio_document_id: documentIdOf(res.data) ?? quote.studio_document_id,
+                    studio_pdf_url: pdfUrlOf(res.data) ?? quote.studio_pdf_url ?? null,
+                    studio_status: "synced",
+                    studio_error: null,
+                    studio_synced_at: new Date().toISOString(),
+                  }
+                : { studio_status: "failed", studio_error: res.error, studio_synced_at: new Date().toISOString() },
+            )
+            .eq("id", quoteId);
+        }
+      } catch (e: any) {
+        console.error("[saveQuote] document generation failed:", e?.message ?? e);
+      }
+    }
+
+    return { id: quoteId as string, quote_number: quoteNumber, total, currency: base.currency };
+  });
+
+/**
+ * Share payload for out-of-band channels (WhatsApp, SMS, copy-link).
+ * Returns the recipient details plus a prepared message; the caller opens the
+ * channel. The share is recorded on the customer timeline.
+ */
+export const shareQuoteExternally = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; channel: "whatsapp" | "sms" | "link"; phone?: string; message?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { assertRole, admin } = await import("./hosting.server");
+    await assertRole(context, QUOTE_ROLES);
+    const db = await admin();
+    const { quote } = await loadQuote(db, data.id);
+
+    const phone = String(data.phone || quote.customers?.primary_phone || "").replace(/[^\d]/g, "");
+    if (data.channel !== "link" && !phone) throw new Error("No phone number on file — enter one to share");
+
+    const rep = await salesRepOf(db, quote, context);
+    const money = `${quote.currency ?? "USD"} ${Number(quote.amount ?? 0).toFixed(2)}`;
+    const message =
+      data.message?.trim() ||
+      [
+        `Good day ${quote.customers?.company_name ?? ""}`.trim() + ",",
+        "",
+        `Please find our quotation ${quote.quote_number ?? ""} — ${quote.title} (${money}).`,
+        quote.valid_until ? `Valid until ${new Date(quote.valid_until).toLocaleDateString()}.` : "",
+        quote.studio_pdf_url ? `Document: ${quote.studio_pdf_url}` : "",
+        "",
+        `Regards,\n${rep.name ?? "IMT Solutions"}\nIMT Solutions`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+    const now = new Date().toISOString();
+    if (quote.status === "draft") {
+      await db.from("quotes").update({ status: "sent", sent_at: now }).eq("id", quote.id);
+    }
+
+    await record(db, context, quote, {
+      event: "quote_shared",
+      title: `Quote ${quote.quote_number ?? ""} shared via ${data.channel}`.trim(),
+      description: data.channel === "link" ? "Document link copied" : `Sent to ${phone}`,
+      new: { channel: data.channel, phone: phone || null },
+    });
+
+    return { phone, message, pdf_url: quote.studio_pdf_url as string | null };
+  });
