@@ -1,25 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
-import { createCustomerRecord } from "@/lib/ops.functions";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Download, Columns3, Filter, ChevronDown, ChevronRight, Share2 } from "lucide-react";
+import { Search, Download, Columns3, Filter, ChevronDown, ChevronRight, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Customer = {
@@ -71,8 +66,8 @@ function toCsv(rows: Row[], cols: ColKey[]) {
 /* ---------------- grouped data panel ---------------- */
 
 function DataPanel({
-  title, rows, industries, action,
-}: { title: string; rows: Row[]; industries: string[]; action?: React.ReactNode }) {
+  title, rows, industries,
+}: { title: string; rows: Row[]; industries: string[] }) {
   const [openGroup, setOpenGroup] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
@@ -179,12 +174,9 @@ function DataPanel({
               </Popover>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search:" className="h-8 w-52 pl-8 text-xs" />
-              </div>
-              {action}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search:" className="h-8 w-52 pl-8 text-xs" />
             </div>
           </div>
 
@@ -277,12 +269,7 @@ function DataPanel({
 
 function CustomersPage() {
   const { q } = Route.useSearch();
-  const { user } = useAuth();
-  const qc = useQueryClient();
   const navigate = useNavigate();
-  const createCustomer = useServerFn(createCustomerRecord);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", status: "active", notes: "" });
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["customers"],
@@ -334,49 +321,6 @@ function CustomersPage() {
   const suspended = scoped.filter((r) => r.status === "suspended");
   const prospects = scoped.filter((r) => r.status === "prospect");
 
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("You must be signed in to add customers");
-      if (!form.company_name.trim()) throw new Error("Company name is required");
-      await createCustomer({ data: form });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["customers"] });
-      setOpen(false);
-      setForm({ company_name: "", industry: "", primary_email: "", primary_phone: "", website: "", status: "active", notes: "" });
-      toast.success("Customer created");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const AddCustomer = (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="h-8 gap-1.5 text-xs"><Plus className="h-3.5 w-3.5" />Add Customer</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>New customer</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2"><Label>Company name *</Label><Input required value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} placeholder="Registered or trading name" /></div>
-            <div className="space-y-2"><Label>Industry</Label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["active", "prospect", "suspended", "archived"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Primary email</Label><Input type="email" value={form.primary_email} onChange={(e) => setForm({ ...form, primary_email: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Primary phone</Label><Input value={form.primary_phone} onChange={(e) => setForm({ ...form, primary_phone: e.target.value })} /></div>
-            <div className="space-y-2 md:col-span-2"><Label>Website</Label><Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://company.co.zw" /></div>
-            <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Billing preferences, contacts, branch notes…" /></div>
-          </div>
-          <DialogFooter><Button type="submit" disabled={create.isPending}>{create.isPending ? "Creating…" : "Create customer"}</Button></DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-
   return (
     <PageContainer>
       <PageHeader
@@ -384,10 +328,7 @@ function CustomersPage() {
         title="Customer Directory"
         description="Every customer gets a permanent M-number that links everything they own across the platform."
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/customers/new" })}>Guided onboarding</Button>
-            {AddCustomer}
-          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate({ to: "/customers/new" })}>Onboard New Client</Button>
         }
       />
 
@@ -410,11 +351,11 @@ function CustomersPage() {
             ) : (
               <>
                 <TabsContent value="accounts" className="m-0">
-                  <DataPanel title="Corporate" rows={corporate} industries={industries} action={AddCustomer} />
-                  <DataPanel title="Individual" rows={individual} industries={industries} action={AddCustomer} />
+                  <DataPanel title="Corporate" rows={corporate} industries={industries} />
+                  <DataPanel title="Individual" rows={individual} industries={industries} />
                 </TabsContent>
                 <TabsContent value="pipeline" className="m-0">
-                  <DataPanel title="Prospects" rows={prospects} industries={industries} action={AddCustomer} />
+                  <DataPanel title="Prospects" rows={prospects} industries={industries} />
                   <DataPanel title="Suspended" rows={suspended} industries={industries} />
                 </TabsContent>
               </>
