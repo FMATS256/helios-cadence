@@ -160,7 +160,12 @@ export type StudioItem = {
   total?: number | null;
   /** Legacy alias kept for engine builds that still read `qty`. */
   qty: number;
+  /** Native engine fields (`/api/public/v1` document shape). */
+  price: number;
+  vat: number;
+  code?: string;
 };
+
 
 export type StudioDocumentInput = {
   type: "quotation";
