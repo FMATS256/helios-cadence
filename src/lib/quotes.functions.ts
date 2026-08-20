@@ -519,7 +519,9 @@ export const saveQuote = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
 
-    if (!data.customer_id) throw new Error("Select a customer");
+    const walkIn = data.walk_in && (data.walk_in.name ?? "").trim() ? data.walk_in : null;
+    if (!data.customer_id && !walkIn) throw new Error("Select a customer, or enter walk-in client details");
+
     if (!data.title?.trim()) throw new Error("Quotation title is required");
     const lines = (data.lines ?? [])
       .filter((l) => (l.description ?? "").trim())
