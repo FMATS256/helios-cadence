@@ -298,10 +298,11 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     const to = (data.email || quote.customers?.primary_email || quote.walkin_email || "").trim();
     if (!/@/.test(to)) throw new Error("No customer email on file — enter a recipient address");
 
-    // Make sure a fresh document exists before we email the link.
+    // Make sure a fresh document exists before we email it.
     const { quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf, studioConfig } =
       await import("./quote-studio.server");
     let pdfUrl: string | null = quote.studio_pdf_url ?? null;
+    let pdfBytes: Uint8Array | null = null;
     let docId: string | null = quote.studio_document_id ?? null;
     let studioError: string | null = null;
 
@@ -318,6 +319,13 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
         if (docId) {
           const marked = await quoteStudio.sendDocument(docId, to, actor);
           if (!marked.ok) studioError = marked.error;
+          // Fetch the PDF bytes so we can attach it to the email.
+          const pdfRes = await quoteStudio.documentPdf(docId, actor);
+          if (pdfRes.ok) {
+            pdfBytes = pdfRes.data.bytes;
+          } else {
+            studioError = studioError || pdfRes.error;
+          }
         }
       } else {
         studioError = res.error;
@@ -334,8 +342,18 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
       ? items.reduce((s: number, l: any) => s + l.line_total, 0)
       : Number(quote.amount ?? 0);
 
-    const { notify } = await import("./notify.server");
-    await notify(
+    const attachments = pdfBytes
+      ? [
+          {
+            filename: `Quotation-${quote.quote_number ?? String(quote.id).slice(0, 8).toUpperCase()}.pdf`,
+            content: pdfBytes,
+            contentType: "application/pdf",
+          },
+        ]
+      : [];
+
+    const { notifyWithAttachment } = await import("./notify.server");
+    await notifyWithAttachment(
       "quote",
       to,
       {
@@ -352,6 +370,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
         quoteUrl: pdfUrl ?? undefined,
         message: data.message ?? undefined,
       },
+      attachments,
       `quote-${quote.id}-${Date.now()}`,
     );
 
@@ -371,7 +390,11 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     await record(db, context, quote, {
       event: "quote_sent",
       title: `Quote ${quote.quote_number ?? ""} sent to ${to}`.trim(),
-      description: pdfUrl ? "Quotation email delivered with document link" : "Quotation email delivered",
+      description: pdfBytes
+        ? "Quotation email delivered with PDF attachment"
+        : pdfUrl
+          ? "Quotation email delivered with document link"
+          : "Quotation email delivered",
       old: { status: quote.status },
       new: { status: patch.status, sent_to: to },
     });
