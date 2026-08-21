@@ -17,9 +17,10 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ShoppingCart, Plus, Minus, Trash2, Search, Package, Printer, Ban, RefreshCw, Receipt,
-  ScanLine, Upload, ClipboardCheck, FileText,
+  ScanLine, Upload, ClipboardCheck, FileText, Download,
 } from "lucide-react";
-import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay } from "@/lib/pos.functions";
+import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay, getPosSalePdf } from "@/lib/pos.functions";
+
 
 export const Route = createFileRoute("/pos")({
   head: () => ({
