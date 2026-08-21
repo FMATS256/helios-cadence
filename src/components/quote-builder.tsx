@@ -226,18 +226,24 @@ export function QuoteBuilderDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  async function buildPdf() {
+    const res: any = await persist.mutateAsync();
+    const file: any = await pdfFn({ data: { id: res.id } });
+    const bin = atob(file.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    setPreviewUrl(url);
+    const name = file.filename ?? "quotation.pdf";
+    setPdfFile({ name, url });
+    return { name, url };
+  }
+
   async function preview() {
     setPreviewing(true);
     try {
-      const res: any = await persist.mutateAsync();
-      const file: any = await pdfFn({ data: { id: res.id } });
-      const bin = atob(file.base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      setPreviewUrl(url);
-      setPdfFile({ name: file.filename ?? "quotation.pdf", url });
+      await buildPdf();
       setTab("preview");
     } catch (e: any) {
       toast.error(e.message ?? "Preview failed");
@@ -245,6 +251,25 @@ export function QuoteBuilderDialog({
       setPreviewing(false);
     }
   }
+
+  async function downloadPdf() {
+    setDownloading(true);
+    try {
+      const { name, url } = await buildPdf();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Quotation PDF downloaded");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not generate the PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
 
   return (
     <Dialog
