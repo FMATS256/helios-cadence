@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { saveQuote, getQuoteDetail, getQuotePdf } from "@/lib/quotes.functions";
+import { saveQuote, getQuoteDetail, getQuotePdf, listQuoteSources } from "@/lib/quotes.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus } from "lucide-react";
+import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus, PackageSearch, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export interface QuoteLineDraft {
@@ -43,6 +44,8 @@ export function QuoteBuilderDialog({
   const save = useServerFn(saveQuote);
   const detailFn = useServerFn(getQuoteDetail);
   const pdfFn = useServerFn(getQuotePdf);
+  const sourcesFn = useServerFn(listQuoteSources);
+
 
   const [tab, setTab] = useState("details");
   const [walkIn, setWalkIn] = useState(false);
@@ -64,6 +67,29 @@ export function QuoteBuilderDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [pdfFile, setPdfFile] = useState<{ name: string; url: string } | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerKind, setPickerKind] = useState<"all" | "catalog" | "stock">("all");
+
+  const { data: sources, isLoading: sourcesLoading } = useQuery({
+    queryKey: ["quote-sources"],
+    queryFn: () => sourcesFn({}),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const pickerRows = useMemo(() => {
+    const all: any[] = [...((sources as any)?.catalog ?? []), ...((sources as any)?.stock ?? [])];
+    const q = pickerQuery.trim().toLowerCase();
+    return all
+      .filter((r) => (pickerKind === "all" ? true : r.kind === pickerKind))
+      .filter((r) =>
+        !q ||
+        [r.name, r.code, r.category].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q)),
+      )
+      .slice(0, 300);
+  }, [sources, pickerQuery, pickerKind]);
+
 
   // Load an existing quotation for editing.
   const { data: existing } = useQuery({
@@ -130,6 +156,28 @@ export function QuoteBuilderDialog({
 
   const setLine = (i: number, patch: Partial<QuoteLineDraft>) =>
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+
+  const addFromSource = (row: any) => {
+    const desc = [row.name, row.code ? `(${row.code})` : null].filter(Boolean).join(" ");
+    const suffix = row.billing_cycle && row.billing_cycle !== "one_time" ? ` — ${String(row.billing_cycle).replace(/_/g, " ")}` : "";
+    const draft: QuoteLineDraft = {
+      description: desc + suffix,
+      quantity: "1",
+      unit_price: String(row.price ?? 0),
+      tax_rate: "0",
+    };
+    setLines((prev) => {
+      const blank = prev.length === 1 && !prev[0].description.trim() && !Number(prev[0].unit_price);
+      return blank ? [draft] : [...prev, draft];
+    });
+    if (row.currency && row.currency !== form.currency) {
+      toast.message(`${row.name} is priced in ${row.currency}`, { description: `Quotation currency is ${form.currency}.` });
+    } else {
+      toast.success(`${row.name} added`);
+    }
+    setTab("items");
+  };
+
 
   const reset = () => {
     setWalkIn(false);
@@ -343,9 +391,15 @@ export function QuoteBuilderDialog({
                 </tbody>
               </table>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
-              <Plus className="h-4 w-4 mr-1.5" />Add line
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                <PackageSearch className="h-4 w-4 mr-1.5" />Pick from catalog &amp; stock
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
+                <Plus className="h-4 w-4 mr-1.5" />Add blank line
+              </Button>
+            </div>
+
 
             <div className="ml-auto w-full max-w-xs space-y-1 rounded-xl border bg-muted/10 p-4 text-sm">
               <Row label="Subtotal" value={fmt(totals.subtotal, form.currency)} />
@@ -395,8 +449,72 @@ export function QuoteBuilderDialog({
             <Save className="h-4 w-4 mr-1.5" />{persist.isPending ? "Saving…" : "Save quotation"}
           </Button>
         </DialogFooter>
+
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Add from catalog &amp; stock</DialogTitle>
+              <DialogDescription>Service packages from the catalog and hardware currently in inventory.</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Search name, SKU, code…" value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />
+              </div>
+              {(["all", "catalog", "stock"] as const).map((k) => (
+                <Button key={k} type="button" size="sm" variant={pickerKind === k ? "default" : "outline"} onClick={() => setPickerKind(k)}>
+                  {k === "all" ? "All" : k === "catalog" ? "Packages & services" : "Hardware in stock"}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-2 flex-1 overflow-y-auto rounded-xl border divide-y">
+              {sourcesLoading && <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}
+              {!sourcesLoading && pickerRows.length === 0 && (
+                <div className="p-6 text-center text-sm text-muted-foreground">Nothing matches that search.</div>
+              )}
+              {pickerRows.map((r: any) => {
+                const out = r.kind === "stock" && (r.stock ?? 0) <= 0;
+                return (
+                  <button
+                    key={`${r.kind}-${r.id}`}
+                    type="button"
+                    onClick={() => addFromSource(r)}
+                    className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate font-medium">{r.name}</span>
+                        <Badge variant={r.kind === "stock" ? "secondary" : "outline"} className="text-[10px] uppercase">
+                          {r.kind === "stock" ? "Stock" : r.category}
+                        </Badge>
+                        {r.kind === "stock" && (
+                          <Badge variant={out ? "destructive" : "outline"} className="text-[10px]">
+                            {out ? "Out of stock" : `${r.stock} in stock`}
+                          </Badge>
+                        )}
+                        {r.billing_cycle && r.billing_cycle !== "one_time" && (
+                          <Badge variant="outline" className="text-[10px]">{String(r.billing_cycle).replace(/_/g, " ")}</Badge>
+                        )}
+                      </div>
+                      {(r.code || r.description) && (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {[r.code, r.description].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 font-mono text-sm">{fmt(r.price, r.currency || form.currency)}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPickerOpen(false)}>Done</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
+
   );
 }
 
