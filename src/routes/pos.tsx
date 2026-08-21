@@ -17,9 +17,10 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ShoppingCart, Plus, Minus, Trash2, Search, Package, Printer, Ban, RefreshCw, Receipt,
-  ScanLine, Upload, ClipboardCheck, FileText,
+  ScanLine, Upload, ClipboardCheck, FileText, Download,
 } from "lucide-react";
-import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay } from "@/lib/pos.functions";
+import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay, getPosSalePdf } from "@/lib/pos.functions";
+
 
 export const Route = createFileRoute("/pos")({
   head: () => ({
@@ -251,7 +252,34 @@ function PosPage() {
     { label: "Low / Out of Stock", value: `${stats.lowStock} / ${stats.outOfStock}`, color: "#b91c1c" },
   ] : [], [stats]);
 
+  const pdfFn = useServerFn(getPosSalePdf);
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+
+  async function downloadInvoice(sale: any) {
+    setPdfBusy(sale.id);
+    try {
+      const file: any = await pdfFn({ data: { sale_id: sale.id } });
+      const bin = atob(file.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.filename || `${sale.sale_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast.success("Invoice downloaded");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not generate the invoice PDF");
+    } finally {
+      setPdfBusy(null);
+    }
+  }
+
   function printReceipt(sale: any) {
+
     const lines = (sale.pos_sale_items || []).map((l: any) =>
       `<tr><td>${l.name}</td><td style="text-align:right">${l.quantity}</td><td style="text-align:right">${money(l.unit_price)}</td><td style="text-align:right">${money(l.line_total)}</td></tr>`).join("");
     const html = `<html><head><title>${sale.sale_number}</title><style>
@@ -424,11 +452,15 @@ function PosPage() {
                 header: "", align: "right", cell: (r: any) => (
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="outline" onClick={() => printReceipt(r)}><Printer className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" disabled={pdfBusy === r.id} onClick={() => downloadInvoice(r)} title="Download invoice PDF">
+                      {pdfBusy === r.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                    </Button>
                     {r.status !== "void" && (
                       <Button size="sm" variant="outline" className="text-destructive" disabled={voidSale.isPending} onClick={() => voidSale.mutate(r.id)}><Ban className="h-3 w-3" /></Button>
                     )}
                   </div>
                 ),
+
               },
             ]}
           />
@@ -678,6 +710,10 @@ function PosPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setReceipt(null)}>Close</Button>
+            <Button variant="outline" disabled={!!receipt && pdfBusy === receipt.id} onClick={() => receipt && downloadInvoice(receipt)}>
+              {receipt && pdfBusy === receipt.id ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} Download invoice
+            </Button>
+
             <Button onClick={() => receipt && printReceipt(receipt)}><Printer className="h-4 w-4 mr-2" /> Print receipt</Button>
           </DialogFooter>
         </DialogContent>
