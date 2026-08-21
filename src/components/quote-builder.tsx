@@ -66,6 +66,8 @@ export function QuoteBuilderDialog({
   const [savedId, setSavedId] = useState<string | null>(quoteId ?? null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
   const [pdfFile, setPdfFile] = useState<{ name: string; url: string } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
