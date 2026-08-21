@@ -157,6 +157,28 @@ export function QuoteBuilderDialog({
   const setLine = (i: number, patch: Partial<QuoteLineDraft>) =>
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
+  const addFromSource = (row: any) => {
+    const desc = [row.name, row.code ? `(${row.code})` : null].filter(Boolean).join(" ");
+    const suffix = row.billing_cycle && row.billing_cycle !== "one_time" ? ` — ${String(row.billing_cycle).replace(/_/g, " ")}` : "";
+    const draft: QuoteLineDraft = {
+      description: desc + suffix,
+      quantity: "1",
+      unit_price: String(row.price ?? 0),
+      tax_rate: "0",
+    };
+    setLines((prev) => {
+      const blank = prev.length === 1 && !prev[0].description.trim() && !Number(prev[0].unit_price);
+      return blank ? [draft] : [...prev, draft];
+    });
+    if (row.currency && row.currency !== form.currency) {
+      toast.message(`${row.name} is priced in ${row.currency}`, { description: `Quotation currency is ${form.currency}.` });
+    } else {
+      toast.success(`${row.name} added`);
+    }
+    setTab("items");
+  };
+
+
   const reset = () => {
     setWalkIn(false);
     setPdfFile(null);
