@@ -584,3 +584,129 @@ export const closePosDay = createServerFn({ method: "POST" })
 
     return row;
   });
+
+/* ------------------------------------------------------------------ *
+ * Invoice PDF — rendered by the quotation engine and streamed through
+ * the server (the engine endpoint needs the API key).
+ * ------------------------------------------------------------------ */
+
+export const getPosSalePdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { sale_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context as Ctx);
+    const db = context.supabase as any;
+
+    const { data: sale, error } = await db
+      .from("pos_sales")
+      .select("*, pos_sale_items(*)")
+      .eq("id", data.sale_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!sale) throw new Error("Sale not found");
+
+    let customer: any = null;
+    if (sale.customer_id) {
+      const { data: c } = await db
+        .from("customers")
+        .select("company_name, account_number, primary_email, primary_phone, billing_address")
+        .eq("id", sale.customer_id)
+        .maybeSingle();
+      customer = c;
+    }
+    let invoiceNumber: string | null = null;
+    let issueDate: string | null = null;
+    if (sale.invoice_id) {
+      const { data: inv } = await db
+        .from("invoices")
+        .select("invoice_number, issue_date, status")
+        .eq("id", sale.invoice_id)
+        .maybeSingle();
+      invoiceNumber = inv?.invoice_number ?? null;
+      issueDate = inv?.issue_date ?? null;
+    }
+
+    const rep = await actorName(context as Ctx);
+    const currency = sale.currency || "USD";
+    const lines: any[] = sale.pos_sale_items ?? [];
+    const items = lines.map((l, i) => {
+      const quantity = num(l.quantity) || 1;
+      const price = num(l.unit_price);
+      return {
+        id: String(l.id ?? i + 1),
+        name: l.sku ? `${l.name} (${l.sku})` : (l.name ?? "Item"),
+        description: l.sku ? `${l.name} (${l.sku})` : (l.name ?? "Item"),
+        quantity,
+        qty: quantity,
+        unitPrice: price,
+        price,
+        vat: 0,
+        taxRate: 0,
+        total: num(l.line_total) || quantity * price,
+      };
+    });
+    const subtotal = items.reduce((s, it) => s + (it.total ?? 0), 0);
+    const tax = num(sale.tax);
+    const reference = invoiceNumber || sale.sale_number;
+
+    const party = {
+      name: customer?.company_name || sale.walkin_name || "Walk-in client",
+      email: customer?.primary_email || sale.walkin_email || "",
+      phone: customer?.primary_phone || sale.walkin_phone || "",
+      address: customer?.billing_address || "",
+      reference: customer?.account_number || sale.account_number || "WALK-IN",
+    };
+
+    const payload: any = {
+      type: "invoice",
+      docType: "invoice",
+      reference,
+      externalId: String(sale.id),
+      externalClientId: sale.customer_id ? String(sale.customer_id) : "",
+      title: `Invoice ${reference}`,
+      currency,
+      status: "final",
+      notes: [sale.notes, `Paid by ${sale.payment_method || "cash"} — counter sale ${sale.sale_number}`]
+        .filter(Boolean)
+        .join("\n"),
+      customerName: party.name,
+      customerEmail: party.email,
+      customerAddress: party.address,
+      customerAccount: party.reference,
+      account: party.reference,
+      customer: party,
+      buyer: party,
+      items,
+      totals: { subtotal: subtotal - num(sale.discount), tax, total: num(sale.total) },
+      salesRep: rep ?? "IMT Solutions",
+      sales_rep: rep ?? "IMT Solutions",
+      preparedBy: rep ?? "IMT Solutions",
+      agent: rep ?? "IMT Solutions",
+      metadata: {
+        source: "IMT POS",
+        sale_number: sale.sale_number,
+        invoice_number: invoiceNumber,
+        issue_date: issueDate ?? String(sale.created_at ?? "").slice(0, 10),
+        paid: true,
+        payment_method: sale.payment_method || "cash",
+        discount: num(sale.discount),
+      },
+    };
+
+    const { quoteStudio } = await import("./quote-studio.server");
+    const res = await quoteStudio.renderPdf(payload, {
+      userId: context.userId,
+      userName: rep ?? undefined,
+    });
+    if (!res.ok) throw new Error(res.error);
+
+    let binary = "";
+    const bytes = res.data.bytes;
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    return {
+      filename: `${reference || "invoice"}.pdf`.replace(/[^\w.-]+/g, "-"),
+      base64: btoa(binary),
+    };
+  });
