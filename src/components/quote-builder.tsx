@@ -449,8 +449,72 @@ export function QuoteBuilderDialog({
             <Save className="h-4 w-4 mr-1.5" />{persist.isPending ? "Saving…" : "Save quotation"}
           </Button>
         </DialogFooter>
+
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Add from catalog &amp; stock</DialogTitle>
+              <DialogDescription>Service packages from the catalog and hardware currently in inventory.</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Search name, SKU, code…" value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} />
+              </div>
+              {(["all", "catalog", "stock"] as const).map((k) => (
+                <Button key={k} type="button" size="sm" variant={pickerKind === k ? "default" : "outline"} onClick={() => setPickerKind(k)}>
+                  {k === "all" ? "All" : k === "catalog" ? "Packages & services" : "Hardware in stock"}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-2 flex-1 overflow-y-auto rounded-xl border divide-y">
+              {sourcesLoading && <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>}
+              {!sourcesLoading && pickerRows.length === 0 && (
+                <div className="p-6 text-center text-sm text-muted-foreground">Nothing matches that search.</div>
+              )}
+              {pickerRows.map((r: any) => {
+                const out = r.kind === "stock" && (r.stock ?? 0) <= 0;
+                return (
+                  <button
+                    key={`${r.kind}-${r.id}`}
+                    type="button"
+                    onClick={() => addFromSource(r)}
+                    className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate font-medium">{r.name}</span>
+                        <Badge variant={r.kind === "stock" ? "secondary" : "outline"} className="text-[10px] uppercase">
+                          {r.kind === "stock" ? "Stock" : r.category}
+                        </Badge>
+                        {r.kind === "stock" && (
+                          <Badge variant={out ? "destructive" : "outline"} className="text-[10px]">
+                            {out ? "Out of stock" : `${r.stock} in stock`}
+                          </Badge>
+                        )}
+                        {r.billing_cycle && r.billing_cycle !== "one_time" && (
+                          <Badge variant="outline" className="text-[10px]">{String(r.billing_cycle).replace(/_/g, " ")}</Badge>
+                        )}
+                      </div>
+                      {(r.code || r.description) && (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {[r.code, r.description].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 font-mono text-sm">{fmt(r.price, r.currency || form.currency)}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPickerOpen(false)}>Done</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
+
   );
 }
 
