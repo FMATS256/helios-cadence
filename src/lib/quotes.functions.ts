@@ -126,6 +126,49 @@ export const getQuoteDetail = createServerFn({ method: "GET" })
     return { quote, lines, studio: { configured: studioConfig().configured } };
   });
 
+/** Sellable things a quotation line can be built from: catalog packages/services + hardware in stock. */
+export const listQuoteSources = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const db = context.supabase as any;
+    const [catR, invR] = await Promise.all([
+      db.from("service_catalog")
+        .select("id, code, name, category, description, unit_price, currency, billing_cycle, is_active")
+        .eq("is_active", true).order("category").order("name"),
+      db.from("inventory_items")
+        .select("id, name, sku, category, quantity, sale_price, unit_cost, currency")
+        .is("archived_at", null).order("name"),
+    ]);
+    if (catR.error) throw new Error(catR.error.message);
+    if (invR.error) throw new Error(invR.error.message);
+    return {
+      catalog: (catR.data ?? []).map((c: any) => ({
+        id: c.id,
+        kind: "catalog" as const,
+        name: c.name,
+        code: c.code,
+        category: c.category ?? "service",
+        description: c.description ?? null,
+        price: Number(c.unit_price) || 0,
+        currency: c.currency ?? "USD",
+        billing_cycle: c.billing_cycle ?? null,
+        stock: null as number | null,
+      })),
+      stock: (invR.data ?? []).map((i: any) => ({
+        id: i.id,
+        kind: "stock" as const,
+        name: i.name,
+        code: i.sku ?? null,
+        category: i.category ?? "hardware",
+        description: null,
+        price: Number(i.sale_price ?? i.unit_cost) || 0,
+        currency: i.currency ?? "USD",
+        billing_cycle: null,
+        stock: Number(i.quantity) || 0,
+      })),
+    };
+  });
+
 /* ------------------------------------------------------------------ *
  * Push (create or update the Studio document)
  * ------------------------------------------------------------------ */
