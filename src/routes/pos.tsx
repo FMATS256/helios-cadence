@@ -710,6 +710,10 @@ function PosPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setReceipt(null)}>Close</Button>
+            <Button variant="outline" disabled={!!receipt && pdfBusy === receipt.id} onClick={() => receipt && downloadInvoice(receipt)}>
+              {receipt && pdfBusy === receipt.id ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />} Download invoice
+            </Button>
+
             <Button onClick={() => receipt && printReceipt(receipt)}><Printer className="h-4 w-4 mr-2" /> Print receipt</Button>
           </DialogFooter>
         </DialogContent>
