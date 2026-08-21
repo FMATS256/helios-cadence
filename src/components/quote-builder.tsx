@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { saveQuote, getQuoteDetail, getQuotePdf } from "@/lib/quotes.functions";
+import { saveQuote, getQuoteDetail, getQuotePdf, listQuoteSources } from "@/lib/quotes.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus } from "lucide-react";
+import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus, PackageSearch, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export interface QuoteLineDraft {
