@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -17,8 +17,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ShoppingCart, Plus, Minus, Trash2, Search, Package, Printer, Ban, RefreshCw, Receipt,
+  ScanLine, Upload, ClipboardCheck, FileText,
 } from "lucide-react";
-import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem } from "@/lib/pos.functions";
+import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay } from "@/lib/pos.functions";
 
 export const Route = createFileRoute("/pos")({
   head: () => ({
@@ -42,6 +43,31 @@ const emptyItem = {
   unit_cost: 0, sale_price: 0, is_sellable: true, location: "", supplier: "", barcode: "",
 };
 
+/** Parse pasted CSV/TSV stock lines: sku, name, qty, cost, price, [category, barcode, supplier, location, reorder] */
+function parseBulk(text: string) {
+  const rows: any[] = [];
+  for (const raw of (text || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const cells = line.split(/\t|,|;/).map((c) => c.trim());
+    const sku = cells[0] ?? "";
+    if (!sku || /^sku$/i.test(sku)) continue;
+    rows.push({
+      sku,
+      name: cells[1] || sku,
+      quantity: Number(cells[2] ?? 0) || 0,
+      unit_cost: Number(cells[3] ?? 0) || 0,
+      sale_price: Number(cells[4] ?? 0) || 0,
+      category: cells[5] || null,
+      barcode: cells[6] || null,
+      supplier: cells[7] || null,
+      location: cells[8] || null,
+      reorder_level: cells[9] != null && cells[9] !== "" ? Number(cells[9]) || 0 : undefined,
+    });
+  }
+  return rows;
+}
+
 function PosPage() {
   const qc = useQueryClient();
   const wsFn = useServerFn(getPosWorkspace);
@@ -51,6 +77,7 @@ function PosPage() {
   const sales: any[] = data?.sales ?? [];
   const accounts: any[] = data?.accounts ?? [];
   const customers: any[] = data?.customers ?? [];
+  const closeouts: any[] = data?.closeouts ?? [];
   const stats = data?.stats;
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["pos-workspace"] });
@@ -61,6 +88,17 @@ function PosPage() {
   const [itemOpen, setItemOpen] = useState(false);
   const [itemForm, setItemForm] = useState<any>(emptyItem);
   const [receipt, setReceipt] = useState<any | null>(null);
+  const [scan, setScan] = useState("");
+  const [scanMode, setScanMode] = useState(false);
+  const scanRef = useRef<HTMLInputElement>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkMode, setBulkMode] = useState<"add" | "set">("add");
+  const [closeoutOpen, setCloseoutOpen] = useState(false);
+  const [closeDate, setCloseDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [countedCash, setCountedCash] = useState("");
+  const [closeAccount, setCloseAccount] = useState("none");
+  const [closeNotes, setCloseNotes] = useState("");
 
   const [customerId, setCustomerId] = useState("walkin");
   const [walkinName, setWalkinName] = useState("");
@@ -99,6 +137,21 @@ function PosPage() {
         on_hand: Number(item.quantity) || 0,
       }];
     });
+  }
+
+  function scanAdd(code: string) {
+    const q = code.trim().toLowerCase();
+    if (!q) return;
+    const match =
+      items.find((i) => String(i.barcode ?? "").toLowerCase() === q) ||
+      items.find((i) => String(i.sku ?? "").toLowerCase() === q) ||
+      items.filter((i) => String(i.name ?? "").toLowerCase().includes(q))[0];
+    if (!match) { toast.error(`No stock item matches "${code}"`); setScan(""); return; }
+    if (match.is_sellable === false) { toast.error(`${match.name} is not sellable`); setScan(""); return; }
+    addToCart(match);
+    toast.success(`${match.name} added`);
+    setScan("");
+    scanRef.current?.focus();
   }
 
   function setQty(i: number, qty: number) {
@@ -149,6 +202,44 @@ function PosPage() {
     onError: (e: any) => toast.error(e?.message || "Save failed"),
   });
 
+  const bulkFn = useServerFn(bulkUpsertPosItems);
+  const bulkUpload = useMutation({
+    mutationFn: async () => {
+      const rows = parseBulk(bulkText);
+      if (!rows.length) throw new Error("Nothing to upload — add at least one line");
+      return bulkFn({ data: { rows, mode: bulkMode } }) as any;
+    },
+    onSuccess: (r: any) => {
+      toast.success(`Stock uploaded — ${r.created} new, ${r.restocked} updated, ${r.units} units added`);
+      setBulkOpen(false); setBulkText(""); refresh();
+    },
+    onError: (e: any) => toast.error(e?.message || "Upload failed"),
+  });
+
+  const zFn = useServerFn(getPosCloseout);
+  const zReport = useQuery({
+    queryKey: ["pos-closeout", closeDate],
+    enabled: closeoutOpen,
+    queryFn: async () => (await zFn({ data: { date: closeDate } })) as any,
+  });
+
+  const closeFn = useServerFn(closePosDay);
+  const closeDay = useMutation({
+    mutationFn: () => closeFn({
+      data: {
+        date: closeDate,
+        counted_cash: Number(countedCash) || 0,
+        account_id: closeAccount === "none" ? null : closeAccount,
+        notes: closeNotes || null,
+      },
+    }),
+    onSuccess: () => {
+      toast.success(`Day ${closeDate} closed`);
+      setCloseoutOpen(false); setCountedCash(""); setCloseNotes(""); refresh();
+    },
+    onError: (e: any) => toast.error(e?.message || "Closeout failed"),
+  });
+
   const chips = useMemo(() => stats ? [
     { label: "Sales Today", value: String(stats.salesToday), color: "#4338ca" },
     { label: "Revenue Today", value: money(stats.revenueToday), color: "#15803d" },
@@ -191,9 +282,12 @@ function PosPage() {
       <ActionBar
         actions={[
           { tone: "emerald", icon: ShoppingCart, label: `Checkout (${cart.length})`, onClick: () => cart.length ? setCheckout(true) : toast.error("Cart is empty") },
+          { tone: "emerald", icon: ScanLine, label: "Scan Mode", onClick: () => { setScanMode(true); setTimeout(() => scanRef.current?.focus(), 50); } },
           { tone: "indigo", icon: Plus, label: "New Stock Item", onClick: () => { setItemForm(emptyItem); setItemOpen(true); } },
+          { tone: "sky", icon: Upload, label: "Bulk Stock Upload", onClick: () => setBulkOpen(true) },
+          { tone: "amber", icon: ClipboardCheck, label: "Close Day", onClick: () => setCloseoutOpen(true) },
           { tone: "rose", icon: Trash2, label: "Clear Cart", onClick: () => setCart([]), disabled: !cart.length },
-          { tone: "amber", icon: RefreshCw, label: "Refresh", onClick: refresh },
+          { tone: "slate", icon: RefreshCw, label: "Refresh", onClick: refresh },
         ]}
       />
 
@@ -202,11 +296,24 @@ function PosPage() {
           <TabsTrigger value="counter">Counter</TabsTrigger>
           <TabsTrigger value="stock">Stock &amp; Pricing</TabsTrigger>
           <TabsTrigger value="sales">Sales History</TabsTrigger>
+          <TabsTrigger value="closeouts">Daily Closeouts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="counter" className="mt-4">
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-3">
+              <div className="relative">
+                <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+                <Input
+                  ref={scanRef}
+                  className="pl-9 border-emerald-500/50 focus-visible:ring-emerald-500"
+                  placeholder="Scan barcode — point the scanner here and it drops straight into the cart"
+                  value={scan}
+                  autoFocus={scanMode}
+                  onChange={(e) => setScan(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); scanAdd(scan); } }}
+                />
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Search products, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -307,6 +414,9 @@ function PosPage() {
               { header: "Customer", cell: (r: any) => r.account_number || r.walkin_name || "Walk-in" },
               { header: "Items", align: "right", cell: (r: any) => (r.pos_sale_items || []).length },
               { header: "Total", align: "right", cell: (r: any) => <span className="font-mono font-semibold">{money(r.total, r.currency)}</span> },
+              { header: "Invoice", cell: (r: any) => r.invoice_id
+                ? <Button variant="link" size="sm" className="h-auto px-0 font-mono text-xs" onClick={() => window.open(`/invoices/${r.invoice_id}`, "_blank")}>view</Button>
+                : <span className="text-xs text-muted-foreground">—</span> },
               { header: "Paid via", cell: (r: any) => <StatusBadge tone="info">{r.payment_method}</StatusBadge> },
               { header: "Status", cell: (r: any) => <StatusBadge tone={r.status === "void" ? "danger" : "success"}>{r.status}</StatusBadge> },
               { header: "Sold by", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.sold_by_name || "—"}</span> },
@@ -320,6 +430,29 @@ function PosPage() {
                   </div>
                 ),
               },
+            ]}
+          />
+        </TabsContent>
+
+        <TabsContent value="closeouts" className="mt-4">
+          <DataGrid
+            rows={closeouts}
+            loading={isLoading}
+            empty={<EmptyState title="No closeouts yet" description="Close the trading day to snapshot sales, cash and variance." icon={ClipboardCheck} />}
+            columns={[
+              { header: "Date", cell: (r: any) => <span className="font-mono text-xs font-semibold">{r.business_date}</span> },
+              { header: "Sales", align: "right", cell: (r: any) => r.sales_count },
+              { header: "Units", align: "right", cell: (r: any) => Number(r.units_sold) },
+              { header: "Net sales", align: "right", cell: (r: any) => <span className="font-mono">{money(r.net_sales)}</span> },
+              { header: "Gross profit", align: "right", cell: (r: any) => <span className="font-mono">{money(r.gross_profit)}</span> },
+              { header: "Expected cash", align: "right", cell: (r: any) => <span className="font-mono">{money(r.expected_cash)}</span> },
+              { header: "Counted", align: "right", cell: (r: any) => <span className="font-mono">{money(r.counted_cash)}</span> },
+              { header: "Variance", align: "right", cell: (r: any) => (
+                <StatusBadge tone={Math.abs(Number(r.variance)) < 0.005 ? "success" : Number(r.variance) > 0 ? "info" : "danger"}>
+                  {money(r.variance)}
+                </StatusBadge>
+              ) },
+              { header: "Closed by", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.closed_by_name || "—"}</span> },
             ]}
           />
         </TabsContent>
@@ -414,6 +547,112 @@ function PosPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk stock upload */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Bulk stock upload</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              One item per line, comma or tab separated:{" "}
+              <span className="font-mono">sku, name, qty, unit cost, sell price, category, barcode, supplier, location, reorder level</span>.
+              Existing SKUs are restocked and repriced; new SKUs are created.
+            </p>
+            <div className="space-y-2">
+              <Label>Quantity handling</Label>
+              <Select value={bulkMode} onValueChange={(v) => setBulkMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">Add to existing stock (delivery / restock)</SelectItem>
+                  <SelectItem value="set">Set stock to this figure (stock take)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Textarea
+              rows={10}
+              className="font-mono text-xs"
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder={"RTR-MT-HAP, MikroTik hAP ax2, 12, 48.00, 79.00, Routers, 6009999123456, Miro, Shelf A, 3"}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{parseBulk(bulkText).length} line(s) ready</span>
+              <label className="cursor-pointer text-primary">
+                Upload CSV file
+                <input type="file" accept=".csv,.txt,.tsv" className="hidden" onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setBulkText(await f.text());
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancel</Button>
+            <Button disabled={bulkUpload.isPending} onClick={() => bulkUpload.mutate()}>
+              {bulkUpload.isPending ? "Uploading…" : "Upload stock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Daily closeout */}
+      <Dialog open={closeoutOpen} onOpenChange={setCloseoutOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Daily closeout · Z-report</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2"><Label>Business date</Label>
+              <Input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
+            </div>
+            {zReport.isLoading ? (
+              <p className="text-sm text-muted-foreground">Building report…</p>
+            ) : zReport.data ? (
+              <div className="rounded-lg border p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Sales</span><span className="font-mono">{zReport.data.sales_count} ({zReport.data.voided_count} void)</span></div>
+                <div className="flex justify-between"><span>Units sold</span><span className="font-mono">{zReport.data.units}</span></div>
+                <div className="flex justify-between"><span>Gross</span><span className="font-mono">{money(zReport.data.gross_sales)}</span></div>
+                <div className="flex justify-between"><span>Discounts</span><span className="font-mono">-{money(zReport.data.discounts)}</span></div>
+                <div className="flex justify-between"><span>Tax</span><span className="font-mono">{money(zReport.data.tax)}</span></div>
+                <div className="flex justify-between font-bold"><span>Net sales</span><span className="font-mono">{money(zReport.data.net_sales)}</span></div>
+                <div className="flex justify-between"><span>Gross profit</span><span className="font-mono">{money(zReport.data.gross_profit)}</span></div>
+                <div className="border-t pt-1 mt-1">
+                  {Object.entries(zReport.data.methods ?? {}).map(([m, v]: any) => (
+                    <div key={m} className="flex justify-between text-xs"><span className="capitalize">{m} × {v.count}</span><span className="font-mono">{money(v.amount)}</span></div>
+                  ))}
+                </div>
+                <div className="flex justify-between font-semibold"><span>Expected cash in till</span><span className="font-mono">{money(zReport.data.expected_cash)}</span></div>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Counted cash</Label>
+                <Input type="number" min="0" step="0.01" value={countedCash} onChange={(e) => setCountedCash(e.target.value)} placeholder={String((zReport.data?.expected_cash ?? 0).toFixed(2))} />
+              </div>
+              <div className="space-y-2"><Label>Till / account</Label>
+                <Select value={closeAccount} onValueChange={setCloseAccount}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Do not post variance</SelectItem>
+                    {accounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name} ({a.kind})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {countedCash !== "" && zReport.data && (
+              <div className="rounded-lg bg-muted/50 p-3 text-sm flex justify-between">
+                <span>Variance</span>
+                <span className="font-mono font-semibold">{money((Number(countedCash) || 0) - Number(zReport.data.expected_cash || 0))}</span>
+              </div>
+            )}
+            <div className="space-y-2"><Label>Notes</Label><Textarea rows={2} value={closeNotes} onChange={(e) => setCloseNotes(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseoutOpen(false)}>Cancel</Button>
+            <Button disabled={closeDay.isPending || !zReport.data} onClick={() => closeDay.mutate()}>
+              {closeDay.isPending ? "Closing…" : "Close the day"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Receipt */}
       <Dialog open={!!receipt} onOpenChange={(o) => !o && setReceipt(null)}>
         <DialogContent className="max-w-sm">
@@ -425,6 +664,16 @@ function PosPage() {
               ))}
               <div className="border-t pt-2 flex justify-between font-bold"><span>Total</span><span className="font-mono">{money(receipt.total)}</span></div>
               <div className="flex justify-between"><span>Change</span><span className="font-mono">{money(receipt.change_due)}</span></div>
+              {receipt.invoice_number ? (
+                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs">
+                  Paid invoice <span className="font-mono font-semibold">{receipt.invoice_number}</span> was generated and settled automatically.
+                  <Button variant="link" size="sm" className="px-1 h-auto" onClick={() => window.open(`/invoices/${receipt.invoice_id}`, "_blank")}>
+                    <FileText className="h-3 w-3 mr-1" /> Open invoice
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Walk-in sale — receipt only, no account invoice.</p>
+              )}
             </div>
           )}
           <DialogFooter>
