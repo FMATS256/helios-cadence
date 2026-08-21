@@ -252,7 +252,34 @@ function PosPage() {
     { label: "Low / Out of Stock", value: `${stats.lowStock} / ${stats.outOfStock}`, color: "#b91c1c" },
   ] : [], [stats]);
 
+  const pdfFn = useServerFn(getPosSalePdf);
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+
+  async function downloadInvoice(sale: any) {
+    setPdfBusy(sale.id);
+    try {
+      const file: any = await pdfFn({ data: { sale_id: sale.id } });
+      const bin = atob(file.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.filename || `${sale.sale_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast.success("Invoice downloaded");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not generate the invoice PDF");
+    } finally {
+      setPdfBusy(null);
+    }
+  }
+
   function printReceipt(sale: any) {
+
     const lines = (sale.pos_sale_items || []).map((l: any) =>
       `<tr><td>${l.name}</td><td style="text-align:right">${l.quantity}</td><td style="text-align:right">${money(l.unit_price)}</td><td style="text-align:right">${money(l.line_total)}</td></tr>`).join("");
     const html = `<html><head><title>${sale.sale_number}</title><style>
