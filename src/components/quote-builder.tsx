@@ -391,9 +391,15 @@ export function QuoteBuilderDialog({
                 </tbody>
               </table>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
-              <Plus className="h-4 w-4 mr-1.5" />Add line
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                <PackageSearch className="h-4 w-4 mr-1.5" />Pick from catalog &amp; stock
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
+                <Plus className="h-4 w-4 mr-1.5" />Add blank line
+              </Button>
+            </div>
+
 
             <div className="ml-auto w-full max-w-xs space-y-1 rounded-xl border bg-muted/10 p-4 text-sm">
               <Row label="Subtotal" value={fmt(totals.subtotal, form.currency)} />
