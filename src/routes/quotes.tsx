@@ -115,7 +115,7 @@ function QuotesPage() {
         <StatusBadge tone={toneForStatus(r.studio_status === "synced" ? "active" : r.studio_status === "failed" ? "failed" : "pending")}>
           {r.studio_status ?? "not generated"}
         </StatusBadge>
-        {r.studio_document_id && <PdfLink id={r.id} className="mt-1 block text-solar hover:underline" />}
+        <PdfLink id={r.id} className="mt-1 block text-solar hover:underline disabled:opacity-50" />
         {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
       </div>
     ) },
