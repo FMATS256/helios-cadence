@@ -424,11 +424,15 @@ function PosPage() {
                 header: "", align: "right", cell: (r: any) => (
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="outline" onClick={() => printReceipt(r)}><Printer className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" disabled={pdfBusy === r.id} onClick={() => downloadInvoice(r)} title="Download invoice PDF">
+                      {pdfBusy === r.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                    </Button>
                     {r.status !== "void" && (
                       <Button size="sm" variant="outline" className="text-destructive" disabled={voidSale.isPending} onClick={() => voidSale.mutate(r.id)}><Ban className="h-3 w-3" /></Button>
                     )}
                   </div>
                 ),
+
               },
             ]}
           />
