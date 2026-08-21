@@ -467,6 +467,11 @@ export function QuoteBuilderDialog({
             {previewing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Eye className="h-4 w-4 mr-1.5" />}
             Save &amp; preview
           </Button>
+          <Button variant="outline" disabled={downloading || previewing || persist.isPending} onClick={downloadPdf}>
+            {downloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+            Download PDF
+          </Button>
+
           <Button
             disabled={persist.isPending}
             className="text-solar-foreground"
