@@ -66,6 +66,8 @@ export function QuoteBuilderDialog({
   const [savedId, setSavedId] = useState<string | null>(quoteId ?? null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
   const [pdfFile, setPdfFile] = useState<{ name: string; url: string } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -226,18 +228,24 @@ export function QuoteBuilderDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  async function buildPdf() {
+    const res: any = await persist.mutateAsync();
+    const file: any = await pdfFn({ data: { id: res.id } });
+    const bin = atob(file.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    setPreviewUrl(url);
+    const name = file.filename ?? "quotation.pdf";
+    setPdfFile({ name, url });
+    return { name, url };
+  }
+
   async function preview() {
     setPreviewing(true);
     try {
-      const res: any = await persist.mutateAsync();
-      const file: any = await pdfFn({ data: { id: res.id } });
-      const bin = atob(file.base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-      setPreviewUrl(url);
-      setPdfFile({ name: file.filename ?? "quotation.pdf", url });
+      await buildPdf();
       setTab("preview");
     } catch (e: any) {
       toast.error(e.message ?? "Preview failed");
@@ -245,6 +253,25 @@ export function QuoteBuilderDialog({
       setPreviewing(false);
     }
   }
+
+  async function downloadPdf() {
+    setDownloading(true);
+    try {
+      const { name, url } = await buildPdf();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Quotation PDF downloaded");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not generate the PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
 
   return (
     <Dialog
@@ -440,6 +467,11 @@ export function QuoteBuilderDialog({
             {previewing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Eye className="h-4 w-4 mr-1.5" />}
             Save &amp; preview
           </Button>
+          <Button variant="outline" disabled={downloading || previewing || persist.isPending} onClick={downloadPdf}>
+            {downloading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+            Download PDF
+          </Button>
+
           <Button
             disabled={persist.isPending}
             className="text-solar-foreground"

@@ -115,7 +115,7 @@ function QuotesPage() {
         <StatusBadge tone={toneForStatus(r.studio_status === "synced" ? "active" : r.studio_status === "failed" ? "failed" : "pending")}>
           {r.studio_status ?? "not generated"}
         </StatusBadge>
-        {r.studio_document_id && <PdfLink id={r.id} className="mt-1 block text-solar hover:underline" />}
+        <PdfLink id={r.id} className="mt-1 block text-solar hover:underline disabled:opacity-50" />
         {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
       </div>
     ) },
@@ -217,7 +217,12 @@ function downloadPdf(file: { filename: string; base64: string }) {
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-  window.open(url, "_blank");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.filename || "quotation.pdf";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
@@ -236,10 +241,11 @@ function PdfLink({ id, className }: { id: string; className?: string }) {
         finally { setBusy(false); }
       }}
     >
-      {busy ? "Opening…" : "Open PDF"}
+      {busy ? "Preparing…" : "Download PDF"}
     </button>
   );
 }
+
 
 function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onClose: () => void; onDone: () => void; onEdit: (id: string) => void }) {
   const push = useServerFn(pushQuoteToStudio);
@@ -416,8 +422,9 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
             <Button size="sm" variant="outline" onClick={() => openPdf({ data: { id: row.id } })
               .then((f: any) => downloadPdf(f))
               .catch((e: Error) => toast.error(e.message))}>
-              Open PDF
+              <Download className="h-4 w-4 mr-1.5" />Download PDF
             </Button>
+
           </div>
 
           {previewUrl && (
