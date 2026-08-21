@@ -67,6 +67,29 @@ export function QuoteBuilderDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [pdfFile, setPdfFile] = useState<{ name: string; url: string } | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerKind, setPickerKind] = useState<"all" | "catalog" | "stock">("all");
+
+  const { data: sources, isLoading: sourcesLoading } = useQuery({
+    queryKey: ["quote-sources"],
+    queryFn: () => sourcesFn({}),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const pickerRows = useMemo(() => {
+    const all: any[] = [...((sources as any)?.catalog ?? []), ...((sources as any)?.stock ?? [])];
+    const q = pickerQuery.trim().toLowerCase();
+    return all
+      .filter((r) => (pickerKind === "all" ? true : r.kind === pickerKind))
+      .filter((r) =>
+        !q ||
+        [r.name, r.code, r.category].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q)),
+      )
+      .slice(0, 300);
+  }, [sources, pickerQuery, pickerKind]);
+
 
   // Load an existing quotation for editing.
   const { data: existing } = useQuery({
