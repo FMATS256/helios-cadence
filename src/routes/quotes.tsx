@@ -217,7 +217,12 @@ function downloadPdf(file: { filename: string; base64: string }) {
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-  window.open(url, "_blank");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.filename || "quotation.pdf";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
@@ -236,10 +241,11 @@ function PdfLink({ id, className }: { id: string; className?: string }) {
         finally { setBusy(false); }
       }}
     >
-      {busy ? "Opening…" : "Open PDF"}
+      {busy ? "Preparing…" : "Download PDF"}
     </button>
   );
 }
+
 
 function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onClose: () => void; onDone: () => void; onEdit: (id: string) => void }) {
   const push = useServerFn(pushQuoteToStudio);
