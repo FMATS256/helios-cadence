@@ -422,8 +422,9 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
             <Button size="sm" variant="outline" onClick={() => openPdf({ data: { id: row.id } })
               .then((f: any) => downloadPdf(f))
               .catch((e: Error) => toast.error(e.message))}>
-              Open PDF
+              <Download className="h-4 w-4 mr-1.5" />Download PDF
             </Button>
+
           </div>
 
           {previewUrl && (
