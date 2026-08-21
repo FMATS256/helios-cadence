@@ -44,6 +44,8 @@ export function QuoteBuilderDialog({
   const save = useServerFn(saveQuote);
   const detailFn = useServerFn(getQuoteDetail);
   const pdfFn = useServerFn(getQuotePdf);
+  const sourcesFn = useServerFn(listQuoteSources);
+
 
   const [tab, setTab] = useState("details");
   const [walkIn, setWalkIn] = useState(false);
