@@ -2788,6 +2788,89 @@ export type Database = {
           },
         ]
       }
+      pos_closeouts: {
+        Row: {
+          account_id: string | null
+          business_date: string
+          closed_at: string
+          closed_by: string | null
+          closed_by_name: string | null
+          cost_of_sales: number
+          counted_cash: number
+          created_at: string
+          currency: string
+          discounts: number
+          expected_cash: number
+          gross_profit: number
+          gross_sales: number
+          id: string
+          method_breakdown: Json
+          net_sales: number
+          notes: string | null
+          opened_at: string | null
+          sales_count: number
+          tax: number
+          units_sold: number
+          variance: number
+        }
+        Insert: {
+          account_id?: string | null
+          business_date: string
+          closed_at?: string
+          closed_by?: string | null
+          closed_by_name?: string | null
+          cost_of_sales?: number
+          counted_cash?: number
+          created_at?: string
+          currency?: string
+          discounts?: number
+          expected_cash?: number
+          gross_profit?: number
+          gross_sales?: number
+          id?: string
+          method_breakdown?: Json
+          net_sales?: number
+          notes?: string | null
+          opened_at?: string | null
+          sales_count?: number
+          tax?: number
+          units_sold?: number
+          variance?: number
+        }
+        Update: {
+          account_id?: string | null
+          business_date?: string
+          closed_at?: string
+          closed_by?: string | null
+          closed_by_name?: string | null
+          cost_of_sales?: number
+          counted_cash?: number
+          created_at?: string
+          currency?: string
+          discounts?: number
+          expected_cash?: number
+          gross_profit?: number
+          gross_sales?: number
+          id?: string
+          method_breakdown?: Json
+          net_sales?: number
+          notes?: string | null
+          opened_at?: string | null
+          sales_count?: number
+          tax?: number
+          units_sold?: number
+          variance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_closeouts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_sale_items: {
         Row: {
           created_at: string
@@ -2848,12 +2931,15 @@ export type Database = {
           account_number: string | null
           amount_paid: number
           change_due: number
+          closeout_id: string | null
           created_at: string
           currency: string
           customer_id: string | null
           discount: number
           id: string
+          invoice_id: string | null
           notes: string | null
+          payment_id: string | null
           payment_method: string
           sale_number: string
           sold_by: string | null
@@ -2872,12 +2958,15 @@ export type Database = {
           account_number?: string | null
           amount_paid?: number
           change_due?: number
+          closeout_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string | null
           discount?: number
           id?: string
+          invoice_id?: string | null
           notes?: string | null
+          payment_id?: string | null
           payment_method?: string
           sale_number: string
           sold_by?: string | null
@@ -2896,12 +2985,15 @@ export type Database = {
           account_number?: string | null
           amount_paid?: number
           change_due?: number
+          closeout_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string | null
           discount?: number
           id?: string
+          invoice_id?: string | null
           notes?: string | null
+          payment_id?: string | null
           payment_method?: string
           sale_number?: string
           sold_by?: string | null
@@ -2928,6 +3020,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sales_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sales_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
         ]

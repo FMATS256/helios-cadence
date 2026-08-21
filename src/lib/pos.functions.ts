@@ -27,11 +27,12 @@ export const getPosWorkspace = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertStaff(context as Ctx);
     const db = context.supabase as any;
-    const [itemsR, salesR, accountsR, customersR] = await Promise.all([
+    const [itemsR, salesR, accountsR, customersR, closeoutsR] = await Promise.all([
       db.from("inventory_items").select("*").is("archived_at", null).order("name"),
       db.from("pos_sales").select("*, pos_sale_items(*)").order("created_at", { ascending: false }).limit(200),
       db.from("cash_accounts").select("id, name, kind, currency, is_default").order("is_default", { ascending: false }).order("name"),
       db.from("customers").select("id, company_name, account_number").order("company_name").limit(1000),
+      db.from("pos_closeouts").select("*").order("business_date", { ascending: false }).limit(60),
     ]);
     if (itemsR.error) throw new Error(itemsR.error.message);
     if (salesR.error) throw new Error(salesR.error.message);
@@ -56,6 +57,7 @@ export const getPosWorkspace = createServerFn({ method: "GET" })
       sales,
       accounts: accountsR.data ?? [],
       customers: customersR.data ?? [],
+      closeouts: closeoutsR.data ?? [],
       stats: {
         salesToday: today.length,
         revenueToday: sum(today),
@@ -187,6 +189,63 @@ export const createPosSale = createServerFn({ method: "POST" })
       });
     }
 
+    // Generate a PAID invoice + receipted payment for account customers.
+    let invoiceId: string | null = null;
+    let invoiceNumber: string | null = null;
+    let paymentId: string | null = null;
+    if (data.customer_id) {
+      const issue = now.toISOString().slice(0, 10);
+      const { data: inv, error: invErr } = await db.from("invoices").insert({
+        customer_id: data.customer_id,
+        account_number: accountNumber,
+        invoice_number: `INV-${saleNumber.replace(/^POS-/, "")}`,
+        status: "draft",
+        currency: data.currency || "USD",
+        subtotal: subtotal - discount,
+        tax,
+        total,
+        issue_date: issue,
+        due_date: issue,
+        notes: `Counter sale ${saleNumber}`,
+        created_by: context.userId,
+      }).select("id, invoice_number").maybeSingle();
+      if (!invErr && inv) {
+        invoiceId = inv.id;
+        invoiceNumber = inv.invoice_number;
+        await db.from("invoice_line_items").insert(
+          itemRows.map((l, i) => ({
+            invoice_id: inv.id,
+            description: l.sku ? `${l.name} (${l.sku})` : l.name,
+            quantity: l.quantity,
+            unit_price: l.unit_price,
+            tax_rate: 0,
+            line_total: l.line_total,
+            position: i,
+          })),
+        );
+        const { data: pay } = await db.from("payments").insert({
+          customer_id: data.customer_id,
+          account_number: accountNumber,
+          invoice_id: inv.id,
+          amount: total,
+          currency: data.currency || "USD",
+          method: data.payment_method || "cash",
+          status: "completed",
+          paid_at: now.toISOString(),
+          reference: saleNumber,
+          service_context: "pos",
+          notes: `Counter sale ${saleNumber}`,
+          created_by: context.userId,
+        }).select("id").maybeSingle();
+        if (pay) {
+          paymentId = pay.id;
+          // Allocation triggers recompute → invoice flips to paid.
+          await db.from("payment_allocations").insert({ payment_id: pay.id, invoice_id: inv.id, amount: total });
+        }
+        await db.from("pos_sales").update({ invoice_id: invoiceId, payment_id: paymentId }).eq("id", sale.id);
+      }
+    }
+
     await db.from("audit_log").insert({
       actor_id: context.userId,
       action: "pos_sale_created",
@@ -207,7 +266,7 @@ export const createPosSale = createServerFn({ method: "POST" })
       }).then(() => null, () => null);
     }
 
-    return { ...sale, pos_sale_items: itemRows };
+    return { ...sale, invoice_id: invoiceId, invoice_number: invoiceNumber, payment_id: paymentId, pos_sale_items: itemRows };
   });
 
 /** Void a sale — returns stock to the shelf and reverses the till deposit. */
@@ -238,6 +297,15 @@ export const voidPosSale = createServerFn({ method: "POST" })
         notes: `Void of POS sale ${sale.sale_number}${data.reason ? ` — ${data.reason}` : ""}`,
         created_by: context.userId,
       });
+    }
+
+    // Reverse the generated invoice / payment so finance stays in balance.
+    if (sale.payment_id) {
+      await db.from("payment_allocations").delete().eq("payment_id", sale.payment_id);
+      await db.from("payments").update({ status: "voided", notes: `Voided with POS sale ${sale.sale_number}` }).eq("id", sale.payment_id);
+    }
+    if (sale.invoice_id) {
+      await db.from("invoices").update({ status: "void", paid_at: null, notes: `Voided with POS sale ${sale.sale_number}` }).eq("id", sale.invoice_id);
     }
 
     const { data: updated, error: upErr } = await db.from("pos_sales").update({
@@ -292,5 +360,227 @@ export const updatePosItem = createServerFn({ method: "POST" })
       : db.from("inventory_items").insert({ ...payload, created_by: context.userId }).select("*").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
+    return row;
+  });
+
+/* ------------------------------------------------------------------ *
+ * Bulk stock intake — paste/upload many items at once. Existing SKUs
+ * are restocked (quantity added) and repriced; new SKUs are created.
+ * ------------------------------------------------------------------ */
+export type BulkStockRow = {
+  sku: string; name?: string | null; category?: string | null; quantity?: number;
+  unit_cost?: number; sale_price?: number; reorder_level?: number; barcode?: string | null;
+  location?: string | null; supplier?: string | null;
+};
+
+export const bulkUpsertPosItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { rows: BulkStockRow[]; mode?: "add" | "set" }) => d)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context as Ctx);
+    const db = context.supabase as any;
+    const mode = data.mode === "set" ? "set" : "add";
+    const rows = (data.rows || [])
+      .map((r) => ({ ...r, sku: String(r.sku ?? "").trim().toUpperCase() }))
+      .filter((r) => r.sku);
+    if (!rows.length) throw new Error("No valid rows — every line needs a SKU");
+
+    const { data: existing, error } = await db
+      .from("inventory_items").select("id, sku, name, quantity, unit_cost, sale_price").in("sku", rows.map((r) => r.sku));
+    if (error) throw new Error(error.message);
+    const bySku: Record<string, any> = Object.fromEntries((existing ?? []).map((r: any) => [r.sku, r]));
+
+    let created = 0, restocked = 0, unitsAdded = 0;
+    for (const r of rows) {
+      const qty = num(r.quantity);
+      const cur = bySku[r.sku];
+      if (cur) {
+        const nextQty = mode === "add" ? num(cur.quantity) + qty : qty;
+        const patch: any = { quantity: nextQty };
+        if (r.name?.trim()) patch.name = r.name.trim();
+        if (r.category?.trim()) patch.category = r.category.trim();
+        if (r.unit_cost != null) patch.unit_cost = num(r.unit_cost);
+        if (r.sale_price != null) patch.sale_price = num(r.sale_price);
+        if (r.reorder_level != null) patch.reorder_level = num(r.reorder_level);
+        if (r.barcode?.trim()) patch.barcode = r.barcode.trim();
+        if (r.location?.trim()) patch.location = r.location.trim();
+        if (r.supplier?.trim()) patch.supplier = r.supplier.trim();
+        const { error: e } = await db.from("inventory_items").update(patch).eq("id", cur.id);
+        if (e) throw new Error(`${r.sku}: ${e.message}`);
+        restocked += 1;
+        unitsAdded += mode === "add" ? qty : 0;
+      } else {
+        const { error: e } = await db.from("inventory_items").insert({
+          sku: r.sku,
+          name: r.name?.trim() || r.sku,
+          category: r.category?.trim() || null,
+          quantity: qty,
+          reorder_level: num(r.reorder_level),
+          unit_cost: num(r.unit_cost),
+          sale_price: num(r.sale_price),
+          is_sellable: true,
+          barcode: r.barcode?.trim() || null,
+          location: r.location?.trim() || null,
+          supplier: r.supplier?.trim() || null,
+          created_by: context.userId,
+        });
+        if (e) throw new Error(`${r.sku}: ${e.message}`);
+        created += 1;
+        unitsAdded += qty;
+      }
+    }
+
+    await db.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "pos_stock_bulk_upload",
+      entity_type: "inventory_items",
+      module: "pos",
+      new_value: { rows: rows.length, created, restocked, units_added: unitsAdded, mode },
+    });
+
+    return { created, restocked, units: unitsAdded };
+  });
+
+/* ------------------------------------------------------------------ *
+ * Daily closeout (Z-report)
+ * ------------------------------------------------------------------ */
+function dayBounds(date: string) {
+  const start = new Date(`${date}T00:00:00`);
+  const end = new Date(start.getTime() + 86_400_000);
+  return { start, end };
+}
+
+async function buildCloseout(db: any, date: string) {
+  const { start, end } = dayBounds(date);
+  const { data: sales, error } = await db
+    .from("pos_sales")
+    .select("*, pos_sale_items(*)")
+    .gte("created_at", start.toISOString())
+    .lt("created_at", end.toISOString())
+    .order("created_at");
+  if (error) throw new Error(error.message);
+
+  const live = (sales ?? []).filter((s: any) => s.status !== "void");
+  const voided = (sales ?? []).filter((s: any) => s.status === "void");
+
+  const gross = live.reduce((t: number, s: any) => t + num(s.subtotal), 0);
+  const discounts = live.reduce((t: number, s: any) => t + num(s.discount), 0);
+  const tax = live.reduce((t: number, s: any) => t + num(s.tax), 0);
+  const net = live.reduce((t: number, s: any) => t + num(s.total), 0);
+  const cost = live.reduce((t: number, s: any) =>
+    t + (s.pos_sale_items || []).reduce((x: number, l: any) => x + num(l.unit_cost) * num(l.quantity), 0), 0);
+  const units = live.reduce((t: number, s: any) =>
+    t + (s.pos_sale_items || []).reduce((x: number, l: any) => x + num(l.quantity), 0), 0);
+
+  const methods: Record<string, { count: number; amount: number }> = {};
+  for (const s of live) {
+    const k = String(s.payment_method || "cash");
+    methods[k] = methods[k] || { count: 0, amount: 0 };
+    methods[k]!.count += 1;
+    methods[k]!.amount += num(s.total);
+  }
+
+  const topSellers: Record<string, { name: string; qty: number; revenue: number }> = {};
+  for (const s of live) {
+    for (const l of s.pos_sale_items || []) {
+      const k = l.sku || l.name;
+      topSellers[k] = topSellers[k] || { name: l.name, qty: 0, revenue: 0 };
+      topSellers[k]!.qty += num(l.quantity);
+      topSellers[k]!.revenue += num(l.line_total);
+    }
+  }
+
+  return {
+    date,
+    sales_count: live.length,
+    voided_count: voided.length,
+    units,
+    gross_sales: gross,
+    discounts,
+    tax,
+    net_sales: net,
+    cost_of_sales: cost,
+    gross_profit: net - cost,
+    expected_cash: methods["cash"]?.amount ?? 0,
+    methods,
+    top_sellers: Object.values(topSellers).sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+    sales: live,
+  };
+}
+
+/** Live Z-report preview for a business date. */
+export const getPosCloseout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { date?: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context as Ctx);
+    const date = data.date || new Date().toISOString().slice(0, 10);
+    return buildCloseout(context.supabase as any, date);
+  });
+
+/** Close the day: snapshot the Z-report, record cash variance and audit it. */
+export const closePosDay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { date?: string; counted_cash?: number; account_id?: string | null; notes?: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context as Ctx);
+    const db = context.supabase as any;
+    const date = data.date || new Date().toISOString().slice(0, 10);
+
+    const { data: already } = await db.from("pos_closeouts").select("id").eq("business_date", date).maybeSingle();
+    if (already) throw new Error(`${date} has already been closed out`);
+
+    const z = await buildCloseout(db, date);
+    const counted = num(data.counted_cash);
+    const variance = counted - z.expected_cash;
+
+    const { data: row, error } = await db.from("pos_closeouts").insert({
+      business_date: date,
+      account_id: data.account_id || null,
+      sales_count: z.sales_count,
+      units_sold: z.units,
+      gross_sales: z.gross_sales,
+      discounts: z.discounts,
+      tax: z.tax,
+      net_sales: z.net_sales,
+      cost_of_sales: z.cost_of_sales,
+      gross_profit: z.gross_profit,
+      expected_cash: z.expected_cash,
+      counted_cash: counted,
+      variance,
+      method_breakdown: z.methods,
+      notes: data.notes?.trim() || null,
+      closed_by: context.userId,
+      closed_by_name: await actorName(context as Ctx),
+    }).select("*").single();
+    if (error) throw new Error(error.message);
+
+    await db.from("pos_sales")
+      .update({ closeout_id: row.id })
+      .in("id", z.sales.map((s: any) => s.id).length ? z.sales.map((s: any) => s.id) : ["00000000-0000-0000-0000-000000000000"]);
+
+    // Post the cash variance so the till reconciles to what was counted.
+    if (data.account_id && Math.abs(variance) > 0.005) {
+      await db.from("cash_movements").insert({
+        account_id: data.account_id,
+        kind: variance > 0 ? "deposit" : "withdrawal",
+        amount: Math.abs(variance),
+        currency: "USD",
+        occurred_at: new Date().toISOString(),
+        reference: `CLOSE-${date}`,
+        notes: `POS closeout variance for ${date}`,
+        created_by: context.userId,
+      });
+    }
+
+    await db.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "pos_day_closed",
+      entity_type: "pos_closeouts",
+      entity_id: row.id,
+      module: "pos",
+      new_value: { date, sales: z.sales_count, net_sales: z.net_sales, expected_cash: z.expected_cash, counted, variance },
+    });
+
     return row;
   });
