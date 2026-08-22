@@ -125,6 +125,47 @@ async function getPlans(): Promise<InstanceType[]> {
 }
 
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+let imageCache: { at: number; images: { id: string; name: string; os?: any }[] } | null = null;
+
+// Contabo's create call requires a real image UUID. Standard images live under
+// /compute/images?standardImage=true; custom images are in the same endpoint.
+async function fetchImages(): Promise<{ id: string; name: string; os?: any }[]> {
+  if (imageCache && Date.now() - imageCache.at < 10 * 60_000) return imageCache.images;
+  const out: { id: string; name: string; os?: any }[] = [];
+  for (const q of ["standardImage=true", "standardImage=false"]) {
+    try {
+      const r = await contabo<{ data: any[] }>(`/compute/images?size=100&${q}`);
+      for (const i of r.data ?? []) {
+        if (!i?.imageId || out.some((o) => o.id === i.imageId)) continue;
+        out.push({ id: i.imageId, name: i.name ?? i.imageId, os: detectOs(String(i.name ?? "")) });
+      }
+    } catch { /* ignore page failure */ }
+  }
+  if (out.length) imageCache = { at: Date.now(), images: out };
+  return out;
+}
+
+// Map a slug like "ubuntu-22.04" or an OS family to a Contabo image UUID.
+async function resolveImageId(image?: string, os?: string): Promise<string> {
+  if (image && UUID_RE.test(image)) return image;
+  const images = await fetchImages();
+  if (!images.length) throw new Error("Could not load Contabo images to resolve the selected OS.");
+  const wanted = String(image ?? os ?? "ubuntu-22.04").toLowerCase();
+  const tokens = wanted.split(/[^a-z0-9.]+/).filter(Boolean);
+  const score = (name: string) => {
+    const n = name.toLowerCase();
+    return tokens.reduce((s, t) => s + (n.includes(t) ? t.length : 0), 0);
+  };
+  const best = images
+    .map((i) => ({ i, s: score(i.name) }))
+    .sort((a, b) => b.s - a.s)[0];
+  if (best && best.s > 0) return best.i.id;
+  const ubuntu = images.find((i) => i.os === "ubuntu");
+  return (ubuntu ?? images[0]).id;
+}
+
 function detectOs(id: string): any {
   const n = id.toLowerCase();
   if (n.includes("ubuntu")) return "ubuntu";
