@@ -256,7 +256,15 @@ export const contaboAdapter: CloudProvider = {
   async createServer(req: ProvisionRequest): Promise<ProvisionResult> {
     // Only order SKUs Contabo currently lists as available for this account —
     // stale/legacy ids fail with "Product <id> is not available".
-    const plans = (await getPlans()).filter((p) => !UNAVAILABLE_SKUS.has(p.id));
+    const all = await getPlans();
+    let plans = all.filter((p) => !UNAVAILABLE_SKUS.has(p.id));
+    if (!plans.length) {
+      // Everything got blacklisted by earlier attempts — start over rather than
+      // telling the user nothing is orderable.
+      UNAVAILABLE_SKUS.clear();
+      planCache = null;
+      plans = await getPlans();
+    }
     const requested = req.template_params?.plan as string | undefined;
     const bySpec = plans
       .filter((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024))
