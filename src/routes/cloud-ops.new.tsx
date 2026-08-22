@@ -362,6 +362,11 @@ function NewServerPage() {
             <StepHeader n={5} title="Choose server specs" subtitle="Pick a preset plan for CPU · RAM · Disk." />
             {!form.region && <p className="text-sm text-muted-foreground">Pick a region first.</p>}
             {form.region && plans.isLoading && <p className="text-sm text-muted-foreground">Loading plans…</p>}
+            {plans.error && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {(plans.error as Error).message}
+              </div>
+            )}
             {plans.data && Object.keys(plansByFamily).length > 0 && (
               <>
                 {Object.keys(plansByFamily).length > 1 && (
