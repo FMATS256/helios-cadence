@@ -183,6 +183,14 @@ function NocPage() {
           </DetailCard>
         </TabsContent>
 
+        <TabsContent value="diagnostics" className="mt-4">
+          <DiagnosticsPanel />
+        </TabsContent>
+
+        <TabsContent value="remote" className="mt-4">
+          <RemoteActionsPanel />
+        </TabsContent>
+
         {tickets.length > 0 && (
           <TabsContent value="tickets" className="mt-4">
             <DetailCard title="Open Support Tickets" padded={false}>
