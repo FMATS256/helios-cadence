@@ -235,18 +235,18 @@ export const contaboAdapter: CloudProvider = {
   async createServer(req: ProvisionRequest): Promise<ProvisionResult> {
     // Only order SKUs Contabo currently lists as available for this account —
     // stale/legacy ids fail with "Product <id> is not available".
-    const plans = await getPlans();
+    const plans = (await getPlans()).filter((p) => !UNAVAILABLE_SKUS.has(p.id));
     const requested = req.template_params?.plan as string | undefined;
-    const bySpec = () =>
-      plans.find((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024)) ??
-      plans[0];
-    const match = (requested && plans.find((p) => p.id === requested)) || bySpec();
-    if (!match) throw new Error("No Contabo VPS products are currently available to order.");
-    if (requested && match.id !== requested) {
-      console.warn(`[contabo] product ${requested} unavailable — using ${match.id} (${match.family})`);
-    }
-    const plan = match.id;
-
+    const bySpec = plans
+      .filter((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024))
+      .sort((a, b) => a.monthly_usd - b.monthly_usd);
+    // Ordered candidate list: requested SKU first, then closest matches, then anything.
+    const candidates: InstanceType[] = [];
+    const push = (p?: InstanceType) => { if (p && !candidates.some((c) => c.id === p.id)) candidates.push(p); };
+    if (requested && !UNAVAILABLE_SKUS.has(requested)) push(plans.find((p) => p.id === requested));
+    bySpec.forEach(push);
+    plans.forEach(push);
+    if (!candidates.length) throw new Error("No Contabo VPS products are currently available to order.");
 
     // Contabo's API expects `rootPassword` to be a numeric *secret id*, not the
     // password itself. Store the password (kept as a string, untouched) in the
@@ -270,28 +270,56 @@ export const contaboAdapter: CloudProvider = {
       rootPasswordSecretId = Number(id);
     }
 
-    const body: Record<string, unknown> = {
-      imageId: await resolveImageId(req.image, req.os),
-      productId: plan,
-      region: req.region,
-      period: 1,
-      displayName,
-      defaultUser: "root",
-    };
-    if (rootPasswordSecretId !== undefined) body.rootPassword = rootPasswordSecretId;
-    if (req.ssh_key && /^\d+$/.test(String(req.ssh_key))) body.sshKeys = [Number(req.ssh_key)];
+    const imageId = await resolveImageId(req.image, req.os);
 
-    const r = await contabo<{ data: any[] }>("/compute/instances", {
-      method: "POST", body: JSON.stringify(body),
-    });
-    const inst = r.data?.[0] ?? {};
-    return {
-      provider_server_id: String(inst.instanceId ?? ""),
-      public_ips: inst.ipConfig?.v4?.ip ? [inst.ipConfig.v4.ip] : [],
-      private_ips: [],
-      raw: inst,
-    };
+    let lastErr: unknown;
+    // Contabo can list a product in /products that it refuses to order. Walk the
+    // candidates until one is accepted, remembering the dud SKUs for next time.
+    for (const cand of candidates.slice(0, 6)) {
+      const body: Record<string, unknown> = {
+        imageId,
+        productId: cand.id,
+        region: req.region,
+        period: 1,
+        displayName,
+        defaultUser: "root",
+      };
+      if (rootPasswordSecretId !== undefined) body.rootPassword = rootPasswordSecretId;
+      if (req.ssh_key && /^\d+$/.test(String(req.ssh_key))) body.sshKeys = [Number(req.ssh_key)];
+
+      try {
+        const r = await contabo<{ data: any[] }>("/compute/instances", {
+          method: "POST", body: JSON.stringify(body),
+        });
+        const inst = r.data?.[0] ?? {};
+        if (requested && cand.id !== requested) {
+          console.warn(`[contabo] product ${requested} unavailable — provisioned ${cand.id} (${cand.family})`);
+        }
+        return {
+          provider_server_id: String(inst.instanceId ?? ""),
+          public_ips: inst.ipConfig?.v4?.ip ? [inst.ipConfig.v4.ip] : [],
+          private_ips: [],
+          raw: inst,
+        };
+      } catch (e) {
+        const msg = String((e as Error)?.message ?? "");
+        if (/is not available|out of stock|not orderable/i.test(msg)) {
+          UNAVAILABLE_SKUS.add(cand.id);
+          planCache = null; // force a fresh catalogue next time
+          lastErr = e;
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new Error(
+      `Contabo could not order any of the available VPS products right now (tried ${candidates
+        .slice(0, 6)
+        .map((c) => c.id)
+        .join(", ")}). ${String((lastErr as Error)?.message ?? "")}`,
+    );
   },
+
 
 
   async getServer(id: string) {
