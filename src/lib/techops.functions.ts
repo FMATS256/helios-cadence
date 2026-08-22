@@ -143,8 +143,9 @@ export const updateJobDetails = createServerFn({ method: "POST" })
 
     if (data.geocode && data.site_address) {
       try {
-        const { geocodeAddress } = await import("./geocode.server");
-        const hit = await geocodeAddress(data.site_address);
+        const { resolveAddresses } = await import("./geocode.server");
+        const hits = await resolveAddresses(context.supabase, [data.site_address], 1);
+        const hit = hits.get(data.site_address.trim());
         if (hit) { patch.site_lat = hit.lat; patch.site_lng = hit.lng; }
       } catch { /* geocoding is best-effort */ }
     }
