@@ -248,7 +248,7 @@ export const contaboAdapter: CloudProvider = {
     }
 
     const body: Record<string, unknown> = {
-      imageId: req.image ?? "ubuntu-22.04",
+      imageId: await resolveImageId(req.image, req.os),
       productId: plan,
       region: req.region,
       period: 1,
