@@ -426,13 +426,31 @@ function NewServerPage() {
             <StepHeader n={7} title="Finalize settings" subtitle="Root credentials and notes." />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Root password {provider === "kamatera" ? "*" : ""}</Label>
-                <Input type="password" value={form.password} onChange={(e) => setF({ password: e.target.value })} placeholder="Min 8 chars, mix case, digit" />
+                <Label>Root password {passwordRequired ? "*" : ""}</Label>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(e) => setF({ password: String(e.target.value) })}
+                  placeholder={provider === "contabo" ? "Letters, numbers, spaces and - only" : "Min 8 chars, mix case, digit"}
+                  aria-invalid={!!passwordCharsetError || passwordTooShort}
+                />
+                {passwordCharsetError && (
+                  <p className="mt-1 text-xs text-destructive">{passwordCharsetError}</p>
+                )}
+                {!passwordCharsetError && passwordTooShort && (
+                  <p className="mt-1 text-xs text-destructive">Root password must be at least 8 characters.</p>
+                )}
+                {provider === "contabo" && !passwordCharsetError && (
+                  <p className="mt-1 text-xs text-muted-foreground">Contabo allows letters, numbers, spaces and hyphens (-) only.</p>
+                )}
               </div>
               <div>
                 <Label>Validate password</Label>
-                <Input type="password" value={form.passwordConfirm} onChange={(e) => setF({ passwordConfirm: e.target.value })} />
+                <Input type="password" autoComplete="new-password" value={form.passwordConfirm} onChange={(e) => setF({ passwordConfirm: String(e.target.value) })} />
+                {passwordMismatch && <p className="mt-1 text-xs text-destructive">Passwords do not match.</p>}
               </div>
+
               <div className="md:col-span-2">
                 <Label>SSH public key (optional)</Label>
                 <Input value={form.ssh_key} onChange={(e) => setF({ ssh_key: e.target.value })} placeholder="ssh-rsa AAAA…" />
