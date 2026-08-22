@@ -95,6 +95,8 @@ const CONTABO_PLANS: InstanceType[] = [
 
 // ---- Live product catalogue (only products the account can actually order) ----
 let planCache: { at: number; plans: InstanceType[] } | null = null;
+// SKUs Contabo lists but refuses to order ("Product X is not available").
+const UNAVAILABLE_SKUS = new Set<string>();
 
 function specNum(specs: any[], type: string) {
   const t = specs?.find((s) => s?.type === type)?.title ?? "";
