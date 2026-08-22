@@ -73,7 +73,7 @@ function AlertsPage() {
   });
 
   const evaluate = useMutation({
-    mutationFn: () => runFn({ data: {} }),
+    mutationFn: () => runFn(),
     onSuccess: (r: any) => { toast.success(`Evaluated ${r?.evaluated ?? 0} signals · ${r?.opened ?? 0} opened, ${r?.resolved ?? 0} auto-resolved`); refresh(); },
     onError: (e: any) => toast.error(e.message),
   });
