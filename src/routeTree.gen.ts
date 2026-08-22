@@ -52,6 +52,7 @@ import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
 import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
+import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
@@ -299,6 +300,11 @@ const TechopsDashboardRoute = TechopsDashboardRouteImport.update({
   path: '/techops/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TechopsAlertsRoute = TechopsAlertsRouteImport.update({
+  id: '/techops/alerts',
+  path: '/techops/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
@@ -520,6 +526,7 @@ export interface FileRoutesByFullPath {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
@@ -672,6 +680,7 @@ export interface FileRoutesById {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
@@ -750,6 +759,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
     | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops/'
@@ -826,6 +836,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
     | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops'
@@ -901,6 +912,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
     | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops/'
@@ -978,6 +990,7 @@ export interface RootRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
   CustomersNewRoute: typeof CustomersNewRoute
   InvoicesIdRoute: typeof InvoicesIdRoute
+  TechopsAlertsRoute: typeof TechopsAlertsRoute
   TechopsDashboardRoute: typeof TechopsDashboardRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -1302,6 +1315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TechopsDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/techops/alerts': {
+      id: '/techops/alerts'
+      path: '/techops/alerts'
+      fullPath: '/techops/alerts'
+      preLoaderRoute: typeof TechopsAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/$id': {
       id: '/invoices/$id'
       path: '/invoices/$id'
@@ -1618,6 +1638,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
   CustomersNewRoute: CustomersNewRoute,
   InvoicesIdRoute: InvoicesIdRoute,
+  TechopsAlertsRoute: TechopsAlertsRoute,
   TechopsDashboardRoute: TechopsDashboardRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
