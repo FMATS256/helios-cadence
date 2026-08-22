@@ -323,7 +323,7 @@ export const contaboAdapter: CloudProvider = {
           const msg = String((e as Error)?.message ?? "");
           lastErr = e;
           // Period not offered for this SKU — try the next contract length.
-          if (/no offer was found/i.test(msg)) continue;
+          if (/no offer was found|the period must be/i.test(msg)) continue;
           if (/is not available|out of stock|not orderable|only available on the contabo website|cannot be ordered/i.test(msg)) {
             UNAVAILABLE_SKUS.add(cand.id);
             planCache = null; // force a fresh catalogue next time
