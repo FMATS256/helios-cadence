@@ -112,11 +112,13 @@ function NewServerPage() {
     queryKey: [provider, "images", form.region],
     queryFn: () => fnImages({ data: { provider, region: form.region } }),
     enabled: !!form.region,
+    retry: false,
   });
   const plans = useQuery({
     queryKey: [provider, "plans", form.region],
     queryFn: () => fnPlans({ data: { provider, region: form.region } }),
     enabled: !!form.region,
+    retry: false,
   });
 
   // Regions grouped by continent bucket.
@@ -340,6 +342,11 @@ function NewServerPage() {
                   />
                 </div>
                 {images.isLoading && <p className="text-sm text-muted-foreground">Loading images…</p>}
+                {images.error && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    {(images.error as Error).message}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1">
                   {filteredImages.slice(0, 90).map((im: any) => (
                     <Tile key={im.id} active={form.image === im.id} onClick={() => setF({ image: im.id })}>
@@ -362,6 +369,11 @@ function NewServerPage() {
             <StepHeader n={5} title="Choose server specs" subtitle="Pick a preset plan for CPU · RAM · Disk." />
             {!form.region && <p className="text-sm text-muted-foreground">Pick a region first.</p>}
             {form.region && plans.isLoading && <p className="text-sm text-muted-foreground">Loading plans…</p>}
+            {plans.error && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {(plans.error as Error).message}
+              </div>
+            )}
             {plans.data && Object.keys(plansByFamily).length > 0 && (
               <>
                 {Object.keys(plansByFamily).length > 1 && (
