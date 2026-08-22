@@ -62,6 +62,7 @@ import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
 import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -353,6 +354,11 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const TechopsJobsIdRoute = TechopsJobsIdRouteImport.update({
+  id: '/techops/jobs/$id',
+  path: '/techops/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
   id: '/c/$slug/$workspaceKey',
   path: '/c/$slug/$workspaceKey',
@@ -542,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -619,6 +626,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -698,6 +706,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -778,6 +787,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -855,6 +865,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -933,6 +944,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -1011,6 +1023,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicTestEmailsRoute: typeof ApiPublicTestEmailsRoute
   CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
+  TechopsJobsIdRoute: typeof TechopsJobsIdRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
@@ -1398,6 +1411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/techops/jobs/$id': {
+      id: '/techops/jobs/$id'
+      path: '/techops/jobs/$id'
+      fullPath: '/techops/jobs/$id'
+      preLoaderRoute: typeof TechopsJobsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/c/$slug/$workspaceKey': {
       id: '/c/$slug/$workspaceKey'
       path: '/c/$slug/$workspaceKey'
@@ -1667,6 +1687,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicTestEmailsRoute: ApiPublicTestEmailsRoute,
   CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
+  TechopsJobsIdRoute: TechopsJobsIdRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
