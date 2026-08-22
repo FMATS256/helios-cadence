@@ -180,13 +180,18 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       });
       return { server_id: server.id, provider_server_id: result.provider_server_id, root_password_saved: true };
     } catch (e: any) {
+      const message = e instanceof Error ? e.message : "Contabo provisioning failed";
       await supabaseAdmin.from("cloud_servers").update({ status: "failed" }).eq("id", server.id);
       await supabaseAdmin.from("cloud_deployments").insert({
         server_id: server.id, action: "provision", status: "failed",
-        error: e.message, request_payload: { ...data, password: "***" } as any,
+        error: message, request_payload: { ...data, password: "***" } as any,
         completed_at: new Date().toISOString(),
       });
-      throw e;
+      // Return a typed operational failure instead of throwing from the server
+      // function. The form turns this into its normal mutation error state,
+      // avoiding a full-screen development error overlay while retaining the
+      // failed deployment record for audit and troubleshooting.
+      return { server_id: server.id, provider_server_id: null, root_password_saved: true, provisioning_error: message };
     }
   });
 

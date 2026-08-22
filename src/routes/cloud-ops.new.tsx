@@ -195,7 +195,7 @@ function NewServerPage() {
       }
 
       const [cpuType] = (form.plan_id.split("-") as string[]);
-      return fnProvision({ data: {
+      const result = await fnProvision({ data: {
         provider,
         customer_id: form.customer_id || null,
         name: form.name,
@@ -215,6 +215,10 @@ function NewServerPage() {
         monthly_cost_usd: totalMonthly,
         notes: form.notes || undefined,
       } });
+      if ("provisioning_error" in result && result.provisioning_error) {
+        throw new Error(result.provisioning_error);
+      }
+      return result;
     },
     onSuccess: () => { toast.success("Server provisioning started"); navigate({ to: "/cloud-ops" }); },
     onError: (e: Error) => toast.error(e.message),
