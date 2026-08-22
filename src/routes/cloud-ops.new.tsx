@@ -207,7 +207,7 @@ function NewServerPage() {
         ram_mb: activePlan?.ram_mb,
         disk_gb: activePlan?.disk_gb,
         ssh_key: form.ssh_key || undefined,
-        password: form.password || undefined,
+        password: form.password ? String(form.password) : undefined,
         daily_backup: form.daily_backup,
         monitoring: form.monitoring,
         billing_cycle: form.billing_cycle,
@@ -496,7 +496,7 @@ function NewServerPage() {
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margin</span><span className={cn("font-mono font-semibold", margin < 0 ? "text-destructive" : "text-emerald-600")}>${margin}</span></div>
             </div>
             <Button
-              type="submit" disabled={submit.isPending}
+              type="submit" disabled={submit.isPending || passwordBlocked}
               className="w-full text-solar-foreground"
               style={{ background: "var(--gradient-solar)" }}
             >
