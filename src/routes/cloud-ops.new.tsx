@@ -340,6 +340,11 @@ function NewServerPage() {
                   />
                 </div>
                 {images.isLoading && <p className="text-sm text-muted-foreground">Loading images…</p>}
+                {images.error && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    {(images.error as Error).message}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1">
                   {filteredImages.slice(0, 90).map((im: any) => (
                     <Tile key={im.id} active={form.image === im.id} onClick={() => setF({ image: im.id })}>
