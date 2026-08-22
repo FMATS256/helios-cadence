@@ -27,7 +27,16 @@ async function getToken(): Promise<string> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) throw new Error(`Contabo token ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    cachedToken = null;
+    const body = await res.text();
+    if (res.status === 400 || res.status === 401) {
+      throw new Error(
+        "Contabo rejected the API credentials. Check CONTABO_API_USER / CONTABO_API_PASSWORD (this is the separate API password from the Contabo customer panel, not your website login) and CONTABO_CLIENT_ID / CONTABO_CLIENT_SECRET.",
+      );
+    }
+    throw new Error(`Contabo token ${res.status}: ${body}`);
+  }
   const j: any = await res.json();
   cachedToken = { token: j.access_token, expires_at: Date.now() + (j.expires_in ?? 300) * 1000 };
   return cachedToken.token;
