@@ -143,19 +143,7 @@ export const contaboAdapter: CloudProvider = {
   async listRegions() { return CONTABO_REGIONS; },
 
   async listImages() {
-    try {
-      const r = await contabo<{ data: any[] }>("/compute/images?size=100");
-      return (r.data ?? []).map((i) => ({
-        id: i.imageId, name: i.name, os: detectOs(i.name),
-      }));
-    } catch {
-      // Fallback standard images.
-      return [
-        { id: "ubuntu-22.04", name: "Ubuntu 22.04 LTS", os: "ubuntu" as const },
-        { id: "debian-12", name: "Debian 12", os: "debian" as const },
-        { id: "almalinux-9", name: "AlmaLinux 9", os: "almalinux" as const },
-      ];
-    }
+    return fetchImages();
   },
 
   async listInstanceTypes() { return getPlans(); },
