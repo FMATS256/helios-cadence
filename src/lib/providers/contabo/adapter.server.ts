@@ -42,8 +42,10 @@ function uuid() {
 async function contabo<T = any>(path: string, init?: RequestInit): Promise<T> {
   let last = "";
   let status = 0;
-  // Contabo occasionally answers 5xx transiently — retry idempotent-ish calls twice.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Never replay a create/update request: a timed-out POST may still have
+  // succeeded and retrying it can create duplicate billable resources.
+  const attempts = !init?.method || init.method === "GET" ? 3 : 1;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const token = await getToken();
     const res = await fetch(`${BASE}${path}`, {
       ...init,
@@ -60,7 +62,7 @@ async function contabo<T = any>(path: string, init?: RequestInit): Promise<T> {
     }
     status = res.status;
     last = await res.text();
-    if (res.status < 500 || attempt === 2) break;
+    if (res.status < 500 || attempt === attempts - 1) break;
     await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
   }
   if (status >= 500) {
@@ -85,13 +87,10 @@ const CONTABO_REGIONS: Region[] = [
   { id: "IND", name: "Mumbai, India", country: "IN", city: "Mumbai" },
 ];
 
-// Fallback SKUs (currently orderable Cloud VPS line) used only if /v1/products fails.
-const CONTABO_PLANS: InstanceType[] = [
-  { id: "V90", cpu_cores: 3,  ram_mb: 8192,   disk_gb: 75,  monthly_usd: 3.5,  family: "Cloud VPS 05" },
-  { id: "V92", cpu_cores: 4,  ram_mb: 8192,   disk_gb: 150, monthly_usd: 6.6,  family: "Cloud VPS 10" },
-  { id: "V95", cpu_cores: 6,  ram_mb: 12288,  disk_gb: 200, monthly_usd: 9.0,  family: "Cloud VPS 20" },
-  { id: "V98", cpu_cores: 8,  ram_mb: 24576,  disk_gb: 400, monthly_usd: 16.8, family: "Cloud VPS 30" },
-];
+// Product families supported by Contabo's public instance-ordering API. The
+// general /products catalogue also contains website-only, legacy, duplicate,
+// and future products which cannot be passed to /compute/instances.
+const API_ORDERABLE_VPS_SLUG = /^cloud-vps-(05|10|20|30|40|50|60)$/i;
 
 // ---- Live product catalogue (only products the account can actually order) ----
 let planCache: { at: number; plans: InstanceType[] } | null = null;
@@ -121,6 +120,7 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
       if (specs.length < 5) continue;
       const name = String(pi.name ?? "");
       if (!/^cloud vps/i.test(name)) continue;
+      if (!API_ORDERABLE_VPS_SLUG.test(String(pi.slug ?? ""))) continue;
       const ramGb = specNum(specs, "ram");
       const storage = specs.find((s: any) => s?.type === "storage")?.title ?? "";
       let diskGb = specNum(specs, "storage");
@@ -140,13 +140,15 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
   }
   const plans = out.filter((p) => p.monthly_usd > 0).sort((a, b) => a.monthly_usd - b.monthly_usd);
 
-  if (!plans.length) return CONTABO_PLANS;
+  if (!plans.length) {
+    throw new Error("Contabo returned no VPS products that can be ordered through its API.");
+  }
   planCache = { at: Date.now(), plans };
   return plans;
 }
 
 async function getPlans(): Promise<InstanceType[]> {
-  try { return await fetchLivePlans(); } catch { return CONTABO_PLANS; }
+  return fetchLivePlans();
 }
 
 
@@ -242,7 +244,7 @@ export const contaboAdapter: CloudProvider = {
     const bySpec = plans
       .filter((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024))
       .sort((a, b) => a.monthly_usd - b.monthly_usd);
-    // Ordered candidate list: requested SKU first, then closest matches, then anything.
+    // Ordered candidate list: requested SKU first, then API-orderable matches.
     const candidates: InstanceType[] = [];
     const push = (p?: InstanceType) => { if (p && !candidates.some((c) => c.id === p.id)) candidates.push(p); };
     if (requested && !UNAVAILABLE_SKUS.has(requested)) push(plans.find((p) => p.id === requested));
@@ -278,7 +280,9 @@ export const contaboAdapter: CloudProvider = {
     // Contabo can list a product in /products that it refuses to order, and some
     // SKUs are only offered on longer contract periods. Walk candidates x periods.
     const PERIODS = [1, 3, 6, 12];
-    outer: for (const cand of candidates.slice(0, 6)) {
+    const attempted: string[] = [];
+    outer: for (const cand of candidates) {
+      attempted.push(cand.id);
       for (const period of PERIODS) {
         const body: Record<string, unknown> = {
           imageId,
@@ -323,11 +327,14 @@ export const contaboAdapter: CloudProvider = {
       planCache = null;
     }
 
+    // Remove the password secret created for an order that never completed.
+    if (rootPasswordSecretId !== undefined) {
+      await contabo(`/secrets/${rootPasswordSecretId}`, { method: "DELETE" }).catch(() => undefined);
+    }
     throw new Error(
-      `Contabo could not order any of the available VPS products right now (tried ${candidates
-        .slice(0, 6)
-        .map((c) => c.id)
-        .join(", ")}). ${String((lastErr as Error)?.message ?? "")}`,
+      `Contabo has no API-orderable offer for the selected configuration in ${req.region} ` +
+      `(checked ${attempted.join(", ")}). Choose a different region or plan, or enable API ordering on the Contabo account. ` +
+      `${String((lastErr as Error)?.message ?? "")}`,
     );
   },
 
