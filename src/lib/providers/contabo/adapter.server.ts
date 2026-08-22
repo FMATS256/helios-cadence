@@ -40,23 +40,37 @@ function uuid() {
 }
 
 async function contabo<T = any>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getToken();
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "x-request-id": uuid(),
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Contabo ${init?.method ?? "GET"} ${path} ${res.status}: ${body}`);
+  let last = "";
+  let status = 0;
+  // Contabo occasionally answers 5xx transiently — retry idempotent-ish calls twice.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const token = await getToken();
+    const res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "x-request-id": uuid(),
+        ...(init?.headers ?? {}),
+      },
+    });
+    if (res.ok) {
+      if (res.status === 204) return {} as T;
+      return (await res.json()) as T;
+    }
+    status = res.status;
+    last = await res.text();
+    if (res.status < 500 || attempt === 2) break;
+    await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
   }
-  if (res.status === 204) return {} as T;
-  return res.json() as Promise<T>;
+  if (status >= 500) {
+    throw new Error(
+      `Contabo rejected this order (${status}). The selected plan or region is not orderable on this account right now — pick another plan/region or contact Contabo support. Details: ${last}`,
+    );
+  }
+  throw new Error(`Contabo ${init?.method ?? "GET"} ${path} ${status}: ${last}`);
 }
+
 
 // Contabo regions (physical DCs). Kept static — endpoint doesn't list them uniformly.
 const CONTABO_REGIONS: Region[] = [
@@ -99,22 +113,31 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
       if (pi.outOfStock?.isOutOfStock) continue;
       if (out.some((o) => o.id === pi.itemId)) continue;
       const specs = pi.specs ?? [];
+      // Contabo lists legacy / not-yet-orderable SKUs (e.g. the "(2026)" lines)
+      // with an empty spec sheet. Ordering those returns a bare 500 from the
+      // API, so only surface products that expose a full spec sheet.
+      if (specs.length < 5) continue;
+      const name = String(pi.name ?? "");
+      if (!/^cloud vps/i.test(name)) continue;
       const ramGb = specNum(specs, "ram");
       const storage = specs.find((s: any) => s?.type === "storage")?.title ?? "";
       let diskGb = specNum(specs, "storage");
       if (/\bTB\b/i.test(String(storage))) diskGb *= 1024;
+      const cpu = specNum(specs, "cpu");
+      if (!cpu || !ramGb) continue;
       out.push({
         id: pi.itemId,
-        cpu_cores: specNum(specs, "cpu") || 1,
-        ram_mb: (ramGb || 1) * 1024,
+        cpu_cores: cpu,
+        ram_mb: ramGb * 1024,
         disk_gb: diskGb || 50,
         monthly_usd: (pi.price ?? []).find((x: any) => x.currency === "USD")?.amount ?? 0,
-        family: pi.name ?? pi.itemId,
+        family: name || pi.itemId,
       });
     }
     if (r._pagination && page >= (r._pagination.totalPages ?? 1)) break;
   }
   const plans = out.filter((p) => p.monthly_usd > 0).sort((a, b) => a.monthly_usd - b.monthly_usd);
+
   if (!plans.length) return CONTABO_PLANS;
   planCache = { at: Date.now(), plans };
   return plans;
