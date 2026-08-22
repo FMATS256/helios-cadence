@@ -210,3 +210,10 @@ export const contaboAdapter: CloudProvider = {
 };
 
 function round(n: number) { return Math.round(n * 100) / 100; }
+
+// Contabo accepts only letters, numbers, spaces and hyphens in these fields.
+export const CONTABO_PASSWORD_RE = /^[A-Za-z0-9 -]+$/;
+
+function sanitizeName(name: string) {
+  return (name || "").replace(/[^A-Za-z0-9 -]/g, "-").slice(0, 255).trim();
+}
