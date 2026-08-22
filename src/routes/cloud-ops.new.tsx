@@ -172,16 +172,28 @@ function NewServerPage() {
   const totalHourly = priceEstimate.data?.hourly_usd ?? round(totalMonthly / 730);
   const margin = round(Number(form.selling_price_usd) - totalMonthly);
 
+  // Contabo only accepts letters, numbers, spaces and hyphens in the root password.
+  const passwordCharsetError =
+    provider === "contabo" && form.password && !/^[A-Za-z0-9 -]+$/.test(form.password)
+      ? "Password can only contain letters, numbers, spaces, and hyphens (-)."
+      : null;
+  const passwordMismatch = !!form.passwordConfirm && form.password !== form.passwordConfirm;
+  const passwordRequired = provider === "kamatera" || provider === "contabo";
+  const passwordTooShort = passwordRequired && !!form.password && form.password.length < 8;
+  const passwordBlocked = !!passwordCharsetError || passwordMismatch || passwordTooShort;
+
   const submit = useMutation({
     mutationFn: async () => {
       if (!form.name) throw new Error("Give the server a name.");
       if (!form.region) throw new Error("Select a region.");
       if (!form.plan_id) throw new Error("Choose a server plan.");
-      if (provider === "kamatera") {
-        if (!form.image) throw new Error("Choose an OS image.");
+      if (passwordCharsetError) throw new Error(passwordCharsetError);
+      if (passwordRequired) {
+        if (provider === "kamatera" && !form.image) throw new Error("Choose an OS image.");
         if (!form.password || form.password.length < 8) throw new Error("Root password must be at least 8 characters.");
         if (form.password !== form.passwordConfirm) throw new Error("Passwords do not match.");
       }
+
       const [cpuType] = (form.plan_id.split("-") as string[]);
       return fnProvision({ data: {
         provider,
@@ -195,7 +207,7 @@ function NewServerPage() {
         ram_mb: activePlan?.ram_mb,
         disk_gb: activePlan?.disk_gb,
         ssh_key: form.ssh_key || undefined,
-        password: form.password || undefined,
+        password: form.password ? String(form.password) : undefined,
         daily_backup: form.daily_backup,
         monitoring: form.monitoring,
         billing_cycle: form.billing_cycle,
@@ -414,13 +426,31 @@ function NewServerPage() {
             <StepHeader n={7} title="Finalize settings" subtitle="Root credentials and notes." />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Root password {provider === "kamatera" ? "*" : ""}</Label>
-                <Input type="password" value={form.password} onChange={(e) => setF({ password: e.target.value })} placeholder="Min 8 chars, mix case, digit" />
+                <Label>Root password {passwordRequired ? "*" : ""}</Label>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(e) => setF({ password: String(e.target.value) })}
+                  placeholder={provider === "contabo" ? "Letters, numbers, spaces and - only" : "Min 8 chars, mix case, digit"}
+                  aria-invalid={!!passwordCharsetError || passwordTooShort}
+                />
+                {passwordCharsetError && (
+                  <p className="mt-1 text-xs text-destructive">{passwordCharsetError}</p>
+                )}
+                {!passwordCharsetError && passwordTooShort && (
+                  <p className="mt-1 text-xs text-destructive">Root password must be at least 8 characters.</p>
+                )}
+                {provider === "contabo" && !passwordCharsetError && (
+                  <p className="mt-1 text-xs text-muted-foreground">Contabo allows letters, numbers, spaces and hyphens (-) only.</p>
+                )}
               </div>
               <div>
                 <Label>Validate password</Label>
-                <Input type="password" value={form.passwordConfirm} onChange={(e) => setF({ passwordConfirm: e.target.value })} />
+                <Input type="password" autoComplete="new-password" value={form.passwordConfirm} onChange={(e) => setF({ passwordConfirm: String(e.target.value) })} />
+                {passwordMismatch && <p className="mt-1 text-xs text-destructive">Passwords do not match.</p>}
               </div>
+
               <div className="md:col-span-2">
                 <Label>SSH public key (optional)</Label>
                 <Input value={form.ssh_key} onChange={(e) => setF({ ssh_key: e.target.value })} placeholder="ssh-rsa AAAA…" />
@@ -466,7 +496,7 @@ function NewServerPage() {
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margin</span><span className={cn("font-mono font-semibold", margin < 0 ? "text-destructive" : "text-emerald-600")}>${margin}</span></div>
             </div>
             <Button
-              type="submit" disabled={submit.isPending}
+              type="submit" disabled={submit.isPending || passwordBlocked}
               className="w-full text-solar-foreground"
               style={{ background: "var(--gradient-solar)" }}
             >

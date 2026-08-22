@@ -142,16 +142,40 @@ export const contaboAdapter: CloudProvider = {
       CONTABO_PLANS.find((p) =>
         p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024),
       )?.id ?? "V78";
-    const body: any = {
+
+    // Contabo's API expects `rootPassword` to be a numeric *secret id*, not the
+    // password itself. Store the password (kept as a string, untouched) in the
+    // Contabo secrets store first, then reference the returned id.
+    const displayName = sanitizeName(req.name);
+    let rootPasswordSecretId: number | undefined;
+    if (typeof req.password === "string" && req.password.length > 0) {
+      if (!CONTABO_PASSWORD_RE.test(req.password)) {
+        throw new Error("Password can only contain letters, numbers, spaces, and hyphens (-).");
+      }
+      const secret = await contabo<{ data: any[] }>("/secrets", {
+        method: "POST",
+        body: JSON.stringify({
+          name: `${displayName || "server"}-root-${Date.now()}`,
+          type: "password",
+          value: req.password, // string, verbatim
+        }),
+      });
+      const id = secret.data?.[0]?.secretId;
+      if (id === undefined || id === null) throw new Error("Contabo did not return a secret id for the root password");
+      rootPasswordSecretId = Number(id);
+    }
+
+    const body: Record<string, unknown> = {
       imageId: req.image ?? "ubuntu-22.04",
       productId: plan,
       region: req.region,
       period: 1,
-      displayName: req.name,
+      displayName,
       defaultUser: "root",
-      rootPassword: req.password,
-      sshKeys: req.ssh_key ? [Number(req.ssh_key)] : undefined,
     };
+    if (rootPasswordSecretId !== undefined) body.rootPassword = rootPasswordSecretId;
+    if (req.ssh_key && /^\d+$/.test(String(req.ssh_key))) body.sshKeys = [Number(req.ssh_key)];
+
     const r = await contabo<{ data: any[] }>("/compute/instances", {
       method: "POST", body: JSON.stringify(body),
     });
@@ -163,6 +187,7 @@ export const contaboAdapter: CloudProvider = {
       raw: inst,
     };
   },
+
 
   async getServer(id: string) {
     const r = await contabo<{ data: any[] }>(`/compute/instances/${id}`);
@@ -185,3 +210,10 @@ export const contaboAdapter: CloudProvider = {
 };
 
 function round(n: number) { return Math.round(n * 100) / 100; }
+
+// Contabo accepts only letters, numbers, spaces and hyphens in these fields.
+export const CONTABO_PASSWORD_RE = /^[A-Za-z0-9 -]+$/;
+
+function sanitizeName(name: string) {
+  return (name || "").replace(/[^A-Za-z0-9 -]/g, "-").slice(0, 255).trim();
+}
