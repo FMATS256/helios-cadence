@@ -288,7 +288,8 @@ export const contaboAdapter: CloudProvider = {
     let lastErr: unknown;
     // Contabo can list a product in /products that it refuses to order, and some
     // SKUs are only offered on longer contract periods. Walk candidates x periods.
-    const PERIODS = [1, 3, 6, 12];
+    // Contabo only accepts these contract lengths on /compute/instances.
+    const PERIODS = [1, 12, 24];
     const attempted: string[] = [];
     outer: for (const cand of candidates) {
       attempted.push(cand.id);
