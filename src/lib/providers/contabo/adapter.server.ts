@@ -71,16 +71,59 @@ const CONTABO_REGIONS: Region[] = [
   { id: "IND", name: "Mumbai, India", country: "IN", city: "Mumbai" },
 ];
 
-// Contabo VPS SKUs (approximate USD monthly list pricing).
+// Fallback SKUs (currently orderable Cloud VPS line) used only if /v1/products fails.
 const CONTABO_PLANS: InstanceType[] = [
-  { id: "V78",  cpu_cores: 4,  ram_mb: 6144,   disk_gb: 100,  monthly_usd: 6.99,  family: "VPS S SSD" },
-  { id: "V79",  cpu_cores: 6,  ram_mb: 12288,  disk_gb: 200,  monthly_usd: 9.99,  family: "VPS M SSD" },
-  { id: "V80",  cpu_cores: 8,  ram_mb: 24576,  disk_gb: 400,  monthly_usd: 15.99, family: "VPS L SSD" },
-  { id: "V81",  cpu_cores: 10, ram_mb: 61440,  disk_gb: 800,  monthly_usd: 31.99, family: "VPS XL SSD" },
-  { id: "V85",  cpu_cores: 6,  ram_mb: 16384,  disk_gb: 100,  monthly_usd: 15.50, family: "Cloud VPS 10" },
-  { id: "V86",  cpu_cores: 8,  ram_mb: 32768,  disk_gb: 200,  monthly_usd: 27.50, family: "Cloud VPS 20" },
-  { id: "V87",  cpu_cores: 12, ram_mb: 65536,  disk_gb: 400,  monthly_usd: 46.50, family: "Cloud VPS 30" },
+  { id: "V90", cpu_cores: 3,  ram_mb: 8192,   disk_gb: 75,  monthly_usd: 3.5,  family: "Cloud VPS 05" },
+  { id: "V92", cpu_cores: 4,  ram_mb: 8192,   disk_gb: 150, monthly_usd: 6.6,  family: "Cloud VPS 10" },
+  { id: "V95", cpu_cores: 6,  ram_mb: 12288,  disk_gb: 200, monthly_usd: 9.0,  family: "Cloud VPS 20" },
+  { id: "V98", cpu_cores: 8,  ram_mb: 24576,  disk_gb: 400, monthly_usd: 16.8, family: "Cloud VPS 30" },
 ];
+
+// ---- Live product catalogue (only products the account can actually order) ----
+let planCache: { at: number; plans: InstanceType[] } | null = null;
+
+function specNum(specs: any[], type: string) {
+  const t = specs?.find((s) => s?.type === type)?.title ?? "";
+  const m = String(t).match(/([\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+async function fetchLivePlans(): Promise<InstanceType[]> {
+  if (planCache && Date.now() - planCache.at < 10 * 60_000) return planCache.plans;
+  const out: InstanceType[] = [];
+  for (let page = 1; page <= 3; page++) {
+    const r = await contabo<{ data: any[]; _pagination?: any }>(`/products?size=100&page=${page}`);
+    for (const p of r.data ?? []) {
+      const pi = p?.priceItem;
+      if (!pi?.itemId || p?.type !== "vps") continue;
+      if (pi.outOfStock?.isOutOfStock) continue;
+      if (out.some((o) => o.id === pi.itemId)) continue;
+      const specs = pi.specs ?? [];
+      const ramGb = specNum(specs, "ram");
+      const storage = specs.find((s: any) => s?.type === "storage")?.title ?? "";
+      let diskGb = specNum(specs, "storage");
+      if (/\bTB\b/i.test(String(storage))) diskGb *= 1024;
+      out.push({
+        id: pi.itemId,
+        cpu_cores: specNum(specs, "cpu") || 1,
+        ram_mb: (ramGb || 1) * 1024,
+        disk_gb: diskGb || 50,
+        monthly_usd: (pi.price ?? []).find((x: any) => x.currency === "USD")?.amount ?? 0,
+        family: pi.name ?? pi.itemId,
+      });
+    }
+    if (r._pagination && page >= (r._pagination.totalPages ?? 1)) break;
+  }
+  const plans = out.filter((p) => p.monthly_usd > 0).sort((a, b) => a.monthly_usd - b.monthly_usd);
+  if (!plans.length) return CONTABO_PLANS;
+  planCache = { at: Date.now(), plans };
+  return plans;
+}
+
+async function getPlans(): Promise<InstanceType[]> {
+  try { return await fetchLivePlans(); } catch { return CONTABO_PLANS; }
+}
+
 
 function detectOs(id: string): any {
   const n = id.toLowerCase();
