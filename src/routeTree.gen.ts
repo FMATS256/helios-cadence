@@ -51,6 +51,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
@@ -293,6 +294,11 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TicketsRoute,
 } as any)
+const TechopsDashboardRoute = TechopsDashboardRouteImport.update({
+  id: '/techops/dashboard',
+  path: '/techops/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
@@ -514,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -589,6 +596,7 @@ export interface FileRoutesByTo {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -664,6 +672,7 @@ export interface FileRoutesById {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -741,6 +750,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops'
     | '/customers'
@@ -890,6 +901,7 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/dashboard'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -966,6 +978,7 @@ export interface RootRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
   CustomersNewRoute: typeof CustomersNewRoute
   InvoicesIdRoute: typeof InvoicesIdRoute
+  TechopsDashboardRoute: typeof TechopsDashboardRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -1281,6 +1294,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tickets/$id'
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
+    }
+    '/techops/dashboard': {
+      id: '/techops/dashboard'
+      path: '/techops/dashboard'
+      fullPath: '/techops/dashboard'
+      preLoaderRoute: typeof TechopsDashboardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/invoices/$id': {
       id: '/invoices/$id'
@@ -1598,6 +1618,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
   CustomersNewRoute: CustomersNewRoute,
   InvoicesIdRoute: InvoicesIdRoute,
+  TechopsDashboardRoute: TechopsDashboardRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
