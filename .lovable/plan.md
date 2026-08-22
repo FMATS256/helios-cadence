@@ -1,207 +1,93 @@
-## Scope note
+# Technical Operations Workspace
 
-This request is a multi-release program (three phases, ~40 distinct features, several external integrations: WHM/cPanel, Quote Studio, WhatsApp chatbot, PDF/Excel export). It cannot be delivered safely in one pass. Below is the delivery plan, ordered so each block ships working end-to-end with the current UI untouched.
+A phased build of a full Technical Operations platform inside IMT Account Manager. Existing design system, auth, RBAC, audit log and backend integrations are reused — nothing in Customer 360, Finance or the current NOC/monitoring stack is redesigned or replaced.
 
-I need one decision from you before starting: which block to build first (see "Start here" at the bottom).
+## Navigation
 
----
+A new **Technical Operations** sidebar group. Existing pages move under it rather than being duplicated:
 
-## Block 1 — Customer 360 action bar + core workspaces
-
-Adds new buttons beside the existing New Ticket / New Quote / Log Communication / Edit Details, using the existing colored `ActionBar` style. No layout change.
-
-New actions and their dialogs/sheets:
-
-- **Change Package** — fixes the duplicate-package bug: detects an existing active subscription for the same service type and *updates* it (status history row kept), instead of inserting a second. Recomputes recurring charge, writes timeline + audit entries.
-- **Billing** — full-screen billing workspace sheet: outstanding, credit/advance balance, MRR/ARR, recurring charges, next invoice/renewal, last payment, invoice list with ageing buckets (0-30/31-60/61-90/90+), payment history with allocations, refunds, failed payments, billing alerts and notes. All read from one aggregated server function; auto-refetches on any billing mutation.
-- **Customer Timeline** — major events only, with "View More" expanding to the full audit trail.
-- **Communication Center** — threaded view of emails/notes already stored in `communications`, plus reply/compose. SMS/WhatsApp/call channels stubbed as disabled tabs (schema-ready).
-- **Suspend / Resume / Cancel Service** — cascade rules across subscriptions, cloud services, hosting, VoIP, Starlink per service policy; timeline + audit.
-- **Print Statement**, **Download Customer Profile (PDF + Excel)**, **Generate Contract**, **Refund**.
-- **Customer Health badge** — Healthy / Attention Required / Critical, computed from overdue invoices, suspended services, open critical tickets, failed syncs, with reason list.
-
-Also: every colored widget/chip on the page becomes clickable and scrolls to / opens the matching tab or workspace.
-
-Backend: new tables for KYC documents, package history, refunds, and customer credit/wallet; new aggregate server functions; event helper that writes audit + timeline and invalidates the Customer 360 query key so every card refreshes without a page reload.
-
-## Block 2 — KYC Documents + Equipment & Assets
-
-- KYC action button with a document checklist driven by `customers.account_type` (corporate vs individual lists exactly as specified), upload to a private storage bucket, verification status per document.
-- Equipment & Assets action button: assign/reassign equipment to the customer, serial, warranty, technician, assignment date, status, with full assignment history.
-
-## Block 3 — Record Payment rework + real-time finance sync
-
-- Replace the generic payment form with the service-driven workflow: customer → active/billable services dropdown → selected service loads package, status, outstanding, open invoice, due date, recurring charge → allocate to invoice / partial / advance / credit.
-- On save: allocations, receipt generation, ledger, auto-resume of suspended services when billing rules are satisfied, timeline + audit, and cache invalidation so Customer 360, Billing, Finance, Invoices, Reports and Dashboard all update live.
-- Fallback path when the customer has no services: setup fee, misc payment, deposit, customer credit.
-
-## Block 4 — Support automation
-
-- Ticket creation emails the customer (number, subject, description, priority, status, SLA, created date).
-- Assignment notifies technician + customer; technician dashboard with Assigned / In Progress / Waiting Customer / Resolved / Overdue queues.
-
-## Block 5 — Role-based visibility + audit hardening
-
-- Hide supplier cost, profit, margin, wholesale price, API keys, WHM/server credentials from everyone except Super Admin and Finance — enforced server-side (columns stripped in the aggregator), not just hidden in the UI.
-- Audit log records who / what / when / old value / new value / module / IP for every important mutation.
-
-## Block 6 — Starlink recharge workflow
-
-Status machine: Pending Finance → Paid → Message Sent → Awaiting Supplier → Completed / Failed / Cancelled, with the WhatsApp request to +263779237813, a scheduled job that re-checks supplier reply after ~1 hour, and notifications on both outcomes.
-
-Needs from you: which WhatsApp provider account to use (Meta Cloud API, Twilio, or an existing gateway) — outbound messaging plus inbound reply capture requires a provider and webhook, which the platform does not have configured yet.
-
-## Block 7 — Web Hosting (WHM) + Cloud Storage lifecycle
-
-- WHM/cPanel API integration for create/suspend/unsuspend/terminate/change package/reset password/SSO/DNS/email/databases/backups/restore/usage sync, with auto-unsuspend on payment.
-- Cloud storage provisioning lifecycle, capacity tracking, auto-suspend/resume on billing.
-
-Needs from you: WHM hostname + API token, and the cloud storage platform's admin API details.
-
-## Block 8 — Quote Studio integration
-
-Replace local quote PDF generation with calls to the external Quote Studio API (`POST/GET/PUT/PATCH/DELETE /documents`, settings API), storing document ID + PDF, emailing the customer, and logging to timeline/documents.
-
-Needs from you: Quote Studio base URL and API key (stored as a secret, never in code).
+```text
+Technical Operations
+  Technician Dashboard      (new)
+  Installations & Jobs      (upgrade of Work Orders)
+  Equipment & Allocations   (new, backed by inventory + assets)
+  Monitoring & Alerts       (existing Monitoring, extended)
+  NOC Command Centre        (existing)
+  Servers                   (existing Cloud Ops)
+  Hosting                   (existing WHM/cPanel module)
+  Cloud & Storage           (existing)
+  Starlink / VoIP / Network Tools (existing + new calculators)
+  Credential Vault          (existing, hardened)
+  System Health             (existing diagnostics, extended)
+  SOC                       (Phase 3)
+```
 
 ---
 
-## Technical approach
+## Phase 1 — Technical Operations core
 
-- Aggregation stays in the existing `getCustomer360` server function — extended, not replaced — so the page keeps one round-trip and no N+1 queries.
-- A shared `recordEvent` server helper writes `audit_log` + `customer_timeline` in the same transaction as each mutation, so "who/what/when/old/new" is never skipped.
-- Real-time sync uses TanStack Query invalidation keyed per customer plus Supabase realtime on the mutated tables — no polling, no page refresh.
-- All new actions run through authenticated server functions that validate role, ownership, and service state before executing.
-- Existing UI primitives (`PageShell`, `StatChipRow`, `ActionBar`, `DataGrid`, dialogs) are reused as-is; no visual redesign anywhere.
+### Technician Dashboard
+A role-aware home for technical staff showing only live data: jobs assigned to me, unassigned jobs in my queue, critical monitoring alerts, services/servers needing attention, installations scheduled in the next 7 days, equipment currently allocated to me, open incidents, failed provisioning and failed provider-sync jobs, and a system health strip. Managers see the team-wide view; technicians see their own.
 
-## Start here
+### Installations & Jobs
+Work Orders is upgraded into a full job lifecycle:
 
-I recommend **Block 1** first — it is the highest-value slice and everything else hangs off its event/audit plumbing. Tell me to go, or name a different block to start with.
+```text
+Job -> Customer -> Site -> Requirements -> Technician -> Equipment
+    -> Installation -> Testing -> Sign-off -> Completion report
+```
 
-&nbsp;
+Per job: site address and GPS pin (reuses the Service Map geocoder), scheduled window, assigned technicians, a requirements list, a generated checklist, equipment allocation, site photos, recorded configuration and IP/network details, installation notes, customer signature capture, and an auto-generated completion report emailed to the customer through the existing template pipeline.
 
-Complete Block 1 only before starting any other block.
+**Requirements to equipment plan**: an engineer enters requirements (e.g. 6 APs, 2 switches, firewall, structured cabling, Starlink backup). The system turns that into an allocation plan, checks stock in Inventory, flags shortfalls, and reserves items against the job. On completion, allocated hardware is deducted from stock and registered as customer assets.
 
-&nbsp;
+### Equipment & Allocations
+A single view of what is reserved, issued, installed, returned or lost, per technician and per job, driven by existing inventory and asset records.
 
-Keep the existing Customer 360 layout and ActionBar. Do not redesign the UI.
+### Monitoring & Alerts
+Existing checks stay. Added: alert generation rules for offline services, high CPU/RAM, low disk, backup failure, API/integration failure, provisioning failure and storage capacity, each with a severity level, and the workflow acknowledge → assign → investigate → resolve with a full alert timeline.
 
-&nbsp;
+---
 
-Add these Action Buttons:
+## Phase 2 — Service operations and vault hardening
 
-- Change Package
+- **Servers**: provisioning, OS/IP assignment, power actions, live CPU/RAM/storage/uptime, snapshots and backups, recorded configuration, installed software, lifecycle status and a complete per-server history feed. Built on the existing Kamatera/Contabo/Vultr adapters.
+- **Hosting**: extends the existing WHM integration with package changes, DNS, email accounts, databases, SSL, backups/restores, disk and bandwidth usage, plus automatic provisioning once a payment marks the related invoice paid.
+- **Cloud & Storage**: provisioning, resource allocation, user/permission management, usage monitoring, backups, suspend/resume, renewals and capacity alerts.
+- **VoIP**: SIP account creation, extensions, number assignment, package management, balance and usage, status changes, troubleshooting actions and monitoring.
+- **Starlink**: kit register, activation and status, customer assignment, installation details, connectivity diagnostics and recharge status — wired to the existing Starlink workflow.
+- **Network Tools**: adds IP/subnet calculator, public IP lookup, DNS propagation across resolvers and MAC/vendor lookup to the diagnostics toolkit already shipped (ping/HTTP, DNS, port, WHOIS, blacklist, mail health).
+- **Credential Vault hardening**: reveal requires an emailed one-time code plus a stated reason; every reveal, change and rotation is recorded in access and version history; rotation reminders; permissions enforced server-side; credentials never surface in Customer 360 for unauthorized roles.
 
-- Billing
+---
 
-- Customer Timeline
+## Phase 3 — SOC and Cybersecurity Services
 
-- Communication Center
+**Data sources**: real internal signals (failed authentications, suspicious logins, monitoring outages, backup and provisioning failures, credential access anomalies, audit-log events), analyst-entered findings from external tools, and an EDR/antivirus connector. No fabricated security data anywhere.
 
-- KYC Documents
+**SOC workspace**: Security Dashboard, Clients, Alerts, Incidents, Devices, Vulnerabilities, Reports.
 
-- Equipment & Assets
+Incident workflow: `Alert -> Investigation -> Incident -> Assignment -> Containment -> Resolution -> Report`, tracking client, severity, affected device, source, detection time, analyst, notes, evidence, actions taken, resolution and a full timeline. Dashboard metrics: critical incidents, high-risk clients, active threats, offline endpoints, unresolved alerts, open vulnerabilities, security events, incidents today/this month and mean time to respond.
 
-- Suspend Service
+**Cybersecurity Services** surface on Customer 360 as a security section per customer: endpoint protection/EDR, antivirus, firewall, network security, vulnerability assessments, security monitoring, email security, backup monitoring, awareness training, penetration testing, incident response, audits and reports — with real status pulled from the connector where one exists, and service-record status where it does not.
 
-- Resume Service
+---
 
-- Cancel Service
+## Customer 360 integration
 
-- Generate Contract
+No layout redesign. The existing workspace tabs gain technical panes that appear only when the customer has relevant data: Infrastructure, Devices, Installations, Security, Monitoring. Existing Services, Credentials, Tickets and Billing panes are untouched.
 
-- Refund
+## Cross-cutting rules
 
-- Print Statement
+Every action runs through an authenticated server function, validates RBAC and record ownership, writes an audit log entry, adds a customer timeline entry where relevant, refreshes affected data without a page reload, and never returns restricted credentials or security detail to unauthorized roles.
 
-- Download Customer Profile (PDF & Excel)
+## Technical notes
 
-&nbsp;
+- New tables (with grants, RLS and role-scoped policies): installation jobs and job steps, job requirements, job equipment allocations, job photos and sign-offs, alert rules and alerts, server config/software/history entries, credential step-up challenges, SOC alerts, incidents, incident events, endpoints, vulnerabilities and security service records.
+- Server logic lives in `createServerFn` modules under `src/lib`, with provider calls in `.server.ts` helpers; scheduled evaluation runs through the existing `/api/public/hooks/*` cron endpoints.
+- All screens use the `enterprise.tsx` primitives (PageShell, StatChipRow, ActionBar, DataGrid) so the look matches Customer 360 exactly.
+- The EDR connector needs API credentials for your tenant; tell me the vendor (Bitdefender GravityZone, SentinelOne, ESET, Sophos, other) when we reach Phase 3 and I will request the keys then.
 
-Billing must open a backend-connected Billing Workspace displaying:
+## Deliverable for this approval
 
-- Outstanding Balance
-
-- Credit Balance
-
-- Advance Payments
-
-- Customer Credits/Wallet
-
-- MRR & ARR
-
-- Recurring Charges
-
-- Next Invoice & Payment Due
-
-- Last Payment
-
-- Invoice History
-
-- Payment History
-
-- Payment Allocations
-
-- Paid, Partially Paid, Unpaid & Overdue Invoices
-
-- Invoice Ageing
-
-- Refund History
-
-- Failed Payments
-
-- Billing Alerts
-
-- Finance Notes
-
-- Service Billing Status
-
-- Upcoming Renewals
-
-&nbsp;
-
-Customer Timeline must display major events with a "View More" option for the complete audit history.
-
-&nbsp;
-
-Communication Center must support email conversations now and prepare the database for SMS, WhatsApp and Call Logs.
-
-&nbsp;
-
-KYC must automatically switch document requirements:
-
-- Corporate: Certificate of Incorporation, CR14, Proof of Business Address, VAT Certificate, Tax Clearance, TIN, Signed Contracts, Proof of Payments and Other Documents.
-
-- Individual: National ID/Passport and Proof of Residence.
-
-&nbsp;
-
-Equipment & Assets must support assignment, reassignment, serial numbers, warranty, technician assignment and full assignment history.
-
-&nbsp;
-
-Implement Customer Health (Healthy, Attention Required, Critical) based on overdue invoices, suspended services, critical tickets and failed integrations.
-
-&nbsp;
-
-Make every dashboard KPI widget clickable and open the relevant filtered records.
-
-&nbsp;
-
-Fix the Change Package bug. If an active package exists for the same service, update it instead of creating another active package. Preserve package history and automatically update billing.
-
-&nbsp;
-
-Create a shared server-side event framework. Every action must write to Customer Timeline and Audit Log within the same transaction.
-
-&nbsp;
-
-Use event-driven real-time synchronization so Customer 360, Billing, Finance, Invoices, Reports and Dashboards refresh automatically after every mutation without page reload.
-
-&nbsp;
-
-Extend existing backend functions instead of replacing them. Preserve existing APIs, maintain backward compatibility, avoid duplicate queries and enforce role-based permissions.
-
-&nbsp;
-
-Do not use placeholders or mock data. Every feature in Block 1 must be fully functional, connected to the backend, tested and production-ready before proceeding to Block 2.
+Phase 1 in full — Technician Dashboard, Installations & Jobs with the requirements-to-equipment planner, Equipment & Allocations, the alerting workflow, and the new Technical Operations navigation group. Phases 2 and 3 follow as separate releases.
