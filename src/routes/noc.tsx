@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Activity, ShieldCheck, Siren, NotebookPen, RefreshCw, LifeBuoy } from "lucide-react";
 import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } from "@/lib/noc.functions";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
+import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
@@ -128,6 +129,8 @@ function NocPage() {
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
+          <TabsTrigger value="remote">Remote Actions</TabsTrigger>
           {tickets.length > 0 && <TabsTrigger value="tickets">Open Tickets</TabsTrigger>}
           {servers.length > 0 && <TabsTrigger value="servers">Servers</TabsTrigger>}
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
@@ -178,6 +181,14 @@ function NocPage() {
               ]}
             />
           </DetailCard>
+        </TabsContent>
+
+        <TabsContent value="diagnostics" className="mt-4">
+          <DiagnosticsPanel />
+        </TabsContent>
+
+        <TabsContent value="remote" className="mt-4">
+          <RemoteActionsPanel />
         </TabsContent>
 
         {tickets.length > 0 && (
