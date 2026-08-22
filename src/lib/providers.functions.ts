@@ -65,15 +65,23 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       account_number = c?.account_number ?? null;
     }
 
-    // Auto-generate a strong root password if none supplied
+    // Auto-generate a strong root password if none supplied.
+    // Contabo only accepts letters, numbers, spaces and hyphens.
     const genPassword = () => {
-      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*";
+      const alphabet = data.provider === "contabo"
+        ? "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789-"
+        : "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*";
       const bytes = randomBytes(20);
       let out = "";
       for (let i = 0; i < 20; i++) out += alphabet[bytes[i]! % alphabet.length];
       return out;
     };
-    const rootPassword = data.password?.trim() || genPassword();
+    // Keep verbatim as a string — never numeric-coerced.
+    const rootPassword: string = data.password ? String(data.password) : genPassword();
+    if (data.provider === "contabo" && !/^[A-Za-z0-9 -]+$/.test(rootPassword)) {
+      throw new Error("Password can only contain letters, numbers, spaces, and hyphens (-).");
+    }
+
 
     const req: any = {
       kind: "vm" as const,
