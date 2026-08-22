@@ -99,22 +99,31 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
       if (pi.outOfStock?.isOutOfStock) continue;
       if (out.some((o) => o.id === pi.itemId)) continue;
       const specs = pi.specs ?? [];
+      // Contabo lists legacy / not-yet-orderable SKUs (e.g. the "(2026)" lines)
+      // with an empty spec sheet. Ordering those returns a bare 500 from the
+      // API, so only surface products that expose a full spec sheet.
+      if (specs.length < 5) continue;
+      const name = String(pi.name ?? "");
+      if (!/^cloud vps/i.test(name)) continue;
       const ramGb = specNum(specs, "ram");
       const storage = specs.find((s: any) => s?.type === "storage")?.title ?? "";
       let diskGb = specNum(specs, "storage");
       if (/\bTB\b/i.test(String(storage))) diskGb *= 1024;
+      const cpu = specNum(specs, "cpu");
+      if (!cpu || !ramGb) continue;
       out.push({
         id: pi.itemId,
-        cpu_cores: specNum(specs, "cpu") || 1,
-        ram_mb: (ramGb || 1) * 1024,
+        cpu_cores: cpu,
+        ram_mb: ramGb * 1024,
         disk_gb: diskGb || 50,
         monthly_usd: (pi.price ?? []).find((x: any) => x.currency === "USD")?.amount ?? 0,
-        family: pi.name ?? pi.itemId,
+        family: name || pi.itemId,
       });
     }
     if (r._pagination && page >= (r._pagination.totalPages ?? 1)) break;
   }
   const plans = out.filter((p) => p.monthly_usd > 0).sort((a, b) => a.monthly_usd - b.monthly_usd);
+
   if (!plans.length) return CONTABO_PLANS;
   planCache = { at: Date.now(), plans };
   return plans;
