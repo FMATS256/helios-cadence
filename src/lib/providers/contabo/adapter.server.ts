@@ -114,7 +114,8 @@ function specNum(specs: any[], type: string) {
 
 async function fetchLivePlans(): Promise<InstanceType[]> {
   if (planCache && Date.now() - planCache.at < 10 * 60_000) return planCache.plans;
-  const out: InstanceType[] = [];
+  type Tiered = InstanceType & { _tier: number };
+  const out: Tiered[] = [];
   for (let page = 1; page <= 3; page++) {
     const r = await contabo<{ data: any[]; _pagination?: any }>(`/products?size=100&page=${page}`);
     for (const p of r.data ?? []) {
@@ -123,19 +124,19 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
       if (pi.outOfStock?.isOutOfStock) continue;
       if (out.some((o) => o.id === pi.itemId)) continue;
       const specs = pi.specs ?? [];
-      // Contabo lists legacy / not-yet-orderable SKUs (e.g. the "(2026)" lines)
-      // with an empty spec sheet. Ordering those returns a bare 500 from the
-      // API, so only surface products that expose a full spec sheet.
-      if (specs.length < 5) continue;
       const name = String(pi.name ?? "");
-      if (!/^cloud vps/i.test(name)) continue;
-      if (!API_ORDERABLE_VPS_SLUG.test(String(pi.slug ?? ""))) continue;
+      const slug = String(pi.slug ?? "");
       const ramGb = specNum(specs, "ram");
       const storage = specs.find((s: any) => s?.type === "storage")?.title ?? "";
       let diskGb = specNum(specs, "storage");
       if (/\bTB\b/i.test(String(storage))) diskGb *= 1024;
       const cpu = specNum(specs, "cpu");
       if (!cpu || !ramGb) continue;
+      // Tier 0 = known API-orderable Cloud VPS families with full spec sheets.
+      // Tier 1 = any other in-stock VPS product; used only as a fallback so the
+      // form never ends up empty (createServer walks candidates anyway).
+      const tier =
+        specs.length >= 5 && /^cloud vps/i.test(name) && API_ORDERABLE_VPS_SLUG.test(slug) ? 0 : 1;
       out.push({
         id: pi.itemId,
         cpu_cores: cpu,
@@ -143,11 +144,17 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
         disk_gb: diskGb || 50,
         monthly_usd: (pi.price ?? []).find((x: any) => x.currency === "USD")?.amount ?? 0,
         family: name || pi.itemId,
+        _tier: tier,
       });
     }
     if (r._pagination && page >= (r._pagination.totalPages ?? 1)) break;
   }
-  const plans = out.filter((p) => p.monthly_usd > 0).sort((a, b) => a.monthly_usd - b.monthly_usd);
+  const priced = out.filter((p) => p.monthly_usd > 0);
+  const strict = priced.filter((p) => p._tier === 0);
+  const chosen = strict.length ? strict : priced;
+  const plans: InstanceType[] = chosen
+    .map(({ _tier, ...p }) => p)
+    .sort((a, b) => a.monthly_usd - b.monthly_usd);
 
   if (!plans.length) {
     throw new Error("Contabo returned no VPS products that can be ordered through its API.");
@@ -155,6 +162,7 @@ async function fetchLivePlans(): Promise<InstanceType[]> {
   planCache = { at: Date.now(), plans };
   return plans;
 }
+
 
 async function getPlans(): Promise<InstanceType[]> {
   return fetchLivePlans();
@@ -248,7 +256,15 @@ export const contaboAdapter: CloudProvider = {
   async createServer(req: ProvisionRequest): Promise<ProvisionResult> {
     // Only order SKUs Contabo currently lists as available for this account —
     // stale/legacy ids fail with "Product <id> is not available".
-    const plans = (await getPlans()).filter((p) => !UNAVAILABLE_SKUS.has(p.id));
+    const all = await getPlans();
+    let plans = all.filter((p) => !UNAVAILABLE_SKUS.has(p.id));
+    if (!plans.length) {
+      // Everything got blacklisted by earlier attempts — start over rather than
+      // telling the user nothing is orderable.
+      UNAVAILABLE_SKUS.clear();
+      planCache = null;
+      plans = await getPlans();
+    }
     const requested = req.template_params?.plan as string | undefined;
     const bySpec = plans
       .filter((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024))
