@@ -51,6 +51,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
+import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
+import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
 import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 import { Route as CustomersNewRouteImport } from './routes/customers.new'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
@@ -59,6 +62,7 @@ import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
 import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -293,6 +297,21 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TicketsRoute,
 } as any)
+const TechopsEquipmentRoute = TechopsEquipmentRouteImport.update({
+  id: '/techops/equipment',
+  path: '/techops/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsDashboardRoute = TechopsDashboardRouteImport.update({
+  id: '/techops/dashboard',
+  path: '/techops/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsAlertsRoute = TechopsAlertsRouteImport.update({
+  id: '/techops/alerts',
+  path: '/techops/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesIdRoute = InvoicesIdRouteImport.update({
   id: '/invoices/$id',
   path: '/invoices/$id',
@@ -335,6 +354,11 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const TechopsJobsIdRoute = TechopsJobsIdRouteImport.update({
+  id: '/techops/jobs/$id',
+  path: '/techops/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
   id: '/c/$slug/$workspaceKey',
   path: '/c/$slug/$workspaceKey',
@@ -514,6 +538,9 @@ export interface FileRoutesByFullPath {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
+  '/techops/equipment': typeof TechopsEquipmentRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -521,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -589,12 +617,16 @@ export interface FileRoutesByTo {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
+  '/techops/equipment': typeof TechopsEquipmentRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -664,6 +696,9 @@ export interface FileRoutesById {
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
   '/invoices/$id': typeof InvoicesIdRoute
+  '/techops/alerts': typeof TechopsAlertsRoute
+  '/techops/dashboard': typeof TechopsDashboardRoute
+  '/techops/equipment': typeof TechopsEquipmentRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -671,6 +706,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
+  '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
@@ -741,6 +777,9 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
+    | '/techops/dashboard'
+    | '/techops/equipment'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -748,6 +787,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -816,12 +856,16 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
+    | '/techops/dashboard'
+    | '/techops/equipment'
     | '/tickets/$id'
     | '/cloud-ops'
     | '/customers'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -890,6 +934,9 @@ export interface FileRouteTypes {
     | '/customers/$accountNumber'
     | '/customers/new'
     | '/invoices/$id'
+    | '/techops/alerts'
+    | '/techops/dashboard'
+    | '/techops/equipment'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -897,6 +944,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
+    | '/techops/jobs/$id'
     | '/api/public/agent/provision'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
@@ -966,12 +1014,16 @@ export interface RootRouteChildren {
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
   CustomersNewRoute: typeof CustomersNewRoute
   InvoicesIdRoute: typeof InvoicesIdRoute
+  TechopsAlertsRoute: typeof TechopsAlertsRoute
+  TechopsDashboardRoute: typeof TechopsDashboardRoute
+  TechopsEquipmentRoute: typeof TechopsEquipmentRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicTestEmailsRoute: typeof ApiPublicTestEmailsRoute
   CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
+  TechopsJobsIdRoute: typeof TechopsJobsIdRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
@@ -1282,6 +1334,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
     }
+    '/techops/equipment': {
+      id: '/techops/equipment'
+      path: '/techops/equipment'
+      fullPath: '/techops/equipment'
+      preLoaderRoute: typeof TechopsEquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/dashboard': {
+      id: '/techops/dashboard'
+      path: '/techops/dashboard'
+      fullPath: '/techops/dashboard'
+      preLoaderRoute: typeof TechopsDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/alerts': {
+      id: '/techops/alerts'
+      path: '/techops/alerts'
+      fullPath: '/techops/alerts'
+      preLoaderRoute: typeof TechopsAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/$id': {
       id: '/invoices/$id'
       path: '/invoices/$id'
@@ -1336,6 +1409,13 @@ declare module '@tanstack/react-router' {
       path: '/.mcp/list-tools'
       fullPath: '/.mcp/list-tools'
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/jobs/$id': {
+      id: '/techops/jobs/$id'
+      path: '/techops/jobs/$id'
+      fullPath: '/techops/jobs/$id'
+      preLoaderRoute: typeof TechopsJobsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug/$workspaceKey': {
@@ -1598,12 +1678,16 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
   CustomersNewRoute: CustomersNewRoute,
   InvoicesIdRoute: InvoicesIdRoute,
+  TechopsAlertsRoute: TechopsAlertsRoute,
+  TechopsDashboardRoute: TechopsDashboardRoute,
+  TechopsEquipmentRoute: TechopsEquipmentRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicTestEmailsRoute: ApiPublicTestEmailsRoute,
   CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
+  TechopsJobsIdRoute: TechopsJobsIdRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
