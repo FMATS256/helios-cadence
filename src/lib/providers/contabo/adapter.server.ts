@@ -158,14 +158,15 @@ export const contaboAdapter: CloudProvider = {
     }
   },
 
-  async listInstanceTypes() { return CONTABO_PLANS; },
+  async listInstanceTypes() { return getPlans(); },
 
   async estimatePrice(req: ProvisionRequest): Promise<PriceEstimate> {
+    const plans = await getPlans();
     const plan =
-      CONTABO_PLANS.find((p) => p.id === (req.template_params?.plan as string)) ??
-      CONTABO_PLANS.find((p) =>
+      plans.find((p) => p.id === (req.template_params?.plan as string)) ??
+      plans.find((p) =>
         p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024),
-      ) ?? CONTABO_PLANS[0];
+      ) ?? plans[0];
     const backup = req.daily_backup ? plan.monthly_usd * 0.2 : 0;
     const total = round(plan.monthly_usd + backup);
     return {
@@ -180,11 +181,20 @@ export const contaboAdapter: CloudProvider = {
   },
 
   async createServer(req: ProvisionRequest): Promise<ProvisionResult> {
-    const plan =
-      (req.template_params?.plan as string) ??
-      CONTABO_PLANS.find((p) =>
-        p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024),
-      )?.id ?? "V78";
+    // Only order SKUs Contabo currently lists as available for this account —
+    // stale/legacy ids fail with "Product <id> is not available".
+    const plans = await getPlans();
+    const requested = req.template_params?.plan as string | undefined;
+    const bySpec = () =>
+      plans.find((p) => p.cpu_cores >= (req.cpu_cores ?? 1) && p.ram_mb >= (req.ram_mb ?? 1024)) ??
+      plans[0];
+    const match = (requested && plans.find((p) => p.id === requested)) || bySpec();
+    if (!match) throw new Error("No Contabo VPS products are currently available to order.");
+    if (requested && match.id !== requested) {
+      console.warn(`[contabo] product ${requested} unavailable — using ${match.id} (${match.family})`);
+    }
+    const plan = match.id;
+
 
     // Contabo's API expects `rootPassword` to be a numeric *secret id*, not the
     // password itself. Store the password (kept as a string, untouched) in the
