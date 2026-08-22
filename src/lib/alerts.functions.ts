@@ -73,7 +73,7 @@ export const alertAction = createServerFn({ method: "POST" })
       .from("ops_alerts").select("*").eq("id", data.id).single();
     if (exErr || !existing) throw new Error(exErr?.message ?? "Alert not found");
 
-    const patch: Record<string, any> = {};
+    const patch: any = {};
     const now = new Date().toISOString();
 
     if (data.action === "assign") {
@@ -159,7 +159,7 @@ export const saveAlertRule = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; threshold?: number | null; severity?: string; enabled?: boolean }) => input)
   .handler(async ({ data, context }) => {
     await requireStaff(context);
-    const patch: Record<string, any> = {};
+    const patch: any = {};
     if (data.threshold !== undefined) patch.threshold = data.threshold;
     if (data.severity) patch.severity = data.severity;
     if (data.enabled !== undefined) patch.enabled = data.enabled;
