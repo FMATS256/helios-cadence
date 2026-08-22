@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_rules: {
+        Row: {
+          comparator: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enabled: boolean
+          id: string
+          metric: string
+          name: string
+          notify_roles: string[]
+          severity: string
+          source: string
+          threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          comparator?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          metric: string
+          name: string
+          notify_roles?: string[]
+          severity?: string
+          source: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          comparator?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          metric?: string
+          name?: string
+          notify_roles?: string[]
+          severity?: string
+          source?: string
+          threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       asset_lifecycle_events: {
         Row: {
           asset_id: string
@@ -2194,6 +2242,269 @@ export type Database = {
           },
         ]
       }
+      job_checklist: {
+        Row: {
+          created_at: string
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          id: string
+          label: string
+          phase: string
+          position: number
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          label: string
+          phase?: string
+          position?: number
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          label?: string
+          phase?: string
+          position?: number
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checklist_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_equipment: {
+        Row: {
+          asset_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          inventory_item_id: string | null
+          notes: string | null
+          quantity: number
+          requirement_id: string | null
+          serial_numbers: string | null
+          status: string
+          stock_deducted: boolean
+          task_id: string
+          technician_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          requirement_id?: string | null
+          serial_numbers?: string | null
+          status?: string
+          stock_deducted?: boolean
+          task_id: string
+          technician_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          requirement_id?: string | null
+          serial_numbers?: string | null
+          status?: string
+          stock_deducted?: boolean
+          task_id?: string
+          technician_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_equipment_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_equipment_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_equipment_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "job_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_equipment_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          phase: string
+          storage_path: string
+          task_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          phase?: string
+          storage_path: string
+          task_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          phase?: string
+          storage_path?: string
+          task_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_photos_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_requirements: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          fulfilled: boolean
+          id: string
+          inventory_item_id: string | null
+          label: string
+          notes: string | null
+          quantity: number
+          task_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          fulfilled?: boolean
+          id?: string
+          inventory_item_id?: string | null
+          label: string
+          notes?: string | null
+          quantity?: number
+          task_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          fulfilled?: boolean
+          id?: string
+          inventory_item_id?: string | null
+          label?: string
+          notes?: string | null
+          quantity?: number
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_requirements_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_requirements_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_signoffs: {
+        Row: {
+          captured_by: string | null
+          id: string
+          notes: string | null
+          satisfaction: string | null
+          signature_data: string | null
+          signed_at: string
+          signed_by_name: string
+          signed_by_role: string | null
+          task_id: string
+        }
+        Insert: {
+          captured_by?: string | null
+          id?: string
+          notes?: string | null
+          satisfaction?: string | null
+          signature_data?: string | null
+          signed_at?: string
+          signed_by_name: string
+          signed_by_role?: string | null
+          task_id: string
+        }
+        Update: {
+          captured_by?: string | null
+          id?: string
+          notes?: string | null
+          satisfaction?: string | null
+          signature_data?: string | null
+          signed_at?: string
+          signed_by_name?: string
+          signed_by_role?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_signoffs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kb_articles: {
         Row: {
           author_id: string | null
@@ -2673,6 +2984,137 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ops_alert_events: {
+        Row: {
+          actor_id: string | null
+          alert_id: string
+          created_at: string
+          event_type: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          alert_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          alert_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "ops_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_alerts: {
+        Row: {
+          account_number: string | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assigned_to: string | null
+          created_at: string
+          customer_id: string | null
+          dedupe_key: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          metric_value: number | null
+          occurrences: number
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_id: string | null
+          severity: string
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          customer_id?: string | null
+          dedupe_key: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metric_value?: number | null
+          occurrences?: number
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string | null
+          severity?: string
+          source: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          customer_id?: string | null
+          dedupe_key?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metric_value?: number | null
+          occurrences?: number
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_alerts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_allocations: {
         Row: {
@@ -3731,15 +4173,26 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          installation_notes: string | null
           metadata: Json
+          network_config: string | null
           priority: string
+          report_sent_at: string | null
           requested_by: string | null
           scheduled_at: string | null
           service_type: string
+          signed_off_at: string | null
+          site_address: string | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
+          site_lat: number | null
+          site_lng: number | null
+          site_name: string | null
           started_at: string | null
           status: string
           subscription_id: string | null
           task_type: string
+          testing_notes: string | null
           ticket_id: string | null
           title: string
           updated_at: string
@@ -3755,15 +4208,26 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          installation_notes?: string | null
           metadata?: Json
+          network_config?: string | null
           priority?: string
+          report_sent_at?: string | null
           requested_by?: string | null
           scheduled_at?: string | null
           service_type?: string
+          signed_off_at?: string | null
+          site_address?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_name?: string | null
           started_at?: string | null
           status?: string
           subscription_id?: string | null
           task_type?: string
+          testing_notes?: string | null
           ticket_id?: string | null
           title: string
           updated_at?: string
@@ -3779,15 +4243,26 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          installation_notes?: string | null
           metadata?: Json
+          network_config?: string | null
           priority?: string
+          report_sent_at?: string | null
           requested_by?: string | null
           scheduled_at?: string | null
           service_type?: string
+          signed_off_at?: string | null
+          site_address?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
+          site_lat?: number | null
+          site_lng?: number | null
+          site_name?: string | null
           started_at?: string | null
           status?: string
           subscription_id?: string | null
           task_type?: string
+          testing_notes?: string | null
           ticket_id?: string | null
           title?: string
           updated_at?: string
