@@ -112,11 +112,13 @@ function NewServerPage() {
     queryKey: [provider, "images", form.region],
     queryFn: () => fnImages({ data: { provider, region: form.region } }),
     enabled: !!form.region,
+    retry: false,
   });
   const plans = useQuery({
     queryKey: [provider, "plans", form.region],
     queryFn: () => fnPlans({ data: { provider, region: form.region } }),
     enabled: !!form.region,
+    retry: false,
   });
 
   // Regions grouped by continent bucket.
