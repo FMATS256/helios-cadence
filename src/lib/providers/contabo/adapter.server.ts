@@ -275,45 +275,54 @@ export const contaboAdapter: CloudProvider = {
     const imageId = await resolveImageId(req.image, req.os);
 
     let lastErr: unknown;
-    // Contabo can list a product in /products that it refuses to order. Walk the
-    // candidates until one is accepted, remembering the dud SKUs for next time.
-    for (const cand of candidates.slice(0, 6)) {
-      const body: Record<string, unknown> = {
-        imageId,
-        productId: cand.id,
-        region: req.region,
-        period: 1,
-        displayName,
-        defaultUser: "root",
-      };
-      if (rootPasswordSecretId !== undefined) body.rootPassword = rootPasswordSecretId;
-      if (req.ssh_key && /^\d+$/.test(String(req.ssh_key))) body.sshKeys = [Number(req.ssh_key)];
-
-      try {
-        const r = await contabo<{ data: any[] }>("/compute/instances", {
-          method: "POST", body: JSON.stringify(body),
-        });
-        const inst = r.data?.[0] ?? {};
-        if (requested && cand.id !== requested) {
-          console.warn(`[contabo] product ${requested} unavailable — provisioned ${cand.id} (${cand.family})`);
-        }
-        return {
-          provider_server_id: String(inst.instanceId ?? ""),
-          public_ips: inst.ipConfig?.v4?.ip ? [inst.ipConfig.v4.ip] : [],
-          private_ips: [],
-          raw: inst,
+    // Contabo can list a product in /products that it refuses to order, and some
+    // SKUs are only offered on longer contract periods. Walk candidates x periods.
+    const PERIODS = [1, 3, 6, 12];
+    outer: for (const cand of candidates.slice(0, 6)) {
+      for (const period of PERIODS) {
+        const body: Record<string, unknown> = {
+          imageId,
+          productId: cand.id,
+          region: req.region,
+          period,
+          displayName,
+          defaultUser: "root",
         };
-      } catch (e) {
-        const msg = String((e as Error)?.message ?? "");
-        if (/is not available|out of stock|not orderable/i.test(msg)) {
-          UNAVAILABLE_SKUS.add(cand.id);
-          planCache = null; // force a fresh catalogue next time
+        if (rootPasswordSecretId !== undefined) body.rootPassword = rootPasswordSecretId;
+        if (req.ssh_key && /^\d+$/.test(String(req.ssh_key))) body.sshKeys = [Number(req.ssh_key)];
+
+        try {
+          const r = await contabo<{ data: any[] }>("/compute/instances", {
+            method: "POST", body: JSON.stringify(body),
+          });
+          const inst = r.data?.[0] ?? {};
+          if (requested && cand.id !== requested) {
+            console.warn(`[contabo] product ${requested} unavailable — provisioned ${cand.id} (${cand.family})`);
+          }
+          return {
+            provider_server_id: String(inst.instanceId ?? ""),
+            public_ips: inst.ipConfig?.v4?.ip ? [inst.ipConfig.v4.ip] : [],
+            private_ips: [],
+            raw: inst,
+          };
+        } catch (e) {
+          const msg = String((e as Error)?.message ?? "");
           lastErr = e;
-          continue;
+          // Period not offered for this SKU — try the next contract length.
+          if (/no offer was found/i.test(msg)) continue;
+          if (/is not available|out of stock|not orderable/i.test(msg)) {
+            UNAVAILABLE_SKUS.add(cand.id);
+            planCache = null; // force a fresh catalogue next time
+            continue outer;
+          }
+          throw e;
         }
-        throw e;
       }
+      // Every period failed for this SKU — skip it next time too.
+      UNAVAILABLE_SKUS.add(cand.id);
+      planCache = null;
     }
+
     throw new Error(
       `Contabo could not order any of the available VPS products right now (tried ${candidates
         .slice(0, 6)
