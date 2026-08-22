@@ -288,7 +288,8 @@ export const contaboAdapter: CloudProvider = {
     let lastErr: unknown;
     // Contabo can list a product in /products that it refuses to order, and some
     // SKUs are only offered on longer contract periods. Walk candidates x periods.
-    const PERIODS = [1, 3, 6, 12];
+    // Contabo only accepts these contract lengths on /compute/instances.
+    const PERIODS = [1, 12, 24];
     const attempted: string[] = [];
     outer: for (const cand of candidates) {
       attempted.push(cand.id);
@@ -322,7 +323,7 @@ export const contaboAdapter: CloudProvider = {
           const msg = String((e as Error)?.message ?? "");
           lastErr = e;
           // Period not offered for this SKU — try the next contract length.
-          if (/no offer was found/i.test(msg)) continue;
+          if (/no offer was found|the period must be/i.test(msg)) continue;
           if (/is not available|out of stock|not orderable|only available on the contabo website|cannot be ordered/i.test(msg)) {
             UNAVAILABLE_SKUS.add(cand.id);
             planCache = null; // force a fresh catalogue next time
