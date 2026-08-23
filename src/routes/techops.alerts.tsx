@@ -108,9 +108,9 @@ function AlertsPage() {
         cols={5}
         chips={[
           { label: "Critical", value: counts("critical"), color: "#dc2626" },
-          { label: "High", value: counts("high"), color: "#ea580c" },
-          { label: "Medium", value: counts("medium"), color: "#f59e0b", text: "#3b2600" },
-          { label: "Low", value: counts("low"), color: "#0ea5e9" },
+          { label: "Warning", value: counts("warning"), color: "#ea580c" },
+          { label: "Assigned", value: rows.filter((a: any) => a.assigned_to).length, color: "#7c3aed" },
+          { label: "Investigating", value: rows.filter((a: any) => a.status === "investigating").length, color: "#0ea5e9" },
           { label: "Total", value: rows.length, color: "#4f46e5" },
         ]}
       />
