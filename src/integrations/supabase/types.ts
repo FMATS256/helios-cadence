@@ -4007,6 +4007,127 @@ export type Database = {
           },
         ]
       }
+      security_incident_events: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          incident_id: string
+          note: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          incident_id: string
+          note?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          incident_id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_incidents: {
+        Row: {
+          account_number: string | null
+          affected_asset: string | null
+          assigned_to: string | null
+          category: string
+          contained_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          description: string | null
+          detected_at: string
+          id: string
+          impact: string | null
+          metadata: Json
+          reference: string | null
+          remediation: string | null
+          resolved_at: string | null
+          root_cause: string | null
+          severity: string
+          source: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          affected_asset?: string | null
+          assigned_to?: string | null
+          category?: string
+          contained_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          impact?: string | null
+          metadata?: Json
+          reference?: string | null
+          remediation?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: string
+          source?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          affected_asset?: string | null
+          assigned_to?: string | null
+          category?: string
+          contained_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          detected_at?: string
+          id?: string
+          impact?: string | null
+          metadata?: Json
+          reference?: string | null
+          remediation?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: string
+          source?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_incidents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_backups: {
         Row: {
           created_at: string
@@ -4811,6 +4932,39 @@ export type Database = {
           granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_step_up_grants: {
+        Row: {
+          expires_at: string
+          granted_at: string
+          id: string
+          ip: string | null
+          method: string
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at: string
+          granted_at?: string
+          id?: string
+          ip?: string | null
+          method?: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          granted_at?: string
+          id?: string
+          ip?: string | null
+          method?: string
+          revoked_at?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
