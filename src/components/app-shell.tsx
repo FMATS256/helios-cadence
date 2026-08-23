@@ -47,6 +47,15 @@ const siteNav: NavNode[] = [
     ],
   },
   {
+    title: "Technical Operations", url: "/techops/dashboard", icon: Wrench,
+    children: [
+      { title: "Technician Dashboard", url: "/techops/dashboard", icon: LayoutDashboard },
+      { title: "Jobs & Installations", url: "/work-orders", icon: Wrench },
+      { title: "Equipment Register", url: "/techops/equipment", icon: PackageCheck },
+      { title: "Alert Console", url: "/techops/alerts", icon: Siren },
+    ],
+  },
+  {
     title: "Network", url: "/monitoring", icon: Activity,
     children: [
       { title: "NOC Command Centre", url: "/noc", icon: ShieldCheck },
