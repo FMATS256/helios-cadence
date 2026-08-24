@@ -51,6 +51,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as TechopsVaultRouteImport } from './routes/techops.vault'
 import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
 import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
 import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
@@ -297,6 +298,11 @@ const TicketsIdRoute = TicketsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TicketsRoute,
 } as any)
+const TechopsVaultRoute = TechopsVaultRouteImport.update({
+  id: '/techops/vault',
+  path: '/techops/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TechopsEquipmentRoute = TechopsEquipmentRouteImport.update({
   id: '/techops/equipment',
   path: '/techops/equipment',
@@ -541,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -620,6 +627,7 @@ export interface FileRoutesByTo {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -699,6 +707,7 @@ export interface FileRoutesById {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -780,6 +789,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -859,6 +869,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops'
     | '/customers'
@@ -937,6 +948,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops/'
     | '/customers/'
@@ -1017,6 +1029,7 @@ export interface RootRouteChildren {
   TechopsAlertsRoute: typeof TechopsAlertsRoute
   TechopsDashboardRoute: typeof TechopsDashboardRoute
   TechopsEquipmentRoute: typeof TechopsEquipmentRoute
+  TechopsVaultRoute: typeof TechopsVaultRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -1333,6 +1346,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tickets/$id'
       preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof TicketsRoute
+    }
+    '/techops/vault': {
+      id: '/techops/vault'
+      path: '/techops/vault'
+      fullPath: '/techops/vault'
+      preLoaderRoute: typeof TechopsVaultRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/techops/equipment': {
       id: '/techops/equipment'
@@ -1681,6 +1701,7 @@ const rootRouteChildren: RootRouteChildren = {
   TechopsAlertsRoute: TechopsAlertsRoute,
   TechopsDashboardRoute: TechopsDashboardRoute,
   TechopsEquipmentRoute: TechopsEquipmentRoute,
+  TechopsVaultRoute: TechopsVaultRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
