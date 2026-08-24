@@ -119,7 +119,7 @@ export const vaultOverview = createServerFn({ method: "GET" })
     const [credsRes, logRes, profilesRes] = await Promise.all([
       context.supabase
         .from("credentials")
-        .select("id,name,credential_type,username,url,account_number,customer_id,expires_at,rotated_at,created_at,updated_at,tags,owner_id")
+        .select("id,name,credential_type,username,url,account_number,customer_id,expires_at,created_at,updated_at,tags,owner_id")
         .is("archived_at", null)
         .order("created_at", { ascending: false }),
       context.supabase
@@ -140,7 +140,7 @@ export const vaultOverview = createServerFn({ method: "GET" })
     const day = 86_400_000;
     const enriched = creds.map((c) => {
       const expMs = c.expires_at ? new Date(c.expires_at).getTime() : null;
-      const lastChange = new Date(c.rotated_at || c.updated_at || c.created_at).getTime();
+      const lastChange = new Date(c.updated_at || c.created_at).getTime();
       const ageDays = Math.floor((now - lastChange) / day);
       const expiresInDays = expMs === null ? null : Math.floor((expMs - now) / day);
       const hygiene =

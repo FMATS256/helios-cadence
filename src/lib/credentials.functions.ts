@@ -108,6 +108,17 @@ export const revealCredential = createServerFn({ method: "POST" })
       throw new Error("You do not have permission to reveal credentials.");
     }
 
+    // Step-up: reveals require a fresh password re-authentication grant.
+    const { data: grant } = await (context.supabase as any)
+      .from("vault_step_up_grants")
+      .select("id")
+      .eq("user_id", context.userId)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (!grant) throw new Error("Vault is locked — unlock it with your password to reveal secrets.");
+
     const { data: row, error } = await context.supabase
       .from("credentials")
       .select("id,name,customer_id,account_number,ciphertext,iv,auth_tag")
