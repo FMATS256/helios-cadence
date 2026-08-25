@@ -94,7 +94,7 @@ export const updateCredential = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const VAULT_ROLES = ["master_admin", "operations_manager", "cloud_engineer", "technical_support", "cyber_security"];
+
 
 export const revealCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
