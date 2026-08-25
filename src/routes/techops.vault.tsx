@@ -85,13 +85,14 @@ function VaultPage() {
 
   const stats = data?.stats ?? { total: 0, expired: 0, expiring: 0, stale: 0, reveals7d: 0 };
   const unlocked = !!session?.stepUpActive;
+  const creds = (data?.credentials ?? []) as any[];
 
   return (
     <PageShell>
       <SectionHeader
-        icon={KeyRound}
+        eyebrow="Technical Operations"
         title="Credential Vault"
-        subtitle={
+        description={
           session?.canReveal
             ? unlocked
               ? `Unlocked until ${new Date(session.stepUpExpiresAt).toLocaleTimeString()}`
@@ -125,7 +126,7 @@ function VaultPage() {
         ]}
       />
 
-      <Tabs defaultValue="credentials" className="mt-6">
+      <Tabs defaultValue="credentials">
         <TabsList>
           <TabsTrigger value="credentials">Credentials</TabsTrigger>
           <TabsTrigger value="hygiene">Hygiene</TabsTrigger>
@@ -133,23 +134,20 @@ function VaultPage() {
         </TabsList>
 
         <TabsContent value="credentials" className="mt-4">
-          <DetailCard title="Vault entries">
+          <DetailCard title="Vault entries" padded={false}>
             <DataGrid
               loading={isLoading}
-              rows={(data?.credentials ?? []) as any[]}
+              rows={creds}
               columns={[
-                { key: "name", header: "Name" },
-                { key: "credential_type", header: "Type" },
-                { key: "username", header: "Username", render: (r: any) => r.username ?? "—" },
-                { key: "account_number", header: "Account", render: (r: any) => r.account_number ?? "—" },
+                { header: "Name", cell: (r: any) => <span className="font-medium">{r.name}</span> },
+                { header: "Type", cell: (r: any) => r.credential_type ?? "—" },
+                { header: "Username", cell: (r: any) => r.username ?? "—" },
+                { header: "Account", cell: (r: any) => r.account_number ?? "—" },
+                { header: "Hygiene", cell: (r: any) => <StatusBadge tone={hygieneTone(r.hygiene) as any}>{r.hygiene}</StatusBadge> },
+                { header: "Expires", cell: (r: any) => shortDate(r.expires_at) },
                 {
-                  key: "hygiene", header: "Hygiene",
-                  render: (r: any) => <StatusBadge tone={hygieneTone(r.hygiene) as any}>{r.hygiene}</StatusBadge>,
-                },
-                { key: "expires_at", header: "Expires", render: (r: any) => shortDate(r.expires_at) },
-                {
-                  key: "actions", header: "",
-                  render: (r: any) => (
+                  header: "", align: "right",
+                  cell: (r: any) => (
                     <Button
                       size="sm" variant="outline"
                       disabled={!unlocked || reveal.isPending}
@@ -166,17 +164,14 @@ function VaultPage() {
         </TabsContent>
 
         <TabsContent value="hygiene" className="mt-4">
-          <DetailCard title="Needs rotation">
+          <DetailCard title="Needs rotation" padded={false}>
             <DataGrid
-              rows={((data?.credentials ?? []) as any[]).filter((c) => c.hygiene !== "healthy")}
+              rows={creds.filter((c) => c.hygiene !== "healthy")}
               columns={[
-                { key: "name", header: "Name" },
-                { key: "hygiene", header: "Issue", render: (r: any) => <StatusBadge tone={hygieneTone(r.hygiene) as any}>{r.hygiene}</StatusBadge> },
-                { key: "ageDays", header: "Age (days)" },
-                {
-                  key: "expiresInDays", header: "Expires in",
-                  render: (r: any) => (r.expiresInDays === null ? "—" : `${r.expiresInDays} d`),
-                },
+                { header: "Name", cell: (r: any) => <span className="font-medium">{r.name}</span> },
+                { header: "Issue", cell: (r: any) => <StatusBadge tone={hygieneTone(r.hygiene) as any}>{r.hygiene}</StatusBadge> },
+                { header: "Age (days)", cell: (r: any) => r.ageDays },
+                { header: "Expires in", cell: (r: any) => (r.expiresInDays === null ? "—" : `${r.expiresInDays} d`) },
               ]}
               empty={<EmptyState icon={ShieldAlert} title="All credentials healthy" description="Nothing expired, expiring or stale." />}
             />
@@ -184,14 +179,14 @@ function VaultPage() {
         </TabsContent>
 
         <TabsContent value="audit" className="mt-4">
-          <DetailCard title="Reveal & access audit">
+          <DetailCard title="Reveal & access audit" padded={false}>
             <DataGrid
               rows={(data?.accessLog ?? []) as any[]}
               columns={[
-                { key: "created_at", header: "When", render: (r: any) => new Date(r.created_at).toLocaleString() },
-                { key: "actor", header: "Who" },
-                { key: "credential", header: "Credential" },
-                { key: "action", header: "Action" },
+                { header: "When", cell: (r: any) => new Date(r.created_at).toLocaleString() },
+                { header: "Who", cell: (r: any) => r.actor },
+                { header: "Credential", cell: (r: any) => r.credential },
+                { header: "Action", cell: (r: any) => r.action },
               ]}
               empty={<EmptyState icon={Eye} title="No access recorded" description="Every reveal is logged here." />}
             />
