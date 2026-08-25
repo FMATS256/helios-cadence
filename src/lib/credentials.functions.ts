@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { VAULT_ROLES } from "./vault.shared";
 
 export const createCredential = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
