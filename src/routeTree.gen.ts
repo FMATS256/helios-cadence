@@ -52,6 +52,7 @@ import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
 import { Route as TechopsVaultRouteImport } from './routes/techops.vault'
+import { Route as TechopsSocRouteImport } from './routes/techops.soc'
 import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
 import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
 import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
@@ -303,6 +304,11 @@ const TechopsVaultRoute = TechopsVaultRouteImport.update({
   path: '/techops/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TechopsSocRoute = TechopsSocRouteImport.update({
+  id: '/techops/soc',
+  path: '/techops/soc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TechopsEquipmentRoute = TechopsEquipmentRouteImport.update({
   id: '/techops/equipment',
   path: '/techops/equipment',
@@ -547,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
@@ -627,6 +634,7 @@ export interface FileRoutesByTo {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
@@ -707,6 +715,7 @@ export interface FileRoutesById {
   '/techops/alerts': typeof TechopsAlertsRoute
   '/techops/dashboard': typeof TechopsDashboardRoute
   '/techops/equipment': typeof TechopsEquipmentRoute
+  '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
@@ -789,6 +798,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/soc'
     | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops/'
@@ -869,6 +879,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/soc'
     | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops'
@@ -948,6 +959,7 @@ export interface FileRouteTypes {
     | '/techops/alerts'
     | '/techops/dashboard'
     | '/techops/equipment'
+    | '/techops/soc'
     | '/techops/vault'
     | '/tickets/$id'
     | '/cloud-ops/'
@@ -1029,6 +1041,7 @@ export interface RootRouteChildren {
   TechopsAlertsRoute: typeof TechopsAlertsRoute
   TechopsDashboardRoute: typeof TechopsDashboardRoute
   TechopsEquipmentRoute: typeof TechopsEquipmentRoute
+  TechopsSocRoute: typeof TechopsSocRoute
   TechopsVaultRoute: typeof TechopsVaultRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -1352,6 +1365,13 @@ declare module '@tanstack/react-router' {
       path: '/techops/vault'
       fullPath: '/techops/vault'
       preLoaderRoute: typeof TechopsVaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/soc': {
+      id: '/techops/soc'
+      path: '/techops/soc'
+      fullPath: '/techops/soc'
+      preLoaderRoute: typeof TechopsSocRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/techops/equipment': {
@@ -1701,6 +1721,7 @@ const rootRouteChildren: RootRouteChildren = {
   TechopsAlertsRoute: TechopsAlertsRoute,
   TechopsDashboardRoute: TechopsDashboardRoute,
   TechopsEquipmentRoute: TechopsEquipmentRoute,
+  TechopsSocRoute: TechopsSocRoute,
   TechopsVaultRoute: TechopsVaultRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
