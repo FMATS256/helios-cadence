@@ -1,16 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-const STEP_UP_MINUTES = 10;
-
-/** Roles allowed to reveal secret material. */
-export const VAULT_ROLES = [
-  "master_admin",
-  "operations_manager",
-  "cloud_engineer",
-  "technical_support",
-  "cyber_security",
-];
+import { VAULT_ROLES } from "./vault.shared";
+import { STEP_UP_MINUTES } from "./vault.shared";
 
 /** Returns the caller's active step-up grant (if any) plus vault permission. */
 export const vaultSession = createServerFn({ method: "GET" })
