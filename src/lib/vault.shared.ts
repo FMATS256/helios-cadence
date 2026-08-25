@@ -6,3 +6,6 @@ export const VAULT_ROLES = [
   "technical_support",
   "cyber_security",
 ];
+
+/** Minutes an unlock (step-up) grant remains valid. */
+export const STEP_UP_MINUTES = 10;
