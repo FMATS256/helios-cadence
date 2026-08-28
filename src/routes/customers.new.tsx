@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { createCustomerRecord, createOnboardingInvoice } from "@/lib/ops.functions";
+import { createCustomerRecord, createOnboardingInvoice, listAccountManagers } from "@/lib/ops.functions";
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -41,6 +41,7 @@ function OnboardingWizard() {
   const catalogFn = useServerFn(listCatalog);
   const assignFn = useServerFn(assignServices);
   const invoiceFn = useServerFn(createOnboardingInvoice);
+  const managersFn = useServerFn(listAccountManagers);
 
   const [step, setStep] = useState(0);
   const [accountType, setAccountType] = useState<AccountType>("corporate");
@@ -53,6 +54,12 @@ function OnboardingWizard() {
   const [markPaid, setMarkPaid] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentRef, setPaymentRef] = useState("");
+  const [accountManagerId, setAccountManagerId] = useState<string>("auto");
+
+  const { data: managers = [] } = useQuery({
+    queryKey: ["account-managers"],
+    queryFn: async () => (await managersFn()) as Array<{ id: string; full_name: string | null; email: string | null; role_label: string; customer_count: number }>,
+  });
 
   const { data: catalog = [] } = useQuery({
     queryKey: ["catalog-active"],
@@ -102,6 +109,7 @@ function OnboardingWizard() {
           website: company.website,
           status: company.status,
           notes: company.notes,
+          account_manager_id: accountManagerId === "auto" ? null : accountManagerId,
         },
       });
       const customerId = (cust as any).id;
@@ -242,6 +250,21 @@ function OnboardingWizard() {
               {isCorporate && (
                 <div className="space-y-2 md:col-span-2"><Label>Website</Label><Input value={company.website} onChange={(e) => setCompany({ ...company, website: e.target.value })} placeholder="https://" /></div>
               )}
+              <div className="space-y-2 md:col-span-2">
+                <Label>Account manager</Label>
+                <Select value={accountManagerId} onValueChange={setAccountManagerId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Assign automatically</SelectItem>
+                    {managers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {(m.full_name || m.email) ?? "Unnamed"} · {m.role_label} ({m.customer_count})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Left on automatic, the client is assigned to you if you are an account manager, otherwise to the least-loaded manager for this account type.</p>
+              </div>
               <div className="space-y-2 md:col-span-2"><Label>Internal notes</Label><Textarea rows={3} value={company.notes} onChange={(e) => setCompany({ ...company, notes: e.target.value })} placeholder="Anything the account manager should know…" /></div>
             </div>
           )}
