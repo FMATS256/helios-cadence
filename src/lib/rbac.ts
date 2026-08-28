@@ -6,29 +6,29 @@ import type { AppRole } from "@/lib/admin.functions";
  */
 export const PERMISSIONS = {
   // Customers
-  "customers.create": ["operations_manager", "sales", "account_manager"],
-  "customers.edit":   ["operations_manager", "sales", "account_manager"],
+  "customers.create": ["operations_manager", "sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
+  "customers.edit":   ["operations_manager", "sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "customers.delete": [],
 
   // Service catalog
-  "catalog.view":     ["operations_manager", "finance", "sales", "account_manager", "customer_success"],
+  "catalog.view":     ["operations_manager", "finance", "sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "customer_success"],
   "catalog.manage":   ["operations_manager", "finance"],
 
   // Services / subscriptions on a customer
-  "services.assign": ["operations_manager", "finance", "sales", "account_manager"],
-  "services.remove": ["operations_manager", "finance", "account_manager"],
+  "services.assign": ["operations_manager", "finance", "sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
+  "services.remove": ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
 
   // Billing
-  "billing.view":    ["operations_manager", "finance", "account_manager"],
+  "billing.view":    ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "billing.manage":  ["operations_manager", "finance"],
-  "payments.record": ["operations_manager", "finance", "account_manager"],
+  "payments.record": ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
 
   // Tickets
-  "tickets.view":    ["operations_manager", "technical_support", "customer_success", "account_manager", "noc"],
+  "tickets.view":    ["operations_manager", "technical_support", "customer_success", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "noc"],
   "tickets.manage":  ["operations_manager", "technical_support", "customer_success", "noc"],
 
   // Cloud
-  "cloud.view":      ["operations_manager", "cloud_engineer", "technical_support", "account_manager", "noc"],
+  "cloud.view":      ["operations_manager", "cloud_engineer", "technical_support", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "noc"],
   "cloud.manage":    ["operations_manager", "cloud_engineer"],
 
   // Credentials vault
