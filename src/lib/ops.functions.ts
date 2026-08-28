@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const listAccountManagers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Staff role required");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { listAccountManagerRecords } = await import("./account-managers.server");
+    return listAccountManagerRecords(supabaseAdmin);
+  });
+
 export const createCustomerRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: {
@@ -13,6 +23,7 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
     website?: string;
     status?: string;
     notes?: string;
+    account_manager_id?: string | null;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: hasRole, error: roleError } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
@@ -21,6 +32,13 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
     if (!data.company_name?.trim()) throw new Error("Name is required");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { resolveAccountManager } = await import("./account-managers.server");
+    const manager = await resolveAccountManager(supabaseAdmin, {
+      explicitId: data.account_manager_id ?? null,
+      creatorId: context.userId,
+      accountType: data.account_type || "corporate",
+    });
+
     const { data: row, error } = await supabaseAdmin
       .from("customers")
       .insert({
@@ -33,6 +51,7 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
         website: data.website?.trim() || null,
         status: data.status || "active",
         notes: data.notes?.trim() || null,
+        account_manager_id: manager?.id ?? null,
         created_by: context.userId,
       } as any)
       .select("*")
@@ -41,14 +60,14 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
 
     if (row.primary_email) {
       const { notify } = await import("./notify.server");
-      const { data: manager } = await supabaseAdmin
-        .from("profiles").select("full_name, email, phone").eq("id", context.userId).maybeSingle();
       void notify("welcome", row.primary_email, {
         companyName: row.company_name,
+        recipientTitle: row.title,
         accountNumber: row.account_number,
-        accountManagerName: (manager as any)?.full_name,
-        accountManagerEmail: (manager as any)?.email,
-        accountManagerPhone: (manager as any)?.phone,
+        accountManagerName: manager?.full_name ?? undefined,
+        accountManagerEmail: manager?.email ?? undefined,
+        accountManagerPhone: manager?.phone,
+        accountManagerRole: manager?.role_label,
         services: [],
       }, `welcome-${row.id}`);
     }
@@ -59,18 +78,19 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
       account_number: row.account_number,
       event_type: "customer_created",
       title: `Customer ${row.company_name} created`,
-      description: `Account ${row.account_number} · ${row.account_type}`,
+      description: `Account ${row.account_number} · ${row.account_type}${manager ? ` · Owned by ${manager.full_name ?? manager.email}` : ""}`,
       module: "customers",
       entity_type: "customer",
       entity_id: row.id,
-      new_value: { company_name: row.company_name, status: row.status, account_type: row.account_type },
+      new_value: { company_name: row.company_name, status: row.status, account_type: row.account_type, account_manager_id: manager?.id ?? null },
       major: true,
       actor_id: context.userId,
       actor_email: context.claims?.email ?? null,
     });
 
-    return row;
+    return { ...row, account_manager: manager ?? null };
   });
+
 
 export const createOnboardingInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
