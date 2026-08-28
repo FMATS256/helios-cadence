@@ -10,6 +10,7 @@ interface Props {
   accountManagerName?: string
   accountManagerEmail?: string
   accountManagerPhone?: string
+  accountManagerRole?: string
   services?: string[]
   portalUrl?: string
 }
@@ -21,6 +22,7 @@ export const WelcomeEmail = ({
   accountManagerName,
   accountManagerEmail,
   accountManagerPhone,
+  accountManagerRole,
   services = [],
   portalUrl = BRAND.siteUrl,
 }: Props) => (
@@ -47,6 +49,7 @@ export const WelcomeEmail = ({
       <Section style={styles.card}>
         <Text style={styles.cardTitle}>Your Account Manager</Text>
         <DetailRow label="Name" value={accountManagerName} />
+        {accountManagerRole ? <DetailRow label="Role" value={accountManagerRole} /> : null}
         <DetailRow label="Email" value={accountManagerEmail} />
         <DetailRow label="Phone" value={accountManagerPhone} />
       </Section>
@@ -83,7 +86,8 @@ export const template = {
     accountNumber: '10457',
     accountManagerName: 'Farai Matare',
     accountManagerEmail: 'farai@imtsolutions.co.zw',
-    accountManagerPhone: '+263 77 000 0000',
+    accountManagerRole: 'Corporate Account Manager',
+    accountManagerPhone: '+263 86 12 004321',
     services: ['Microsoft 365 Business Standard × 10', 'Managed Cloud VPS', 'Kaspersky Endpoint Security'],
     portalUrl: BRAND.siteUrl + '/portal',
   },

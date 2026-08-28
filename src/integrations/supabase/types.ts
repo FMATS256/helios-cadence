@@ -5690,6 +5690,9 @@ export type Database = {
         | "customer_success"
         | "read_only"
         | "custom"
+        | "corporate_account_manager"
+        | "customer_account_manager"
+        | "key_account_manager"
       workspace_role: "owner" | "admin" | "developer" | "viewer"
     }
     CompositeTypes: {
@@ -5833,6 +5836,9 @@ export const Constants = {
         "customer_success",
         "read_only",
         "custom",
+        "corporate_account_manager",
+        "customer_account_manager",
+        "key_account_manager",
       ],
       workspace_role: ["owner", "admin", "developer", "viewer"],
     },

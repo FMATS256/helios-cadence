@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ROLES = [
   "master_admin","operations_manager","finance","sales","account_manager",
+  "corporate_account_manager","customer_account_manager","key_account_manager",
   "technical_support","cloud_engineer","cyber_security","noc","inventory",
   "procurement","customer_success","read_only","custom"
 ] as const;

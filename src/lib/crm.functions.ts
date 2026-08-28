@@ -119,8 +119,15 @@ export const convertLeadToCustomer = createServerFn({ method: "POST" })
     const { data: acct, error: acctErr } = await supabaseAdmin.rpc("gen_customer_account_number");
     if (acctErr) throw new Error(acctErr.message);
 
+    const { resolveAccountManager } = await import("./account-managers.server");
+    const manager = await resolveAccountManager(supabaseAdmin, {
+      creatorId: context.userId,
+      accountType: "corporate",
+    });
+
     const { data: customer, error: custErr } = await supabaseAdmin.from("customers").insert({
       account_number: acct,
+      account_manager_id: manager?.id ?? null,
       company_name: lead.company_name,
       primary_email: lead.email,
       primary_phone: lead.phone,
