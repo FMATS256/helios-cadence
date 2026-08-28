@@ -195,6 +195,10 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
     if (!customerId || customerId === "__walkin__") {
       const name = data.walk_in_name?.trim();
       if (!name) throw new Error("Walk-in client name is required");
+      const { resolveAccountManager } = await import("./account-managers.server");
+      const walkInManager = await resolveAccountManager(supabaseAdmin, {
+        creatorId: context.userId, accountType: "personal",
+      });
       const { data: customer, error: customerError } = await supabaseAdmin
         .from("customers")
         .insert({
@@ -204,6 +208,7 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
           primary_phone: data.walk_in_phone?.trim() || null,
           status: "active",
           notes: "Created automatically while recording a walk-in payment.",
+          account_manager_id: walkInManager?.id ?? null,
           created_by: context.userId,
         })
         .select("id,account_number")
