@@ -21,6 +21,8 @@ import {
   Cloud, Globe, HardDrive, Database, Satellite, PhoneCall, Mail as MailIcon, Package as PackageIcon,
   ShieldAlert, LifeBuoy as SupportIcon, Boxes, ArrowRight,
 } from "lucide-react";
+import { amCode, amLabel } from "@/lib/account-managers.shared";
+import { listAccountManagers } from "@/lib/ops.functions";
 import {
   getCustomer360, generateInvoiceForSubscription, manageSubscription,
   updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder,
@@ -179,6 +181,17 @@ function Customer360() {
   });
 
   const customer = view?.customer;
+
+  const fetchManagers = useServerFn(listAccountManagers);
+  const { data: amRecords = [] } = useQuery({
+    queryKey: ["account-managers"],
+    enabled: !!user,
+    queryFn: () => fetchManagers(),
+  });
+  const accountManager = useMemo(
+    () => (amRecords as any[]).find((m) => m.id === (customer as any)?.account_manager_id) ?? null,
+    [amRecords, customer],
+  );
 
   // Contacts / branches / notes / communications now flow from the single aggregation.
   const contacts = (view as any)?.contacts ?? [];
@@ -484,6 +497,7 @@ function Customer360() {
               </span>
             </div>
             <div className="w-full mt-5 pt-4 border-t border-border grid grid-cols-2 gap-y-2 text-left text-xs">
+              <MetaRow label="Account Manager" value={accountManager ? `${amCode(accountManager)} · ${accountManager.full_name || accountManager.email}` : "Unassigned"} />
               <MetaRow label="Account Type" value={(customer as any).account_type || "Regular"} pill />
               <MetaRow label="Group" value={tier} />
               <MetaRow label="Zone" value={(customer as any).zone || "N/A"} />
