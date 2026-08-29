@@ -75,15 +75,16 @@ function toCsv(rows: Row[], cols: ColKey[]) {
 /* ---------------- grouped data panel ---------------- */
 
 function DataPanel({
-  title, rows, industries,
-}: { title: string; rows: Row[]; industries: string[] }) {
+  title, rows, industries, managers,
+}: { title: string; rows: Row[]; industries: string[]; managers: string[] }) {
   const [openGroup, setOpenGroup] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [industry, setIndustry] = useState("all");
   const [status, setStatus] = useState("all");
-  const [cols, setCols] = useState<ColKey[]>(["account_number", "company_name", "account_type", "industry", "services", "openTickets", "status"]);
+  const [manager, setManager] = useState("all");
+  const [cols, setCols] = useState<ColKey[]>(["account_number", "company_name", "account_type", "industry", "managerLabel", "services", "openTickets", "status"]);
   const [selected, setSelected] = useState<string[]>([]);
 
   const filtered = useMemo(() => {
@@ -91,11 +92,13 @@ function DataPanel({
     return rows.filter((r) => {
       if (industry !== "all" && (r.industry || "—") !== industry) return false;
       if (status !== "all" && r.status !== status) return false;
+      if (manager !== "all" && r.managerLabel !== manager) return false;
       if (!v) return true;
-      return [r.company_name, r.account_number, r.industry, r.primary_email, r.primary_phone]
+      return [r.company_name, r.account_number, r.industry, r.primary_email, r.primary_phone, r.managerLabel]
         .some((f) => (f || "").toLowerCase().includes(v));
     });
-  }, [rows, q, industry, status]);
+  }, [rows, q, industry, status, manager]);
+
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const current = Math.min(page, pages);
