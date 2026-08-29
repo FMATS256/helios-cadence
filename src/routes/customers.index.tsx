@@ -16,6 +16,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuChe
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Download, Columns3, Filter, ChevronDown, ChevronRight, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listAccountManagers } from "@/lib/ops.functions";
+import { amCode, amLabel } from "@/lib/account-managers.shared";
 
 type Customer = {
   id: string; account_number: string; company_name: string; industry: string | null;
@@ -406,12 +409,12 @@ function CustomersPage() {
             ) : (
               <>
                 <TabsContent value="accounts" className="m-0">
-                  <DataPanel title="Corporate" rows={corporate} industries={industries} />
-                  <DataPanel title="Individual" rows={individual} industries={industries} />
+                  <DataPanel title="Corporate" rows={corporate} industries={industries} managers={managerOptions} />
+                  <DataPanel title="Individual" rows={individual} industries={industries} managers={managerOptions} />
                 </TabsContent>
                 <TabsContent value="pipeline" className="m-0">
-                  <DataPanel title="Prospects" rows={prospects} industries={industries} />
-                  <DataPanel title="Suspended" rows={suspended} industries={industries} />
+                  <DataPanel title="Prospects" rows={prospects} industries={industries} managers={managerOptions} />
+                  <DataPanel title="Suspended" rows={suspended} industries={industries} managers={managerOptions} />
                 </TabsContent>
               </>
             )}
