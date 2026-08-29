@@ -181,7 +181,18 @@ function DataPanel({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setIndustry("all"); setStatus("all"); }}>Reset</Button>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Account manager</Label>
+                    <Select value={manager} onValueChange={(v) => { setManager(v); setPage(1); }}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All managers</SelectItem>
+                        {managers.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setIndustry("all"); setStatus("all"); setManager("all"); }}>Reset</Button>
+
                 </PopoverContent>
               </Popover>
             </div>
