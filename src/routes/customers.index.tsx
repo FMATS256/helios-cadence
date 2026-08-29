@@ -16,6 +16,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuChe
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Download, Columns3, Filter, ChevronDown, ChevronRight, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listAccountManagers } from "@/lib/ops.functions";
+import { amCode, amLabel } from "@/lib/account-managers.shared";
 
 type Customer = {
   id: string; account_number: string; company_name: string; industry: string | null;
@@ -40,13 +43,21 @@ export const Route = createFileRoute("/customers/")({
 
 /* ---------------- column model ---------------- */
 
-type Row = Customer & { services: number; openTickets: number };
+type Row = Customer & {
+  services: number;
+  openTickets: number;
+  account_manager_id?: string | null;
+  managerCode: string;
+  managerName: string;
+  managerLabel: string;
+};
 
 const COLUMNS = [
   { key: "account_number", label: "Account #" },
   { key: "company_name", label: "Name" },
   { key: "account_type", label: "Type" },
   { key: "industry", label: "Industry" },
+  { key: "managerLabel", label: "Account Manager" },
   { key: "services", label: "Services" },
   { key: "openTickets", label: "Open Tickets" },
   { key: "primary_email", label: "Email" },
@@ -54,6 +65,7 @@ const COLUMNS = [
   { key: "status", label: "Status" },
 ] as const;
 type ColKey = (typeof COLUMNS)[number]["key"];
+
 
 function toCsv(rows: Row[], cols: ColKey[]) {
   const head = COLUMNS.filter((c) => cols.includes(c.key)).map((c) => c.label);
@@ -66,15 +78,16 @@ function toCsv(rows: Row[], cols: ColKey[]) {
 /* ---------------- grouped data panel ---------------- */
 
 function DataPanel({
-  title, rows, industries,
-}: { title: string; rows: Row[]; industries: string[] }) {
+  title, rows, industries, managers,
+}: { title: string; rows: Row[]; industries: string[]; managers: string[] }) {
   const [openGroup, setOpenGroup] = useState(true);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [industry, setIndustry] = useState("all");
   const [status, setStatus] = useState("all");
-  const [cols, setCols] = useState<ColKey[]>(["account_number", "company_name", "account_type", "industry", "services", "openTickets", "status"]);
+  const [manager, setManager] = useState("all");
+  const [cols, setCols] = useState<ColKey[]>(["account_number", "company_name", "account_type", "industry", "managerLabel", "services", "openTickets", "status"]);
   const [selected, setSelected] = useState<string[]>([]);
 
   const filtered = useMemo(() => {
@@ -82,11 +95,13 @@ function DataPanel({
     return rows.filter((r) => {
       if (industry !== "all" && (r.industry || "—") !== industry) return false;
       if (status !== "all" && r.status !== status) return false;
+      if (manager !== "all" && r.managerLabel !== manager) return false;
       if (!v) return true;
-      return [r.company_name, r.account_number, r.industry, r.primary_email, r.primary_phone]
+      return [r.company_name, r.account_number, r.industry, r.primary_email, r.primary_phone, r.managerLabel]
         .some((f) => (f || "").toLowerCase().includes(v));
     });
-  }, [rows, q, industry, status]);
+  }, [rows, q, industry, status, manager]);
+
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const current = Math.min(page, pages);
@@ -169,7 +184,18 @@ function DataPanel({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setIndustry("all"); setStatus("all"); }}>Reset</Button>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Account manager</Label>
+                    <Select value={manager} onValueChange={(v) => { setManager(v); setPage(1); }}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All managers</SelectItem>
+                        {managers.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setIndustry("all"); setStatus("all"); setManager("all"); }}>Reset</Button>
+
                 </PopoverContent>
               </Popover>
             </div>
@@ -233,6 +259,15 @@ function DataPanel({
                     )}
                     {show("account_type") && <TableCell><Badge variant="secondary" className="capitalize">{r.account_type || "corporate"}</Badge></TableCell>}
                     {show("industry") && <TableCell className="text-muted-foreground">{r.industry || "Default"}</TableCell>}
+                    {show("managerLabel") && (
+                      <TableCell>
+                        <div className="flex flex-col leading-tight">
+                          <span className="font-mono text-[11px] font-semibold text-primary">{r.managerCode}</span>
+                          <span className="text-xs text-muted-foreground">{r.managerName}</span>
+                        </div>
+                      </TableCell>
+                    )}
+
                     {show("services") && <TableCell><Badge variant={r.services ? "default" : "secondary"} className="font-mono">{r.services}</Badge></TableCell>}
                     {show("openTickets") && <TableCell><Badge variant={r.openTickets ? "destructive" : "secondary"} className="font-mono">{r.openTickets}</Badge></TableCell>}
                     {show("primary_email") && <TableCell className="text-muted-foreground">{r.primary_email || "—"}</TableCell>}
@@ -296,25 +331,48 @@ function CustomersPage() {
     },
   });
 
+  const fetchManagers = useServerFn(listAccountManagers);
+  const { data: amRecords = [] } = useQuery({
+    queryKey: ["account-managers"],
+    queryFn: () => fetchManagers(),
+  });
+
   const enriched: Row[] = useMemo(() => {
     const s: Record<string, number> = {};
     for (const r of subs) s[r.customer_id] = (s[r.customer_id] || 0) + 1;
     const t: Record<string, number> = {};
     for (const r of tix) if (r.customer_id) t[r.customer_id] = (t[r.customer_id] || 0) + 1;
-    return rows.map((r) => ({ ...r, services: s[r.id] || 0, openTickets: t[r.id] || 0 }));
-  }, [rows, subs, tix]);
+    const m = new Map((amRecords as any[]).map((a) => [a.id, a]));
+    return rows.map((r) => {
+      const mgr = m.get((r as any).account_manager_id) ?? null;
+      return {
+        ...r,
+        services: s[r.id] || 0,
+        openTickets: t[r.id] || 0,
+        managerCode: amCode(mgr),
+        managerName: mgr ? (mgr.full_name || mgr.email || "Account Manager") : "Unassigned",
+        managerLabel: amLabel(mgr),
+      };
+    });
+  }, [rows, subs, tix, amRecords]);
 
   const industries = useMemo(
     () => Array.from(new Set(enriched.map((r) => r.industry || "—"))).sort(),
     [enriched],
   );
 
+  const managerOptions = useMemo(
+    () => Array.from(new Set(enriched.map((r) => r.managerLabel))).sort(),
+    [enriched],
+  );
+
   const initial = (q || "").trim();
   const scoped = initial
     ? enriched.filter((r) =>
-        [r.company_name, r.account_number, r.industry, r.primary_email].some((f) => (f || "").toLowerCase().includes(initial.toLowerCase())),
+        [r.company_name, r.account_number, r.industry, r.primary_email, r.managerLabel].some((f) => (f || "").toLowerCase().includes(initial.toLowerCase())),
       )
     : enriched;
+
 
   const corporate = scoped.filter((r) => (r.account_type || "corporate") !== "individual" && r.status !== "prospect" && r.status !== "suspended");
   const individual = scoped.filter((r) => (r.account_type || "") === "individual" && r.status !== "prospect" && r.status !== "suspended");
@@ -351,12 +409,12 @@ function CustomersPage() {
             ) : (
               <>
                 <TabsContent value="accounts" className="m-0">
-                  <DataPanel title="Corporate" rows={corporate} industries={industries} />
-                  <DataPanel title="Individual" rows={individual} industries={industries} />
+                  <DataPanel title="Corporate" rows={corporate} industries={industries} managers={managerOptions} />
+                  <DataPanel title="Individual" rows={individual} industries={industries} managers={managerOptions} />
                 </TabsContent>
                 <TabsContent value="pipeline" className="m-0">
-                  <DataPanel title="Prospects" rows={prospects} industries={industries} />
-                  <DataPanel title="Suspended" rows={suspended} industries={industries} />
+                  <DataPanel title="Prospects" rows={prospects} industries={industries} managers={managerOptions} />
+                  <DataPanel title="Suspended" rows={suspended} industries={industries} managers={managerOptions} />
                 </TabsContent>
               </>
             )}
