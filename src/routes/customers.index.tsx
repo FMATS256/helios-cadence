@@ -40,13 +40,21 @@ export const Route = createFileRoute("/customers/")({
 
 /* ---------------- column model ---------------- */
 
-type Row = Customer & { services: number; openTickets: number };
+type Row = Customer & {
+  services: number;
+  openTickets: number;
+  account_manager_id?: string | null;
+  managerCode: string;
+  managerName: string;
+  managerLabel: string;
+};
 
 const COLUMNS = [
   { key: "account_number", label: "Account #" },
   { key: "company_name", label: "Name" },
   { key: "account_type", label: "Type" },
   { key: "industry", label: "Industry" },
+  { key: "managerLabel", label: "Account Manager" },
   { key: "services", label: "Services" },
   { key: "openTickets", label: "Open Tickets" },
   { key: "primary_email", label: "Email" },
@@ -54,6 +62,7 @@ const COLUMNS = [
   { key: "status", label: "Status" },
 ] as const;
 type ColKey = (typeof COLUMNS)[number]["key"];
+
 
 function toCsv(rows: Row[], cols: ColKey[]) {
   const head = COLUMNS.filter((c) => cols.includes(c.key)).map((c) => c.label);
