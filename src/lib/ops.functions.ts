@@ -835,6 +835,55 @@ export const updateCustomerRecord = createServerFn({ method: "POST" })
     return row;
   });
 
+/** Reassign (or clear) the account manager who owns a customer. */
+export const assignAccountManager = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string; account_manager_id: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+    if (!hasRole) throw new Error("Your account needs a staff role to reassign customers.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { listAccountManagerRecords } = await import("./account-managers.server");
+
+    const managers = await listAccountManagerRecords(supabaseAdmin);
+    const next = data.account_manager_id
+      ? managers.find((m) => m.id === data.account_manager_id)
+      : null;
+    if (data.account_manager_id && !next) throw new Error("That user is not an account manager");
+
+    const { data: before } = await supabaseAdmin
+      .from("customers").select("id, account_number, account_manager_id").eq("id", data.customer_id).maybeSingle();
+    if (!before) throw new Error("Customer not found");
+    if (before.account_manager_id === (next?.id ?? null)) return { customer_id: before.id, account_manager: next ?? null };
+
+    const { error } = await supabaseAdmin
+      .from("customers")
+      .update({ account_manager_id: next?.id ?? null } as any)
+      .eq("id", data.customer_id);
+    if (error) throw new Error(error.message);
+
+    const previous = managers.find((m) => m.id === before.account_manager_id) ?? null;
+    const { recordCustomerEvent } = await import("./customer-events.server");
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: before.id,
+      account_number: before.account_number,
+      event_type: "customer_updated",
+      title: "Account manager reassigned",
+      description: `${previous?.full_name ?? previous?.email ?? "Unassigned"} → ${next?.full_name ?? next?.email ?? "Unassigned"}`,
+      module: "customers",
+      entity_type: "customer",
+      entity_id: before.id,
+      old_value: { account_manager_id: before.account_manager_id },
+      new_value: { account_manager_id: next?.id ?? null },
+      major: true,
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
+
+    return { customer_id: before.id, account_manager: next ?? null };
+  });
+
+
 /**
  * Suspend or resume ALL of a customer's active subscriptions and services in one call.
  * status: "suspended" pauses everything; "active" resumes paused entries.
