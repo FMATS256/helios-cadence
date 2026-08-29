@@ -328,25 +328,48 @@ function CustomersPage() {
     },
   });
 
+  const fetchManagers = useServerFn(listAccountManagers);
+  const { data: amRecords = [] } = useQuery({
+    queryKey: ["account-managers"],
+    queryFn: () => fetchManagers(),
+  });
+
   const enriched: Row[] = useMemo(() => {
     const s: Record<string, number> = {};
     for (const r of subs) s[r.customer_id] = (s[r.customer_id] || 0) + 1;
     const t: Record<string, number> = {};
     for (const r of tix) if (r.customer_id) t[r.customer_id] = (t[r.customer_id] || 0) + 1;
-    return rows.map((r) => ({ ...r, services: s[r.id] || 0, openTickets: t[r.id] || 0 }));
-  }, [rows, subs, tix]);
+    const m = new Map((amRecords as any[]).map((a) => [a.id, a]));
+    return rows.map((r) => {
+      const mgr = m.get((r as any).account_manager_id) ?? null;
+      return {
+        ...r,
+        services: s[r.id] || 0,
+        openTickets: t[r.id] || 0,
+        managerCode: amCode(mgr),
+        managerName: mgr ? (mgr.full_name || mgr.email || "Account Manager") : "Unassigned",
+        managerLabel: amLabel(mgr),
+      };
+    });
+  }, [rows, subs, tix, amRecords]);
 
   const industries = useMemo(
     () => Array.from(new Set(enriched.map((r) => r.industry || "—"))).sort(),
     [enriched],
   );
 
+  const managerOptions = useMemo(
+    () => Array.from(new Set(enriched.map((r) => r.managerLabel))).sort(),
+    [enriched],
+  );
+
   const initial = (q || "").trim();
   const scoped = initial
     ? enriched.filter((r) =>
-        [r.company_name, r.account_number, r.industry, r.primary_email].some((f) => (f || "").toLowerCase().includes(initial.toLowerCase())),
+        [r.company_name, r.account_number, r.industry, r.primary_email, r.managerLabel].some((f) => (f || "").toLowerCase().includes(initial.toLowerCase())),
       )
     : enriched;
+
 
   const corporate = scoped.filter((r) => (r.account_type || "corporate") !== "individual" && r.status !== "prospect" && r.status !== "suspended");
   const individual = scoped.filter((r) => (r.account_type || "") === "individual" && r.status !== "prospect" && r.status !== "suspended");
