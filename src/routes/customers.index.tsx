@@ -256,6 +256,15 @@ function DataPanel({
                     )}
                     {show("account_type") && <TableCell><Badge variant="secondary" className="capitalize">{r.account_type || "corporate"}</Badge></TableCell>}
                     {show("industry") && <TableCell className="text-muted-foreground">{r.industry || "Default"}</TableCell>}
+                    {show("managerLabel") && (
+                      <TableCell>
+                        <div className="flex flex-col leading-tight">
+                          <span className="font-mono text-[11px] font-semibold text-primary">{r.managerCode}</span>
+                          <span className="text-xs text-muted-foreground">{r.managerName}</span>
+                        </div>
+                      </TableCell>
+                    )}
+
                     {show("services") && <TableCell><Badge variant={r.services ? "default" : "secondary"} className="font-mono">{r.services}</Badge></TableCell>}
                     {show("openTickets") && <TableCell><Badge variant={r.openTickets ? "destructive" : "secondary"} className="font-mono">{r.openTickets}</Badge></TableCell>}
                     {show("primary_email") && <TableCell className="text-muted-foreground">{r.primary_email || "—"}</TableCell>}
