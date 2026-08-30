@@ -21,8 +21,8 @@ import {
   Cloud, Globe, HardDrive, Database, Satellite, PhoneCall, Mail as MailIcon, Package as PackageIcon,
   ShieldAlert, LifeBuoy as SupportIcon, Boxes, ArrowRight,
 } from "lucide-react";
-import { amCode } from "@/lib/account-managers.shared";
-import { listAccountManagers } from "@/lib/ops.functions";
+import { amCode, amLabel } from "@/lib/account-managers.shared";
+import { listAccountManagers, assignAccountManager } from "@/lib/ops.functions";
 import {
   getCustomer360, generateInvoiceForSubscription, manageSubscription,
   updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder,
@@ -183,6 +183,7 @@ function Customer360() {
   const customer = view?.customer;
 
   const fetchManagers = useServerFn(listAccountManagers);
+  const assignAm = useServerFn(assignAccountManager);
   const { data: amRecords = [] } = useQuery({
     queryKey: ["account-managers"],
     enabled: !!user,
@@ -192,6 +193,15 @@ function Customer360() {
     () => (amRecords as any[]).find((m) => m.id === (customer as any)?.account_manager_id) ?? null,
     [amRecords, customer],
   );
+  const reassignAm = useMutation({
+    mutationFn: (managerId: string) =>
+      assignAm({ data: { customer_id: customer!.id, account_manager_id: managerId === "__none__" ? null : managerId } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] });
+      toast.success(res?.account_manager ? `Assigned to ${amLabel(res.account_manager)}` : "Account manager removed");
+    },
+    onError: (e: any) => toast.error(e.message || "Could not reassign account manager"),
+  });
 
   // Contacts / branches / notes / communications now flow from the single aggregation.
   const contacts = (view as any)?.contacts ?? [];
