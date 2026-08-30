@@ -507,7 +507,25 @@ function Customer360() {
               </span>
             </div>
             <div className="w-full mt-5 pt-4 border-t border-border grid grid-cols-2 gap-y-2 text-left text-xs">
-              <MetaRow label="Account Manager" value={accountManager ? `${amCode(accountManager)} · ${accountManager.full_name || accountManager.email}` : "Unassigned"} />
+              <MetaRow label="Account Manager" value={
+                <Select
+                  value={accountManager?.id ?? "__none__"}
+                  onValueChange={(v) => reassignAm.mutate(v)}
+                  disabled={reassignAm.isPending}
+                >
+                  <SelectTrigger className="h-7 w-full text-[11px] px-2" onClick={(e) => e.stopPropagation()}>
+                    <SelectValue placeholder="Unassigned">
+                      {accountManager ? `${amCode(accountManager)} · ${accountManager.full_name || accountManager.email}` : "Unassigned"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Unassigned</SelectItem>
+                    {(amRecords as any[]).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{amLabel(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              } />
               <MetaRow label="Account Type" value={(customer as any).account_type || "Regular"} pill />
               <MetaRow label="Group" value={tier} />
               <MetaRow label="Zone" value={(customer as any).zone || "N/A"} />
