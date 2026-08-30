@@ -59,8 +59,11 @@ export const createCustomerRecord = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     if (row.primary_email) {
+      // Awaited, not fire-and-forget: in the serverless runtime an un-awaited
+      // promise can be killed once the response returns, silently dropping the
+      // welcome email. notify() never throws, so this cannot break onboarding.
       const { notify } = await import("./notify.server");
-      void notify("welcome", row.primary_email, {
+      await notify("welcome", row.primary_email, {
         companyName: row.company_name,
         recipientTitle: row.title,
         accountNumber: row.account_number,
