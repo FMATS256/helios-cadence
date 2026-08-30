@@ -21,8 +21,8 @@ import {
   Cloud, Globe, HardDrive, Database, Satellite, PhoneCall, Mail as MailIcon, Package as PackageIcon,
   ShieldAlert, LifeBuoy as SupportIcon, Boxes, ArrowRight,
 } from "lucide-react";
-import { amCode } from "@/lib/account-managers.shared";
-import { listAccountManagers } from "@/lib/ops.functions";
+import { amCode, amLabel } from "@/lib/account-managers.shared";
+import { listAccountManagers, assignAccountManager } from "@/lib/ops.functions";
 import {
   getCustomer360, generateInvoiceForSubscription, manageSubscription,
   updateCustomerRecord, setCustomerLifecycle, sendPaymentReminder,
@@ -183,6 +183,7 @@ function Customer360() {
   const customer = view?.customer;
 
   const fetchManagers = useServerFn(listAccountManagers);
+  const assignAm = useServerFn(assignAccountManager);
   const { data: amRecords = [] } = useQuery({
     queryKey: ["account-managers"],
     enabled: !!user,
@@ -192,6 +193,15 @@ function Customer360() {
     () => (amRecords as any[]).find((m) => m.id === (customer as any)?.account_manager_id) ?? null,
     [amRecords, customer],
   );
+  const reassignAm = useMutation({
+    mutationFn: (managerId: string) =>
+      assignAm({ data: { customer_id: customer!.id, account_manager_id: managerId === "__none__" ? null : managerId } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["customer-360", accountNumber] });
+      toast.success(res?.account_manager ? `Assigned to ${amLabel(res.account_manager)}` : "Account manager removed");
+    },
+    onError: (e: any) => toast.error(e.message || "Could not reassign account manager"),
+  });
 
   // Contacts / branches / notes / communications now flow from the single aggregation.
   const contacts = (view as any)?.contacts ?? [];
@@ -497,7 +507,25 @@ function Customer360() {
               </span>
             </div>
             <div className="w-full mt-5 pt-4 border-t border-border grid grid-cols-2 gap-y-2 text-left text-xs">
-              <MetaRow label="Account Manager" value={accountManager ? `${amCode(accountManager)} · ${accountManager.full_name || accountManager.email}` : "Unassigned"} />
+              <MetaRow label="Account Manager" value={
+                <Select
+                  value={accountManager?.id ?? "__none__"}
+                  onValueChange={(v) => reassignAm.mutate(v)}
+                  disabled={reassignAm.isPending}
+                >
+                  <SelectTrigger className="h-7 w-full text-[11px] px-2" onClick={(e) => e.stopPropagation()}>
+                    <SelectValue placeholder="Unassigned">
+                      {accountManager ? `${amCode(accountManager)} · ${accountManager.full_name || accountManager.email}` : "Unassigned"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Unassigned</SelectItem>
+                    {(amRecords as any[]).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{amLabel(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              } />
               <MetaRow label="Account Type" value={(customer as any).account_type || "Regular"} pill />
               <MetaRow label="Group" value={tier} />
               <MetaRow label="Zone" value={(customer as any).zone || "N/A"} />
