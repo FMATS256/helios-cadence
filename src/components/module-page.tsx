@@ -126,7 +126,9 @@ export function ModulePage<T extends { id: string }>({
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         }
+
       />
 
       <Card><CardContent className="p-0">
