@@ -34,12 +34,13 @@ interface ModulePageProps<T> {
   transformInsert?: (f: any) => any;
   onCreate?: (f: any) => Promise<unknown>;
   createDescription?: string;
+  extraActions?: ReactNode;
 }
 
 export function ModulePage<T extends { id: string }>({
   eyebrow, title, description, table, queryKey, orderBy = "created_at",
   columns, searchFields, emptyLabel, createTitle, createLabel = "New",
-  renderForm, emptyForm, validateForm, transformInsert, onCreate, createDescription,
+  renderForm, emptyForm, validateForm, transformInsert, onCreate, createDescription, extraActions,
 }: ModulePageProps<T>) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -92,6 +93,8 @@ export function ModulePage<T extends { id: string }>({
         title={title}
         description={description}
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+          {extraActions}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
