@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/page";
 import { Mail, MessageSquare, Phone, Send } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { logCommunication } from "@/lib/communications.functions";
+import { ComposeEmailDialog } from "@/components/compose-email-dialog";
 
 const CHANNELS = ["email", "sms", "whatsapp", "call", "note"] as const;
 const DIRECTIONS = ["outbound", "inbound"] as const;
@@ -30,6 +31,7 @@ function CommunicationsPage() {
       emptyLabel="No communications logged yet."
       createTitle="Log communication"
       createLabel="Log message"
+      extraActions={<ComposeEmailDialog />}
       emptyForm={{ channel: "email", direction: "outbound", subject: "", body: "", recipient: "", sender: "", account_number: "", sent_at: new Date().toISOString().slice(0, 16), send_email: true }}
       validateForm={(f) => (!f.channel ? "Channel required" : !f.body ? "Message required" : null)}
       transformInsert={(f) => ({ ...f, sent_at: f.sent_at ? new Date(f.sent_at).toISOString() : new Date().toISOString() })}
