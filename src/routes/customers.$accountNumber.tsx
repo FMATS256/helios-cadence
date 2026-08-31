@@ -1599,7 +1599,17 @@ function IspHeroPane(props: {
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
+        <ComposeEmailDialog
+          accountNumber={customer.account_number}
+          trigger={
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition bg-[oklch(0.6_0.14_200)] hover:bg-[oklch(0.55_0.14_200)] text-white">
+              <Mail className="h-3.5 w-3.5" />
+              Send Email
+            </button>
+          }
+        />
         <ActionBtn tone="rose"    icon={slot5.icon}  label={slot5.label}        onClick={slot5.onClick} />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold shadow-sm transition bg-[oklch(0.4_0.03_265)] hover:bg-[oklch(0.35_0.03_265)] text-white">
