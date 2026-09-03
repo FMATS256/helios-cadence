@@ -58,6 +58,8 @@ export const logCommunication = createServerFn({ method: "POST" })
             senderName: data.sender || undefined,
           },
           idempotencyKey: `comm-${context.userId}-${Date.now()}`,
+          ...(data.sender ? { fromName: `${data.sender} (IMT Solutions)` } : {}),
+          ...(context.claims?.email ? { fromLocal: context.claims.email as string, replyTo: context.claims.email as string } : {}),
         });
         status = res.sent ? "sent" : "suppressed";
         if (!res.sent) failure = res.reason;
@@ -200,6 +202,8 @@ export const composeClientEmail = createServerFn({ method: "POST" })
             recipientTitle: customer?.title ?? undefined,
           },
           idempotencyKey: `compose-${context.userId}-${stamp}-${recipient}`,
+          fromName: `${senderName} (IMT Solutions)`,
+          fromLocal: (profile as any)?.email || "noreply",
           ...(replyTo ? { replyTo } : {}),
         });
         if (!res.sent) {
