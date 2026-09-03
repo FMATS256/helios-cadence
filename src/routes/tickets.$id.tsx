@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { assignTicket, postTicketMessage, updateTicket } from "@/lib/support.functions";
+import { ComposeEmailDialog } from "@/components/compose-email-dialog";
 import { listAssignableStaff } from "@/lib/client-actions.functions";
 
 export const Route = createFileRoute("/tickets/$id")({
@@ -83,7 +84,8 @@ function TicketDetail() {
       <PageHeader eyebrow={`Customer ${ticket.account_number}`} title={ticket.subject}
         description={<span className="font-mono">{ticket.ticket_number}</span> as any}
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <ComposeEmailDialog accountNumber={ticket.account_number} />
             <Link to="/customers/$accountNumber" params={{ accountNumber: ticket.account_number }} className="text-sm text-solar font-semibold hover:underline">View customer →</Link>
           </div>
         }

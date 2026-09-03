@@ -63,6 +63,7 @@ export const createTicket = createServerFn({ method: "POST" })
         ticket,
         updateNote: data.description?.trim() || "We have logged your request and our team is on it.",
         agentName: agent?.full_name || agent?.email || null,
+        agentEmail: agent?.email || null,
         idempotencySuffix: "created",
       }),
       data.assigned_to ? notifyTechnician(db, ticket, data.assigned_to) : Promise.resolve(),
@@ -122,6 +123,7 @@ export const assignTicket = createServerFn({ method: "POST" })
           ? `${agent.full_name || agent.email} is now handling your request.`
           : "Your request has returned to the support queue.",
         agentName: agent?.full_name || agent?.email || null,
+        agentEmail: agent?.email || null,
         idempotencySuffix: `assigned-${data.assigned_to ?? "none"}`,
       }),
       logTicketEvent(db, ticket, { userId: context.userId, email: context.claims?.email }, {
@@ -196,6 +198,7 @@ export const updateTicket = createServerFn({ method: "POST" })
                   ? "We need a little more information from you to continue."
                   : `Status updated to ${ticket.status}.`),
             agentName: agent?.full_name || agent?.email || null,
+        agentEmail: agent?.email || null,
             idempotencySuffix: `status-${ticket.status}-${ticket.updated_at}`,
           })
         : Promise.resolve(),
@@ -246,6 +249,7 @@ export const postTicketMessage = createServerFn({ method: "POST" })
           ticket,
           updateNote: data.body.trim(),
           agentName: agent?.full_name || agent?.email || null,
+        agentEmail: agent?.email || null,
           idempotencySuffix: `msg-${msg.id}`,
         }),
         db.from("communications").insert({

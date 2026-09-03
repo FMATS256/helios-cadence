@@ -4,17 +4,28 @@
 import { sendTemplateEmail } from './email-templates/send-email'
 import { sendResendEmail, type Attachment } from './email-templates/send-resend'
 
+export interface NotifySender {
+  /** Display name on the From line. */
+  fromName?: string
+  /** Local part on the verified sending domain (usually the staff email prefix). */
+  fromLocal?: string
+  /** Where customer replies should land. */
+  replyTo?: string
+}
+
 export async function notify(
   templateName: string,
   to: string | null | undefined,
   templateData: Record<string, any>,
   idempotencyKey?: string,
+  sender?: NotifySender,
 ) {
   if (!to || !/@/.test(to)) return
   try {
     const res = await sendTemplateEmail(templateName, to, {
       templateData,
       idempotencyKey,
+      ...(sender ?? {}),
     })
     if (!res.sent) console.info(`[notify] ${templateName} -> ${to}: ${res.reason}`)
   } catch (e: any) {

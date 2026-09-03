@@ -17,6 +17,33 @@ export interface SendTemplateEmailOptions {
   templateData?: Record<string, any>
   idempotencyKey?: string
   replyTo?: string
+  /** Display name on the From line, e.g. "Farai Matare (IMT Solutions)". */
+  fromName?: string
+  /** Local part of the From address on the verified domain, e.g. "farai". */
+  fromLocal?: string
+}
+
+/**
+ * One verified sending domain, many named senders.
+ * Turns a staff email/name into a safe local part on the verified domain
+ * (farai.matare@imtsolutions.co.zw -> farai.matare@<FROM_DOMAIN>).
+ */
+export function senderLocalPart(input?: string | null, fallback = 'noreply'): string {
+  const raw = String(input ?? '').split('@')[0]
+  const local = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[._-]+|[._-]+$/g, '')
+    .slice(0, 40)
+  return local || fallback
+}
+
+/** Build the From header used by every send. */
+export function senderFrom(fromName?: string | null, fromLocal?: string | null) {
+  const name = String(fromName ?? '').replace(/["\\<>]/g, '').trim() || SITE_NAME
+  const local = senderLocalPart(fromLocal)
+  return `"${name}" <${local}@${FROM_DOMAIN}>`
 }
 
 async function lookupTitle(supabase: any, email: string): Promise<string | undefined> {
@@ -90,7 +117,7 @@ export async function sendTemplateEmail(
     await sendLovableEmail(
       {
         to: recipient,
-        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        from: senderFrom(options.fromName, options.fromLocal),
         sender_domain: SENDER_DOMAIN,
         subject,
         html,
