@@ -165,3 +165,90 @@ export const getQuotesOverview = createServerFn({ method: "POST" })
       },
     };
   });
+
+/* ---------- Customer Balances (receivables per account) ---------- */
+
+export const getCustomerBalances = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number }) => input ?? {})
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [custR, invR, allocR, payR] = await Promise.all([
+      supabaseAdmin.from("customers").select("id, company_name, account_number, status").is("archived_at", null),
+      supabaseAdmin.from("invoices").select("id, customer_id, total, status, due_date, issue_date").is("archived_at", null),
+      supabaseAdmin.from("payment_allocations").select("invoice_id, amount"),
+      supabaseAdmin.from("payments").select("customer_id, amount, status, paid_at"),
+    ]);
+
+    const customers = rows(custR) as any[];
+    const invoices = rows(invR) as any[];
+    const allocs = rows(allocR) as any[];
+    const payments = rows(payR) as any[];
+
+    const paidBy: Record<string, number> = {};
+    for (const a of allocs) paidBy[a.invoice_id] = (paidBy[a.invoice_id] || 0) + Number(a.amount || 0);
+
+    const byCustomer = new Map<string, any>();
+    for (const c of customers) {
+      byCustomer.set(c.id, {
+        customer_id: c.id,
+        company_name: c.company_name,
+        account_number: c.account_number,
+        status: c.status,
+        invoiced: 0,
+        paid: 0,
+        balance: 0,
+        overdue: 0,
+        open_invoices: 0,
+        overdue_invoices: 0,
+        oldest_due: null as string | null,
+        last_payment_at: null as string | null,
+        last_payment_amount: 0,
+      });
+    }
+
+    const now = Date.now();
+    for (const inv of invoices) {
+      const row = byCustomer.get(inv.customer_id);
+      if (!row || inv.status === "void") continue;
+      const total = Number(inv.total || 0);
+      const paid = paidBy[inv.id] || 0;
+      const balance = Math.max(0, total - paid);
+      row.invoiced += total;
+      row.paid += Math.min(paid, total);
+      if (balance > 0.005 && inv.status !== "paid") {
+        row.balance += balance;
+        row.open_invoices += 1;
+        if (inv.due_date && new Date(inv.due_date).getTime() < now) {
+          row.overdue += balance;
+          row.overdue_invoices += 1;
+          if (!row.oldest_due || new Date(inv.due_date).getTime() < new Date(row.oldest_due).getTime()) row.oldest_due = inv.due_date;
+        }
+      }
+    }
+
+    for (const p of payments) {
+      const row = byCustomer.get(p.customer_id);
+      if (!row || p.status === "failed") continue;
+      if (!row.last_payment_at || new Date(p.paid_at).getTime() > new Date(row.last_payment_at).getTime()) {
+        row.last_payment_at = p.paid_at;
+        row.last_payment_amount = Number(p.amount || 0);
+      }
+    }
+
+    const list = [...byCustomer.values()]
+      .map((r) => ({ ...r, balance: Math.round(r.balance * 100) / 100, overdue: Math.round(r.overdue * 100) / 100 }))
+      .sort((a, b) => b.balance - a.balance);
+
+    return {
+      balances: list,
+      stats: {
+        totalDue: Math.round(list.reduce((s, r) => s + r.balance, 0) * 100) / 100,
+        totalOverdue: Math.round(list.reduce((s, r) => s + r.overdue, 0) * 100) / 100,
+        accountsInDebt: list.filter((r) => r.balance > 0.005).length,
+        accountsOverdue: list.filter((r) => r.overdue > 0.005).length,
+      },
+    };
+  });
