@@ -108,6 +108,7 @@ export async function emailTicketUpdate(opts: {
   ticket: any;
   updateNote?: string | null;
   agentName?: string | null;
+  agentEmail?: string | null;
   idempotencySuffix: string;
 }) {
   await notify(
@@ -124,6 +125,11 @@ export async function emailTicketUpdate(opts: {
       ticketUrl: `${SITE_URL}/portal/tickets`,
     },
     `ticket-${opts.ticket.id}-${opts.idempotencySuffix}`,
+    {
+      fromName: opts.agentName ? `${opts.agentName} (IMT Support)` : "IMT Support",
+      fromLocal: opts.agentEmail || "support",
+      ...(opts.agentEmail ? { replyTo: opts.agentEmail } : {}),
+    },
   );
 }
 
