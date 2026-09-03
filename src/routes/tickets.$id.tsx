@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { assignTicket, postTicketMessage, updateTicket } from "@/lib/support.functions";
+import { ComposeEmailDialog } from "@/components/compose-email-dialog";
 import { listAssignableStaff } from "@/lib/client-actions.functions";
 
 export const Route = createFileRoute("/tickets/$id")({
