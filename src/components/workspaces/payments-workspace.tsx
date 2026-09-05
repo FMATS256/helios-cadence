@@ -235,8 +235,21 @@ export function PaymentsPage() {
         }}
       />
 
-      <PaymentDrawer payment={drawer} onClose={() => setDrawer(null)} />
+      <PaymentDrawer payment={drawer} onClose={() => setDrawer(null)} onReconcile={(p) => { setDrawer(null); setReconcile(p); }} />
+
+      <ReconcileDialog
+        payment={reconcile}
+        onClose={() => setReconcile(null)}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: ["payments-platform"] });
+          qc.invalidateQueries({ queryKey: ["payments-overview"] });
+          qc.invalidateQueries({ queryKey: ["invoices-overview"] });
+          qc.invalidateQueries({ queryKey: ["customer-balances"] });
+          qc.invalidateQueries({ queryKey: ["customer360"] });
+        }}
+      />
     </PageShell>
+
   );
 }
 
