@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomersLite } from "@/components/module-page";
 import { createPaymentRecord, getCustomerPaymentContext } from "@/lib/ops.functions";
-import { getPaymentsOverview } from "@/lib/finance.functions";
+import { getPaymentsOverview, getPaymentReconciliation, reconcilePayment } from "@/lib/finance.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ export function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [drawer, setDrawer] = useState<any>(null);
+  const [reconcile, setReconcile] = useState<any>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["payments-platform"],
@@ -465,7 +466,7 @@ function RecordPaymentDialog({
   );
 }
 
-function PaymentDrawer({ payment, onClose }: { payment: any; onClose: () => void }) {
+function PaymentDrawer({ payment, onClose, onReconcile }: { payment: any; onClose: () => void; onReconcile: (p: any) => void }) {
   return (
     <Sheet open={!!payment} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
@@ -495,6 +496,11 @@ function PaymentDrawer({ payment, onClose }: { payment: any; onClose: () => void
 
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => window.print()}>Print receipt</Button>
+                {payment.reconciliation_status !== "matched" && payment.status !== "failed" && payment.customer_id && (
+                  <Button size="sm" onClick={() => onReconcile(payment)} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                    Apply to invoices
+                  </Button>
+                )}
               </div>
             </div>
           </>
@@ -510,5 +516,127 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <div className="text-xs uppercase text-muted-foreground">{label}</div>
       <div className="text-right">{children}</div>
     </div>
+  );
+}
+
+
+/**
+ * Reconciling is a money movement, not a label: the amount is applied to open
+ * invoices, which lowers each invoice balance and the customer's balance due.
+ */
+function ReconcileDialog({ payment, onClose, onDone }: { payment: any; onClose: () => void; onDone: () => void }) {
+  const loadCtx = useServerFn(getPaymentReconciliation);
+  const apply = useServerFn(reconcilePayment);
+  const [split, setSplit] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  const ctx = useQuery({
+    queryKey: ["payment-reconciliation", payment?.id],
+    queryFn: () => loadCtx({ data: { payment_id: payment.id } }),
+    enabled: !!payment?.id,
+  });
+
+  const data = ctx.data as any;
+  const currency = payment?.currency || "USD";
+  const entered = Object.values(split).reduce((s, v) => s + (Number(v) || 0), 0);
+  const unapplied = Number(data?.unapplied ?? 0);
+  const remaining = Math.round((unapplied - entered) * 100) / 100;
+
+  async function run(auto: boolean) {
+    setBusy(true);
+    try {
+      const allocations = auto ? [] : Object.entries(split)
+        .map(([invoice_id, v]) => ({ invoice_id, amount: Number(v) || 0 }))
+        .filter((a) => a.amount > 0);
+      const res: any = await apply({ data: { payment_id: payment.id, allocations } });
+      toast.success(
+        `${fmt(res.applied, currency)} applied to ${res.invoiceNumbers?.join(", ") || "open invoices"} · balance now ${fmt(res.outstandingAfter, currency)}`
+          + (res.resumedServices ? ` · ${res.resumedServices} service(s) resumed` : ""),
+      );
+      setSplit({});
+      onDone();
+      onClose();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not reconcile this payment");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!payment} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Apply payment to invoices</DialogTitle>
+        </DialogHeader>
+        {ctx.isLoading ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">Loading open invoices…</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border p-3">
+                <div className="text-xs uppercase text-muted-foreground">Payment</div>
+                <div className="font-mono font-semibold">{fmt(payment?.amount, currency)}</div>
+              </div>
+              <div className="rounded-xl border p-3">
+                <div className="text-xs uppercase text-muted-foreground">Already applied</div>
+                <div className="font-mono font-semibold">{fmt(data?.applied ?? 0, currency)}</div>
+              </div>
+              <div className="rounded-xl border p-3">
+                <div className="text-xs uppercase text-muted-foreground">Unapplied</div>
+                <div className="font-mono font-semibold">{fmt(unapplied, currency)}</div>
+              </div>
+            </div>
+
+            {(data?.openInvoices ?? []).length === 0 ? (
+              <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No open invoices on this account — generate an invoice first, or keep the amount as customer credit.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {(data.openInvoices as any[]).map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-3 rounded-lg border p-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-xs font-semibold">{inv.invoice_number}</div>
+                      <div className="text-xs text-muted-foreground">
+                        due {inv.due_date ?? "—"} · balance {fmt(inv.balance, inv.currency)}
+                        {inv.is_overdue ? ` · ${inv.days_overdue}d overdue` : ""}
+                      </div>
+                    </div>
+                    <Input
+                      type="number" step="0.01" placeholder="0.00" className="h-8 w-28 text-right font-mono"
+                      value={split[inv.id] ?? ""}
+                      onChange={(e) => setSplit((prev) => ({ ...prev, [inv.id]: e.target.value }))}
+                    />
+                    <Button type="button" size="sm" variant="ghost"
+                      onClick={() => setSplit((prev) => ({ ...prev, [inv.id]: String(Math.min(inv.balance, Math.max(0, unapplied))) }))}>
+                      Max
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Allocating {fmt(entered, currency)}</span>
+              <span>{remaining < -0.005 ? "Over-allocated" : `${fmt(Math.max(0, remaining), currency)} would stay unapplied`}</span>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" disabled={busy || unapplied <= 0.005 || !(data?.openInvoices ?? []).length} onClick={() => run(true)}>
+                Auto-apply oldest first
+              </Button>
+              <Button
+                disabled={busy || entered <= 0.005 || remaining < -0.005}
+                onClick={() => run(false)}
+                className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}
+              >
+                {busy ? "Applying…" : "Apply payment"}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
