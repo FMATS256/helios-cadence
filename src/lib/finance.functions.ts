@@ -252,3 +252,141 @@ export const getCustomerBalances = createServerFn({ method: "POST" })
       },
     };
   });
+
+/* =========================================================================
+ * PAYMENT RECONCILIATION — money actually moves
+ * Applying a payment writes payment_allocations rows, which drives the DB
+ * triggers that recompute invoice paid/partial status and the payment's
+ * reconciliation state. Fully-settled accounts get suspended services back.
+ * =======================================================================*/
+
+export const getPaymentReconciliation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { payment_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { loadOpenInvoices, allocateOldestFirst } = await import("./customer360.server");
+
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments").select("*, customers:customer_id(company_name, account_number)")
+      .eq("id", data.payment_id).single();
+    if (error || !payment) throw new Error(error?.message || "Payment not found");
+
+    const { data: allocRows } = await supabaseAdmin
+      .from("payment_allocations")
+      .select("id, invoice_id, amount, invoices(invoice_number)")
+      .eq("payment_id", payment.id);
+    const applied = ((allocRows ?? []) as any[]).reduce((s, a) => s + Number(a.amount || 0), 0);
+    const unapplied = Math.round((Number(payment.amount || 0) - applied) * 100) / 100;
+
+    const openInvoices = payment.customer_id
+      ? await loadOpenInvoices(supabaseAdmin, payment.customer_id)
+      : [];
+    const suggestion = allocateOldestFirst(openInvoices, Math.max(0, unapplied));
+
+    return {
+      payment,
+      allocations: (allocRows ?? []) as any[],
+      applied: Math.round(applied * 100) / 100,
+      unapplied: Math.max(0, unapplied),
+      openInvoices,
+      suggestion: suggestion.allocations,
+      suggestionUnallocated: suggestion.unallocated,
+    };
+  });
+
+export const reconcilePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    payment_id: string;
+    /** Explicit split. Omit (or send empty) to auto-apply oldest invoice first. */
+    allocations?: Array<{ invoice_id: string; amount: number }>;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { loadOpenInvoices, allocateOldestFirst, resumeSuspendedForCustomer } = await import("./customer360.server");
+    const { recordCustomerEvent } = await import("./customer-events.server");
+
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments").select("*").eq("id", data.payment_id).single();
+    if (error || !payment) throw new Error(error?.message || "Payment not found");
+    if (payment.status === "failed") throw new Error("A failed payment cannot be reconciled");
+    if (!payment.customer_id) throw new Error("This payment is not linked to a customer");
+
+    const { data: existing } = await supabaseAdmin
+      .from("payment_allocations").select("amount").eq("payment_id", payment.id);
+    const applied = ((existing ?? []) as any[]).reduce((s, a) => s + Number(a.amount || 0), 0);
+    const unapplied = Math.round((Number(payment.amount || 0) - applied) * 100) / 100;
+    if (unapplied <= 0.005) throw new Error("This payment is already fully applied");
+
+    const openInvoices = await loadOpenInvoices(supabaseAdmin, payment.customer_id);
+    if (!openInvoices.length) throw new Error("This customer has no open invoices to apply the payment to");
+    const balanceOf = new Map(openInvoices.map((i: any) => [i.id, i.balance]));
+
+    let planned: Array<{ invoice_id: string; amount: number }>;
+    const manual = (data.allocations ?? []).filter((a) => a.invoice_id && Number(a.amount) > 0);
+    if (manual.length) {
+      planned = manual.map((a) => ({ invoice_id: a.invoice_id, amount: Math.round(Number(a.amount) * 100) / 100 }));
+      for (const a of planned) {
+        const bal = balanceOf.get(a.invoice_id);
+        if (bal === undefined) throw new Error("One of the selected invoices is not open on this account");
+        if (a.amount > bal + 0.005) throw new Error(`Allocation of ${a.amount} exceeds the ${bal} still due on that invoice`);
+      }
+      const sum = planned.reduce((s, a) => s + a.amount, 0);
+      if (sum > unapplied + 0.005) throw new Error(`Allocations (${sum.toFixed(2)}) exceed the unapplied amount (${unapplied.toFixed(2)})`);
+    } else {
+      planned = allocateOldestFirst(openInvoices, unapplied).allocations.map((a) => ({ invoice_id: a.invoice_id, amount: a.amount }));
+      if (!planned.length) throw new Error("Nothing to allocate — every invoice is already settled");
+    }
+
+    const { error: insErr } = await supabaseAdmin
+      .from("payment_allocations")
+      .insert(planned.map((a) => ({ payment_id: payment.id, invoice_id: a.invoice_id, amount: a.amount })) as any);
+    if (insErr) throw new Error(insErr.message);
+
+    // Triggers have recomputed invoice + payment state; read the truth back.
+    const [{ data: after }, remaining] = await Promise.all([
+      supabaseAdmin.from("payments").select("reconciliation_status").eq("id", payment.id).single(),
+      loadOpenInvoices(supabaseAdmin, payment.customer_id),
+    ]);
+    const outstanding = Math.round(remaining.reduce((s: number, i: any) => s + i.balance, 0) * 100) / 100;
+    const stillOverdue = remaining.some((i: any) => i.is_overdue);
+
+    let resumed: any = null;
+    if (!stillOverdue) {
+      try { resumed = await resumeSuspendedForCustomer(supabaseAdmin, payment.customer_id); } catch { /* non-fatal */ }
+    }
+
+    const total = planned.reduce((s, a) => s + a.amount, 0);
+    const invoiceNumbers = planned
+      .map((a) => (openInvoices.find((i: any) => i.id === a.invoice_id) as any)?.invoice_number)
+      .filter(Boolean);
+
+    await recordCustomerEvent(supabaseAdmin, {
+      customer_id: payment.customer_id,
+      account_number: payment.account_number,
+      event_type: "payment_reconciled",
+      title: `Payment ${payment.receipt_number ?? ""} applied to ${planned.length} invoice${planned.length === 1 ? "" : "s"}`.trim(),
+      description: `${payment.currency || "USD"} ${total.toFixed(2)} applied${invoiceNumbers.length ? ` to ${invoiceNumbers.join(", ")}` : ""} · balance now ${outstanding.toFixed(2)}`,
+      module: "billing",
+      entity_type: "payment",
+      entity_id: payment.id,
+      old_value: { unapplied },
+      new_value: { allocations: planned, outstanding_after: outstanding, resumed_services: resumed?.total ?? 0 },
+      major: true,
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+    });
+
+    return {
+      applied: Math.round(total * 100) / 100,
+      allocations: planned,
+      invoiceNumbers,
+      unappliedAfter: Math.max(0, Math.round((unapplied - total) * 100) / 100),
+      reconciliationStatus: (after as any)?.reconciliation_status ?? "pending",
+      outstandingAfter: outstanding,
+      resumedServices: resumed?.total ?? 0,
+    };
+  });
