@@ -200,10 +200,19 @@ export function PaymentsPage() {
                       <StatusBadge tone={toneForStatus(r.status === "received" ? "success" : r.status === "failed" ? "danger" : r.status === "refunded" ? "warning" : "neutral" as any)}>{r.status}</StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={toneForStatus(r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral" as any)}>
-                        {r.reconciliation_status ?? "pending"}
-                      </StatusBadge>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge tone={toneForStatus(r.reconciliation_status === "matched" ? "success" : r.reconciliation_status === "partial" ? "warning" : "neutral" as any)}>
+                          {r.reconciliation_status ?? "pending"}
+                        </StatusBadge>
+                        {r.reconciliation_status !== "matched" && r.status !== "failed" && r.customer_id && (
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                            onClick={(e) => { e.stopPropagation(); setReconcile(r); }}>
+                            Apply
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
+
                     <TableCell className="text-xs text-muted-foreground">{new Date(r.paid_at).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
