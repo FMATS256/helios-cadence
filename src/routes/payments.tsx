@@ -141,7 +141,7 @@ function BalancesPage() {
                     <TableCell className="text-right">{fmtMoney(r.paid)}</TableCell>
                     <TableCell className={`text-right font-semibold ${r.balance > 0.005 ? "text-destructive" : ""}`}>{fmtMoney(r.balance)}</TableCell>
                     <TableCell className="text-right">
-                      {r.overdue > 0.005 ? <StatusBadge status="overdue" tone="danger" label={fmtMoney(r.overdue)} /> : "—"}
+                      {r.overdue > 0.005 ? <StatusBadge tone="danger">{fmtMoney(r.overdue)}</StatusBadge> : "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.oldest_due ? new Date(r.oldest_due).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">

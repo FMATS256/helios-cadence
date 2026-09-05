@@ -68,6 +68,7 @@ const siteNav: NavNode[] = [
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
+      { title: "Payments & Receivables", url: "/payments", icon: Receipt },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
       { title: "Procurement & Vendors", url: "/procurement", icon: ShoppingCart },
     ],
