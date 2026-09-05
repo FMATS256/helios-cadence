@@ -1489,7 +1489,7 @@ function ispChips(view: Customer360View): Chip[] {
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   chips.push({ label: "PAID (90d)", value: money(paid90), color: "#10b981", text: "#ffffff" });
 
-  chips.push({ label: "UNPAID", value: money(s.openInvoiceTotal), color: "#dc2626", text: "#ffffff" });
+  chips.push({ label: "BALANCE DUE", value: money(s.openInvoiceTotal), color: "#dc2626", text: "#ffffff" });
   return chips;
 }
 
@@ -1651,7 +1651,7 @@ function IspHeroPane(props: {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <KpiTile icon={DollarSign} label="Outstanding" value={money(stats.openInvoiceTotal)} tone={stats.openInvoiceTotal > 0 ? "warning" : "success"} />
+        <KpiTile icon={DollarSign} label="Balance Due" value={money(stats.openInvoiceTotal)} tone={stats.openInvoiceTotal > 0 ? "warning" : "success"} />
         <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
         <KpiTile icon={TrendingUp} label="ARR (Est.)" value={money(arr)} tone="info" />
         <KpiTile icon={Activity} label="Active Services" value={stats.activeServices} tone="info" />
