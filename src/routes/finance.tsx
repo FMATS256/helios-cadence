@@ -332,7 +332,7 @@ function FinanceWorkspace() {
 
         {/* ── Netzur-style Finance Dashboard ──────────────────────────── */}
         {tab === "dashboard" && (
-          <NetzurDashboard data={data} currency={currency} />
+          <NetzurDashboard data={data} currency={currency} onPickCustomer={(id) => setCustomerId(id)} />
         )}
 
         {tab === "recent" && (
