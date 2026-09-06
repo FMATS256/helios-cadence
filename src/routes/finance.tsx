@@ -332,7 +332,7 @@ function FinanceWorkspace() {
 
         {/* ── Netzur-style Finance Dashboard ──────────────────────────── */}
         {tab === "dashboard" && (
-          <NetzurDashboard data={data} currency={currency} />
+          <NetzurDashboard data={data} currency={currency} onPickCustomer={(id) => setCustomerId(id)} />
         )}
 
         {tab === "recent" && (
@@ -865,7 +865,7 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
 
 // ─────────── Netzur-style Finance Dashboard ────────────────────────────────
 
-function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
+function NetzurDashboard({ data, currency, onPickCustomer }: { data: any; currency: Ccy; onPickCustomer?: (id: string) => void }) {
   const inv: any[] = data?.invoices ?? [];
   const pay: any[] = data?.payments ?? [];
   const quotes: any[] = data?.quotes ?? [];
@@ -950,20 +950,109 @@ function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
     .map(([id, value]) => ({ name: nameFor(id), value: Math.round(value) }))
     .sort((a, b) => b.value - a.value).slice(0, 10);
 
+  // ── Headline figures ──────────────────────────────────────────────────
+  const revenueTotal = pay
+    .filter((p) => p.status !== "failed" && p.status !== "void" && p.status !== "refunded")
+    .reduce((a, p) => a + Number(p.amount || 0), 0);
+  const invoicesIssued = inv.filter((x) => x.status !== "void");
+  const paymentsReceived = pay.filter((p) => p.status === "received" || p.status === "cleared" || p.status === "matched");
+  const overdueInv = unpaidInv.filter((x) => x.due_date && new Date(x.due_date) < today);
+
+  // ── Per-customer roll-up for drill-down ──────────────────────────────
+  const perCustomer = new Map<string, { id: string; name: string; account: string; invoiced: number; paid: number; balance: number; overdue: number }>();
+  const rowFor = (id: string) => {
+    let r = perCustomer.get(id);
+    if (!r) {
+      const c: any = custMap.get(id);
+      r = { id, name: nameFor(id), account: c?.account_number ?? "", invoiced: 0, paid: 0, balance: 0, overdue: 0 };
+      perCustomer.set(id, r);
+    }
+    return r;
+  };
+  for (const x of invoicesIssued) {
+    if (!x.customer_id) continue;
+    const r = rowFor(x.customer_id);
+    r.invoiced += amt(x);
+    if (x.status !== "paid") {
+      r.balance += bal(x);
+      if (x.due_date && new Date(x.due_date) < today) r.overdue += bal(x);
+    }
+  }
+  for (const p of paymentsReceived) {
+    if (!p.customer_id) continue;
+    rowFor(p.customer_id).paid += Number(p.amount || 0);
+  }
+  const customerRows = [...perCustomer.values()]
+    .sort((a, b) => b.balance - a.balance || b.invoiced - a.invoiced);
+
   return (
     <div className="p-4 md:p-6 space-y-5 bg-muted/20">
       <h2 className="text-sm font-semibold text-muted-foreground">Finance Dashboard</h2>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <NetzurStat icon={TrendingUp} label="Total Revenue"
+          value={money(revenueTotal, currency)} bg="#3fa87a" />
+        <NetzurStat icon={FileText} label="Invoices Issued"
+          value={`${invoicesIssued.length} (${money(invoicesIssued.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#5aa9e0" />
+        <NetzurStat icon={CheckDouble} label="Payments Received"
+          value={`${paymentsReceived.length} (${money(paymentsReceived.reduce((a, p) => a + Number(p.amount || 0), 0), currency)})`} bg="#7bc47f" />
+        <NetzurStat icon={AlertTriangle} label="Overdue Balances"
+          value={`${overdueInv.length} (${money(overdueInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e07a5f" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <NetzurStat icon={ClipboardList} label="Unpaid Invoices"
-          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e07a5f" />
+          value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e6a15f" />
         <NetzurStat icon={FileText} label="Open Quotes"
           value={`${openQuotes.length} (${money(openQuotes.reduce((a, x) => a + Number(x.total || 0), 0), currency)})`} bg="#4a5c6a" />
         <NetzurStat icon={Receipt} label="Today's Invoices"
           value={`${todaysInvoices.length} (${money(todaysInvoices.reduce((a, x) => a + amt(x), 0), currency)})`} bg="#a06cc9" />
         <NetzurStat icon={CheckDouble} label="Today's Payments"
-          value={money(todaysPayments.reduce((a, p) => a + Number(p.amount || 0), 0), currency)} bg="#3fa87a" />
+          value={money(todaysPayments.reduce((a, p) => a + Number(p.amount || 0), 0), currency)} bg="#2f8f6a" />
       </div>
+
+      {/* Per-customer drill-down */}
+      <Card className="border-border shadow-sm">
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <h3 className="font-semibold text-foreground">Customers</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">{customerRows.length} accounts · click a row to drill down</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground border-b border-border">
+                  <th className="px-5 py-2.5 font-semibold">Customer</th>
+                  <th className="px-3 py-2.5 font-semibold text-right">Invoiced</th>
+                  <th className="px-3 py-2.5 font-semibold text-right">Paid</th>
+                  <th className="px-3 py-2.5 font-semibold text-right">Balance</th>
+                  <th className="px-5 py-2.5 font-semibold text-right">Overdue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {customerRows.slice(0, 25).map((r) => (
+                  <tr key={r.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => onPickCustomer?.(r.id)}>
+                    <td className="px-5 py-2.5">
+                      <div className="font-medium text-foreground">{r.name}</div>
+                      {r.account && <div className="text-xs text-muted-foreground font-mono">{r.account}</div>}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{money(r.invoiced, currency)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-success">{money(r.paid, currency)}</td>
+                    <td className={cn("px-3 py-2.5 text-right tabular-nums font-semibold", r.balance > 0 ? "text-[oklch(0.62_0.19_45)]" : "text-muted-foreground")}>{money(r.balance, currency)}</td>
+                    <td className={cn("px-5 py-2.5 text-right tabular-nums font-semibold", r.overdue > 0 ? "text-destructive" : "text-muted-foreground")}>{money(r.overdue, currency)}</td>
+                  </tr>
+                ))}
+                {customerRows.length === 0 && (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No customer financial data yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <NetzurPeriodCard title="Monthly" period={monthLabel} data={monthly} currency={currency}
