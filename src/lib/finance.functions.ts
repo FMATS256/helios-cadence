@@ -390,3 +390,109 @@ export const reconcilePayment = createServerFn({ method: "POST" })
       resumedServices: resumed?.total ?? 0,
     };
   });
+
+/* ---------- Email an invoice to the customer ---------- */
+
+const SITE = "https://management.imtsolutions.co.zw";
+
+/**
+ * Sends a real branded invoice email from the acting staff member's address
+ * (name.surname@<verified domain>, reply-to their real mailbox), including a
+ * link to the invoice, then logs the send on the customer's timeline + audit.
+ */
+export const emailInvoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { invoice_id: string; to?: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: invoice, error } = await supabaseAdmin
+      .from("invoices")
+      .select("*, customers:customer_id(id, company_name, primary_email, account_number)")
+      .eq("id", data.invoice_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!invoice) throw new Error("Invoice not found");
+
+    const cust = (invoice as any).customers;
+    const recipient = (data.to || cust?.primary_email || "").trim();
+    if (!recipient || !/@/.test(recipient)) throw new Error("This customer has no email address on file.");
+
+    const [itemsR, profileR] = await Promise.all([
+      supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),
+      supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
+    ]);
+    const items = rows(itemsR as any).map((i: any) => ({
+      description: i.description,
+      quantity: Number(i.quantity) || 0,
+      unit_price: Number(i.unit_price) || 0,
+      line_total:
+        Number(i.line_total ?? (Number(i.quantity) || 0) * (Number(i.unit_price) || 0)) || 0,
+    }));
+
+    const profile = (profileR as any)?.data ?? null;
+    const senderEmail = (profile?.email || (context.claims?.email as string) || "").trim();
+    const senderName = profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
+    const invoiceUrl = `${SITE}/invoices/${invoice.id}`;
+
+    const { sendTemplateEmail } = await import("./email-templates/send-email");
+    const res = await sendTemplateEmail("invoice", recipient, {
+      templateData: {
+        companyName: cust?.company_name,
+        invoiceNumber: (invoice as any).invoice_number,
+        issueDate: invoice.issue_date,
+        dueDate: invoice.due_date,
+        currency: invoice.currency || "USD",
+        subtotal: Number(invoice.subtotal ?? 0),
+        tax: Number(invoice.tax ?? 0),
+        total: Number((invoice as any).total ?? 0),
+        items,
+        invoiceUrl,
+      },
+      idempotencyKey: `invoice-${invoice.id}-${Date.now()}`,
+      fromName: `${senderName} (IMT Solutions)`,
+      ...(senderEmail ? { fromLocal: senderEmail, replyTo: senderEmail } : {}),
+    });
+
+    if (!res.sent) throw new Error("This recipient is suppressed and cannot receive email.");
+
+    const { senderFrom } = await import("./email-templates/send-email");
+    const fromHeader = senderFrom(`${senderName} (IMT Solutions)`, senderEmail);
+
+    // Mark it as sent so the pipeline reflects reality.
+    if (invoice.status === "draft") {
+      await supabaseAdmin.from("invoices").update({ status: "sent" } as any).eq("id", invoice.id);
+    }
+
+    if (cust?.id) {
+      const { recordCustomerEvent } = await import("./customer-events.server");
+      await recordCustomerEvent(supabaseAdmin, {
+        customer_id: cust.id,
+        account_number: cust.account_number,
+        event_type: "invoice_sent",
+        title: `Invoice ${(invoice as any).invoice_number} emailed to ${recipient}`,
+        description: `${invoice.currency || "USD"} ${Number((invoice as any).total ?? 0).toFixed(2)} · sent by ${senderName}`,
+        module: "billing",
+        entity_type: "invoice",
+        entity_id: invoice.id,
+        new_value: { to: recipient, from: fromHeader, invoice_url: invoiceUrl, total: Number((invoice as any).total ?? 0) },
+        major: true,
+        actor_id: context.userId,
+        actor_email: senderEmail || null,
+      });
+
+      await supabaseAdmin.from("communications").insert({
+        customer_id: cust.id,
+        account_number: cust.account_number,
+        channel: "email",
+        direction: "outbound",
+        subject: `Invoice ${(invoice as any).invoice_number}`,
+        body: `Invoice emailed to ${recipient}. ${invoiceUrl}`,
+        status: "sent",
+        created_by: context.userId,
+      } as any).then(undefined, () => {});
+    }
+
+    return { ok: true, to: recipient, from: fromHeader, invoiceUrl };
+  });

@@ -610,7 +610,7 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
       .from("customers").select("primary_email,company_name").eq("id", sub.customer_id).maybeSingle();
     if (cust?.primary_email) {
       const { notify } = await import("./notify.server");
-      void notify("invoice", cust.primary_email, {
+      await notify("invoice", cust.primary_email, {
         companyName: cust.company_name,
         invoiceNumber: (invoice as any).invoice_number,
         issueDate: invoice.issue_date,
@@ -618,7 +618,11 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
         currency: invoice.currency,
         subtotal, tax, total,
         items: [{ description: `${sub.plan_name} (${sub.billing_cycle})`, quantity: 1, unit_price: subtotal, line_total: subtotal }],
-      }, `invoice-${invoice.id}`);
+        invoiceUrl: `https://management.imtsolutions.co.zw/invoices/${invoice.id}`,
+      }, `invoice-${invoice.id}`, {
+        fromName: `${(context.claims?.email as string)?.split("@")[0] ?? "IMT Solutions"} (IMT Solutions)`,
+        ...(context.claims?.email ? { fromLocal: context.claims.email as string, replyTo: context.claims.email as string } : {}),
+      });
     }
 
     const { recordCustomerEvent } = await import("./customer-events.server");

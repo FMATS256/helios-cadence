@@ -240,7 +240,7 @@ export const createInvoiceForCustomer = createServerFn({ method: "POST" })
 
     if (cust.primary_email) {
       const { notify } = await import("./notify.server");
-      void notify("invoice", cust.primary_email, {
+      await notify("invoice", cust.primary_email, {
         companyName: cust.company_name,
         invoiceNumber: (invoice as any).invoice_number,
         issueDate: invoice.issue_date,
@@ -248,7 +248,26 @@ export const createInvoiceForCustomer = createServerFn({ method: "POST" })
         currency: invoice.currency,
         subtotal, tax, total,
         items: lineRows.map((r) => ({ description: r.description, quantity: r.quantity, unit_price: r.unit_price, line_total: r.quantity * r.unit_price * (1 + taxRate / 100) })),
-      }, `invoice-${invoice.id}`);
+        invoiceUrl: `https://management.imtsolutions.co.zw/invoices/${invoice.id}`,
+      }, `invoice-${invoice.id}`, {
+        fromName: `${(context.claims?.email as string)?.split("@")[0] ?? "IMT Solutions"} (IMT Solutions)`,
+        ...(context.claims?.email ? { fromLocal: context.claims.email as string, replyTo: context.claims.email as string } : {}),
+      });
+      const { recordCustomerEvent } = await import("./customer-events.server");
+      await recordCustomerEvent(supabaseAdmin, {
+        customer_id: cust.id,
+        account_number: cust.account_number,
+        event_type: "invoice_sent",
+        title: `Invoice ${(invoice as any).invoice_number} emailed to ${cust.primary_email}`,
+        description: `${invoice.currency} ${total.toFixed(2)} · with a link to view and pay`,
+        module: "billing",
+        entity_type: "invoice",
+        entity_id: invoice.id,
+        new_value: { to: cust.primary_email, invoice_url: `https://management.imtsolutions.co.zw/invoices/${invoice.id}`, total },
+        major: true,
+        actor_id: context.userId,
+        actor_email: (context.claims?.email as string) ?? null,
+      });
     }
     return invoice;
   });

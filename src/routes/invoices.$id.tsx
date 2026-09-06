@@ -12,7 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, Receipt } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { emailInvoice } from "@/lib/finance.functions";
+import { Plus, Trash2, Printer, Receipt, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({ meta: [{ title: "Invoice — IMT Operations" }] }),
@@ -48,6 +50,17 @@ function InvoiceDetail() {
     const paid = (allocs as any[]).reduce((s, a) => s + Number(a.amount), 0);
     return { subtotal, tax, total, paid, balance: total - paid };
   })();
+
+  const sendInvoiceFn = useServerFn(emailInvoice);
+  const sendEmail = useMutation({
+    mutationFn: async () => await sendInvoiceFn({ data: { invoice_id: id } }),
+    onSuccess: (r: any) => {
+      toast.success(`Invoice emailed to ${r.to}`, { description: `From ${r.from}` });
+      qc.invalidateQueries({ queryKey: ["invoice", id] });
+      qc.invalidateQueries({ queryKey: ["customer360"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const syncTotals = useMutation({
     mutationFn: async () => {
@@ -104,9 +117,20 @@ function InvoiceDetail() {
           </span>
         }
         actions={
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1.5" />Print / PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sendEmail.mutate()}
+              disabled={sendEmail.isPending}
+              className="text-solar-foreground"
+              style={{ background: "var(--gradient-solar)" }}
+            >
+              <Mail className="h-4 w-4 mr-1.5" />
+              {sendEmail.isPending ? "Sending…" : "Email invoice"}
+            </Button>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-1.5" />Print / PDF
+            </Button>
+          </div>
         }
       />
 
