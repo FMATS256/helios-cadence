@@ -865,7 +865,7 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
 
 // ─────────── Netzur-style Finance Dashboard ────────────────────────────────
 
-function NetzurDashboard({ data, currency }: { data: any; currency: Ccy }) {
+function NetzurDashboard({ data, currency, onPickCustomer }: { data: any; currency: Ccy; onPickCustomer?: (id: string) => void }) {
   const inv: any[] = data?.invoices ?? [];
   const pay: any[] = data?.payments ?? [];
   const quotes: any[] = data?.quotes ?? [];
