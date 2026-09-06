@@ -104,9 +104,20 @@ function InvoiceDetail() {
           </span>
         }
         actions={
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1.5" />Print / PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sendEmail.mutate()}
+              disabled={sendEmail.isPending}
+              className="text-solar-foreground"
+              style={{ background: "var(--gradient-solar)" }}
+            >
+              <Mail className="h-4 w-4 mr-1.5" />
+              {sendEmail.isPending ? "Sending…" : "Email invoice"}
+            </Button>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-1.5" />Print / PDF
+            </Button>
+          </div>
         }
       />
 
