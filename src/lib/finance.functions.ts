@@ -520,5 +520,5 @@ export const emailInvoice = createServerFn({ method: "POST" })
       } as any).then(undefined, () => {});
     }
 
-    return { ok: true, to: recipient, from: fromHeader, invoiceUrl };
+    return { ok: true, to: recipient, from: fromHeader, invoiceUrl, copySentTo: copySent ? senderEmail : null };
   });
