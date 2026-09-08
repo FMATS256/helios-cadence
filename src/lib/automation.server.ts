@@ -387,7 +387,13 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
     .not("status", "in", "(paid,void,cancelled)")
     .lt("due_date", dayStr(Date.now()));
 
-  for (const inv of (invs ?? []) as any[]) {
+  const list = (invs ?? []) as any[];
+  const balances = await balancesFor(db, list);
+  const maxChase = chase.length ? Math.max(...chase) : 30;
+
+  for (const inv of list) {
+    const balance = balances.get(inv.id) ?? num(inv.total);
+    if (balance <= 0.005) continue;
     out.processed++;
     const overdueDays = Math.abs(daysUntil(inv.due_date));
     if (inv.status !== "overdue") {
@@ -399,26 +405,39 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
     out.notified += await notifyStaff(
       db, ids, "invoice_overdue",
       `Invoice ${inv.invoice_number} is ${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`,
-      `${cust?.company_name ?? inv.account_number} · ${inv.currency ?? "USD"} ${num(inv.total).toFixed(2)}`,
+      `${cust?.company_name ?? inv.account_number} · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding`,
       `/invoices/${inv.id}`,
     );
-    if (chase.includes(overdueDays) && cust?.primary_email) {
+    // Chase on the configured milestones, then keep a weekly cadence after the
+    // last milestone until the invoice is settled.
+    const dueChase = chase.includes(overdueDays) || (overdueDays > maxChase && overdueDays % 7 === 0);
+    if (dueChase && cust?.primary_email) {
+      const invoiceUrl = `${SITE_URL}/invoices/${inv.id}`;
       await notify("payment-reminder", cust.primary_email, {
         companyName: cust.company_name ?? "there",
         invoiceNumber: inv.invoice_number,
-        amountDue: num(inv.total),
+        amountDue: balance,
         currency: inv.currency ?? "USD",
         dueDate: inv.due_date,
         daysUntilDue: -overdueDays,
-      }, `invoice-overdue-${inv.id}-${overdueDays}`);
+        invoiceUrl,
+      }, `invoice-overdue-${inv.id}-${overdueDays}`, senderFor(cust));
       out.emailed++;
+      await auditRow(db, "invoices", inv.id, "overdue_reminder_emailed", {
+        to: cust.primary_email, days: overdueDays, amount: balance,
+      });
       await timeline(db, {
         customer_id: inv.customer_id, account_number: inv.account_number,
         event_type: "overdue_notice_sent",
         title: `Overdue notice sent for ${inv.invoice_number}`,
-        description: `${overdueDays} days past due`,
-        metadata: { rule: "overdue_escalation", days: overdueDays },
+        description: `${overdueDays} days past due · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding · emailed to ${cust.primary_email}`,
+        metadata: { rule: "overdue_escalation", days: overdueDays, invoice_id: inv.id, amount: balance },
       });
+      await logCommunication(
+        db, cust,
+        `Overdue notice: Invoice ${inv.invoice_number}`,
+        `Automated overdue notice emailed to ${cust.primary_email} — ${overdueDays} day(s) past due, ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding. ${invoiceUrl}`,
+      );
     }
   }
   return out;
