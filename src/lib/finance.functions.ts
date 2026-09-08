@@ -457,6 +457,32 @@ export const emailInvoice = createServerFn({ method: "POST" })
 
     if (!res.sent) throw new Error("This recipient is suppressed and cannot receive email.");
 
+    // Land a copy in the sender's real IMT inbox so staff have the exact
+    // invoice email in their own mailbox.
+    let copySent = false;
+    if (senderEmail && senderEmail.toLowerCase() !== recipient.toLowerCase()) {
+      const copy = await sendTemplateEmail("invoice", senderEmail, {
+        templateData: {
+          companyName: cust?.company_name,
+          invoiceNumber: (invoice as any).invoice_number,
+          issueDate: invoice.issue_date,
+          dueDate: invoice.due_date,
+          currency: invoice.currency || "USD",
+          subtotal: Number(invoice.subtotal ?? 0),
+          tax: Number(invoice.tax ?? 0),
+          total: Number((invoice as any).total ?? 0),
+          items,
+          invoiceUrl,
+          recipientTitle: undefined,
+        },
+        idempotencyKey: `invoice-copy-${invoice.id}-${Date.now()}`,
+        fromName: `${senderName} (IMT Solutions)`,
+        fromLocal: senderEmail,
+        replyTo: recipient,
+      }).catch(() => null);
+      copySent = !!copy?.sent;
+    }
+
     const { senderFrom } = await import("./email-templates/send-email");
     const fromHeader = senderFrom(`${senderName} (IMT Solutions)`, senderEmail);
 
