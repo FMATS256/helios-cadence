@@ -172,7 +172,9 @@ async function auditRow(db: any, entity_type: string, entity_id: string, action:
 }
 
 async function customersByKey(db: any) {
-  const { data } = await db.from("customers").select("id,account_number,company_name,primary_email,status");
+  const { data } = await db
+    .from("customers")
+    .select("id,account_number,company_name,primary_email,status,account_manager_id");
   const byId = new Map<string, any>();
   const byAcct = new Map<string, any>();
   for (const c of (data ?? []) as any[]) {
@@ -180,6 +182,59 @@ async function customersByKey(db: any) {
     if (c.account_number) byAcct.set(c.account_number, c);
   }
   return { byId, byAcct };
+}
+
+export const SITE_URL = "https://management.imtsolutions.co.zw";
+
+/**
+ * Branded sender for automated customer mail: the account manager who owns the
+ * customer, falling back to the generic billing mailbox.
+ */
+async function senderResolver(db: any) {
+  const { data } = await db.from("profiles").select("id, full_name, email");
+  const byId = new Map<string, any>();
+  for (const p of (data ?? []) as any[]) byId.set(p.id, p);
+  return (cust: any) => {
+    const p = cust?.account_manager_id ? byId.get(cust.account_manager_id) : null;
+    const email = String(p?.email ?? "").trim();
+    const name = p?.full_name || (email ? email.split("@")[0] : "") || "IMT Solutions Billing";
+    return {
+      fromName: `${name} (IMT Solutions)`,
+      fromLocal: email || "billing",
+      ...(email ? { replyTo: email } : {}),
+    };
+  };
+}
+
+/** Outstanding balance per invoice id (total minus reconciled allocations). */
+async function balancesFor(db: any, invoices: any[]) {
+  const ids = invoices.map((i) => i.id);
+  const out = new Map<string, number>();
+  for (const i of invoices) out.set(i.id, Math.round(num(i.total) * 100) / 100);
+  if (!ids.length) return out;
+  const { data } = await db.from("payment_allocations").select("invoice_id, amount").in("invoice_id", ids);
+  for (const a of (data ?? []) as any[]) {
+    const cur = out.get(a.invoice_id) ?? 0;
+    out.set(a.invoice_id, Math.round((cur - num(a.amount)) * 100) / 100);
+  }
+  return out;
+}
+
+/** Log an outbound automated email on the customer's communications thread. */
+async function logCommunication(db: any, cust: any, subject: string, body: string) {
+  if (!cust?.id) return;
+  await db
+    .from("communications")
+    .insert({
+      customer_id: cust.id,
+      account_number: cust.account_number ?? null,
+      channel: "email",
+      direction: "outbound",
+      subject,
+      body,
+      status: "sent",
+    })
+    .then(undefined, () => {});
 }
 
 export type RuleOutcome = {
