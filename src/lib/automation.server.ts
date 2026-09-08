@@ -323,6 +323,7 @@ async function invoiceReminders(db: any, cfg: RuleConfig): Promise<RuleOutcome> 
   const windows: number[] = (cfg["before_days"] ?? [7, 3, 1]).map(Number);
   const horizon = dayStr(Date.now() + Math.max(...windows) * DAY);
   const { byId, byAcct } = await customersByKey(db);
+  const senderFor = await senderResolver(db);
   const { notify } = await import("./notify.server");
   const { data: invs } = await db
     .from("invoices")
@@ -333,28 +334,40 @@ async function invoiceReminders(db: any, cfg: RuleConfig): Promise<RuleOutcome> 
     .gte("due_date", dayStr(Date.now()))
     .lte("due_date", horizon);
 
-  for (const inv of (invs ?? []) as any[]) {
+  const list = (invs ?? []) as any[];
+  const balances = await balancesFor(db, list);
+
+  for (const inv of list) {
     const days = daysUntil(inv.due_date);
     if (!windows.includes(days)) continue;
+    const balance = balances.get(inv.id) ?? num(inv.total);
+    if (balance <= 0.005) continue;
     out.processed++;
     const cust = inv.customer_id ? byId.get(inv.customer_id) : byAcct.get(inv.account_number);
     if (!cust?.primary_email) continue;
+    const invoiceUrl = `${SITE_URL}/invoices/${inv.id}`;
     await notify("payment-reminder", cust.primary_email, {
       companyName: cust.company_name ?? "there",
       invoiceNumber: inv.invoice_number,
-      amountDue: num(inv.total),
+      amountDue: balance,
       currency: inv.currency ?? "USD",
       dueDate: inv.due_date,
       daysUntilDue: days,
-    }, `invoice-due-${inv.id}-${days}`);
+      invoiceUrl,
+    }, `invoice-due-${inv.id}-${days}`, senderFor(cust));
     out.emailed++;
     await timeline(db, {
       customer_id: inv.customer_id, account_number: inv.account_number,
       event_type: "payment_reminder_sent",
       title: `Payment reminder sent for ${inv.invoice_number}`,
-      description: `Due in ${days} day${days === 1 ? "" : "s"} · ${inv.currency ?? "USD"} ${num(inv.total).toFixed(2)}`,
-      metadata: { rule: "invoice_reminders", days },
+      description: `Due in ${days} day${days === 1 ? "" : "s"} · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding`,
+      metadata: { rule: "invoice_reminders", days, invoice_id: inv.id, to: cust.primary_email, amount: balance },
     });
+    await logCommunication(
+      db, cust,
+      `Payment reminder: Invoice ${inv.invoice_number}`,
+      `Automated reminder emailed to ${cust.primary_email} — due in ${days} day(s), ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding. ${invoiceUrl}`,
+    );
   }
   return out;
 }
