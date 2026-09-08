@@ -172,7 +172,9 @@ async function auditRow(db: any, entity_type: string, entity_id: string, action:
 }
 
 async function customersByKey(db: any) {
-  const { data } = await db.from("customers").select("id,account_number,company_name,primary_email,status");
+  const { data } = await db
+    .from("customers")
+    .select("id,account_number,company_name,primary_email,status,account_manager_id");
   const byId = new Map<string, any>();
   const byAcct = new Map<string, any>();
   for (const c of (data ?? []) as any[]) {
@@ -180,6 +182,59 @@ async function customersByKey(db: any) {
     if (c.account_number) byAcct.set(c.account_number, c);
   }
   return { byId, byAcct };
+}
+
+export const SITE_URL = "https://management.imtsolutions.co.zw";
+
+/**
+ * Branded sender for automated customer mail: the account manager who owns the
+ * customer, falling back to the generic billing mailbox.
+ */
+async function senderResolver(db: any) {
+  const { data } = await db.from("profiles").select("id, full_name, email");
+  const byId = new Map<string, any>();
+  for (const p of (data ?? []) as any[]) byId.set(p.id, p);
+  return (cust: any) => {
+    const p = cust?.account_manager_id ? byId.get(cust.account_manager_id) : null;
+    const email = String(p?.email ?? "").trim();
+    const name = p?.full_name || (email ? email.split("@")[0] : "") || "IMT Solutions Billing";
+    return {
+      fromName: `${name} (IMT Solutions)`,
+      fromLocal: email || "billing",
+      ...(email ? { replyTo: email } : {}),
+    };
+  };
+}
+
+/** Outstanding balance per invoice id (total minus reconciled allocations). */
+async function balancesFor(db: any, invoices: any[]) {
+  const ids = invoices.map((i) => i.id);
+  const out = new Map<string, number>();
+  for (const i of invoices) out.set(i.id, Math.round(num(i.total) * 100) / 100);
+  if (!ids.length) return out;
+  const { data } = await db.from("payment_allocations").select("invoice_id, amount").in("invoice_id", ids);
+  for (const a of (data ?? []) as any[]) {
+    const cur = out.get(a.invoice_id) ?? 0;
+    out.set(a.invoice_id, Math.round((cur - num(a.amount)) * 100) / 100);
+  }
+  return out;
+}
+
+/** Log an outbound automated email on the customer's communications thread. */
+async function logCommunication(db: any, cust: any, subject: string, body: string) {
+  if (!cust?.id) return;
+  await db
+    .from("communications")
+    .insert({
+      customer_id: cust.id,
+      account_number: cust.account_number ?? null,
+      channel: "email",
+      direction: "outbound",
+      subject,
+      body,
+      status: "sent",
+    })
+    .then(undefined, () => {});
 }
 
 export type RuleOutcome = {
@@ -268,6 +323,7 @@ async function invoiceReminders(db: any, cfg: RuleConfig): Promise<RuleOutcome> 
   const windows: number[] = (cfg["before_days"] ?? [7, 3, 1]).map(Number);
   const horizon = dayStr(Date.now() + Math.max(...windows) * DAY);
   const { byId, byAcct } = await customersByKey(db);
+  const senderFor = await senderResolver(db);
   const { notify } = await import("./notify.server");
   const { data: invs } = await db
     .from("invoices")
@@ -278,28 +334,40 @@ async function invoiceReminders(db: any, cfg: RuleConfig): Promise<RuleOutcome> 
     .gte("due_date", dayStr(Date.now()))
     .lte("due_date", horizon);
 
-  for (const inv of (invs ?? []) as any[]) {
+  const list = (invs ?? []) as any[];
+  const balances = await balancesFor(db, list);
+
+  for (const inv of list) {
     const days = daysUntil(inv.due_date);
     if (!windows.includes(days)) continue;
+    const balance = balances.get(inv.id) ?? num(inv.total);
+    if (balance <= 0.005) continue;
     out.processed++;
     const cust = inv.customer_id ? byId.get(inv.customer_id) : byAcct.get(inv.account_number);
     if (!cust?.primary_email) continue;
+    const invoiceUrl = `${SITE_URL}/invoices/${inv.id}`;
     await notify("payment-reminder", cust.primary_email, {
       companyName: cust.company_name ?? "there",
       invoiceNumber: inv.invoice_number,
-      amountDue: num(inv.total),
+      amountDue: balance,
       currency: inv.currency ?? "USD",
       dueDate: inv.due_date,
       daysUntilDue: days,
-    }, `invoice-due-${inv.id}-${days}`);
+      invoiceUrl,
+    }, `invoice-due-${inv.id}-${days}`, senderFor(cust));
     out.emailed++;
     await timeline(db, {
       customer_id: inv.customer_id, account_number: inv.account_number,
       event_type: "payment_reminder_sent",
       title: `Payment reminder sent for ${inv.invoice_number}`,
-      description: `Due in ${days} day${days === 1 ? "" : "s"} · ${inv.currency ?? "USD"} ${num(inv.total).toFixed(2)}`,
-      metadata: { rule: "invoice_reminders", days },
+      description: `Due in ${days} day${days === 1 ? "" : "s"} · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding`,
+      metadata: { rule: "invoice_reminders", days, invoice_id: inv.id, to: cust.primary_email, amount: balance },
     });
+    await logCommunication(
+      db, cust,
+      `Payment reminder: Invoice ${inv.invoice_number}`,
+      `Automated reminder emailed to ${cust.primary_email} — due in ${days} day(s), ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding. ${invoiceUrl}`,
+    );
   }
   return out;
 }
@@ -308,6 +376,7 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
   const out = empty("overdue_escalation");
   const chase: number[] = (cfg["chase_days"] ?? [1, 7, 14, 30]).map(Number);
   const { byId, byAcct } = await customersByKey(db);
+  const senderFor = await senderResolver(db);
   const ids = await staffIds(db, ["master_admin", "finance", "operations_manager"]);
   const { notify } = await import("./notify.server");
   const { data: invs } = await db
@@ -318,7 +387,13 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
     .not("status", "in", "(paid,void,cancelled)")
     .lt("due_date", dayStr(Date.now()));
 
-  for (const inv of (invs ?? []) as any[]) {
+  const list = (invs ?? []) as any[];
+  const balances = await balancesFor(db, list);
+  const maxChase = chase.length ? Math.max(...chase) : 30;
+
+  for (const inv of list) {
+    const balance = balances.get(inv.id) ?? num(inv.total);
+    if (balance <= 0.005) continue;
     out.processed++;
     const overdueDays = Math.abs(daysUntil(inv.due_date));
     if (inv.status !== "overdue") {
@@ -330,26 +405,39 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
     out.notified += await notifyStaff(
       db, ids, "invoice_overdue",
       `Invoice ${inv.invoice_number} is ${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`,
-      `${cust?.company_name ?? inv.account_number} · ${inv.currency ?? "USD"} ${num(inv.total).toFixed(2)}`,
+      `${cust?.company_name ?? inv.account_number} · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding`,
       `/invoices/${inv.id}`,
     );
-    if (chase.includes(overdueDays) && cust?.primary_email) {
+    // Chase on the configured milestones, then keep a weekly cadence after the
+    // last milestone until the invoice is settled.
+    const dueChase = chase.includes(overdueDays) || (overdueDays > maxChase && overdueDays % 7 === 0);
+    if (dueChase && cust?.primary_email) {
+      const invoiceUrl = `${SITE_URL}/invoices/${inv.id}`;
       await notify("payment-reminder", cust.primary_email, {
         companyName: cust.company_name ?? "there",
         invoiceNumber: inv.invoice_number,
-        amountDue: num(inv.total),
+        amountDue: balance,
         currency: inv.currency ?? "USD",
         dueDate: inv.due_date,
         daysUntilDue: -overdueDays,
-      }, `invoice-overdue-${inv.id}-${overdueDays}`);
+        invoiceUrl,
+      }, `invoice-overdue-${inv.id}-${overdueDays}`, senderFor(cust));
       out.emailed++;
+      await auditRow(db, "invoices", inv.id, "overdue_reminder_emailed", {
+        to: cust.primary_email, days: overdueDays, amount: balance,
+      });
       await timeline(db, {
         customer_id: inv.customer_id, account_number: inv.account_number,
         event_type: "overdue_notice_sent",
         title: `Overdue notice sent for ${inv.invoice_number}`,
-        description: `${overdueDays} days past due`,
-        metadata: { rule: "overdue_escalation", days: overdueDays },
+        description: `${overdueDays} days past due · ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding · emailed to ${cust.primary_email}`,
+        metadata: { rule: "overdue_escalation", days: overdueDays, invoice_id: inv.id, amount: balance },
       });
+      await logCommunication(
+        db, cust,
+        `Overdue notice: Invoice ${inv.invoice_number}`,
+        `Automated overdue notice emailed to ${cust.primary_email} — ${overdueDays} day(s) past due, ${inv.currency ?? "USD"} ${balance.toFixed(2)} outstanding. ${invoiceUrl}`,
+      );
     }
   }
   return out;
