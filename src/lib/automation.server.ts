@@ -376,6 +376,7 @@ async function overdueEscalation(db: any, cfg: RuleConfig): Promise<RuleOutcome>
   const out = empty("overdue_escalation");
   const chase: number[] = (cfg["chase_days"] ?? [1, 7, 14, 30]).map(Number);
   const { byId, byAcct } = await customersByKey(db);
+  const senderFor = await senderResolver(db);
   const ids = await staffIds(db, ["master_admin", "finance", "operations_manager"]);
   const { notify } = await import("./notify.server");
   const { data: invs } = await db
