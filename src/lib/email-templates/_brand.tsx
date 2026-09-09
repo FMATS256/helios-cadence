@@ -37,6 +37,7 @@ export const BRAND = {
   hair: '#EFF1F5',
   supportEmail: 'support@imtsolutions.co.zw',
   supportPhone: '+263 (0) 8677 000 000',
+  accountManagerPhone: '+263 86 12 004321',
   address: 'IMT Solutions, Harare, Zimbabwe',
   siteUrl: 'https://management.imtsolutions.co.zw',
   logoUrl:
@@ -56,9 +57,28 @@ export const styles = {
     overflow: 'hidden' as const,
   },
 
-  // Header — brand bar + logo lockup
-  brandBar: { height: '4px', lineHeight: '4px', fontSize: 0, backgroundColor: BRAND.primary },
-  header: { padding: '26px 40px 6px' },
+  // Header — a robust table-based banner for Outlook, Gmail and mobile clients.
+  brandBar: { height: '5px', lineHeight: '5px', fontSize: 0, backgroundColor: BRAND.primary },
+  banner: { width: '100%', borderCollapse: 'collapse' as const, backgroundColor: BRAND.navy },
+  bannerLogoCell: { width: '44%', backgroundColor: '#ffffff', padding: '24px 22px' },
+  bannerMessageCell: { width: '56%', backgroundColor: BRAND.primary, padding: '22px 24px' },
+  bannerEyebrow: {
+    color: '#DCEAFF',
+    fontSize: '10px',
+    lineHeight: '14px',
+    fontWeight: 700 as const,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    margin: '0 0 7px',
+  },
+  bannerTitle: {
+    color: '#ffffff',
+    fontSize: '19px',
+    lineHeight: '24px',
+    fontWeight: 700 as const,
+    margin: 0,
+  },
+  header: { padding: '0' },
   headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
   headerBrand: {
     color: BRAND.ink,
@@ -184,6 +204,24 @@ export const styles = {
   footerText: { fontSize: '12px', color: BRAND.mute, lineHeight: '20px', margin: '0 0 4px' },
   footerLink: { color: BRAND.ink, textDecoration: 'underline' },
   footerLegal: { fontSize: '11px', color: BRAND.faint, lineHeight: '18px', margin: '14px 0 0' },
+  signature: {
+    margin: '10px 0 24px',
+    padding: '18px 0 0',
+    borderTop: `1px solid ${BRAND.hair}`,
+  },
+  signatureSignoff: { fontSize: '14px', lineHeight: '21px', color: BRAND.body, margin: '0 0 12px' },
+  signatureName: { fontSize: '16px', lineHeight: '22px', color: BRAND.ink, fontWeight: 700 as const, margin: 0 },
+  signatureRole: { fontSize: '12px', lineHeight: '18px', color: BRAND.primary, fontWeight: 600 as const, margin: '2px 0 8px' },
+  signatureContact: { fontSize: '12px', lineHeight: '19px', color: BRAND.mute, margin: 0 },
+  signatureLogo: { display: 'block', margin: '14px 0 0', border: 0 },
+  disclaimer: {
+    fontSize: '10px',
+    color: BRAND.faint,
+    lineHeight: '16px',
+    margin: '18px 0 0',
+    paddingTop: '16px',
+    borderTop: `1px solid ${BRAND.hair}`,
+  },
 }
 
 export function EmailShell({
@@ -191,14 +229,27 @@ export function EmailShell({
   kicker,
   title,
   subtitle,
+  senderName,
+  senderRole,
+  senderEmail,
+  senderPhone,
   children,
 }: {
   preview: string
   kicker?: string
   title: string
   subtitle?: string
+  senderName?: string
+  senderRole?: string
+  senderEmail?: string
+  senderPhone?: string
   children: React.ReactNode
 }) {
+  const signatureName = senderName || `${BRAND.name} Team`
+  const signatureRole = senderRole || (senderName ? 'Account Manager' : 'Business Technology Solutions')
+  const signatureEmail = senderEmail || BRAND.supportEmail
+  const signaturePhone = senderPhone || BRAND.accountManagerPhone
+
   return (
     <Html lang="en" dir="ltr">
       <Head />
@@ -207,14 +258,25 @@ export function EmailShell({
         <Container style={styles.container}>
           <Section style={styles.brandBar}>&nbsp;</Section>
           <Section style={styles.header}>
-            <Img
-              src={BRAND.logoUrl}
-              alt={BRAND.name}
-              width="196"
-              height="45"
-              style={styles.headerLogo}
-            />
-            <Text style={styles.headerTagline}>{BRAND.tagline}</Text>
+            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.banner}>
+              <tbody>
+                <tr>
+                  <td style={styles.bannerLogoCell}>
+                    <Img
+                      src={BRAND.logoUrl}
+                      alt={BRAND.name}
+                      width="178"
+                      height="41"
+                      style={styles.headerLogo}
+                    />
+                  </td>
+                  <td style={styles.bannerMessageCell}>
+                    <Text style={styles.bannerEyebrow}>Connect · Protect · Grow</Text>
+                    <Text style={styles.bannerTitle}>Technology that keeps business moving.</Text>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </Section>
           <Section style={styles.hero}>
             {kicker && <Text style={styles.heroKicker}>{kicker}</Text>}
@@ -222,6 +284,18 @@ export function EmailShell({
             {subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
           </Section>
           <Section style={styles.content}>{children}</Section>
+          <Section style={{ ...styles.content, paddingTop: 0 }}>
+            <Section style={styles.signature}>
+              <Text style={styles.signatureSignoff}>Kind regards,</Text>
+              <Text style={styles.signatureName}>{signatureName}</Text>
+              <Text style={styles.signatureRole}>{signatureRole} · {BRAND.name}</Text>
+              <Text style={styles.signatureContact}>
+                <Link href={`mailto:${signatureEmail}`} style={styles.footerLink}>{signatureEmail}</Link>
+                {'  ·  '}{signaturePhone}
+              </Text>
+              <Img src={BRAND.logoUrl} alt={BRAND.name} width="142" height="33" style={styles.signatureLogo} />
+            </Section>
+          </Section>
           <Hr style={styles.divider} />
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
@@ -238,6 +312,12 @@ export function EmailShell({
             </Text>
             <Text style={styles.footerLegal}>
               {BRAND.address} · © {new Date().getFullYear()} {BRAND.name}. {BRAND.tagline}.
+            </Text>
+            <Text style={styles.disclaimer}>
+              CONFIDENTIALITY NOTICE: This email and any attachments are intended only for the named recipient
+              and may contain confidential or legally privileged information. If you received it in error, please
+              notify the sender, delete it, and do not copy, disclose, or act on its contents. Email transmission
+              cannot be guaranteed to be secure or error-free; please scan attachments before opening them.
             </Text>
           </Section>
         </Container>

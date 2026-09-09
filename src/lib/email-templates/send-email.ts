@@ -70,6 +70,38 @@ async function lookupTitle(supabase: any, email: string): Promise<string | undef
   }
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  master_admin: 'Master Administrator',
+  operations_manager: 'Operations Manager',
+  corporate_account_manager: 'Corporate Account Manager',
+  customer_account_manager: 'Customer Account Manager',
+  key_account_manager: 'Key Account Manager',
+  account_manager: 'Account Manager',
+  finance: 'Finance Coordinator',
+  noc: 'NOC Engineer',
+  technical_support: 'Technical Support Engineer',
+  cloud_engineer: 'Cloud Engineer',
+  cyber_security: 'Cybersecurity Specialist',
+  sales: 'Sales Representative',
+  customer_success: 'Customer Success',
+}
+
+async function lookupSenderRole(supabase: any, email: string): Promise<string | undefined> {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('email', email)
+      .maybeSingle()
+    if (!profile?.id) return undefined
+    const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', profile.id)
+    const role = roles?.[0]?.role
+    return role ? (ROLE_LABELS[role] ?? String(role).replace(/_/g, ' ')) : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function serverSupabase() {
   const url = process.env.SUPABASE_URL!
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -103,6 +135,14 @@ export async function sendTemplateEmail(
   // Courtesy title (Mr/Mrs/Dr/Prof…) — resolved from the CRM when the caller
   // did not supply one, so every email addresses the person properly.
   const templateData = { ...(options.templateData ?? {}) }
+  if (!templateData.senderName && options.fromName) {
+    templateData.senderName = options.fromName.replace(/\s*\(IMT Solutions\)\s*$/i, '').trim()
+  }
+  if (!templateData.senderEmail && options.replyTo) templateData.senderEmail = options.replyTo
+  if (!templateData.senderPhone && templateData.senderName) templateData.senderPhone = '+263 86 12 004321'
+  if (!templateData.senderRole && options.replyTo) {
+    templateData.senderRole = await lookupSenderRole(supabase, options.replyTo)
+  }
   if (!templateData.recipientTitle && recipient) {
     templateData.recipientTitle = await lookupTitle(supabase, recipient)
   }
