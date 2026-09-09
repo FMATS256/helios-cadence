@@ -9,9 +9,16 @@ const ALLOWED_RECIPIENT = "fmats256@gmail.com";
 export const Route = createFileRoute("/api/public/test-emails")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const requestedTemplate = new URL(request.url).searchParams.get("template");
+        if (requestedTemplate && !TEMPLATES[requestedTemplate]) {
+          return Response.json({ error: "Unknown email template" }, { status: 400 });
+        }
+        const templates = requestedTemplate
+          ? [[requestedTemplate, TEMPLATES[requestedTemplate]]] as const
+          : Object.entries(TEMPLATES);
         const results: Array<{ template: string; ok: boolean; reason?: string }> = [];
-        for (const [name, tpl] of Object.entries(TEMPLATES)) {
+        for (const [name, tpl] of templates) {
           try {
             const res = await sendTemplateEmail(name, ALLOWED_RECIPIENT, {
               templateData: tpl.previewData ?? {},
