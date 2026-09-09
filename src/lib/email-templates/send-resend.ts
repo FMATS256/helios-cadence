@@ -106,6 +106,8 @@ export async function sendResendEmail(
   const supabase = serverSupabase()
 
   const templateData = { ...(options.templateData ?? {}) }
+  if (!templateData.senderEmail && options.replyTo) templateData.senderEmail = options.replyTo
+  if (!templateData.senderPhone && templateData.senderName) templateData.senderPhone = '+263 86 12 004321'
   if (!templateData.recipientTitle) {
     templateData.recipientTitle = await lookupTitle(supabase, recipient)
   }

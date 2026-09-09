@@ -9,6 +9,9 @@ interface Props {
   recipientName?: string
   recipientTitle?: string
   senderName?: string
+  senderRole?: string
+  senderEmail?: string
+  senderPhone?: string
 }
 
 export const GeneralMessageEmail = ({
@@ -17,12 +20,19 @@ export const GeneralMessageEmail = ({
   recipientName,
   recipientTitle,
   senderName,
+  senderRole,
+  senderEmail,
+  senderPhone,
 }: Props) => (
   <EmailShell
     preview={subject}
     kicker="Message"
     title={subject}
     subtitle={`From the ${BRAND.name} team`}
+    senderName={senderName}
+    senderRole={senderRole}
+    senderEmail={senderEmail}
+    senderPhone={senderPhone}
   >
     {recipientName && <Text style={styles.text}>{greeting(recipientTitle, recipientName)}</Text>}
     <Section style={styles.card}>
@@ -35,9 +45,6 @@ export const GeneralMessageEmail = ({
           </Text>
         ))}
     </Section>
-    <Text style={styles.text}>
-      {senderName ? `${senderName} — ${BRAND.name}` : `${BRAND.name} Team`}
-    </Text>
   </EmailShell>
 )
 
@@ -51,6 +58,9 @@ export const template = {
     subject: 'Scheduled maintenance this weekend',
     recipientName: 'Acme Ltd',
     senderName: 'Farai Matare',
+    senderRole: 'Corporate Account Manager',
+    senderEmail: 'farai.matare@imtsolutions.co.zw',
+    senderPhone: BRAND.accountManagerPhone,
     message:
       'We will be performing scheduled maintenance on Saturday between 22:00 and 02:00.\n\nNo action is required from your side. Please contact support if you notice any disruption.',
   },

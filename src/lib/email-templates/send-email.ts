@@ -103,6 +103,11 @@ export async function sendTemplateEmail(
   // Courtesy title (Mr/Mrs/Dr/Prof…) — resolved from the CRM when the caller
   // did not supply one, so every email addresses the person properly.
   const templateData = { ...(options.templateData ?? {}) }
+  if (!templateData.senderName && options.fromName) {
+    templateData.senderName = options.fromName.replace(/\s*\(IMT Solutions\)\s*$/i, '').trim()
+  }
+  if (!templateData.senderEmail && options.replyTo) templateData.senderEmail = options.replyTo
+  if (!templateData.senderPhone && templateData.senderName) templateData.senderPhone = '+263 86 12 004321'
   if (!templateData.recipientTitle && recipient) {
     templateData.recipientTitle = await lookupTitle(supabase, recipient)
   }
