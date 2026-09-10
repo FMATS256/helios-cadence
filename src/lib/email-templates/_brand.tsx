@@ -16,9 +16,8 @@ import {
 export { TITLES, greeting } from '@/lib/titles'
 export type { Title } from '@/lib/titles'
 
-// Stripe / Linear / Vercel–inspired minimal transactional shell.
-// White canvas, generous whitespace, single teal accent, hairline dividers,
-// typographic hierarchy instead of coloured hero blocks.
+// Corporate transactional shell. The branded banner and compact contact footer
+// are intentionally table-based for reliable rendering in Gmail and Outlook.
 
 export const BRAND = {
   name: 'IMT Solutions',
@@ -47,34 +46,39 @@ export const BRAND = {
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
 export const styles = {
-  main: { backgroundColor: '#F4F5F7', fontFamily: FONT, margin: 0, padding: '32px 0' },
+  main: { backgroundColor: '#EEF2F7', fontFamily: FONT, margin: 0, padding: '28px 0' },
   container: {
-    maxWidth: '560px',
+    maxWidth: '600px',
     margin: '0 auto',
     backgroundColor: '#ffffff',
-    borderRadius: '12px',
+    borderRadius: '6px',
     border: `1px solid ${BRAND.border}`,
     overflow: 'hidden' as const,
   },
 
   // Header — a robust table-based banner for Outlook, Gmail and mobile clients.
-  brandBar: { height: '5px', lineHeight: '5px', fontSize: 0, backgroundColor: BRAND.primary },
+  brandBar: { height: '6px', lineHeight: '6px', fontSize: 0, backgroundColor: '#50B6E8' },
   banner: { width: '100%', borderCollapse: 'collapse' as const, backgroundColor: BRAND.navy },
-  bannerLogoCell: { width: '44%', backgroundColor: '#ffffff', padding: '24px 22px' },
-  bannerMessageCell: { width: '56%', backgroundColor: BRAND.primary, padding: '22px 24px' },
+  bannerLogoCell: { width: '43%', backgroundColor: '#ffffff', padding: '28px 26px' },
+  bannerMessageCell: {
+    width: '57%',
+    backgroundColor: BRAND.primary,
+    borderLeft: '9px solid #50B6E8',
+    padding: '24px 28px',
+  },
   bannerEyebrow: {
-    color: '#DCEAFF',
+    color: '#D9EDFF',
     fontSize: '10px',
     lineHeight: '14px',
     fontWeight: 700 as const,
-    letterSpacing: '0.12em',
+    letterSpacing: '0.16em',
     textTransform: 'uppercase' as const,
-    margin: '0 0 7px',
+    margin: '0 0 8px',
   },
   bannerTitle: {
     color: '#ffffff',
-    fontSize: '19px',
-    lineHeight: '24px',
+    fontSize: '20px',
+    lineHeight: '26px',
     fontWeight: 700 as const,
     margin: 0,
   },
@@ -103,7 +107,7 @@ export const styles = {
   },
 
   // Hero — typographic only, on white
-  hero: { padding: '20px 40px 8px' },
+  hero: { padding: '30px 42px 6px' },
   heroKicker: {
     fontSize: '11px',
     letterSpacing: '0.14em',
@@ -127,7 +131,7 @@ export const styles = {
     lineHeight: '24px',
   },
 
-  content: { padding: '20px 40px 8px' },
+  content: { padding: '20px 42px 12px' },
   h2: { fontSize: '15px', fontWeight: 600 as const, color: BRAND.ink, margin: '0 0 10px' },
   text: { fontSize: '15px', color: BRAND.body, lineHeight: '24px', margin: '0 0 16px' },
 
@@ -197,30 +201,28 @@ export const styles = {
     color: BRAND.ink,
   },
 
-  divider: { borderColor: BRAND.hair, margin: '24px 0 0', borderTop: `1px solid ${BRAND.hair}` },
+  divider: { borderColor: BRAND.hair, margin: '26px 42px 0', borderTop: `1px solid ${BRAND.hair}` },
 
-  // Footer
-  footer: { padding: '24px 40px 32px' },
-  footerText: { fontSize: '12px', color: BRAND.mute, lineHeight: '20px', margin: '0 0 4px' },
-  footerLink: { color: BRAND.ink, textDecoration: 'underline' },
-  footerLegal: { fontSize: '11px', color: BRAND.faint, lineHeight: '18px', margin: '14px 0 0' },
-  signature: {
-    margin: '10px 0 24px',
-    padding: '18px 0 0',
-    borderTop: `1px solid ${BRAND.hair}`,
-  },
-  signatureSignoff: { fontSize: '14px', lineHeight: '21px', color: BRAND.body, margin: '0 0 12px' },
-  signatureName: { fontSize: '16px', lineHeight: '22px', color: BRAND.ink, fontWeight: 700 as const, margin: 0 },
-  signatureRole: { fontSize: '12px', lineHeight: '18px', color: BRAND.primary, fontWeight: 600 as const, margin: '2px 0 8px' },
-  signatureContact: { fontSize: '12px', lineHeight: '19px', color: BRAND.mute, margin: 0 },
-  signatureLogo: { display: 'block', margin: '14px 0 0', border: 0 },
+  // Footer — sender details are folded into one branded band, avoiding a
+  // separate signature block and the repeated logo/contact sections it caused.
+  footer: { padding: '0', backgroundColor: BRAND.navy },
+  footerTable: { width: '100%', borderCollapse: 'collapse' as const },
+  footerContactCell: { width: '58%', padding: '24px 18px 24px 42px', verticalAlign: 'middle' as const },
+  footerLogoCell: { width: '42%', padding: '24px 42px 24px 12px', verticalAlign: 'middle' as const },
+  footerName: { fontSize: '15px', color: '#ffffff', lineHeight: '21px', fontWeight: 700 as const, margin: 0 },
+  footerRole: { fontSize: '11px', color: '#8ED6F5', lineHeight: '17px', fontWeight: 600 as const, margin: '2px 0 9px' },
+  footerText: { fontSize: '11px', color: '#D7E0ED', lineHeight: '18px', margin: 0 },
+  footerLink: { color: '#ffffff', textDecoration: 'none' },
+  footerLogoBox: { backgroundColor: '#ffffff', padding: '12px', textAlign: 'center' as const },
+  footerLogo: { display: 'block', margin: '0 auto', border: 0 },
+  footerSite: { fontSize: '10px', color: '#AFC2D9', lineHeight: '16px', textAlign: 'center' as const, margin: '8px 0 0' },
+  legal: { padding: '18px 42px 22px', backgroundColor: '#F4F7FB' },
+  footerLegal: { fontSize: '10px', color: BRAND.mute, lineHeight: '16px', margin: '0 0 10px' },
   disclaimer: {
-    fontSize: '10px',
-    color: BRAND.faint,
-    lineHeight: '16px',
-    margin: '18px 0 0',
-    paddingTop: '16px',
-    borderTop: `1px solid ${BRAND.hair}`,
+    fontSize: '9px',
+    color: '#7B8798',
+    lineHeight: '14px',
+    margin: 0,
   },
 }
 
@@ -284,40 +286,42 @@ export function EmailShell({
             {subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
           </Section>
           <Section style={styles.content}>{children}</Section>
-          <Section style={{ ...styles.content, paddingTop: 0 }}>
-            <Section style={styles.signature}>
-              <Text style={styles.signatureSignoff}>Kind regards,</Text>
-              <Text style={styles.signatureName}>{signatureName}</Text>
-              <Text style={styles.signatureRole}>{signatureRole} · {BRAND.name}</Text>
-              <Text style={styles.signatureContact}>
-                <Link href={`mailto:${signatureEmail}`} style={styles.footerLink}>{signatureEmail}</Link>
-                {'  ·  '}{signaturePhone}
-              </Text>
-              <Img src={BRAND.logoUrl} alt={BRAND.name} width="142" height="33" style={styles.signatureLogo} />
-            </Section>
-          </Section>
           <Hr style={styles.divider} />
           <Section style={styles.footer}>
-            <Text style={styles.footerText}>
-              Questions? Reply to this email, write to{' '}
-              <Link href={`mailto:${BRAND.supportEmail}`} style={styles.footerLink}>
-                {BRAND.supportEmail}
-              </Link>{' '}
-              or call {BRAND.supportPhone}.
-            </Text>
-            <Text style={styles.footerText}>
-              <Link href={BRAND.siteUrl} style={styles.footerLink}>
-                {BRAND.siteUrl.replace('https://', '')}
-              </Link>
-            </Text>
+            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.footerTable}>
+              <tbody>
+                <tr>
+                  <td style={styles.footerContactCell}>
+                    <Text style={styles.footerName}>{signatureName}</Text>
+                    <Text style={styles.footerRole}>{signatureRole} · {BRAND.name}</Text>
+                    <Text style={styles.footerText}>{signaturePhone}</Text>
+                    <Text style={styles.footerText}>
+                      <Link href={`mailto:${signatureEmail}`} style={styles.footerLink}>{signatureEmail}</Link>
+                    </Text>
+                  </td>
+                  <td style={styles.footerLogoCell}>
+                    <div style={styles.footerLogoBox}>
+                      <Img src={BRAND.logoUrl} alt={BRAND.name} width="150" height="35" style={styles.footerLogo} />
+                    </div>
+                    <Text style={styles.footerSite}>
+                      <Link href={BRAND.siteUrl} style={{ ...styles.footerLink, color: '#AFC2D9' }}>
+                        imtsolutions.co.zw
+                      </Link>
+                    </Text>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </Section>
+          <Section style={styles.legal}>
             <Text style={styles.footerLegal}>
               {BRAND.address} · © {new Date().getFullYear()} {BRAND.name}. {BRAND.tagline}.
             </Text>
             <Text style={styles.disclaimer}>
-              CONFIDENTIALITY NOTICE: This email and any attachments are intended only for the named recipient
-              and may contain confidential or legally privileged information. If you received it in error, please
-              notify the sender, delete it, and do not copy, disclose, or act on its contents. Email transmission
-              cannot be guaranteed to be secure or error-free; please scan attachments before opening them.
+              CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient
+              and may contain confidential, privileged or copyright information. If you received it in error,
+              please notify the sender, delete it, and do not copy, share or act on its contents. Email transmission
+              cannot be guaranteed secure or error-free; please scan attachments before opening them.
             </Text>
           </Section>
         </Container>
