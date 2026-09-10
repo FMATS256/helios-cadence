@@ -58,13 +58,13 @@ export const styles = {
 
   // Header — a robust table-based banner for Outlook, Gmail and mobile clients.
   brandBar: { height: '6px', lineHeight: '6px', fontSize: 0, backgroundColor: '#50B6E8' },
-  banner: { width: '100%', borderCollapse: 'collapse' as const, backgroundColor: BRAND.navy },
-  bannerLogoCell: { width: '43%', backgroundColor: '#ffffff', padding: '28px 26px' },
+  banner: { width: '100%', borderCollapse: 'collapse' as const, backgroundColor: BRAND.primary },
+  bannerLogoCell: { width: '42%', backgroundColor: '#ffffff', padding: '30px 28px' },
   bannerMessageCell: {
-    width: '57%',
+    width: '58%',
     backgroundColor: BRAND.primary,
-    borderLeft: '9px solid #50B6E8',
-    padding: '24px 28px',
+    borderLeft: '10px solid #50B6E8',
+    padding: '25px 30px',
   },
   bannerEyebrow: {
     color: '#D9EDFF',
@@ -77,8 +77,8 @@ export const styles = {
   },
   bannerTitle: {
     color: '#ffffff',
-    fontSize: '20px',
-    lineHeight: '26px',
+    fontSize: '21px',
+    lineHeight: '27px',
     fontWeight: 700 as const,
     margin: 0,
   },
@@ -131,7 +131,7 @@ export const styles = {
     lineHeight: '24px',
   },
 
-  content: { padding: '20px 42px 12px' },
+  content: { padding: '34px 42px 14px' },
   h2: { fontSize: '15px', fontWeight: 600 as const, color: BRAND.ink, margin: '0 0 10px' },
   text: { fontSize: '15px', color: BRAND.body, lineHeight: '24px', margin: '0 0 16px' },
 
@@ -201,7 +201,7 @@ export const styles = {
     color: BRAND.ink,
   },
 
-  divider: { borderColor: BRAND.hair, margin: '26px 42px 0', borderTop: `1px solid ${BRAND.hair}` },
+  divider: { borderColor: BRAND.hair, margin: '24px 42px 0', borderTop: `1px solid ${BRAND.hair}` },
 
   // Footer — sender details are folded into one branded band, avoiding a
   // separate signature block and the repeated logo/contact sections it caused.
@@ -279,11 +279,6 @@ export function EmailShell({
                 </tr>
               </tbody>
             </table>
-          </Section>
-          <Section style={styles.hero}>
-            {kicker && <Text style={styles.heroKicker}>{kicker}</Text>}
-            <Heading style={styles.heroTitle}>{title}</Heading>
-            {subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
           </Section>
           <Section style={styles.content}>{children}</Section>
           <Hr style={styles.divider} />
