@@ -18,10 +18,14 @@ export const PERMISSIONS = {
   "services.assign": ["operations_manager", "finance", "sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "services.remove": ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
 
-  // Billing
+  // Billing — separation of duties. Account managers view and submit evidence;
+  // only billing records money. Mirrors assertBillingStaff() on the server.
   "billing.view":    ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "billing.manage":  ["operations_manager", "finance"],
-  "payments.record": ["operations_manager", "finance", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
+  "payments.record": ["operations_manager", "finance"],
+  "payments.submit": ["operations_manager", "finance", "sales", "customer_success", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
+  "payments.review": ["operations_manager", "finance"],
+  "invoices.manage": ["operations_manager", "finance"],
 
   // Tickets
   "tickets.view":    ["operations_manager", "technical_support", "customer_success", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "noc"],

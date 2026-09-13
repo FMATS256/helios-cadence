@@ -181,9 +181,8 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
     allocations?: Array<{ invoice_id: string; amount: number }>;
   }) => input)
   .handler(async ({ data, context }) => {
-    const { data: hasRole, error: roleError } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
-    if (roleError) throw new Error(roleError.message);
-    if (!hasRole) throw new Error("Your account needs a staff role before you can record payments.");
+    const { assertBillingStaff } = await import("./customer360.server");
+    await assertBillingStaff(context as any);
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be greater than zero");
 
@@ -572,8 +571,8 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { subscription_id: string; issue_date?: string; due_days?: number; tax_rate?: number }) => input)
   .handler(async ({ data, context }) => {
-    const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
-    if (!hasRole) throw new Error("Staff role required");
+    const { assertBillingStaff } = await import("./customer360.server");
+    await assertBillingStaff(context as any);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub, error: subErr } = await supabaseAdmin.from("subscriptions").select("*").eq("id", data.subscription_id).single();
     if (subErr || !sub) throw new Error(subErr?.message ?? "Subscription not found");

@@ -7,6 +7,9 @@ import { useCustomersLite } from "@/components/module-page";
 import { createPaymentRecord, getCustomerPaymentContext } from "@/lib/ops.functions";
 import { getPaymentsOverview, getPaymentReconciliation, reconcilePayment } from "@/lib/finance.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { useRoles } from "@/hooks/use-roles";
+import { can } from "@/lib/rbac";
+import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +37,9 @@ export function PaymentsPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: customers = [] } = useCustomersLite();
+  const { roles } = useRoles();
+  const canRecord = can(roles, "payments.record");
+  const [openSubmit, setOpenSubmit] = useState(false);
   const createPayment = useServerFn(createPaymentRecord);
   const getContext = useServerFn(getCustomerPaymentContext);
 
@@ -107,6 +113,7 @@ export function PaymentsPage() {
 
   return (
     <PageShell>
+      <SubmitPaymentDialog open={openSubmit} onOpenChange={setOpenSubmit} />
       <SectionHeader
         eyebrow="Business"
         title="Payments Platform"
@@ -114,9 +121,15 @@ export function PaymentsPage() {
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4 mr-1.5" />Export CSV</Button>
-            <Button onClick={() => setOpenDialog(true)} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-              <Plus className="h-4 w-4 mr-1.5" />Record payment
-            </Button>
+            {canRecord ? (
+              <Button onClick={() => setOpenDialog(true)} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                <Plus className="h-4 w-4 mr-1.5" />Record payment
+              </Button>
+            ) : (
+              <Button onClick={() => setOpenSubmit(true)} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
+                <Plus className="h-4 w-4 mr-1.5" />Submit payment to billing
+              </Button>
+            )}
           </div>
         }
       />

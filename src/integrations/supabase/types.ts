@@ -3155,6 +3155,158 @@ export type Database = {
           },
         ]
       }
+      payment_submission_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          document_id: string | null
+          id: string
+          notes: string | null
+          submission_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          notes?: string | null
+          submission_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          notes?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_submission_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "customer_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_submission_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "payment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_submissions: {
+        Row: {
+          account_number: string | null
+          amount: number
+          created_at: string
+          currency: string
+          customer_id: string
+          duplicate_flag: Json | null
+          id: string
+          invoice_id: string | null
+          method: string
+          notes: string | null
+          payment_date: string
+          payment_id: string | null
+          proof_document_id: string | null
+          receipt_number: string | null
+          reference: string | null
+          rejection_reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          created_at?: string
+          currency?: string
+          customer_id: string
+          duplicate_flag?: Json | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          notes?: string | null
+          payment_date?: string
+          payment_id?: string | null
+          proof_document_id?: string | null
+          receipt_number?: string | null
+          reference?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          duplicate_flag?: Json | null
+          id?: string
+          invoice_id?: string | null
+          method?: string
+          notes?: string | null
+          payment_date?: string
+          payment_id?: string | null
+          proof_document_id?: string | null
+          receipt_number?: string | null
+          reference?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_submissions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_submissions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_submissions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_submissions_proof_document_id_fkey"
+            columns: ["proof_document_id"]
+            isOneToOne: false
+            referencedRelation: "customer_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           account_number: string

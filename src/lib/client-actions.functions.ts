@@ -205,6 +205,8 @@ export const createInvoiceForCustomer = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     await requireStaff(context);
+    const { assertBillingStaff } = await import("./customer360.server");
+    await assertBillingStaff(context as any);
     if (!data.customer_id) throw new Error("Customer is required");
     const items = (data.items ?? []).filter((i) => i.description?.trim() && Number(i.quantity) > 0);
     if (items.length === 0) throw new Error("Add at least one line item");
