@@ -44,7 +44,7 @@ const siteNav: NavNode[] = [
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
       { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
-      { title: "Work Orders", url: "/work-orders", icon: Wrench },
+
     ],
   },
   {
