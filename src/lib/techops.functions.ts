@@ -129,6 +129,8 @@ export const updateJobDetails = createServerFn({ method: "POST" })
     site_address?: string | null;
     site_contact_name?: string | null;
     site_contact_phone?: string | null;
+    site_lat?: number | null;
+    site_lng?: number | null;
     network_config?: string | null;
     installation_notes?: string | null;
     testing_notes?: string | null;
@@ -140,8 +142,15 @@ export const updateJobDetails = createServerFn({ method: "POST" })
     for (const k of ["site_name", "site_address", "site_contact_name", "site_contact_phone", "network_config", "installation_notes", "testing_notes"] as const) {
       if (data[k] !== undefined) patch[k] = data[k] || null;
     }
+    for (const k of ["site_lat", "site_lng"] as const) {
+      if (data[k] !== undefined) {
+        const n = data[k];
+        patch[k] = n === null || n === ("" as any) || !Number.isFinite(Number(n)) ? null : Number(n);
+      }
+    }
 
-    if (data.geocode && data.site_address) {
+    // Only auto-geocode when we have no coordinates to work with.
+    if (data.geocode && data.site_address && patch.site_lat == null) {
       try {
         const { resolveAddresses } = await import("./geocode.server");
         const hits = await resolveAddresses(context.supabase, [data.site_address], 1);
@@ -149,6 +158,7 @@ export const updateJobDetails = createServerFn({ method: "POST" })
         if (hit) { patch.site_lat = hit.lat; patch.site_lng = hit.lng; }
       } catch { /* geocoding is best-effort */ }
     }
+
 
     const { data: row, error } = await context.supabase
       .from("service_tasks").update(patch).eq("id", data.id).select("*").single();
