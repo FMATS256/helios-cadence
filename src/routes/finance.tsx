@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WorkspaceTabs } from "@/components/workspace-tabs";
-import { BillingPage } from "@/components/workspaces/invoices-workspace";
+import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspace";
 
@@ -43,7 +43,7 @@ export const Route = createFileRoute("/finance")({
 
 const FINANCE_TABS = [
   { key: "overview", label: "Overview" },
-  { key: "invoices", label: "Invoices" },
+  { key: "invoices", label: "Billing" },
   { key: "payments", label: "Payments" },
   { key: "subscriptions", label: "Subscriptions" },
 ] as const;

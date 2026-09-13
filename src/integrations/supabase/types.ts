@@ -2174,6 +2174,90 @@ export type Database = {
           },
         ]
       }
+      invoice_requests: {
+        Row: {
+          account_number: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          description: string | null
+          due_days: number
+          estimated_amount: number
+          id: string
+          invoice_id: string | null
+          items: Json
+          needed_by: string | null
+          notes: string | null
+          requested_at: string
+          requested_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          description?: string | null
+          due_days?: number
+          estimated_amount?: number
+          id?: string
+          invoice_id?: string | null
+          items?: Json
+          needed_by?: string | null
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          description?: string | null
+          due_days?: number
+          estimated_amount?: number
+          id?: string
+          invoice_id?: string | null
+          items?: Json
+          needed_by?: string | null
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           account_number: string
