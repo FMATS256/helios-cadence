@@ -312,25 +312,15 @@ export function EmailShell({
         <Container style={styles.container}>
           <Section style={styles.brandBar}>&nbsp;</Section>
           <Section style={styles.header}>
-            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.banner}>
-              <tbody>
-                <tr>
-                  <td style={styles.bannerLogoCell}>
-                    <Img
-                      src={BRAND.logoUrl}
-                      alt={BRAND.name}
-                      width="178"
-                      height="41"
-                      style={styles.headerLogo}
-                    />
-                  </td>
-                  <td style={styles.bannerMessageCell}>
-                    <Text style={styles.bannerEyebrow}>Connect · Protect · Grow</Text>
-                    <Text style={styles.bannerTitle}>Technology that keeps business moving.</Text>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <Link href={BRAND.marketingUrl}>
+              <Img
+                src={BRAND.bannerUrl}
+                alt={`${BRAND.name} — Zimbabwe's Trusted ICT Partner`}
+                width="600"
+                height="250"
+                style={styles.heroBanner}
+              />
+            </Link>
           </Section>
           <Section style={styles.content}>{children}</Section>
           <Hr style={styles.divider} />
