@@ -288,3 +288,26 @@ export async function resumeSuspendedForCustomer(db: any, customerId: string) {
   return { touched, total };
 }
 
+
+/**
+ * Billing gate. Only finance, operations managers and master admins may record
+ * payments, allocate money, issue invoices/receipts, refunds or credits.
+ * Account managers submit evidence instead (see payment-submissions.functions).
+ */
+export async function isBillingStaff(ctx: StaffCtx) {
+  const [master, fin, ops] = await Promise.all([
+    ctx.supabase.rpc("is_master_admin", { _user_id: ctx.userId }),
+    ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "finance" }),
+    ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "operations_manager" }),
+  ]);
+  return Boolean(master?.data) || Boolean(fin?.data) || Boolean(ops?.data);
+}
+
+export async function assertBillingStaff(ctx: StaffCtx) {
+  await assertStaff(ctx);
+  if (!(await isBillingStaff(ctx))) {
+    throw new Error(
+      "Only billing (finance, operations manager or master admin) can record or change financial transactions. Submit the payment to billing instead.",
+    );
+  }
+}

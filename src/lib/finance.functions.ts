@@ -16,6 +16,13 @@ async function ensureStaff(context: { supabase: any; userId: string }) {
   if (!hasRole) throw new Error("Staff role required");
 }
 
+/** Money-changing finance actions are billing-only. */
+async function ensureBilling(context: { supabase: any; userId: string }) {
+  await ensureStaff(context);
+  const { assertBillingStaff } = await import("./customer360.server");
+  await assertBillingStaff(context as any);
+}
+
 /* ---------- Invoices Aggregator ---------- */
 
 export const getInvoicesOverview = createServerFn({ method: "POST" })
@@ -304,7 +311,7 @@ export const reconcilePayment = createServerFn({ method: "POST" })
     allocations?: Array<{ invoice_id: string; amount: number }>;
   }) => input)
   .handler(async ({ data, context }) => {
-    await ensureStaff(context);
+    await ensureBilling(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { loadOpenInvoices, allocateOldestFirst, resumeSuspendedForCustomer } = await import("./customer360.server");
     const { recordCustomerEvent } = await import("./customer-events.server");
@@ -404,7 +411,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { invoice_id: string; to?: string }) => input)
   .handler(async ({ data, context }) => {
-    await ensureStaff(context);
+    await ensureBilling(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: invoice, error } = await supabaseAdmin

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { BillingPage } from "@/components/workspaces/invoices-workspace";
+import { SubmissionsWorkspace } from "@/components/workspaces/submissions-workspace";
 import { getCustomerBalances } from "@/lib/finance.functions";
 import { PageShell, SectionHeader, KpiRow, StatusBadge, money as fmtMoney } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { Wallet, AlertTriangle, Users, Search, Download, Receipt } from "lucide-
 
 const TABS = [
   { key: "payments", label: "Payments" },
+  { key: "submissions", label: "Submissions" },
   { key: "invoices", label: "Invoices" },
   { key: "balances", label: "Balances Due" },
 ] as const;
@@ -43,6 +45,16 @@ function PaymentsWorkspace() {
     <div>
       <WorkspaceTabs tabs={TABS as any} active={active} to="/payments" />
       {active === "payments" && <PaymentsPage />}
+      {active === "submissions" && (
+        <PageShell>
+          <SectionHeader
+            eyebrow="Separation of duties"
+            title="Payment Submissions"
+            description="Account managers submit payment evidence; billing verifies, approves and records it against the invoice."
+          />
+          <SubmissionsWorkspace />
+        </PageShell>
+      )}
       {active === "invoices" && <BillingPage />}
       {active === "balances" && <BalancesPage />}
     </div>

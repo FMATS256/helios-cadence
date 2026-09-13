@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  assertStaff, isFinanceOrAdmin, admin, loadCustomer, num, monthly, advanceDate,
+  assertStaff, assertBillingStaff, isBillingStaff, isFinanceOrAdmin, admin, loadCustomer, num, monthly, advanceDate,
   ageingBucket, KYC_REQUIREMENTS, kycProfileFor, serviceLineOf, sendRawEmail,
   loadOpenInvoices, allocateOldestFirst, creditBalanceOf, loadPayableServices,
   resumeSuspendedForCustomer,
@@ -416,7 +416,7 @@ export const recordRefund = createServerFn({ method: "POST" })
     as_credit?: boolean;
   }) => input)
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertBillingStaff(context);
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Refund amount must be greater than zero");
     const db = await admin();
@@ -474,7 +474,7 @@ export const addCustomerCredit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { customer_id: string; amount: number; currency?: string; kind?: string; note?: string }) => input)
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertBillingStaff(context);
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount === 0) throw new Error("Credit amount is required");
     const db = await admin();
@@ -1273,7 +1273,7 @@ export const recordCustomerPayment = createServerFn({ method: "POST" })
     auto_resume?: boolean;
   }) => input)
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertBillingStaff(context);
     const amount = Math.round(Number(data.amount) * 100) / 100;
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be greater than zero");
 
