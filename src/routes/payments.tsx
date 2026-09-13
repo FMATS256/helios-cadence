@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
-import { BillingPage } from "@/components/workspaces/invoices-workspace";
+import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { SubmissionsWorkspace } from "@/components/workspaces/submissions-workspace";
 import { getCustomerBalances } from "@/lib/finance.functions";
 import { PageShell, SectionHeader, KpiRow, StatusBadge, money as fmtMoney } from "@/components/enterprise";

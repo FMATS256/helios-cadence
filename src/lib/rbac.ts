@@ -25,6 +25,7 @@ export const PERMISSIONS = {
   "payments.record": ["operations_manager", "finance"],
   "payments.submit": ["operations_manager", "finance", "sales", "customer_success", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "payments.review": ["operations_manager", "finance"],
+  "invoices.request": ["operations_manager", "finance", "sales", "customer_success", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"],
   "invoices.manage": ["operations_manager", "finance"],
 
   // Tickets
