@@ -285,12 +285,12 @@ function ServerDetailPage() {
     })),
     ...(deployments.data ?? []).map((d: any) => ({
       key: `d-${d.id}`, action: d.action, type: "deployment",
-      tone: (d.status === "completed" ? "success" : d.status === "failed" ? "danger" : "warning") as const,
+      tone: (d.status === "completed" ? "success" : d.status === "failed" ? "danger" : "warning") as "success" | "danger" | "warning",
       actor: "system", detail: d.provider_command_id ?? d.status, at: d.created_at,
     })),
     ...snapshots.map((b: any) => ({
       key: `b-${b.id}`, action: `backup.${b.kind}`, type: "backup",
-      tone: (b.status === "completed" ? "success" : b.status === "failed" ? "danger" : "neutral") as const,
+      tone: (b.status === "completed" ? "success" : b.status === "failed" ? "danger" : "neutral") as "success" | "danger" | "neutral",
       actor: "system", detail: b.notes ?? b.status, at: b.created_at,
     })),
   ].sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
