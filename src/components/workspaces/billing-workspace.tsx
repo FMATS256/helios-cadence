@@ -281,6 +281,21 @@ function InvoiceList({
         </DropdownMenu>
       ),
     });
+  } else {
+    // Account managers: view and send invoices billing has already approved.
+    columns.push({
+      header: "", align: "right", cell: (r) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => sendM.mutate(r.id)}
+          disabled={sendM.isPending || r.status === "draft" || r.status === "void"}
+          title={r.status === "draft" ? "Awaiting billing approval" : "Email this invoice to the customer"}
+        >
+          <Send className="h-4 w-4 mr-1.5" />Send
+        </Button>
+      ),
+    });
   }
 
   return (
