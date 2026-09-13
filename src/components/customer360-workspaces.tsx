@@ -276,10 +276,8 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => fn({ data: { customer_id: ctx.customerId } }) });
   const [note, setNote] = useState("");
   const [credit, setCredit] = useState("");
-  const [payOpen, setPayOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
-  const { roles } = useRoles();
-  const canRecordPayments = can(roles, "payments.record");
+
 
   const addCredit = useMutation({
     mutationFn: () => creditFn({ data: { customer_id: ctx.customerId, amount: Number(credit), note: "Manual credit" } }),
