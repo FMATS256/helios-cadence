@@ -379,7 +379,7 @@ function ServerDetailPage() {
           <TabsTrigger value="billing"><DollarSign className="h-3.5 w-3.5 mr-1.5" />Billing</TabsTrigger>
           <TabsTrigger value="deployments"><Rocket className="h-3.5 w-3.5 mr-1.5" />Deployments</TabsTrigger>
           <TabsTrigger value="alerts"><Bell className="h-3.5 w-3.5 mr-1.5" />Alerts</TabsTrigger>
-          <TabsTrigger value="activity"><ScrollText className="h-3.5 w-3.5 mr-1.5" />Activity</TabsTrigger>
+          <TabsTrigger value="activity"><HistoryIcon className="h-3.5 w-3.5 mr-1.5" />History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -401,16 +401,59 @@ function ServerDetailPage() {
         </TabsContent>
 
         <TabsContent value="monitoring" className="mt-4">
-          <InfoCard title="Live provider data">
-            <Row k="Provider" v={s.provider ?? "unknown"} />
-            <Row k="Power" v={s.power_state ?? "unknown"} />
-            <Row k="Status" v={s.status ?? "unknown"} />
-            <Row k="CPU load (last)" v={meta.cpu_load ?? meta.load ?? meta.cpu ?? "—"} />
-            <Row k="Uptime" v={meta.uptime ?? "—"} />
-            <Row k="Traffic used" v={meta.traffic_used ?? meta.traffic ?? "—"} />
-            <p className="text-xs text-muted-foreground mt-3">Refresh to pull fresh metrics from {s.provider ?? "provider"}.</p>
-          </InfoCard>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm">Live metrics</CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch id="live" checked={liveOn} onCheckedChange={setLiveOn} />
+                    <Label htmlFor="live" className="text-xs">Live (30s)</Label>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => sample.mutate()} disabled={sample.isPending}>
+                    <ActivityIcon className={`h-4 w-4 mr-1.5 ${sample.isPending ? "animate-pulse" : ""}`} /> Sample now
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <Row k="Reachable" v={latest ? (latest.reachable ? "yes" : "no") : "—"} />
+                  <Row k="Response" v={latest?.latency_ms != null ? `${latest.latency_ms} ms` : "—"} />
+                  <Row k="CPU" v={latest?.cpu_percent != null ? `${Number(latest.cpu_percent).toFixed(0)}%` : "—"} />
+                  <Row k="Memory" v={latest?.ram_percent != null ? `${Number(latest.ram_percent).toFixed(0)}%` : "—"} />
+                  <Row k="Disk" v={latest?.disk_percent != null ? `${Number(latest.disk_percent).toFixed(0)}%` : "—"} />
+                  <Row k="Traffic" v={latest?.traffic_gb != null ? `${Number(latest.traffic_gb).toFixed(1)} GB` : "—"} />
+                  <Row k="Power" v={latest?.power_state ?? s.power_state ?? "—"} />
+                  <Row k="Samples" v={String(metrics.length)} />
+                </div>
+                {metrics.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No samples yet. Hit <span className="font-medium">Sample now</span> to poll {s.provider ?? "the provider"} and probe the server.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Response time (ms)</p>
+                      <GradientAreaChart data={latencySeries} dataKey="value" xKey="label" height={180} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Availability (1 = reachable)</p>
+                      <GradientAreaChart data={upSeries} dataKey="value" xKey="label" height={140} color={IMT_COLORS.solar} />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <InfoCard title="Latest provider readout">
+              <Row k="Provider" v={s.provider ?? "unknown"} />
+              <Row k="Status" v={s.status ?? "unknown"} />
+              <Row k="Uptime" v={meta.uptime ?? "—"} />
+              <Row k="Traffic used" v={meta.traffic_used ?? meta.traffic ?? "—"} />
+              <Row k="Last synced" v={s.last_synced_at ? formatDistanceToNow(new Date(s.last_synced_at), { addSuffix: true }) : "Never"} />
+            </InfoCard>
+          </div>
         </TabsContent>
+
 
         <TabsContent value="compute" className="mt-4">
           <InfoCard title="Compute">
@@ -463,11 +506,91 @@ function ServerDetailPage() {
         </TabsContent>
 
         <TabsContent value="backups" className="mt-4">
-          <InfoCard title="Backup policy">
-            <Row k="Daily backup" v={meta.dailybackup ?? meta.backup ?? "off"} />
-            <Row k="Snapshots" v={Array.isArray(meta.snapshots) ? `${meta.snapshots.length}` : "0"} />
-          </InfoCard>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm">Snapshots</CardTitle>
+                <Button size="sm" onClick={() => setSnapOpen(true)}>
+                  <Camera className="h-4 w-4 mr-1.5" /> Take snapshot
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {snapshots.length === 0 ? (
+                  <p className="p-6 text-sm text-muted-foreground text-center">No snapshots yet.</p>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Kind</TableHead><TableHead>Status</TableHead>
+                      <TableHead>Taken</TableHead><TableHead>Expires</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {snapshots.map((b: any) => (
+                        <TableRow key={b.id}>
+                          <TableCell className="text-xs">{b.kind}</TableCell>
+                          <TableCell><StatusPill tone={b.status === "completed" ? "success" : b.status === "failed" ? "danger" : "neutral"}>{b.status}</StatusPill></TableCell>
+                          <TableCell className="text-xs">{b.taken_at ? formatDistanceToNow(new Date(b.taken_at), { addSuffix: true }) : "—"}</TableCell>
+                          <TableCell className="text-xs">{b.expires_at ? new Date(b.expires_at).toLocaleDateString() : "—"}</TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button
+                              size="sm" variant="outline"
+                              disabled={b.status !== "completed" || restore.isPending}
+                              onClick={() => { if (confirm(`Restore ${s.name} from this snapshot?`)) restore.mutate(b.id); }}
+                            >
+                              <Undo2 className="h-3.5 w-3.5 mr-1" /> Restore
+                            </Button>
+                            <Button
+                              size="sm" variant="ghost"
+                              disabled={b.status === "deleted" || removeSnap.isPending}
+                              onClick={() => removeSnap.mutate(b.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <InfoCard title="Automatic backups">
+              <div className="grid gap-3 md:grid-cols-4 items-end">
+                <div>
+                  <Label className="text-xs">Frequency</Label>
+                  <Select value={schedForm.frequency} onValueChange={(v) => setSchedForm({ ...schedForm, frequency: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hourly">Hourly</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Keep for (days)</Label>
+                  <Input value={schedForm.retention_days} onChange={(e) => setSchedForm({ ...schedForm, retention_days: e.target.value })} />
+                </div>
+                <div className="flex items-center gap-2 pb-2">
+                  <Switch id="sched" checked={schedForm.enabled} onCheckedChange={(v) => setSchedForm({ ...schedForm, enabled: v })} />
+                  <Label htmlFor="sched" className="text-xs">Enabled</Label>
+                </div>
+                <Button onClick={() => saveSchedule.mutate()} disabled={saveSchedule.isPending}>
+                  <Save className="h-4 w-4 mr-1.5" /> Save schedule
+                </Button>
+              </div>
+              {schedule && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  Current: {schedule.frequency}, keep {schedule.retention_days} days, {schedule.enabled ? "enabled" : "paused"}
+                  {schedule.next_run_at ? ` · next run ${new Date(schedule.next_run_at).toLocaleString()}` : ""}
+                </p>
+              )}
+            </InfoCard>
+          </div>
         </TabsContent>
+
 
         <TabsContent value="credentials" className="mt-4">
           <InfoCard title="Linked customer credentials">
@@ -489,13 +612,64 @@ function ServerDetailPage() {
         </TabsContent>
 
         <TabsContent value="billing" className="mt-4">
-          <InfoCard title="Billing">
-            <Row k="Provider cost / mo" v={`$${Number(s.monthly_cost_usd || 0).toFixed(2)} USD`} />
-            <Row k="Selling price / mo" v={`$${Number(s.selling_price_usd || 0).toFixed(2)} USD`} />
-            <Row k="Gross margin / mo" v={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)} USD`} />
-            <Row k="Cycle" v={s.billing_cycle ?? "monthly"} />
-          </InfoCard>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Stat label="Cost to date" value={`$${costTotals.cost.toFixed(2)}`} />
+              <Stat label="Billed to date" value={`$${costTotals.sell.toFixed(2)}`} />
+              <Stat label="Margin to date" value={`$${(costTotals.sell - costTotals.cost).toFixed(2)}`} />
+              <Stat label="Run rate / mo" value={`$${Number(s.monthly_cost_usd || 0).toFixed(2)}`} />
+            </div>
+            <Card>
+              <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm">Cost history</CardTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => accrue.mutate()} disabled={accrue.isPending}>
+                    <RefreshCw className={`h-4 w-4 mr-1.5 ${accrue.isPending ? "animate-spin" : ""}`} /> Update this month
+                  </Button>
+                  <Button size="sm" onClick={() => setCostOpen(true)}>
+                    <Plus className="h-4 w-4 mr-1.5" /> Record cost
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {costs.length === 0 ? (
+                  <p className="p-6 text-sm text-muted-foreground text-center">
+                    No cost records yet. "Update this month" works out what this server has cost so far.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Period</TableHead><TableHead>Source</TableHead>
+                      <TableHead className="text-right">Provider cost</TableHead>
+                      <TableHead className="text-right">Billed</TableHead>
+                      <TableHead className="text-right">Margin</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {costs.map((c: any) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="text-xs">{c.period_start} → {c.period_end}</TableCell>
+                          <TableCell className="text-xs">{c.source}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${Number(c.provider_cost_usd || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${Number(c.selling_price_usd || 0).toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${(Number(c.selling_price_usd || 0) - Number(c.provider_cost_usd || 0)).toFixed(2)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{c.notes ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+            <InfoCard title="Pricing">
+              <Row k="Provider cost / mo" v={`$${Number(s.monthly_cost_usd || 0).toFixed(2)} USD`} />
+              <Row k="Selling price / mo" v={`$${Number(s.selling_price_usd || 0).toFixed(2)} USD`} />
+              <Row k="Gross margin / mo" v={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)} USD`} />
+              <Row k="Cycle" v={s.billing_cycle ?? "monthly"} />
+            </InfoCard>
+          </div>
         </TabsContent>
+
 
         <TabsContent value="deployments" className="mt-4">
           <Card><CardContent className="p-0">
@@ -531,29 +705,36 @@ function ServerDetailPage() {
         </TabsContent>
 
         <TabsContent value="activity" className="mt-4">
-          <Card><CardContent className="p-0">
-            {(activity.data ?? []).length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground text-center">No activity yet.</p>
-            ) : (
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Action</TableHead><TableHead>Actor</TableHead>
-                  <TableHead>Detail</TableHead><TableHead>When</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {activity.data!.map((a) => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-mono text-xs">{a.action}</TableCell>
-                      <TableCell className="text-xs">{a.actor_email ?? "system"}</TableCell>
-                      <TableCell className="font-mono text-xs max-w-md truncate">{JSON.stringify(a.detail ?? {})}</TableCell>
-                      <TableCell className="text-xs">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent></Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Full server history</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {history.length === 0 ? (
+                <p className="p-6 text-sm text-muted-foreground text-center">No history yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>Event</TableHead><TableHead>Type</TableHead>
+                    <TableHead>Actor</TableHead><TableHead>Detail</TableHead><TableHead>When</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {history.map((h) => (
+                      <TableRow key={h.key}>
+                        <TableCell className="font-mono text-xs">{h.action}</TableCell>
+                        <TableCell className="text-xs">
+                          <StatusPill tone={h.tone}>{h.type}</StatusPill>
+                        </TableCell>
+                        <TableCell className="text-xs">{h.actor}</TableCell>
+                        <TableCell className="font-mono text-xs max-w-md truncate">{h.detail}</TableCell>
+                        <TableCell className="text-xs">{formatDistanceToNow(new Date(h.at), { addSuffix: true })}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
+
       </Tabs>
 
       {/* Handover dialog */}
