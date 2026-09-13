@@ -143,7 +143,7 @@ export const requestRefund = createServerFn({ method: "POST" })
     });
     await recordAudit(db, {
       action: "refund_requested", module: "billing", entity_type: "refunds", entity_id: refund.id,
-      customer_id: cust.id, new_value: { amount, reason: data.reason.trim(), account: account.name },
+      account_number: cust.account_number, new_value: { amount, reason: data.reason.trim(), account: account.name },
       actor_id: context.userId,
     });
     await notify(db, await billingUserIds(db), "refund_requested",
@@ -245,7 +245,7 @@ export const decideRefundRequest = createServerFn({ method: "POST" })
       });
       await recordAudit(db, {
         action: "refund_rejected", module: "billing", entity_type: "refunds", entity_id: refund.id,
-        customer_id: refund.customer_id, new_value: { notes: data.notes.trim() }, actor_id: context.userId,
+        account_number: refund.account_number, new_value: { notes: data.notes.trim() }, actor_id: context.userId,
       });
       await notify(db, [refund.requested_by], "refund_rejected",
         `Refund declined · ${cust?.company_name ?? refund.account_number}`,
@@ -296,7 +296,7 @@ export const decideRefundRequest = createServerFn({ method: "POST" })
     });
     await recordAudit(db, {
       action: "refund_approved", module: "billing", entity_type: "refunds", entity_id: refund.id,
-      customer_id: refund.customer_id, new_value: { amount, as_credit: Boolean(data.as_credit) },
+      account_number: refund.account_number, new_value: { amount, as_credit: Boolean(data.as_credit) },
       actor_id: context.userId,
     });
     await notify(db, [refund.requested_by], "refund_approved",
