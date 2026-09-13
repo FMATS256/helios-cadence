@@ -81,12 +81,16 @@ function WorkOrdersPage() {
   const columns: ColumnDef<any>[] = [
     { header: "Task", cell: (r: any) => (
       <div>
-        <div className="font-medium">{r.title}</div>
+        <Link to="/techops/jobs/$id" params={{ id: r.id }} className="font-medium text-primary hover:underline">
+          {r.title}
+        </Link>
         <div className="text-xs text-muted-foreground">
           {String(r.service_type).toUpperCase()} · {String(r.task_type).replace(/_/g, " ")} · {r.priority}
+          {r.site_name ? ` · ${r.site_name}` : ""}
         </div>
       </div>
     ) },
+
     { header: "Customer", cell: (r: any) => r.customer?.account_number ? (
       <Link to="/customers/$accountNumber" params={{ accountNumber: r.customer.account_number }} className="text-primary hover:underline">
         {r.customer.company_name}
