@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import {
   getCustomerBilling, changeCustomerPackage, getPackageHistory, setServiceState,
-  recordRefund, addCustomerCredit, addBillingNote, getCustomerHistory,
+  addCustomerCredit, addBillingNote, getCustomerHistory,
   getCustomerConversations, sendCustomerMessage, getCustomerDocuments,
   saveCustomerDocument, setDocumentStatus, deleteCustomerDocument, getDocumentLink,
   getBillingAttachments,
