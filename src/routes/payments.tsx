@@ -59,7 +59,9 @@ function PaymentsWorkspace() {
           <SubmissionsWorkspace />
         </PageShell>
       )}
+      {active === "refunds" && <RefundsWorkspace />}
       {active === "invoices" && <BillingPage />}
+
       {active === "balances" && <BalancesPage />}
     </div>
   );
