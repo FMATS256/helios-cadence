@@ -311,23 +311,12 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
           ]} />
 
           <div className="flex flex-wrap gap-2">
-            {canRecordPayments ? (
-              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setPayOpen(true)}>
-                <DollarSign className="h-4 w-4 mr-1.5" />Record payment
-              </Button>
-            ) : (
-              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setSubmitOpen(true)}>
-                <DollarSign className="h-4 w-4 mr-1.5" />Submit payment to billing
-              </Button>
-            )}
+            <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setSubmitOpen(true)}>
+              <DollarSign className="h-4 w-4 mr-1.5" />Submit payment request to billing
+            </Button>
           </div>
           <SubmitPaymentDialog open={submitOpen} onOpenChange={setSubmitOpen} customerId={ctx.customerId} />
-          {payOpen && (
-            <RecordPaymentDialog
-              ctx={{ customerId: ctx.customerId, accountNumber: ctx.accountNumber, companyName: ctx.companyName }}
-              onClose={() => { setPayOpen(false); qc.invalidateQueries({ queryKey: key }); }}
-            />
-          )}
+
 
           {!!data.alerts?.length && (
             <Card><CardContent className="p-3 space-y-1">
