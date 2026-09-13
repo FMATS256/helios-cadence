@@ -26,6 +26,8 @@ import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspace";
 import { MoneyPage } from "@/components/workspaces/money-workspace";
 import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
+import { AccountingPage } from "@/components/workspaces/accounting-workspace";
+
 
 
 export const Route = createFileRoute("/finance")({
@@ -53,6 +55,10 @@ const FINANCE_TABS = [
   { key: "payables", label: "Payables" },
   { key: "expenses", label: "Expenses" },
   { key: "ledger", label: "Ledger" },
+  { key: "accounts", label: "Chart of Accounts" },
+  { key: "journal", label: "Journal" },
+  { key: "trial", label: "Trial Balance" },
+  { key: "balance", label: "Balance Sheet" },
   { key: "reports", label: "Reports" },
 ] as const;
 
@@ -70,10 +76,15 @@ function FinanceHub() {
       {active === "payables" && <MoneyPage section="payables" />}
       {active === "expenses" && <ExpensesPage />}
       {active === "ledger" && <MoneyPage section="ledger" />}
+      {active === "accounts" && <AccountingPage section="accounts" />}
+      {active === "journal" && <AccountingPage section="journal" />}
+      {active === "trial" && <AccountingPage section="trial" />}
+      {active === "balance" && <AccountingPage section="balance" />}
       {active === "reports" && <MoneyPage section="reports" />}
     </div>
   );
 }
+
 
 
 
