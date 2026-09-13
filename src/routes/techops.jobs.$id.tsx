@@ -106,6 +106,8 @@ function JobPage() {
     site_address: job?.site_address ?? "",
     site_contact_name: job?.site_contact_name ?? "",
     site_contact_phone: job?.site_contact_phone ?? "",
+    site_lat: job?.site_lat != null ? String(job.site_lat) : "",
+    site_lng: job?.site_lng != null ? String(job.site_lng) : "",
     network_config: job?.network_config ?? "",
     installation_notes: job?.installation_notes ?? "",
     testing_notes: job?.testing_notes ?? "",
@@ -113,10 +115,19 @@ function JobPage() {
   const setField = (k: string, v: string) => setSite({ ...siteForm, [k]: v });
 
   const saveDetails = useMutation({
-    mutationFn: () => detailsFn({ data: { id, ...siteForm, geocode: true } }),
+    mutationFn: () => detailsFn({
+      data: {
+        id,
+        ...siteForm,
+        site_lat: siteForm.site_lat === "" ? null : Number(siteForm.site_lat),
+        site_lng: siteForm.site_lng === "" ? null : Number(siteForm.site_lng),
+        geocode: true,
+      },
+    }),
     onSuccess: () => { toast.success("Job details saved"); setSite(null); refresh(); },
     onError: fail,
   });
+
   const addReq = useMutation({
     mutationFn: () => addReqFn({ data: { task_id: id, label: reqLabel, quantity: Number(reqQty) || 1 } }),
     onSuccess: () => { setReqLabel(""); setReqQty("1"); refresh(); },
