@@ -227,21 +227,44 @@ export const buildEquipmentPlan = createServerFn({ method: "POST" })
       .from("job_requirements").select("*").eq("task_id", data.task_id).eq("fulfilled", false);
     if (!reqs?.length) throw new Error("No outstanding requirements to plan");
 
-    const itemIds = reqs.map((r: any) => r.inventory_item_id).filter(Boolean);
+    const itemIds = reqs.map((r: any) => r.inventory_item_id).filter(Boolean) as string[];
     const stockMap = new Map<string, any>();
+    const reservedElsewhere = new Map<string, number>();
     if (itemIds.length) {
-      const { data: items } = await context.supabase
-        .from("inventory_items").select("id, name, sku, quantity").in("id", itemIds);
+      const [{ data: items }, { data: held }] = await Promise.all([
+        context.supabase.from("inventory_items").select("id, name, sku, quantity").in("id", itemIds),
+        // Kit already promised to other jobs and still sitting in the store.
+        context.supabase
+          .from("job_equipment")
+          .select("inventory_item_id, quantity, task_id, status, stock_deducted")
+          .in("inventory_item_id", itemIds)
+          .in("status", ["reserved", "issued"])
+          .eq("stock_deducted", false),
+      ]);
       for (const i of items ?? []) stockMap.set(i.id, i);
+      for (const h of (held ?? []) as any[]) {
+        if (h.task_id === data.task_id) continue;
+        reservedElsewhere.set(h.inventory_item_id, (reservedElsewhere.get(h.inventory_item_id) ?? 0) + Number(h.quantity ?? 0));
+      }
     }
 
     const shortfalls: string[] = [];
     const rows = reqs.map((r: any) => {
       const item = r.inventory_item_id ? stockMap.get(r.inventory_item_id) : null;
-      if (item && Number(item.quantity ?? 0) < Number(r.quantity ?? 1)) {
-        shortfalls.push(`${r.label}: need ${r.quantity}, ${item.quantity} in stock`);
+      const need = Number(r.quantity ?? 1);
+      if (item) {
+        const held = reservedElsewhere.get(item.id) ?? 0;
+        const available = Number(item.quantity ?? 0) - held;
+        if (available < need) {
+          shortfalls.push(
+            `${r.label}: need ${need}, ${available < 0 ? 0 : available} available` +
+              (held ? ` (${item.quantity} in stock, ${held} reserved for other jobs)` : ` of ${item.quantity} in stock`),
+          );
+        }
+        reservedElsewhere.set(item.id, held + need);
+      } else {
+        shortfalls.push(`${r.label}: no matching stock item — procure or add to inventory`);
       }
-      if (!item) shortfalls.push(`${r.label}: no matching stock item — procure or add to inventory`);
       return {
         task_id: data.task_id,
         requirement_id: r.id,
@@ -249,9 +272,11 @@ export const buildEquipmentPlan = createServerFn({ method: "POST" })
         description: item ? `${item.name} (${item.sku})` : r.label,
         quantity: r.quantity,
         status: "reserved",
+        technician_id: null,
         created_by: context.userId,
       };
     });
+
 
     const { data: created, error } = await context.supabase.from("job_equipment").insert(rows as any).select("*");
     if (error) throw new Error(error.message);
