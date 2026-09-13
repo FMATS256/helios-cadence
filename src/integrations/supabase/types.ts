@@ -4633,6 +4633,115 @@ export type Database = {
           },
         ]
       }
+      server_cost_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          hours: number | null
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          provider_cost_usd: number
+          selling_price_usd: number
+          server_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          hours?: number | null
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          provider_cost_usd?: number
+          selling_price_usd?: number
+          server_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          hours?: number | null
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          provider_cost_usd?: number
+          selling_price_usd?: number
+          server_id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_cost_entries_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      server_metrics: {
+        Row: {
+          cpu_percent: number | null
+          created_at: string
+          disk_percent: number | null
+          id: string
+          latency_ms: number | null
+          power_state: string | null
+          ram_percent: number | null
+          raw: Json
+          reachable: boolean
+          sampled_at: string
+          server_id: string
+          status: string | null
+          traffic_gb: number | null
+        }
+        Insert: {
+          cpu_percent?: number | null
+          created_at?: string
+          disk_percent?: number | null
+          id?: string
+          latency_ms?: number | null
+          power_state?: string | null
+          ram_percent?: number | null
+          raw?: Json
+          reachable?: boolean
+          sampled_at?: string
+          server_id: string
+          status?: string | null
+          traffic_gb?: number | null
+        }
+        Update: {
+          cpu_percent?: number | null
+          created_at?: string
+          disk_percent?: number | null
+          id?: string
+          latency_ms?: number | null
+          power_state?: string | null
+          ram_percent?: number | null
+          raw?: Json
+          reachable?: boolean
+          sampled_at?: string
+          server_id?: string
+          status?: string | null
+          traffic_gb?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_metrics_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_catalog: {
         Row: {
           billing_cycle: string
