@@ -17,9 +17,11 @@ import { Wallet, AlertTriangle, Users, Search, Download, Receipt } from "lucide-
 const TABS = [
   { key: "payments", label: "Payments" },
   { key: "submissions", label: "Submissions" },
+  { key: "refunds", label: "Refunds" },
   { key: "invoices", label: "Invoices" },
   { key: "balances", label: "Balances Due" },
 ] as const;
+
 
 export const Route = createFileRoute("/payments")({
   validateSearch: (s: Record<string, unknown>): { tab?: string } =>
