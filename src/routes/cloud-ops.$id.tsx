@@ -823,7 +823,76 @@ function ServerDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Snapshot dialog */}
+      <Dialog open={snapOpen} onOpenChange={setSnapOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Take a snapshot</DialogTitle>
+            <DialogDescription>Capture the current state of {s.name} so it can be restored later.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Keep for (days)</Label>
+              <Input value={snapForm.retention_days} onChange={(e) => setSnapForm({ ...snapForm, retention_days: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Notes</Label>
+              <Textarea value={snapForm.notes} onChange={(e) => setSnapForm({ ...snapForm, notes: e.target.value })} placeholder="Why are you taking this snapshot?" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSnapOpen(false)}>Cancel</Button>
+            <Button onClick={() => snapshot.mutate()} disabled={snapshot.isPending}>
+              {snapshot.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Camera className="h-4 w-4 mr-1.5" />}
+              Take snapshot
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cost entry dialog */}
+      <Dialog open={costOpen} onOpenChange={setCostOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record a cost</DialogTitle>
+            <DialogDescription>Log what this server cost for a period, and what the customer was billed.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Period start</Label>
+              <Input type="date" value={costForm.period_start} onChange={(e) => setCostForm({ ...costForm, period_start: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Period end</Label>
+              <Input type="date" value={costForm.period_end} onChange={(e) => setCostForm({ ...costForm, period_end: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Provider cost (USD)</Label>
+              <Input value={costForm.provider_cost_usd} onChange={(e) => setCostForm({ ...costForm, provider_cost_usd: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Billed to customer (USD)</Label>
+              <Input value={costForm.selling_price_usd} onChange={(e) => setCostForm({ ...costForm, selling_price_usd: e.target.value })} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Notes</Label>
+              <Input value={costForm.notes} onChange={(e) => setCostForm({ ...costForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCostOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => addCost.mutate()}
+              disabled={addCost.isPending || !costForm.period_start || !costForm.period_end}
+            >
+              {addCost.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <DollarSign className="h-4 w-4 mr-1.5" />}
+              Record cost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
+
   );
 }
 
