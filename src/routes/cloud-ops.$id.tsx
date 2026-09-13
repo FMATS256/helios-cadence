@@ -106,6 +106,110 @@ function ServerDetailPage() {
     },
   });
 
+  // ---- Servers workspace: metrics, snapshots, history and cost tracking ----
+  const fnOps = useServerFn(getServerOps);
+  const fnSample = useServerFn(sampleServerMetrics);
+  const fnSnapshot = useServerFn(snapshotServer);
+  const fnDeleteSnap = useServerFn(deleteServerSnapshot);
+  const fnRestore = useServerFn(restoreBackup);
+  const fnSchedule = useServerFn(upsertBackupSchedule);
+  const fnAccrue = useServerFn(accrueServerCost);
+  const fnAddCost = useServerFn(addServerCostEntry);
+
+  const [liveOn, setLiveOn] = useState(false);
+  const [snapOpen, setSnapOpen] = useState(false);
+  const [snapForm, setSnapForm] = useState({ retention_days: "7", notes: "" });
+  const [costOpen, setCostOpen] = useState(false);
+  const [costForm, setCostForm] = useState({ period_start: "", period_end: "", provider_cost_usd: "", selling_price_usd: "", notes: "" });
+  const [schedForm, setSchedForm] = useState({ frequency: "daily", retention_days: "7", enabled: true });
+
+  const ops = useQuery({
+    queryKey: ["server_ops", id],
+    queryFn: () => fnOps({ data: { server_id: id } }),
+  });
+  const opsData = ops.data as any;
+  const invalidateOps = () => {
+    qc.invalidateQueries({ queryKey: ["server_ops", id] });
+    qc.invalidateQueries({ queryKey: ["cloud_server", id] });
+  };
+
+  const sample = useMutation({
+    mutationFn: () => fnSample({ data: { server_id: id } }),
+    onSuccess: (r: any) => {
+      if (r?.provider_error) toast.warning(`Recorded locally. Provider said: ${r.provider_error}`);
+      invalidateOps();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Live polling: take a fresh sample every 30s while "Live" is on.
+  useEffect(() => {
+    if (!liveOn) return;
+    sample.mutate();
+    const t = setInterval(() => sample.mutate(), 30_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveOn, id]);
+
+  const snapshot = useMutation({
+    mutationFn: () => fnSnapshot({
+      data: {
+        server_id: id,
+        retention_days: Number(snapForm.retention_days) || 7,
+        notes: snapForm.notes || undefined,
+      },
+    }),
+    onSuccess: () => { toast.success("Snapshot taken"); setSnapOpen(false); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeSnap = useMutation({
+    mutationFn: (backup_id: string) => fnDeleteSnap({ data: { backup_id } }),
+    onSuccess: () => { toast.success("Snapshot removed"); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const restore = useMutation({
+    mutationFn: (backup_id: string) => fnRestore({ data: { backup_id } }),
+    onSuccess: () => { toast.success("Restore recorded"); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveSchedule = useMutation({
+    mutationFn: () => fnSchedule({
+      data: {
+        server_id: id,
+        frequency: schedForm.frequency as any,
+        retention_days: Number(schedForm.retention_days) || 7,
+        enabled: schedForm.enabled,
+      },
+    }),
+    onSuccess: () => { toast.success("Backup schedule saved"); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const accrue = useMutation({
+    mutationFn: () => fnAccrue({ data: { server_id: id } }),
+    onSuccess: () => { toast.success("Month-to-date cost updated"); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const addCost = useMutation({
+    mutationFn: () => fnAddCost({
+      data: {
+        server_id: id,
+        period_start: costForm.period_start,
+        period_end: costForm.period_end,
+        provider_cost_usd: Number(costForm.provider_cost_usd) || 0,
+        selling_price_usd: Number(costForm.selling_price_usd) || 0,
+        notes: costForm.notes || undefined,
+      },
+    }),
+    onSuccess: () => { toast.success("Cost recorded"); setCostOpen(false); invalidateOps(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const refresh = useMutation({
     mutationFn: () => fnRefresh({ data: { server_id: id } }),
     onSuccess: () => {
