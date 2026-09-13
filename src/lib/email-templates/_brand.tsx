@@ -203,9 +203,9 @@ export const styles = {
 
   divider: { borderColor: BRAND.hair, margin: '24px 42px 0', borderTop: `1px solid ${BRAND.hair}` },
 
-  // Reference-led signature: a slim icon rail, strong identity block and a
-  // compact branded panel. Tables keep the composition stable in Outlook.
-  footer: { padding: '26px 42px 22px', backgroundColor: '#ffffff' },
+  // Reference-led signature: a slim icon rail, strong identity block,
+  // legal copy and the branded image-style panel in that exact order.
+  footer: { padding: '26px 42px 24px', backgroundColor: '#ffffff' },
   signatureTable: { width: '100%', borderCollapse: 'collapse' as const },
   signatureRailCell: {
     width: '42px',
@@ -222,7 +222,7 @@ export const styles = {
     borderRadius: '50%',
     backgroundColor: BRAND.navy,
     color: '#ffffff',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 700 as const,
     textAlign: 'center' as const,
     margin: '0 auto 7px',
@@ -232,16 +232,24 @@ export const styles = {
   footerText: { fontSize: '12px', color: BRAND.body, lineHeight: '19px', margin: 0 },
   footerLabel: { color: BRAND.primary, fontWeight: 700 as const },
   footerLink: { color: BRAND.primary, textDecoration: 'none' },
+  signatureDisclaimer: {
+    borderTop: `1px solid ${BRAND.hair}`,
+    color: '#7B8798',
+    fontSize: '9px',
+    lineHeight: '14px',
+    margin: '18px 0 0',
+    padding: '13px 0 0',
+  },
   signatureBanner: {
     width: '100%',
     borderCollapse: 'collapse' as const,
     backgroundColor: BRAND.primary,
-    marginTop: '18px',
-    borderRadius: '8px',
+    marginTop: '16px',
+    borderRadius: '22px',
     overflow: 'hidden' as const,
   },
-  signatureBannerLogoCell: { width: '43%', padding: '18px', backgroundColor: '#ffffff', verticalAlign: 'middle' as const },
-  signatureBannerMessageCell: { width: '57%', padding: '17px 20px', backgroundColor: BRAND.primary, verticalAlign: 'middle' as const },
+  signatureBannerLogoCell: { width: '43%', padding: '20px', backgroundColor: '#ffffff', verticalAlign: 'middle' as const },
+  signatureBannerMessageCell: { width: '57%', padding: '19px 22px', backgroundColor: BRAND.primary, verticalAlign: 'middle' as const },
   footerLogo: { display: 'block', border: 0, outline: 'none' },
   bannerCallout: { color: '#ffffff', fontSize: '16px', lineHeight: '21px', fontWeight: 700 as const, margin: 0 },
   bannerSub: { color: '#D9EDFF', fontSize: '10px', lineHeight: '15px', fontWeight: 600 as const, margin: '5px 0 0' },
@@ -255,14 +263,6 @@ export const styles = {
     textAlign: 'center' as const,
     padding: '7px 14px',
     margin: '14px 0 0',
-  },
-  legal: { padding: '17px 42px 22px', borderTop: `1px solid ${BRAND.hair}`, backgroundColor: '#F4F7FB' },
-  footerLegal: { fontSize: '10px', color: BRAND.mute, lineHeight: '16px', margin: '0 0 10px' },
-  disclaimer: {
-    fontSize: '9px',
-    color: '#7B8798',
-    lineHeight: '14px',
-    margin: 0,
   },
 }
 
@@ -327,10 +327,10 @@ export function EmailShell({
               <tbody>
                 <tr>
                   <td style={styles.signatureRailCell}>
-                    <div style={styles.railIcon}>W</div>
+                    <div style={styles.railIcon}>●</div>
                     <div style={styles.railIcon}>@</div>
-                    <div style={styles.railIcon}>T</div>
-                    <div style={{ ...styles.railIcon, marginBottom: 0 }}>L</div>
+                    <div style={styles.railIcon}>☎</div>
+                    <div style={{ ...styles.railIcon, marginBottom: 0 }}>⌖</div>
                   </td>
                   <td style={styles.signatureDetailsCell}>
                     <Text style={styles.footerName}>{signatureName}</Text>
@@ -352,6 +352,12 @@ export function EmailShell({
                 </tr>
               </tbody>
             </table>
+            <Text style={styles.signatureDisclaimer}>
+              CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient
+              and may contain confidential, privileged or copyright information. If you received it in error,
+              please notify the sender, delete it, and do not copy, share or act on its contents. Email transmission
+              cannot be guaranteed secure or error-free; please scan attachments before opening them. © {new Date().getFullYear()} {BRAND.name}.
+            </Text>
             <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.signatureBanner}>
               <tbody>
                 <tr>
@@ -366,17 +372,6 @@ export function EmailShell({
               </tbody>
             </table>
             <Text style={styles.footerCta}>Your trusted partner for business technologies</Text>
-          </Section>
-          <Section style={styles.legal}>
-            <Text style={styles.footerLegal}>
-              {BRAND.address} · © {new Date().getFullYear()} {BRAND.name}. {BRAND.tagline}.
-            </Text>
-            <Text style={styles.disclaimer}>
-              CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient
-              and may contain confidential, privileged or copyright information. If you received it in error,
-              please notify the sender, delete it, and do not copy, share or act on its contents. Email transmission
-              cannot be guaranteed secure or error-free; please scan attachments before opening them.
-            </Text>
           </Section>
         </Container>
       </Body>
