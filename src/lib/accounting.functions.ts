@@ -175,7 +175,7 @@ export const postLedger = createServerFn({ method: "POST" })
       sb.from("refunds").select("id, customer_id, amount, currency, method, reason, status, refunded_at").limit(1000),
       sb.from("customer_credits").select("id, customer_id, amount, currency, kind, note, created_at").limit(1000),
       sb.from("expenses").select("id, expense_date, category, description, amount, currency, status, reference, vendor_id, account_id, customer_id, purchase_order_id").limit(4000),
-      sb.from("cash_movements").select("id, account_id, kind, amount, currency, reference, occurred_at, note").limit(2000),
+      sb.from("cash_movements").select("id, account_id, kind, amount, currency, reference, occurred_at, notes").limit(2000),
       sb.from("cash_accounts").select("id, name, kind"),
     ]);
     for (const r of [existingRes, accountsRes, invoicesRes, paymentsRes, expensesRes]) if (r.error) throw new Error(r.error.message);
@@ -290,12 +290,12 @@ export const postLedger = createServerFn({ method: "POST" })
         currency: m.currency || "USD", fx_rate: rateOf(m.currency),
         lines: out
           ? [
-              { account_code: "1090", debit: amt, credit: 0, description: m.note ?? "Cash out" },
-              { account_code: code, debit: 0, credit: amt, description: m.note ?? "Cash out" },
+              { account_code: "1090", debit: amt, credit: 0, description: m.notes ?? "Cash out" },
+              { account_code: code, debit: 0, credit: amt, description: m.notes ?? "Cash out" },
             ]
           : [
-              { account_code: code, debit: amt, credit: 0, description: m.note ?? "Cash in" },
-              { account_code: "1090", debit: 0, credit: amt, description: m.note ?? "Cash in" },
+              { account_code: code, debit: amt, credit: 0, description: m.notes ?? "Cash in" },
+              { account_code: "1090", debit: 0, credit: amt, description: m.notes ?? "Cash in" },
             ],
       });
     }
