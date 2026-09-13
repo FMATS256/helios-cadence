@@ -39,8 +39,11 @@ export const BRAND = {
   accountManagerPhone: '+263 86 12 004321',
   address: 'IMT Solutions, Harare, Zimbabwe',
   siteUrl: 'https://management.imtsolutions.co.zw',
+  marketingUrl: 'https://imtsolutions.co.zw',
   logoUrl:
     'https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png',
+  bannerUrl:
+    'https://management.imtsolutions.co.zw/__l5e/assets-v1/f314eeab-7375-4951-81de-efc0c2372913/imt-hero-banner.jpg',
 }
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
