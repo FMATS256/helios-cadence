@@ -172,6 +172,17 @@ function InvoiceList({
   const [statusFilter, setStatusFilter] = useState("all");
   const [voidTarget, setVoidTarget] = useState<any>(null);
   const issue = useServerFn(issueInvoice);
+  const sendInvoice = useServerFn(emailInvoice);
+
+  const sendM = useMutation({
+    mutationFn: (id: string) => sendInvoice({ data: { invoice_id: id } }),
+    onSuccess: () => {
+      toast.success("Invoice emailed to the customer");
+      onChanged();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const issueM = useMutation({
     mutationFn: (v: { id: string; send: boolean }) => issue({ data: { invoice_id: v.id, send_email: v.send } }),
