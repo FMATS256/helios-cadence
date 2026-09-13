@@ -9,6 +9,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { RecordPaymentDialog } from "@/components/client-action-dialogs";
+import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
+import { useRoles } from "@/hooks/use-roles";
+import { can } from "@/lib/rbac";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -276,6 +279,9 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   const [note, setNote] = useState("");
   const [credit, setCredit] = useState("");
   const [payOpen, setPayOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const { roles } = useRoles();
+  const canRecordPayments = can(roles, "payments.record");
 
   const addCredit = useMutation({
     mutationFn: () => creditFn({ data: { customer_id: ctx.customerId, amount: Number(credit), note: "Manual credit" } }),
