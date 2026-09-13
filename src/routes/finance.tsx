@@ -24,6 +24,9 @@ import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspace";
+import { MoneyPage } from "@/components/workspaces/money-workspace";
+import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
+
 
 export const Route = createFileRoute("/finance")({
   validateSearch: (s: Record<string, unknown>): { tab?: string } =>
