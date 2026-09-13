@@ -46,6 +46,11 @@ const FINANCE_TABS = [
   { key: "invoices", label: "Billing" },
   { key: "payments", label: "Payments" },
   { key: "subscriptions", label: "Subscriptions" },
+  { key: "banking", label: "Banking" },
+  { key: "payables", label: "Payables" },
+  { key: "expenses", label: "Expenses" },
+  { key: "ledger", label: "Ledger" },
+  { key: "reports", label: "Reports" },
 ] as const;
 
 function FinanceHub() {
@@ -58,9 +63,15 @@ function FinanceHub() {
       {active === "invoices" && <BillingPage />}
       {active === "payments" && <PaymentsPage />}
       {active === "subscriptions" && <SubscriptionsPage />}
+      {active === "banking" && <MoneyPage section="banking" />}
+      {active === "payables" && <MoneyPage section="payables" />}
+      {active === "expenses" && <ExpensesPage />}
+      {active === "ledger" && <MoneyPage section="ledger" />}
+      {active === "reports" && <MoneyPage section="reports" />}
     </div>
   );
 }
+
 
 
 // ----- data ---------------------------------------------------------------
