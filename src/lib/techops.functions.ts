@@ -272,7 +272,6 @@ export const buildEquipmentPlan = createServerFn({ method: "POST" })
         description: item ? `${item.name} (${item.sku})` : r.label,
         quantity: r.quantity,
         status: "reserved",
-        technician_id: null,
         created_by: context.userId,
       };
     });
