@@ -261,7 +261,7 @@ export const listPaymentSubmissions = createServerFn({ method: "POST" })
     const names: Record<string, string> = {};
     for (const p of (profR.data ?? [])) names[p.id] = p.full_name || p.email || "Staff";
     const eventsBy: Record<string, any[]> = {};
-    for (const e of (evR.data ?? [])) (eventsBy[e.submission_id] ||= []).push({ ...e, actor_name: names[e.actor_id] ?? "Staff" });
+    for (const e of (evR.data ?? [])) (eventsBy[e.submission_id] ||= []).push({ ...e, actor_name: (e.actor_id ? names[e.actor_id] : null) ?? "Staff" });
 
     const decorated = list.map((s) => ({
       ...s,
@@ -415,7 +415,7 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
         data.reason?.trim() || data.notes);
 
       await notifyUsers(
-        db, [sub.submitted_by], data.decision === "reject" ? "payment_rejected" : "payment_clarification",
+        db, [sub.submitted_by].filter(Boolean) as string[], data.decision === "reject" ? "payment_rejected" : "payment_clarification",
         data.decision === "reject" ? "Payment submission rejected" : "Billing needs clarification",
         `${cust.company_name} · ${sub.currency} ${n(sub.amount).toFixed(2)} — ${(data.reason || data.notes || "").trim()}`,
         "/payments?tab=submissions",
@@ -494,7 +494,7 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
     }
 
     // once nothing is outstanding, suspended services may be released
-    let resumed: Record<string, number> = {};
+    let resumed: any = {};
     try {
       const stillOpen = await openInvoicesFor(db, cust.id);
       if (!stillOpen.length) {
@@ -527,7 +527,7 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
     }));
 
     await notifyUsers(
-      db, [sub.submitted_by], "payment_approved",
+      db, [sub.submitted_by].filter(Boolean) as string[], "payment_approved",
       "Payment approved and recorded",
       `${cust.company_name} · ${payment.currency} ${amount.toFixed(2)} recorded. Receipt ${payment.receipt_number ?? ""}`.trim(),
       "/payments?tab=submissions",
