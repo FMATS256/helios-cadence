@@ -263,6 +263,38 @@ function ServerDetailPage() {
 
   const s = server.data;
   const meta = (s.provider_meta ?? {}) as any;
+
+  const metrics: any[] = opsData?.metrics ?? [];
+  const latest = metrics.length ? metrics[metrics.length - 1] : null;
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const latencySeries = metrics.map((m) => ({ label: fmtTime(m.sampled_at), value: Number(m.latency_ms ?? 0) }));
+  const upSeries = metrics.map((m) => ({ label: fmtTime(m.sampled_at), value: m.reachable ? 1 : 0 }));
+  const snapshots: any[] = opsData?.backups ?? [];
+  const schedule: any = opsData?.schedule ?? null;
+  const costs: any[] = opsData?.costs ?? [];
+  const costTotals = costs.reduce(
+    (a, c) => ({ cost: a.cost + Number(c.provider_cost_usd || 0), sell: a.sell + Number(c.selling_price_usd || 0) }),
+    { cost: 0, sell: 0 },
+  );
+
+  // Merged history: activity log + deployments + snapshots, newest first.
+  const history = [
+    ...(activity.data ?? []).map((a: any) => ({
+      key: `a-${a.id}`, action: a.action, type: "activity", tone: "neutral" as const,
+      actor: a.actor_email ?? "system", detail: JSON.stringify(a.detail ?? {}), at: a.created_at,
+    })),
+    ...(deployments.data ?? []).map((d: any) => ({
+      key: `d-${d.id}`, action: d.action, type: "deployment",
+      tone: (d.status === "completed" ? "success" : d.status === "failed" ? "danger" : "warning") as const,
+      actor: "system", detail: d.provider_command_id ?? d.status, at: d.created_at,
+    })),
+    ...snapshots.map((b: any) => ({
+      key: `b-${b.id}`, action: `backup.${b.kind}`, type: "backup",
+      tone: (b.status === "completed" ? "success" : b.status === "failed" ? "danger" : "neutral") as const,
+      actor: "system", detail: b.notes ?? b.status, at: b.created_at,
+    })),
+  ].sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
+
   const on = s.power_state === "on";
   const isProvisioning = s.status === "provisioning";
   const isHandedOver = !!s.handed_over_at;
