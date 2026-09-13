@@ -100,14 +100,26 @@ export const createServiceTask = createServerFn({ method: "POST" })
     if (data.assigned_to) {
       const { data: p } = await supabaseAdmin.from("profiles").select("full_name, email").eq("id", data.assigned_to).maybeSingle();
       assigneeName = (p as any)?.full_name || (p as any)?.email || null;
-      await supabaseAdmin.from("notifications").insert({
-        user_id: data.assigned_to,
-        kind: "task_assigned",
-        title: `New technical task · ${customer.company_name}`,
-        body: data.title.trim(),
-        link: "/work-orders",
-      } as any);
     }
+
+    // Notify the assignee plus the technical operations desk whenever a job is
+    // added to the system, so nothing sits unseen in the queue.
+    const { data: techRoles } = await supabaseAdmin.from("user_roles").select("user_id")
+      .in("role", ["technical_support", "cloud_engineer", "noc", "operations_manager", "master_admin"]);
+    const recipients = Array.from(new Set([
+      ...(data.assigned_to ? [data.assigned_to] : []),
+      ...((techRoles ?? []).map((r: any) => r.user_id)),
+    ].filter((id) => Boolean(id) && id !== context.userId)));
+    if (recipients.length) {
+      await supabaseAdmin.from("notifications").insert(recipients.map((id) => ({
+        user_id: id,
+        kind: data.assigned_to === id ? "task_assigned" : "job_created",
+        title: `New work order · ${customer.company_name}`,
+        body: `${data.title.trim()} · ${data.service_type} / ${data.task_type}${assigneeName ? ` · assigned to ${assigneeName}` : " · unassigned"}`,
+        link: "/work-orders",
+      })) as any);
+    }
+
 
     const { recordCustomerEvent } = await import("./customer-events.server");
     await recordCustomerEvent(supabaseAdmin, {

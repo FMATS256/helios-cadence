@@ -4366,7 +4366,13 @@ export type Database = {
           payment_id: string | null
           reason: string | null
           reference: string | null
+          refund_account_id: string | null
           refunded_at: string | null
+          request_reason: string | null
+          requested_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           updated_at: string
         }
@@ -4383,7 +4389,13 @@ export type Database = {
           payment_id?: string | null
           reason?: string | null
           reference?: string | null
+          refund_account_id?: string | null
           refunded_at?: string | null
+          request_reason?: string | null
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
         }
@@ -4400,7 +4412,13 @@ export type Database = {
           payment_id?: string | null
           reason?: string | null
           reference?: string | null
+          refund_account_id?: string | null
           refunded_at?: string | null
+          request_reason?: string | null
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
         }
@@ -4424,6 +4442,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_refund_account_id_fkey"
+            columns: ["refund_account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
             referencedColumns: ["id"]
           },
         ]

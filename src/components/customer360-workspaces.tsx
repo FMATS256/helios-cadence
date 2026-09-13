@@ -31,13 +31,15 @@ import {
 } from "lucide-react";
 import {
   getCustomerBilling, changeCustomerPackage, getPackageHistory, setServiceState,
-  recordRefund, addCustomerCredit, addBillingNote, getCustomerHistory,
+  addCustomerCredit, addBillingNote, getCustomerHistory,
   getCustomerConversations, sendCustomerMessage, getCustomerDocuments,
   saveCustomerDocument, setDocumentStatus, deleteCustomerDocument, getDocumentLink,
   getBillingAttachments,
   getCustomerEquipment, assignEquipment, releaseEquipment, updateEquipment, generateContract,
   getCustomerStatement, getCustomerProfileExport,
 } from "@/lib/customer360.functions";
+import { getRefundContext, requestRefund, decideRefundRequest } from "@/lib/refunds.functions";
+
 
 export type WorkspaceKind =
   | "package" | "billing" | "timeline" | "comms" | "kyc" | "equipment"
@@ -1184,38 +1186,60 @@ function ContractWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =>
 
 function RefundWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => void }) {
   const refresh = useRefreshAll();
-  const billing = useServerFn(getCustomerBilling);
-  const fn = useServerFn(recordRefund);
-  const { data } = useQuery({ queryKey: ["c360-billing", ctx.customerId], queryFn: () => billing({ data: { customer_id: ctx.customerId } }) });
-  const payments = (data?.payments ?? []).filter((p: any) => p.status !== "failed");
-  const [form, setForm] = useState({ payment_id: "", amount: "", method: "", reference: "", reason: "", as_credit: false });
+  const load = useServerFn(getRefundContext);
+  const request = useServerFn(requestRefund);
+  const decide = useServerFn(decideRefundRequest);
+  const { data } = useQuery({ queryKey: ["c360-refund-ctx", ctx.customerId], queryFn: () => load({ data: { customer_id: ctx.customerId } }) });
+  const payments = (data?.payments ?? []) as any[];
+  const accounts = (data?.accounts ?? []) as any[];
+  const canProcess = Boolean(data?.canProcess);
+  const [form, setForm] = useState({ payment_id: "", amount: "", method: "", reference: "", reason: "", account_id: "", as_credit: false });
 
   const selected = payments.find((p: any) => p.id === form.payment_id);
+  const accountId = form.account_id || accounts.find((a: any) => a.is_default)?.id || accounts[0]?.id || "";
 
   const run = useMutation({
-    mutationFn: () => fn({
-      data: {
-        customer_id: ctx.customerId,
-        payment_id: form.payment_id || null,
-        invoice_id: null,
-        amount: Number(form.amount),
-        currency: selected?.currency ?? "USD",
-        method: form.method, reference: form.reference, reason: form.reason,
-        as_credit: form.as_credit,
-      },
-    }),
-    onSuccess: () => { toast.success("Refund recorded"); refresh(); onClose(); },
+    mutationFn: async () => {
+      const created: any = await request({
+        data: {
+          customer_id: ctx.customerId,
+          payment_id: form.payment_id || null,
+          invoice_id: null,
+          amount: Number(form.amount),
+          currency: selected?.currency ?? "USD",
+          refund_account_id: accountId,
+          method: form.method, reference: form.reference, reason: form.reason,
+        },
+      });
+      if (canProcess) {
+        await decide({ data: { refund_id: created.id, action: "approve", as_credit: form.as_credit } });
+      }
+      return created;
+    },
+    onSuccess: () => {
+      toast.success(canProcess ? "Refund processed" : "Refund request sent to billing");
+      refresh(); onClose();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const ready = Number(form.amount) > 0 && Boolean(form.reason.trim()) && Boolean(accountId);
 
   return (
     <Shell open onClose={onClose} title={`Refund · ${ctx.companyName}`}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => run.mutate()} disabled={run.isPending || !Number(form.amount)}>{run.isPending ? "Saving…" : "Record refund"}</Button>
+          <Button onClick={() => run.mutate()} disabled={run.isPending || !ready}>
+            {run.isPending ? "Saving…" : canProcess ? "Record refund" : "Request refund"}
+          </Button>
         </>
       }>
+      <p className="mb-3 text-xs text-muted-foreground">
+        {canProcess
+          ? "Billing initiates refunds directly. Choose the account the money is paid from."
+          : "Refunds are initiated by billing. Send a request with a reason and the account it should be paid from — billing will review it."}
+      </p>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1 md:col-span-2"><Label>Against payment (optional)</Label>
           <Select value={form.payment_id || "none"} onValueChange={(v) => setForm({ ...form, payment_id: v === "none" ? "" : v })}>
@@ -1230,17 +1254,32 @@ function RefundWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => v
             </SelectContent>
           </Select></div>
         <div className="space-y-1"><Label>Amount *</Label><Input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
+        <div className="space-y-1"><Label>Refund from account *</Label>
+          <Select value={accountId} onValueChange={(v) => setForm({ ...form, account_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+            <SelectContent>
+              {accounts.map((a: any) => (
+                <SelectItem key={a.id} value={a.id}>{a.name} · {a.currency}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select></div>
         <div className="space-y-1"><Label>Method</Label><Input value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })} /></div>
         <div className="space-y-1"><Label>Reference</Label><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
-        <div className="space-y-1 flex items-end gap-2">
-          <input id="as-credit" type="checkbox" className="h-4 w-4" checked={form.as_credit} onChange={(e) => setForm({ ...form, as_credit: e.target.checked })} />
-          <Label htmlFor="as-credit" className="mb-1">Issue as account credit</Label>
-        </div>
-        <div className="space-y-1 md:col-span-2"><Label>Reason</Label><Textarea rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
+        {canProcess && (
+          <div className="space-y-1 flex items-end gap-2 md:col-span-2">
+            <input id="as-credit" type="checkbox" className="h-4 w-4" checked={form.as_credit} onChange={(e) => setForm({ ...form, as_credit: e.target.checked })} />
+            <Label htmlFor="as-credit" className="mb-1">Issue as account credit</Label>
+          </div>
+        )}
+        <div className="space-y-1 md:col-span-2"><Label>Reason *</Label><Textarea rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Why is this refund needed?" /></div>
       </div>
+      {accounts.length === 0 && (
+        <p className="mt-2 text-xs text-destructive">No cash or bank accounts are set up yet — add one under Finance › Banking first.</p>
+      )}
     </Shell>
   );
 }
+
 
 /* ----------------------------------------------------------- 10. statement */
 

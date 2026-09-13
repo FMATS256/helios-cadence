@@ -6,7 +6,9 @@ import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { SubmissionsWorkspace } from "@/components/workspaces/submissions-workspace";
+import { RefundsWorkspace } from "@/components/workspaces/refunds-workspace";
 import { getCustomerBalances } from "@/lib/finance.functions";
+
 import { PageShell, SectionHeader, KpiRow, StatusBadge, money as fmtMoney } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,9 +19,11 @@ import { Wallet, AlertTriangle, Users, Search, Download, Receipt } from "lucide-
 const TABS = [
   { key: "payments", label: "Payments" },
   { key: "submissions", label: "Submissions" },
+  { key: "refunds", label: "Refunds" },
   { key: "invoices", label: "Invoices" },
   { key: "balances", label: "Balances Due" },
 ] as const;
+
 
 export const Route = createFileRoute("/payments")({
   validateSearch: (s: Record<string, unknown>): { tab?: string } =>
@@ -55,7 +59,9 @@ function PaymentsWorkspace() {
           <SubmissionsWorkspace />
         </PageShell>
       )}
+      {active === "refunds" && <RefundsWorkspace />}
       {active === "invoices" && <BillingPage />}
+
       {active === "balances" && <BalancesPage />}
     </div>
   );
