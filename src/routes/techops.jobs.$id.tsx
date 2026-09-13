@@ -106,6 +106,8 @@ function JobPage() {
     site_address: job?.site_address ?? "",
     site_contact_name: job?.site_contact_name ?? "",
     site_contact_phone: job?.site_contact_phone ?? "",
+    site_lat: job?.site_lat != null ? String(job.site_lat) : "",
+    site_lng: job?.site_lng != null ? String(job.site_lng) : "",
     network_config: job?.network_config ?? "",
     installation_notes: job?.installation_notes ?? "",
     testing_notes: job?.testing_notes ?? "",
@@ -113,10 +115,19 @@ function JobPage() {
   const setField = (k: string, v: string) => setSite({ ...siteForm, [k]: v });
 
   const saveDetails = useMutation({
-    mutationFn: () => detailsFn({ data: { id, ...siteForm, geocode: true } }),
+    mutationFn: () => detailsFn({
+      data: {
+        id,
+        ...siteForm,
+        site_lat: siteForm.site_lat === "" ? null : Number(siteForm.site_lat),
+        site_lng: siteForm.site_lng === "" ? null : Number(siteForm.site_lng),
+        geocode: true,
+      },
+    }),
     onSuccess: () => { toast.success("Job details saved"); setSite(null); refresh(); },
     onError: fail,
   });
+
   const addReq = useMutation({
     mutationFn: () => addReqFn({ data: { task_id: id, label: reqLabel, quantity: Number(reqQty) || 1 } }),
     onSuccess: () => { setReqLabel(""); setReqQty("1"); refresh(); },
@@ -265,11 +276,54 @@ function JobPage() {
                 <div className="space-y-1.5"><Label>Contact phone</Label>
                   <Input value={siteForm.site_contact_phone} onChange={(e) => setField("site_contact_phone", e.target.value)} /></div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Latitude</Label>
+                  <Input inputMode="decimal" placeholder="-17.8252" value={siteForm.site_lat} onChange={(e) => setField("site_lat", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Longitude</Label>
+                  <Input inputMode="decimal" placeholder="31.0335" value={siteForm.site_lng} onChange={(e) => setField("site_lng", e.target.value)} /></div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!navigator.geolocation) return toast.error("This device can't share its location");
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        setSite({
+                          ...siteForm,
+                          site_lat: pos.coords.latitude.toFixed(6),
+                          site_lng: pos.coords.longitude.toFixed(6),
+                        });
+                        toast.success("Coordinates captured — save to keep them");
+                      },
+                      () => toast.error("Couldn't read this device's location"),
+                    );
+                  }}
+                >
+                  <MapPin className="h-3.5 w-3.5 mr-1.5" />Use my location
+                </Button>
+                {job.site_lat != null && job.site_lng != null && (
+                  <a
+                    className="text-xs text-primary hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${job.site_lat},${job.site_lng}`}
+                  >
+                    Get directions to site
+                  </a>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {job.site_lat != null ? `${Number(job.site_lat).toFixed(5)}, ${Number(job.site_lng).toFixed(5)}` : "No coordinates yet — saving an address locates the site automatically"}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Customer: {job.customer?.company_name ?? "—"} {job.account_number ? `· ${job.account_number}` : ""} · Engineer: {data.assignee ?? "unassigned"}
               </p>
             </div>
           </DetailCard>
+
           <DetailCard title="Configuration & notes">
             <div className="space-y-3">
               <div className="space-y-1.5"><Label>Network configuration (IPs, VLANs, SSIDs)</Label>
