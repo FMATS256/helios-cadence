@@ -87,6 +87,15 @@ export const styles = {
   },
   header: { padding: '0' },
   headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
+  heroBanner: {
+    display: 'block',
+    width: '100%',
+    maxWidth: '600px',
+    height: 'auto',
+    border: 0,
+    outline: 'none',
+    textDecoration: 'none',
+  },
   headerBrand: {
     color: BRAND.ink,
     fontSize: '15px',
