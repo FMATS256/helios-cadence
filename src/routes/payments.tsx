@@ -6,7 +6,9 @@ import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { SubmissionsWorkspace } from "@/components/workspaces/submissions-workspace";
+import { RefundsWorkspace } from "@/components/workspaces/refunds-workspace";
 import { getCustomerBalances } from "@/lib/finance.functions";
+
 import { PageShell, SectionHeader, KpiRow, StatusBadge, money as fmtMoney } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
