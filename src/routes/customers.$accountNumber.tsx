@@ -1661,7 +1661,7 @@ function IspHeroPane(props: {
       </div>
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
-      {open === "payment" && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
+      <SubmitPaymentDialog open={open === "payment"} onOpenChange={(v) => setOpen(v ? "payment" : null)} customerId={customer.id} />
       {open === "invoice" && <CreateInvoiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
