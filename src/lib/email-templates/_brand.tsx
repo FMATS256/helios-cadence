@@ -39,8 +39,11 @@ export const BRAND = {
   accountManagerPhone: '+263 86 12 004321',
   address: 'IMT Solutions, Harare, Zimbabwe',
   siteUrl: 'https://management.imtsolutions.co.zw',
+  marketingUrl: 'https://imtsolutions.co.zw',
   logoUrl:
     'https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png',
+  bannerUrl:
+    'https://management.imtsolutions.co.zw/__l5e/assets-v1/f314eeab-7375-4951-81de-efc0c2372913/imt-hero-banner.jpg',
 }
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -84,6 +87,15 @@ export const styles = {
   },
   header: { padding: '0' },
   headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
+  heroBanner: {
+    display: 'block',
+    width: '100%',
+    maxWidth: '600px',
+    height: 'auto',
+    border: 0,
+    outline: 'none',
+    textDecoration: 'none',
+  },
   headerBrand: {
     color: BRAND.ink,
     fontSize: '15px',
@@ -300,25 +312,15 @@ export function EmailShell({
         <Container style={styles.container}>
           <Section style={styles.brandBar}>&nbsp;</Section>
           <Section style={styles.header}>
-            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.banner}>
-              <tbody>
-                <tr>
-                  <td style={styles.bannerLogoCell}>
-                    <Img
-                      src={BRAND.logoUrl}
-                      alt={BRAND.name}
-                      width="178"
-                      height="41"
-                      style={styles.headerLogo}
-                    />
-                  </td>
-                  <td style={styles.bannerMessageCell}>
-                    <Text style={styles.bannerEyebrow}>Connect · Protect · Grow</Text>
-                    <Text style={styles.bannerTitle}>Technology that keeps business moving.</Text>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <Link href={BRAND.marketingUrl}>
+              <Img
+                src={BRAND.bannerUrl}
+                alt={`${BRAND.name} — Zimbabwe's Trusted ICT Partner`}
+                width="600"
+                height="250"
+                style={styles.heroBanner}
+              />
+            </Link>
           </Section>
           <Section style={styles.content}>{children}</Section>
           <Hr style={styles.divider} />
