@@ -247,7 +247,7 @@ export const decideRefundRequest = createServerFn({ method: "POST" })
         action: "refund_rejected", module: "billing", entity_type: "refunds", entity_id: refund.id,
         account_number: refund.account_number, new_value: { notes: data.notes.trim() }, actor_id: context.userId,
       });
-      await notify(db, [refund.requested_by], "refund_rejected",
+      await notify(db, [refund.requested_by].filter(Boolean) as string[], "refund_rejected",
         `Refund declined · ${cust?.company_name ?? refund.account_number}`,
         data.notes.trim(), "/payments?tab=refunds");
       return { ok: true, status: "rejected" };
@@ -299,7 +299,7 @@ export const decideRefundRequest = createServerFn({ method: "POST" })
       account_number: refund.account_number, new_value: { amount, as_credit: Boolean(data.as_credit) },
       actor_id: context.userId,
     });
-    await notify(db, [refund.requested_by], "refund_approved",
+    await notify(db, [refund.requested_by].filter(Boolean) as string[], "refund_approved",
       `Refund approved · ${cust?.company_name ?? refund.account_number}`,
       `${refund.currency} ${amount.toFixed(2)} ${data.as_credit ? "issued as account credit" : "paid out"}`,
       "/payments?tab=refunds");
