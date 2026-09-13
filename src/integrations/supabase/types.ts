@@ -444,6 +444,51 @@ export type Database = {
           },
         ]
       }
+      chart_of_accounts: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          normal_balance: string
+          parent_code: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          normal_balance?: string
+          parent_code?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          normal_balance?: string
+          parent_code?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cloud_activity: {
         Row: {
           action: string
@@ -2585,6 +2630,146 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          entry_date: string
+          entry_no: number
+          fx_rate: number
+          id: string
+          memo: string | null
+          reverses_entry_id: string | null
+          source_id: string | null
+          source_ref: string | null
+          source_type: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          entry_date?: string
+          entry_no?: number
+          fx_rate?: number
+          id?: string
+          memo?: string | null
+          reverses_entry_id?: string | null
+          source_id?: string | null
+          source_ref?: string | null
+          source_type?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          entry_date?: string
+          entry_no?: number
+          fx_rate?: number
+          id?: string
+          memo?: string | null
+          reverses_entry_id?: string | null
+          source_id?: string | null
+          source_ref?: string | null
+          source_type?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_lines: {
+        Row: {
+          account_code: string
+          account_id: string | null
+          created_at: string
+          credit: number
+          customer_id: string | null
+          debit: number
+          description: string | null
+          entry_id: string
+          id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          account_code: string
+          account_id?: string | null
+          created_at?: string
+          credit?: number
+          customer_id?: string | null
+          debit?: number
+          description?: string | null
+          entry_id: string
+          id?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_id?: string | null
+          created_at?: string
+          credit?: number
+          customer_id?: string | null
+          debit?: number
+          description?: string | null
+          entry_id?: string
+          id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
