@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { emailInvoice } from "@/lib/finance.functions";
+import { useRoles } from "@/hooks/use-roles";
+import { can } from "@/lib/rbac";
 import { Plus, Trash2, Printer, Receipt, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/invoices/$id")({
@@ -24,6 +26,9 @@ export const Route = createFileRoute("/invoices/$id")({
 function InvoiceDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const { roles } = useRoles();
+  // Separation of duties: only billing may author invoices or apply payments.
+  const canManage = can(roles, "billing.manage");
 
   const { data: invoice, isLoading } = useQuery({
     queryKey: ["invoice", id],
@@ -90,9 +95,9 @@ function InvoiceDetail() {
     { header: "Unit", align: "right", cell: (r) => <span className="font-mono">{Number(r.unit_price).toFixed(2)}</span> },
     { header: "Tax %", align: "right", cell: (r) => <span className="font-mono">{Number(r.tax_rate).toFixed(1)}%</span> },
     { header: "Total", align: "right", cell: (r) => <span className="font-mono font-semibold">{Number(r.line_total).toFixed(2)}</span> },
-    { header: "", align: "right", cell: (r) => (
+    ...(canManage ? [{ header: "", align: "right" as const, cell: (r: any) => (
       <Button variant="ghost" size="sm" onClick={() => removeItem.mutate(r.id)}><Trash2 className="h-4 w-4" /></Button>
-    ) },
+    ) }] : []),
   ];
 
   const allocCols: ColumnDef<any>[] = [
@@ -120,7 +125,8 @@ function InvoiceDetail() {
           <div className="flex gap-2">
             <Button
               onClick={() => sendEmail.mutate()}
-              disabled={sendEmail.isPending}
+              disabled={sendEmail.isPending || (!canManage && invoice.status === "draft")}
+              title={!canManage && invoice.status === "draft" ? "Waiting for billing to issue this invoice" : undefined}
               className="text-solar-foreground"
               style={{ background: "var(--gradient-solar)" }}
             >
@@ -153,10 +159,12 @@ function InvoiceDetail() {
         title="Line items"
         padded={false}
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => syncTotals.mutate()}>Sync totals</Button>
-            <AddLineItem invoiceId={id} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-items", id] })} />
-          </div>
+          canManage ? (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => syncTotals.mutate()}>Sync totals</Button>
+              <AddLineItem invoiceId={id} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-items", id] })} />
+            </div>
+          ) : undefined
         }
       >
         <DataGrid
@@ -169,7 +177,7 @@ function InvoiceDetail() {
       <DetailCard
         title="Payment allocations"
         padded={false}
-        action={<AllocateDialog invoiceId={id} customerId={invoice.customer_id} balance={totals.balance} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-allocs", id] })} />}
+        action={canManage ? <AllocateDialog invoiceId={id} customerId={invoice.customer_id} balance={totals.balance} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-allocs", id] })} /> : undefined}
       >
         <DataGrid
           rows={allocs as any[]}

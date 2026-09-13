@@ -411,7 +411,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { invoice_id: string; to?: string }) => input)
   .handler(async ({ data, context }) => {
-    await ensureBilling(context);
+    await ensureStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: invoice, error } = await supabaseAdmin
@@ -421,6 +421,17 @@ export const emailInvoice = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!invoice) throw new Error("Invoice not found");
+
+    // Separation of duties: account managers may send an invoice billing has
+    // already approved (issued), but never a draft or a voided invoice.
+    const { isBillingStaff } = await import("./customer360.server");
+    if (!(await isBillingStaff(context as any))) {
+      const st = String((invoice as any).status || "");
+      if (st === "draft") {
+        throw new Error("This invoice is still a draft. Billing must issue it before it can be sent.");
+      }
+      if (st === "void") throw new Error("This invoice has been voided and cannot be sent.");
+    }
 
     const cust = (invoice as any).customers;
     const recipient = (data.to || cust?.primary_email || "").trim();

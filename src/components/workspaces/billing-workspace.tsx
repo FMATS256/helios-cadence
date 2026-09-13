@@ -6,6 +6,7 @@ import {
   getBillingWorkspace, getInvoiceForEdit, createInvoice, updateInvoice,
   issueInvoice, voidInvoice, requestInvoice, reviewInvoiceRequest, runRecurringBilling,
 } from "@/lib/billing.functions";
+import { emailInvoice } from "@/lib/finance.functions";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
@@ -172,6 +173,17 @@ function InvoiceList({
   const [statusFilter, setStatusFilter] = useState("all");
   const [voidTarget, setVoidTarget] = useState<any>(null);
   const issue = useServerFn(issueInvoice);
+  const sendInvoice = useServerFn(emailInvoice);
+
+  const sendM = useMutation({
+    mutationFn: (id: string) => sendInvoice({ data: { invoice_id: id } }),
+    onSuccess: () => {
+      toast.success("Invoice emailed to the customer");
+      onChanged();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const issueM = useMutation({
     mutationFn: (v: { id: string; send: boolean }) => issue({ data: { invoice_id: v.id, send_email: v.send } }),
@@ -268,6 +280,21 @@ function InvoiceList({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      ),
+    });
+  } else {
+    // Account managers: view and send invoices billing has already approved.
+    columns.push({
+      header: "", align: "right", cell: (r) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => sendM.mutate(r.id)}
+          disabled={sendM.isPending || r.status === "draft" || r.status === "void"}
+          title={r.status === "draft" ? "Awaiting billing approval" : "Email this invoice to the customer"}
+        >
+          <Send className="h-4 w-4 mr-1.5" />Send
+        </Button>
       ),
     });
   }

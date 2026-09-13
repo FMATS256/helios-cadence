@@ -6076,6 +6076,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_member: {
         Args: { _user: string; _workspace: string }
