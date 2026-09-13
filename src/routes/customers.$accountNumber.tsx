@@ -36,9 +36,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog, RecordPaymentDialog, CreateInvoiceDialog,
+  AddServiceDialog, CreateInvoiceDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
+import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
+
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
