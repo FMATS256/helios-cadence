@@ -36,9 +36,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog, RecordPaymentDialog, CreateInvoiceDialog,
+  AddServiceDialog, CreateInvoiceDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
+import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
+
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
   type Customer360View, type Capability,
@@ -1599,7 +1601,7 @@ function IspHeroPane(props: {
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
-        <ActionBtn tone="sky"     icon={CreditCard}  label="Add Payment"        onClick={() => setOpen("payment")} />
+        <ActionBtn tone="sky"     icon={CreditCard}  label="Submit Payment"     onClick={() => setOpen("payment")} />
         <ComposeEmailDialog
           accountNumber={customer.account_number}
           trigger={
@@ -1659,7 +1661,7 @@ function IspHeroPane(props: {
       </div>
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
-      {open === "payment" && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
+      <SubmitPaymentDialog open={open === "payment"} onOpenChange={(v) => setOpen(v ? "payment" : null)} customerId={customer.id} />
       {open === "invoice" && <CreateInvoiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}

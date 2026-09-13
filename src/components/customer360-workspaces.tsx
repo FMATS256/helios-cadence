@@ -8,10 +8,8 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RecordPaymentDialog } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
-import { useRoles } from "@/hooks/use-roles";
-import { can } from "@/lib/rbac";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -278,10 +276,8 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => fn({ data: { customer_id: ctx.customerId } }) });
   const [note, setNote] = useState("");
   const [credit, setCredit] = useState("");
-  const [payOpen, setPayOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
-  const { roles } = useRoles();
-  const canRecordPayments = can(roles, "payments.record");
+
 
   const addCredit = useMutation({
     mutationFn: () => creditFn({ data: { customer_id: ctx.customerId, amount: Number(credit), note: "Manual credit" } }),
@@ -311,23 +307,12 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
           ]} />
 
           <div className="flex flex-wrap gap-2">
-            {canRecordPayments ? (
-              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setPayOpen(true)}>
-                <DollarSign className="h-4 w-4 mr-1.5" />Record payment
-              </Button>
-            ) : (
-              <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setSubmitOpen(true)}>
-                <DollarSign className="h-4 w-4 mr-1.5" />Submit payment to billing
-              </Button>
-            )}
+            <Button size="sm" className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setSubmitOpen(true)}>
+              <DollarSign className="h-4 w-4 mr-1.5" />Submit payment request to billing
+            </Button>
           </div>
           <SubmitPaymentDialog open={submitOpen} onOpenChange={setSubmitOpen} customerId={ctx.customerId} />
-          {payOpen && (
-            <RecordPaymentDialog
-              ctx={{ customerId: ctx.customerId, accountNumber: ctx.accountNumber, companyName: ctx.companyName }}
-              onClose={() => { setPayOpen(false); qc.invalidateQueries({ queryKey: key }); }}
-            />
-          )}
+
 
           {!!data.alerts?.length && (
             <Card><CardContent className="p-3 space-y-1">
