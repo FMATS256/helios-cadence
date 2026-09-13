@@ -24,6 +24,9 @@ import { WorkspaceTabs } from "@/components/workspace-tabs";
 import { BillingPage } from "@/components/workspaces/billing-workspace";
 import { PaymentsPage } from "@/components/workspaces/payments-workspace";
 import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspace";
+import { MoneyPage } from "@/components/workspaces/money-workspace";
+import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
+
 
 export const Route = createFileRoute("/finance")({
   validateSearch: (s: Record<string, unknown>): { tab?: string } =>
@@ -46,6 +49,11 @@ const FINANCE_TABS = [
   { key: "invoices", label: "Billing" },
   { key: "payments", label: "Payments" },
   { key: "subscriptions", label: "Subscriptions" },
+  { key: "banking", label: "Banking" },
+  { key: "payables", label: "Payables" },
+  { key: "expenses", label: "Expenses" },
+  { key: "ledger", label: "Ledger" },
+  { key: "reports", label: "Reports" },
 ] as const;
 
 function FinanceHub() {
@@ -58,9 +66,15 @@ function FinanceHub() {
       {active === "invoices" && <BillingPage />}
       {active === "payments" && <PaymentsPage />}
       {active === "subscriptions" && <SubscriptionsPage />}
+      {active === "banking" && <MoneyPage section="banking" />}
+      {active === "payables" && <MoneyPage section="payables" />}
+      {active === "expenses" && <ExpensesPage />}
+      {active === "ledger" && <MoneyPage section="ledger" />}
+      {active === "reports" && <MoneyPage section="reports" />}
     </div>
   );
 }
+
 
 
 // ----- data ---------------------------------------------------------------
