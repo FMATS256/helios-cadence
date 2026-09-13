@@ -6,6 +6,7 @@ import {
   getBillingWorkspace, getInvoiceForEdit, createInvoice, updateInvoice,
   issueInvoice, voidInvoice, requestInvoice, reviewInvoiceRequest, runRecurringBilling,
 } from "@/lib/billing.functions";
+import { emailInvoice } from "@/lib/finance.functions";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
