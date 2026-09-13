@@ -6,6 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   refreshProviderServer, powerProviderServer, terminateProviderServer, sendServerHandover,
 } from "@/lib/providers.functions";
+import {
+  getServerOps, sampleServerMetrics, snapshotServer, deleteServerSnapshot,
+  accrueServerCost, addServerCostEntry,
+} from "@/lib/servers.functions";
+import { upsertBackupSchedule, restoreBackup } from "@/lib/backups.functions";
+import { GradientAreaChart, IMT_COLORS } from "@/components/dashboards/charts";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,12 +21,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, RefreshCw, Power, PowerOff, RotateCw, Trash2, Server as ServerIcon,
   Cpu, HardDrive, Network, Shield, Save, Key, DollarSign, Rocket, Bell, ScrollText, Gauge,
-  Send, CheckCircle2, Loader2,
+  Send, CheckCircle2, Loader2, Camera, History as HistoryIcon, Undo2, Plus, Activity as ActivityIcon,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
