@@ -412,10 +412,16 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               }}>
               {label("reject", "Mark rejected")}
             </Button>
-            <Button size="sm" disabled={run.isPending || row.status !== "accepted"} style={{ background: "#0f766e", color: "#fff" }}
+            <Button size="sm" disabled={run.isPending || row.status !== "accepted" || !!row.invoice_id} style={{ background: "#0f766e", color: "#fff" }}
               onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
-              {label("convert", "Convert to invoice")}
+              {label("convert", row.invoice_id ? "Already invoiced" : "Convert to invoice")}
             </Button>
+            {row.invoice_id && (
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/invoices/$id" params={{ id: row.invoice_id }}>Open invoice</Link>
+              </Button>
+            )}
+
             <Button size="sm" style={{ background: "#25D366", color: "#fff" }} onClick={shareWhatsApp}>
               <MessageCircle className="h-4 w-4 mr-1.5" />Send via WhatsApp
             </Button>
