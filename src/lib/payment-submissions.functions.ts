@@ -169,6 +169,7 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
     payment_date?: string;
     reference?: string | null;
     proof_document_id?: string | null;
+    cash_account_id?: string | null;
     notes?: string | null;
     acknowledge_duplicate?: boolean;
   }) => input)
