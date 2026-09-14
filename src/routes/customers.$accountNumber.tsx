@@ -1554,6 +1554,9 @@ function IspHeroPane(props: {
     primaryEmail: customer.primary_email,
   };
   const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech">(null);
+  const { roles } = useRoles();
+  // Separation of duties: only billing authors invoices; everyone else requests one.
+  const canInvoice = can(roles, "invoices.manage");
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
   const wsCtx = {
     customerId: customer.id,
