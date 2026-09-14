@@ -13,10 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Receipt, Wallet, Banknote, ArrowDownCircle, ArrowUpCircle, Plus, Trash2, Pencil } from "lucide-react";
+import { Receipt, Wallet, Banknote, ArrowDownCircle, ArrowUpCircle, Plus, Trash2, Pencil, Paperclip } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getCashWorkspace, upsertExpense, deleteExpense, upsertCashAccount, recordCashMovement,
+  getExpenseReceiptUrl,
 } from "@/lib/expenses.functions";
+
 
 
 const CATEGORIES = [
