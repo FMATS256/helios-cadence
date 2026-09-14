@@ -1600,7 +1600,7 @@ function IspHeroPane(props: {
         <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
-        <ActionBtn tone="emerald" icon={Receipt}     label="Add Invoice"        onClick={() => setOpen("invoice")} />
+        <ActionBtn tone="emerald" icon={Receipt}     label={canInvoice ? "Add Invoice" : "Request Invoice"} onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Submit Payment"     onClick={() => setOpen("payment")} />
         <ComposeEmailDialog
           accountNumber={customer.account_number}
