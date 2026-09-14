@@ -467,6 +467,21 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
     const { quote, lines } = await loadQuote(db, data.id);
     if (!quote.customer_id) throw new Error("Attach the quote to a customer before invoicing");
     if (quote.status !== "accepted") throw new Error("Only accepted quotes can be converted to an invoice");
+    if ((quote as any).invoice_id) {
+      const { data: existing } = await db
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("id", (quote as any).invoice_id)
+        .maybeSingle();
+      if (existing) {
+        return {
+          invoice_id: existing.id as string,
+          invoice_number: existing.invoice_number as string,
+          already: true,
+        };
+      }
+    }
+
 
     const items = lines.length
       ? lines
