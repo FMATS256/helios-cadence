@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { listServiceTasks, updateServiceTask } from "@/lib/service-tasks.functions";
 import { TASK_STATUSES } from "@/lib/service-tasks.shared";
 import { useTechnicians } from "@/components/assign-tech-dialog";
+import { useAuth } from "@/hooks/use-auth";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, StatusBadge, toneForStatus,
   EmptyState, shortDate, type ColumnDef,
@@ -40,9 +41,12 @@ function WorkOrdersPage() {
   const [tab, setTab] = useState("open");
   const [search, setSearch] = useState("");
 
+  const { user } = useAuth();
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["service-tasks", "all"],
+    queryKey: ["service-tasks", "all", user?.id],
     queryFn: async () => (await listFn({ data: {} })) as any[],
+    enabled: !!user,
+    retry: false,
   });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["service-tasks"] });
