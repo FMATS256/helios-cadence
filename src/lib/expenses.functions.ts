@@ -92,6 +92,7 @@ export const upsertExpense = createServerFn({ method: "POST" })
     id?: string; expense_date: string; category: string; vendor?: string;
     description: string; amount: number; currency?: string; account_id?: string | null;
     payment_method?: string; reference?: string; status?: string; customer_id?: string | null; notes?: string;
+    attachment_url?: string | null;
   }) => d)
   .handler(async ({ data, context }) => {
     await assertFinance(context as Ctx);
@@ -111,6 +112,8 @@ export const upsertExpense = createServerFn({ method: "POST" })
       customer_id: data.customer_id || null,
       notes: data.notes?.trim() || null,
     };
+    if (data.attachment_url !== undefined) payload.attachment_url = data.attachment_url || null;
+
     if (data.id) {
       const { data: row, error } = await context.supabase.from("expenses").update(payload).eq("id", data.id).select("*").single();
       if (error) throw new Error(error.message);
