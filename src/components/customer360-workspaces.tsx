@@ -344,9 +344,14 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
               <TabsTrigger value="ageing">Ageing</TabsTrigger>
               <TabsTrigger value="recurring">Recurring</TabsTrigger>
               <TabsTrigger value="refunds">Refunds & credits</TabsTrigger>
+              <TabsTrigger value="requests">Requests & approvals</TabsTrigger>
               <TabsTrigger value="attachments">Attachments</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="requests">
+              <BillingApprovals ctx={ctx} />
+            </TabsContent>
 
             <TabsContent value="attachments">
               <BillingAttachments ctx={ctx} />
