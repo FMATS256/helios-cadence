@@ -119,6 +119,12 @@ function QuotesPage() {
         {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
       </div>
     ) },
+    { header: "Invoice", cell: (r) => r.invoice_id ? (
+      <Link to="/invoices/$id" params={{ id: r.invoice_id }} className="text-xs font-mono text-solar hover:underline">
+        View invoice
+      </Link>
+    ) : <span className="text-xs text-muted-foreground">—</span> },
+
     { header: "Created", cell: (r) => new Date(r.created_at).toLocaleDateString() },
     { header: "", align: "right", cell: (r) => (
       <Button size="sm" variant="outline" onClick={() => setManaged(r)}>Manage</Button>
