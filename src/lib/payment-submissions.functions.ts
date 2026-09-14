@@ -231,6 +231,7 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
       payment_date: data.payment_date || new Date().toISOString().slice(0, 10),
       reference: ref,
       proof_document_id: data.proof_document_id || null,
+      cash_account_id: accountId,
       notes: data.notes?.trim() || null,
       status: "pending",
       duplicate_flag: isDuplicate
