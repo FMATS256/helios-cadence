@@ -116,6 +116,9 @@ export const getJob = createServerFn({ method: "POST" })
     return {
       ...bundle,
       photos: await signPhotoUrls(supabaseAdmin, bundle.photos),
+      contactEmail: bundle.job.site_contact_email
+        || (bundle.job as any).customer?.email
+        || null,
       assignee: bundle.job.assigned_to ? people.get(bundle.job.assigned_to) ?? null : null,
       requester: bundle.job.requested_by ? people.get(bundle.job.requested_by) ?? null : null,
     };
@@ -129,6 +132,7 @@ export const updateJobDetails = createServerFn({ method: "POST" })
     site_address?: string | null;
     site_contact_name?: string | null;
     site_contact_phone?: string | null;
+    site_contact_email?: string | null;
     site_lat?: number | null;
     site_lng?: number | null;
     network_config?: string | null;
@@ -139,7 +143,7 @@ export const updateJobDetails = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStaff(context);
     const patch: any = {};
-    for (const k of ["site_name", "site_address", "site_contact_name", "site_contact_phone", "network_config", "installation_notes", "testing_notes"] as const) {
+    for (const k of ["site_name", "site_address", "site_contact_name", "site_contact_phone", "site_contact_email", "network_config", "installation_notes", "testing_notes"] as const) {
       if (data[k] !== undefined) patch[k] = data[k] || null;
     }
     for (const k of ["site_lat", "site_lng"] as const) {
@@ -616,12 +620,13 @@ export const completeJob = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let emailed = false;
-    const customerEmail = (job as any).customer?.email as string | undefined;
+    const customerEmail = ((job as any).site_contact_email
+      || (job as any).customer?.email) as string | undefined;
     if (data.send_report !== false && customerEmail) {
       const { notify } = await import("./notify.server");
       await notify("general-message", customerEmail, {
         subject: `Installation complete · ${job.title}`,
-        recipientName: (job as any).customer?.contact_person || (job as any).customer?.company_name,
+        recipientName: (job as any).site_contact_name || (job as any).customer?.company_name,
         message: `${report}\n\nThank you for choosing IMT Solutions. Reply to this email or open a ticket if anything needs attention.`,
         senderName: "IMT Technical Operations",
       }, `job-report-${job.id}`);

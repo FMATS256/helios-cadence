@@ -50,7 +50,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
-import { Route as TicketsIdRouteImport } from './routes/tickets.$id'
+import { Route as TicketsIdRouteImport } from './routes/tickets_.$id'
 import { Route as TechopsVaultRouteImport } from './routes/techops.vault'
 import { Route as TechopsSocRouteImport } from './routes/techops.soc'
 import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
@@ -295,9 +295,9 @@ const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TicketsIdRoute = TicketsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => TicketsRoute,
+  id: '/tickets_/$id',
+  path: '/tickets/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const TechopsVaultRoute = TechopsVaultRouteImport.update({
   id: '/techops/vault',
@@ -538,7 +538,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/tickets': typeof TicketsRouteWithChildren
+  '/tickets': typeof TicketsRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
@@ -619,7 +619,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/tickets': typeof TicketsRouteWithChildren
+  '/tickets': typeof TicketsRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
@@ -700,7 +700,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
-  '/tickets': typeof TicketsRouteWithChildren
+  '/tickets': typeof TicketsRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
@@ -717,7 +717,7 @@ export interface FileRoutesById {
   '/techops/equipment': typeof TechopsEquipmentRoute
   '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
-  '/tickets/$id': typeof TicketsIdRoute
+  '/tickets_/$id': typeof TicketsIdRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -961,7 +961,7 @@ export interface FileRouteTypes {
     | '/techops/equipment'
     | '/techops/soc'
     | '/techops/vault'
-    | '/tickets/$id'
+    | '/tickets_/$id'
     | '/cloud-ops/'
     | '/customers/'
     | '/.lovable/oauth/consent'
@@ -1026,7 +1026,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
-  TicketsRoute: typeof TicketsRouteWithChildren
+  TicketsRoute: typeof TicketsRoute
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
   WorkOrdersRoute: typeof WorkOrdersRoute
@@ -1043,6 +1043,7 @@ export interface RootRouteChildren {
   TechopsEquipmentRoute: typeof TechopsEquipmentRoute
   TechopsSocRoute: typeof TechopsSocRoute
   TechopsVaultRoute: typeof TechopsVaultRoute
+  TicketsIdRoute: typeof TicketsIdRoute
   CloudOpsIndexRoute: typeof CloudOpsIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -1353,12 +1354,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudOpsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tickets/$id': {
-      id: '/tickets/$id'
-      path: '/$id'
+    '/tickets_/$id': {
+      id: '/tickets_/$id'
+      path: '/tickets/$id'
       fullPath: '/tickets/$id'
       preLoaderRoute: typeof TicketsIdRouteImport
-      parentRoute: typeof TicketsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/techops/vault': {
       id: '/techops/vault'
@@ -1622,17 +1623,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface TicketsRouteChildren {
-  TicketsIdRoute: typeof TicketsIdRoute
-}
-
-const TicketsRouteChildren: TicketsRouteChildren = {
-  TicketsIdRoute: TicketsIdRoute,
-}
-
-const TicketsRouteWithChildren =
-  TicketsRoute._addFileChildren(TicketsRouteChildren)
-
 interface CSlugWorkspaceKeyServersRouteChildren {
   CSlugWorkspaceKeyServersServerIdRoute: typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -1705,7 +1695,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
-  TicketsRoute: TicketsRouteWithChildren,
+  TicketsRoute: TicketsRoute,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
   WorkOrdersRoute: WorkOrdersRoute,
@@ -1723,6 +1713,7 @@ const rootRouteChildren: RootRouteChildren = {
   TechopsEquipmentRoute: TechopsEquipmentRoute,
   TechopsSocRoute: TechopsSocRoute,
   TechopsVaultRoute: TechopsVaultRoute,
+  TicketsIdRoute: TicketsIdRoute,
   CloudOpsIndexRoute: CloudOpsIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,

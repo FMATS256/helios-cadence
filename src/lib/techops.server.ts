@@ -75,7 +75,7 @@ export function checklistFor(taskType: string): string[] {
 export async function loadJob(client: any, id: string) {
   const { data: job, error } = await client
     .from("service_tasks")
-    .select("*, customer:customers(id, account_number, company_name, email, phone, contact_person)")
+    .select("*, customer:customers(id, account_number, company_name, email:primary_email, phone:primary_phone, title)")
     .eq("id", id)
     .single();
   if (error || !job) throw new Error(error?.message ?? "Job not found");

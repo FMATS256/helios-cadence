@@ -4859,6 +4859,7 @@ export type Database = {
           service_type: string
           signed_off_at: string | null
           site_address: string | null
+          site_contact_email: string | null
           site_contact_name: string | null
           site_contact_phone: string | null
           site_lat: number | null
@@ -4894,6 +4895,7 @@ export type Database = {
           service_type?: string
           signed_off_at?: string | null
           site_address?: string | null
+          site_contact_email?: string | null
           site_contact_name?: string | null
           site_contact_phone?: string | null
           site_lat?: number | null
@@ -4929,6 +4931,7 @@ export type Database = {
           service_type?: string
           signed_off_at?: string | null
           site_address?: string | null
+          site_contact_email?: string | null
           site_contact_name?: string | null
           site_contact_phone?: string | null
           site_lat?: number | null

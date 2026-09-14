@@ -15,7 +15,7 @@ import { assignTicket, postTicketMessage, updateTicket } from "@/lib/support.fun
 import { ComposeEmailDialog } from "@/components/compose-email-dialog";
 import { listAssignableStaff } from "@/lib/client-actions.functions";
 
-export const Route = createFileRoute("/tickets/$id")({
+export const Route = createFileRoute("/tickets_/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `Ticket ${params.id.slice(0, 8)} — IMT Operations` },

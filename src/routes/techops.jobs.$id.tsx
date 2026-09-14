@@ -106,6 +106,7 @@ function JobPage() {
     site_address: job?.site_address ?? "",
     site_contact_name: job?.site_contact_name ?? "",
     site_contact_phone: job?.site_contact_phone ?? "",
+    site_contact_email: job?.site_contact_email ?? data?.contactEmail ?? "",
     site_lat: job?.site_lat != null ? String(job.site_lat) : "",
     site_lng: job?.site_lng != null ? String(job.site_lng) : "",
     network_config: job?.network_config ?? "",
@@ -276,6 +277,8 @@ function JobPage() {
                 <div className="space-y-1.5"><Label>Contact phone</Label>
                   <Input value={siteForm.site_contact_phone} onChange={(e) => setField("site_contact_phone", e.target.value)} /></div>
               </div>
+              <div className="space-y-1.5"><Label>Client email (updates & completion report)</Label>
+                <Input type="email" placeholder="client@company.co.zw" value={siteForm.site_contact_email} onChange={(e) => setField("site_contact_email", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Latitude</Label>
                   <Input inputMode="decimal" placeholder="-17.8252" value={siteForm.site_lat} onChange={(e) => setField("site_lat", e.target.value)} /></div>
