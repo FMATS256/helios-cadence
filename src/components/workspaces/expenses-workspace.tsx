@@ -49,6 +49,17 @@ export function ExpensesPage() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["cash-workspace"] });
 
+  const receiptFn = useServerFn(getExpenseReceiptUrl);
+  const openReceipt = async (path: string) => {
+    try {
+      const res = (await receiptFn({ data: { path } })) as { url: string };
+      window.open(res.url, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not open receipt");
+    }
+  };
+
+
   const delFn = useServerFn(deleteExpense);
   const del = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
