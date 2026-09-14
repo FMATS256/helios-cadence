@@ -3473,6 +3473,7 @@ export type Database = {
         Row: {
           account_number: string | null
           amount: number
+          cash_account_id: string | null
           created_at: string
           currency: string
           customer_id: string
@@ -3498,6 +3499,7 @@ export type Database = {
         Insert: {
           account_number?: string | null
           amount: number
+          cash_account_id?: string | null
           created_at?: string
           currency?: string
           customer_id: string
@@ -3523,6 +3525,7 @@ export type Database = {
         Update: {
           account_number?: string | null
           amount?: number
+          cash_account_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string
@@ -3546,6 +3549,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_submissions_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_submissions_customer_id_fkey"
             columns: ["customer_id"]
@@ -3580,6 +3590,7 @@ export type Database = {
         Row: {
           account_number: string
           amount: number
+          cash_account_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -3599,6 +3610,7 @@ export type Database = {
         Insert: {
           account_number: string
           amount: number
+          cash_account_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3618,6 +3630,7 @@ export type Database = {
         Update: {
           account_number?: string
           amount?: number
+          cash_account_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3635,6 +3648,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_customer_id_fkey"
             columns: ["customer_id"]
