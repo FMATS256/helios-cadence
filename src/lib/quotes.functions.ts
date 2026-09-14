@@ -467,6 +467,21 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
     const { quote, lines } = await loadQuote(db, data.id);
     if (!quote.customer_id) throw new Error("Attach the quote to a customer before invoicing");
     if (quote.status !== "accepted") throw new Error("Only accepted quotes can be converted to an invoice");
+    if ((quote as any).invoice_id) {
+      const { data: existing } = await db
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("id", (quote as any).invoice_id)
+        .maybeSingle();
+      if (existing) {
+        return {
+          invoice_id: existing.id as string,
+          invoice_number: existing.invoice_number as string,
+          already: true,
+        };
+      }
+    }
+
 
     const items = lines.length
       ? lines
@@ -509,13 +524,23 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
       })),
     );
 
+    await db
+      .from("quotes")
+      .update({ invoice_id: inv.id, converted_at: new Date().toISOString() })
+      .eq("id", quote.id);
+
     await record(db, context, quote, {
       event: "quote_converted",
       title: `Quote ${quote.quote_number ?? ""} converted to invoice ${inv.invoice_number}`.trim(),
       new: { invoice_id: inv.id, total: inv.total },
     });
-    return { invoice_id: inv.id as string, invoice_number: inv.invoice_number as string };
+    return {
+      invoice_id: inv.id as string,
+      invoice_number: inv.invoice_number as string,
+      already: false,
+    };
   });
+
 
 /* ------------------------------------------------------------------ *
  * PDF proxy — the engine's PDF endpoint needs the API key, so the

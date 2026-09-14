@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQuotesOverview } from "@/lib/finance.functions";
@@ -119,6 +119,12 @@ function QuotesPage() {
         {r.sent_at && <div className="mt-1 text-muted-foreground">Sent {new Date(r.sent_at).toLocaleDateString()}</div>}
       </div>
     ) },
+    { header: "Invoice", cell: (r) => r.invoice_id ? (
+      <Link to="/invoices/$id" params={{ id: r.invoice_id }} className="text-xs font-mono text-solar hover:underline">
+        View invoice
+      </Link>
+    ) : <span className="text-xs text-muted-foreground">—</span> },
+
     { header: "Created", cell: (r) => new Date(r.created_at).toLocaleDateString() },
     { header: "", align: "right", cell: (r) => (
       <Button size="sm" variant="outline" onClick={() => setManaged(r)}>Manage</Button>
@@ -248,6 +254,7 @@ function PdfLink({ id, className }: { id: string; className?: string }) {
 
 
 function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onClose: () => void; onDone: () => void; onEdit: (id: string) => void }) {
+  const navigate = useNavigate();
   const push = useServerFn(pushQuoteToStudio);
   const sync = useServerFn(syncQuoteFromStudio);
   const send = useServerFn(sendQuoteToCustomer);
@@ -282,12 +289,19 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
     onSuccess: (res: any, vars) => {
       setBusy(null);
       toast.success(
-        vars.key === "convert" ? `Invoice ${res?.invoice_number} created` :
-        vars.key === "send" ? `Quotation sent to ${res?.sent_to}` : "Quote updated",
+        vars.key === "convert"
+          ? res?.already
+            ? `Already invoiced as ${res?.invoice_number}`
+            : `Invoice ${res?.invoice_number} created as a draft for billing`
+          : vars.key === "send" ? `Quotation sent to ${res?.sent_to}` : "Quote updated",
       );
       onDone();
-      if (vars.key === "convert") onClose();
+      if (vars.key === "convert") {
+        onClose();
+        if (res?.invoice_id) navigate({ to: "/invoices/$id", params: { id: res.invoice_id } });
+      }
     },
+
     onError: (e: Error) => { setBusy(null); toast.error(e.message); },
   });
 
@@ -406,10 +420,16 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               }}>
               {label("reject", "Mark rejected")}
             </Button>
-            <Button size="sm" disabled={run.isPending || row.status !== "accepted"} style={{ background: "#0f766e", color: "#fff" }}
+            <Button size="sm" disabled={run.isPending || row.status !== "accepted" || !!row.invoice_id} style={{ background: "#0f766e", color: "#fff" }}
               onClick={() => act("convert", () => convert({ data: { id: row.id } }))}>
-              {label("convert", "Convert to invoice")}
+              {label("convert", row.invoice_id ? "Already invoiced" : "Convert to invoice")}
             </Button>
+            {row.invoice_id && (
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/invoices/$id" params={{ id: row.invoice_id }}>Open invoice</Link>
+              </Button>
+            )}
+
             <Button size="sm" style={{ background: "#25D366", color: "#fff" }} onClick={shareWhatsApp}>
               <MessageCircle className="h-4 w-4 mr-1.5" />Send via WhatsApp
             </Button>
