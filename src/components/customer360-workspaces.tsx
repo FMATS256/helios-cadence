@@ -444,6 +444,56 @@ function BillingWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () => 
   );
 }
 
+/* ------------------------------- 2c. requests & approvals tracker ------- */
+
+/**
+ * Status tracker for this account: payment evidence sent to billing and
+ * invoice requests, each with the outcome billing decided.
+ */
+function BillingApprovals({ ctx }: { ctx: WorkspaceCtx }) {
+  const subsFn = useServerFn(listPaymentSubmissions);
+  const reqFn = useServerFn(listInvoiceRequests);
+  const { data: subs } = useQuery({
+    queryKey: ["c360-submissions", ctx.customerId],
+    queryFn: () => subsFn({ data: { customer_id: ctx.customerId } }),
+  });
+  const { data: reqs } = useQuery({
+    queryKey: ["c360-invoice-requests", ctx.customerId],
+    queryFn: () => reqFn({ data: { customer_id: ctx.customerId } }),
+  });
+
+  const tone = (s: string) =>
+    toneForStatus(s === "approved" ? "active" : s === "rejected" ? "failed" : s === "cancelled" ? "cancelled" : "pending");
+
+  return (
+    <div className="space-y-4 pt-3">
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment submissions</h4>
+        <DataGrid rows={(subs?.submissions ?? []) as any[]} columns={[
+          { header: "Submitted", cell: (r: any) => shortDate(r.submitted_at ?? r.created_at) },
+          { header: "Amount", align: "right", cell: (r: any) => money(r.amount, r.currency) },
+          { header: "Invoice", cell: (r: any) => r.invoices?.invoice_number ?? "Unallocated" },
+          { header: "By", cell: (r: any) => r.submitted_by_name ?? "—" },
+          { header: "Status", cell: (r: any) => <StatusBadge tone={tone(r.status)}>{String(r.status).replace(/_/g, " ")}</StatusBadge> },
+          { header: "Billing note", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.review_notes ?? r.rejection_reason ?? "—"}</span> },
+        ] as ColumnDef<any>[]} empty={<EmptyState icon={Receipt} title="No payment submissions" description="Payments sent to billing for approval will appear here." />} />
+      </div>
+
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invoice requests</h4>
+        <DataGrid rows={(reqs?.requests ?? []) as any[]} columns={[
+          { header: "Requested", cell: (r: any) => shortDate(r.requested_at ?? r.created_at) },
+          { header: "What", cell: (r: any) => r.title },
+          { header: "Estimated", align: "right", cell: (r: any) => money(r.estimated_amount, r.currency) },
+          { header: "Invoice", cell: (r: any) => r.invoices?.invoice_number ?? "—" },
+          { header: "Status", cell: (r: any) => <StatusBadge tone={tone(r.status)}>{String(r.status)}</StatusBadge> },
+          { header: "Billing note", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.review_notes ?? "—"}</span> },
+        ] as ColumnDef<any>[]} empty={<EmptyState icon={FileText} title="No invoice requests" description="Ask billing to raise an invoice from the customer's actions." />} />
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------------------- 2b. billing attachments */
 
 const ATTACHMENT_KINDS = [
