@@ -4265,11 +4265,13 @@ export type Database = {
           accepted_at: string | null
           account_number: string | null
           amount: number
+          converted_at: string | null
           created_at: string
           created_by: string | null
           currency: string
           customer_id: string | null
           id: string
+          invoice_id: string | null
           notes: string | null
           quote_number: string | null
           rejected_at: string | null
@@ -4292,11 +4294,13 @@ export type Database = {
           accepted_at?: string | null
           account_number?: string | null
           amount?: number
+          converted_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
           customer_id?: string | null
           id?: string
+          invoice_id?: string | null
           notes?: string | null
           quote_number?: string | null
           rejected_at?: string | null
@@ -4319,11 +4323,13 @@ export type Database = {
           accepted_at?: string | null
           account_number?: string | null
           amount?: number
+          converted_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
           customer_id?: string | null
           id?: string
+          invoice_id?: string | null
           notes?: string | null
           quote_number?: string | null
           rejected_at?: string | null
@@ -4348,6 +4354,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
