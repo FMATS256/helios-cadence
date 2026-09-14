@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQuotesOverview } from "@/lib/finance.functions";
@@ -254,6 +254,7 @@ function PdfLink({ id, className }: { id: string; className?: string }) {
 
 
 function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onClose: () => void; onDone: () => void; onEdit: (id: string) => void }) {
+  const navigate = useNavigate();
   const push = useServerFn(pushQuoteToStudio);
   const sync = useServerFn(syncQuoteFromStudio);
   const send = useServerFn(sendQuoteToCustomer);
