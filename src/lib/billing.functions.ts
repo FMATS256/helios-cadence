@@ -815,3 +815,37 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
 
     return { dryRun: false, created: created.length, invoices: created, skipped, emailed, total: r2(total), errors };
   });
+
+/* ===================== INVOICE REQUEST TRACKING (read) ===================== */
+
+/**
+ * Status tracker for invoice requests. Billing sees every request; anyone
+ * else (account managers) sees only the ones they raised.
+ */
+export const listInvoiceRequests = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id?: string } | undefined) => input ?? {})
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { isBillingStaff } = await import("./customer360.server");
+    const canManage = await isBillingStaff(context as any);
+
+    let q = supabaseAdmin
+      .from("invoice_requests")
+      .select("*, customers:customer_id(company_name, account_number), invoices:invoice_id(invoice_number, status)")
+      .order("requested_at", { ascending: false })
+      .limit(200);
+    if (data.customer_id) q = q.eq("customer_id", data.customer_id);
+    if (!canManage) q = q.eq("requested_by", context.userId);
+
+    const requests = rows(await q) as any[];
+    const stats = {
+      pending: requests.filter((r) => r.status === "pending").length,
+      clarification: requests.filter((r) => r.status === "clarification").length,
+      approved: requests.filter((r) => r.status === "approved").length,
+      rejected: requests.filter((r) => r.status === "rejected").length,
+      cancelled: requests.filter((r) => r.status === "cancelled").length,
+    };
+    return { requests, canManage, stats };
+  });
