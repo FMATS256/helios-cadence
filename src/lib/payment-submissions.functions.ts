@@ -359,6 +359,7 @@ export const getSubmissionReview = createServerFn({ method: "POST" })
       openInvoices: openInv,
       events: evR.data ?? [],
       proof: docR.data ?? null,
+      cashAccounts: await cashAccounts(db),
       isBilling: billing,
     };
   });
