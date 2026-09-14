@@ -13,10 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Receipt, Wallet, Banknote, ArrowDownCircle, ArrowUpCircle, Plus, Trash2, Pencil } from "lucide-react";
+import { Receipt, Wallet, Banknote, ArrowDownCircle, ArrowUpCircle, Plus, Trash2, Pencil, Paperclip } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getCashWorkspace, upsertExpense, deleteExpense, upsertCashAccount, recordCashMovement,
+  getExpenseReceiptUrl,
 } from "@/lib/expenses.functions";
+
 
 
 const CATEGORIES = [
@@ -45,6 +48,17 @@ export function ExpensesPage() {
   const stats = data?.stats;
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["cash-workspace"] });
+
+  const receiptFn = useServerFn(getExpenseReceiptUrl);
+  const openReceipt = async (path: string) => {
+    try {
+      const res = (await receiptFn({ data: { path } })) as { url: string };
+      window.open(res.url, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not open receipt");
+    }
+  };
+
 
   const delFn = useServerFn(deleteExpense);
   const del = useMutation({
@@ -138,6 +152,12 @@ export function ExpensesPage() {
                 { header: "Method", cell: (r: any) => <span className="capitalize">{r.payment_method}</span> },
                 { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
                 { header: "Amount", align: "right", cell: (r: any) => <span className="font-mono">{money(r.amount, r.currency)}</span> },
+                { header: "Receipt", cell: (r: any) => r.attachment_url ? (
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openReceipt(r.attachment_url)}>
+                    <Paperclip className="h-3.5 w-3.5 mr-1" />View
+                  </Button>
+                ) : <span className="text-xs text-muted-foreground">—</span> },
+
                 { header: "", align: "right", cell: (r: any) => (
                   <div className="flex justify-end gap-1">
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setExpenseOpen(true); }}>
@@ -214,6 +234,7 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
   accounts: any[]; expense: any | null; onClose: () => void; onSaved: () => void;
 }) {
   const fn = useServerFn(upsertExpense);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     expense_date: expense?.expense_date ?? new Date().toISOString().slice(0, 10),
     category: expense?.category ?? "general",
@@ -226,13 +247,33 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
     reference: expense?.reference ?? "",
     status: expense?.status ?? "paid",
     notes: expense?.notes ?? "",
+    attachment_url: expense?.attachment_url ?? "",
   });
+
+  const pickFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { toast.error("File must be 15MB or smaller"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `expenses/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("finance-receipts").upload(path, file, { upsert: false });
+      if (error) throw error;
+      setForm((f) => ({ ...f, attachment_url: path }));
+      toast.success("Receipt attached");
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: () => fn({ data: { id: expense?.id, ...form, amount: Number(form.amount) } as any }),
     onSuccess: () => { toast.success(expense ? "Expense updated" : "Expense recorded"); onSaved(); onClose(); },
     onError: (e: any) => toast.error(e?.message || "Could not save expense"),
   });
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -274,6 +315,21 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
             <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
           <div className="col-span-2 space-y-1"><Label>Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1">
+            <Label>Receipt / invoice</Label>
+            <Input
+              type="file"
+              accept="image/*,application/pdf"
+              disabled={uploading}
+              onChange={(e) => pickFile(e.target.files?.[0])}
+            />
+            <p className="text-xs text-muted-foreground">
+              {uploading ? "Uploading…" : form.attachment_url
+                ? <span className="inline-flex items-center gap-1 text-success"><Paperclip className="h-3 w-3" /> Receipt attached</span>
+                : "Attach a photo or PDF of the receipt or supplier invoice (max 15MB)."}
+            </p>
+          </div>
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
