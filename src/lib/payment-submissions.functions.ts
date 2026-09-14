@@ -83,15 +83,17 @@ export const getSubmissionContext = createServerFn({ method: "POST" })
     const { data: cust } = await db.from("customers")
       .select("id,account_number,company_name,primary_email,status").eq("id", data.customer_id).maybeSingle();
     if (!cust) throw new Error("Customer not found");
-    const [invoices, subs] = await Promise.all([
+    const [invoices, subs, accounts] = await Promise.all([
       openInvoicesFor(db, cust.id),
       db.from("payment_submissions").select("*").eq("customer_id", cust.id)
         .order("created_at", { ascending: false }).limit(20),
+      cashAccounts(db),
     ]);
     return {
       customer: cust,
       openInvoices: invoices,
       submissions: subs.data ?? [],
+      cashAccounts: accounts,
       canRecordDirectly: await isBillingUser(context),
     };
   });
