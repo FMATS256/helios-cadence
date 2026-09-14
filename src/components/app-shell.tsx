@@ -29,7 +29,7 @@ import { can } from "@/lib/rbac";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
-type NavLeaf = { title: string; url: string; icon: any; masterOnly?: boolean };
+type NavLeaf = { title: string; url: string; icon: any; masterOnly?: boolean; search?: Record<string, string> };
 type NavNode = NavLeaf & { children?: NavLeaf[] };
 
 const siteNav: NavNode[] = [
@@ -70,7 +70,7 @@ const siteNav: NavNode[] = [
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
       { title: "Payments & Receivables", url: "/payments", icon: Receipt },
-      { title: "Payment Submissions", url: "/payments?tab=submissions", icon: Receipt },
+      { title: "Payment Submissions", url: "/payments", icon: Receipt, search: { tab: "submissions" } },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
       { title: "Procurement & Vendors", url: "/procurement", icon: ShoppingCart },
     ],
@@ -171,6 +171,7 @@ function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) =>
               <Link
                 key={c.title + c.url}
                 to={c.url}
+                search={(c.search ?? {}) as any}
                 className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
                   isActive(c.url)
                     ? "bg-solar/15 text-solar font-semibold"
