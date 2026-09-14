@@ -1,0 +1,1 @@
+ALTER TABLE public.service_tasks ADD COLUMN IF NOT EXISTS site_contact_email text;

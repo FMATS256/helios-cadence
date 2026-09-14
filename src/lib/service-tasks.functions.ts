@@ -59,8 +59,13 @@ export const createServiceTask = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: customer, error: custErr } = await supabaseAdmin
-      .from("customers").select("id, account_number, company_name").eq("id", data.customer_id).single();
+      .from("customers").select("id, account_number, company_name, primary_email, primary_phone").eq("id", data.customer_id).single();
     if (custErr || !customer) throw new Error(custErr?.message ?? "Customer not found");
+
+    // Attach the client's best contact address to the job so field staff and the
+    // completion report always know where updates go.
+    const { customerEmail } = await import("./support.server");
+    const clientEmail = await customerEmail(supabaseAdmin, customer);
 
     let ticketId: string | null = null;
     if (data.open_ticket) {
@@ -92,6 +97,8 @@ export const createServiceTask = createServerFn({ method: "POST" })
       due_date: data.due_date || null,
       scheduled_at: data.scheduled_at || null,
       subscription_id: data.subscription_id || null,
+      site_contact_email: clientEmail,
+      site_contact_phone: (customer as any).primary_phone ?? null,
       ticket_id: ticketId,
     } as any).select("*").single();
     if (error) throw new Error(error.message);
@@ -120,6 +127,19 @@ export const createServiceTask = createServerFn({ method: "POST" })
       })) as any);
     }
 
+
+    // Let the client know a job has been raised on their account.
+    if (clientEmail) {
+      try {
+        const { notify } = await import("./notify.server");
+        await notify("general-message", clientEmail, {
+          subject: `Work order logged · ${data.title.trim()}`,
+          recipientName: customer.company_name,
+          message: `We have logged a ${String(data.task_type).replace(/_/g, " ")} job on your account.\n\n${data.title.trim()}${data.description?.trim() ? `\n\n${data.description.trim()}` : ""}\n\nOur technical team will be in touch with scheduling details.`,
+          senderName: "IMT Technical Operations",
+        }, `job-created-${(task as any)?.id}`);
+      } catch { /* email is best-effort */ }
+    }
 
     const { recordCustomerEvent } = await import("./customer-events.server");
     await recordCustomerEvent(supabaseAdmin, {
