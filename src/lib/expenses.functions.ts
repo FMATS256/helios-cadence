@@ -189,3 +189,15 @@ export const recordCashMovement = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+/** Short-lived signed link so finance staff can open an attached receipt/invoice. */
+export const getExpenseReceiptUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { path: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertFinance(context as Ctx);
+    const { data: signed, error } = await context.supabase.storage
+      .from("finance-receipts").createSignedUrl(data.path, 300);
+    if (error) throw new Error(error.message);
+    return { url: signed.signedUrl as string };
+  });
