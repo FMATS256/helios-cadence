@@ -191,6 +191,15 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
       invoiceId = inv.id;
     }
 
+    // Destination account: NMB bank, cash drawer or mobile money.
+    let accountId: string | null = null;
+    if (data.cash_account_id) {
+      const { data: acc } = await db.from("cash_accounts")
+        .select("id,is_active").eq("id", data.cash_account_id).maybeSingle();
+      if (!acc || !acc.is_active) throw new Error("Select an active bank, cash or mobile money account");
+      accountId = acc.id;
+    }
+
     // duplicate protection — the caller must acknowledge before we accept it
     const ref = data.reference?.trim() || null;
     const since = new Date(Date.now() - 45 * 86400000).toISOString();
