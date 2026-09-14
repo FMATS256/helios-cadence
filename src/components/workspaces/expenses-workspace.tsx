@@ -141,6 +141,12 @@ export function ExpensesPage() {
                 { header: "Method", cell: (r: any) => <span className="capitalize">{r.payment_method}</span> },
                 { header: "Status", cell: (r: any) => <StatusBadge tone={toneForStatus(r.status)}>{r.status}</StatusBadge> },
                 { header: "Amount", align: "right", cell: (r: any) => <span className="font-mono">{money(r.amount, r.currency)}</span> },
+                { header: "Receipt", cell: (r: any) => r.attachment_url ? (
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openReceipt(r.attachment_url)}>
+                    <Paperclip className="h-3.5 w-3.5 mr-1" />View
+                  </Button>
+                ) : <span className="text-xs text-muted-foreground">—</span> },
+
                 { header: "", align: "right", cell: (r: any) => (
                   <div className="flex justify-end gap-1">
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setExpenseOpen(true); }}>
