@@ -524,13 +524,23 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
       })),
     );
 
+    await db
+      .from("quotes")
+      .update({ invoice_id: inv.id, converted_at: new Date().toISOString() })
+      .eq("id", quote.id);
+
     await record(db, context, quote, {
       event: "quote_converted",
       title: `Quote ${quote.quote_number ?? ""} converted to invoice ${inv.invoice_number}`.trim(),
       new: { invoice_id: inv.id, total: inv.total },
     });
-    return { invoice_id: inv.id as string, invoice_number: inv.invoice_number as string };
+    return {
+      invoice_id: inv.id as string,
+      invoice_number: inv.invoice_number as string,
+      already: false,
+    };
   });
+
 
 /* ------------------------------------------------------------------ *
  * PDF proxy — the engine's PDF endpoint needs the API key, so the
