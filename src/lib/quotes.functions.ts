@@ -136,7 +136,7 @@ export const listQuoteSources = createServerFn({ method: "GET" })
         .select("id, code, name, category, description, unit_price, currency, billing_cycle, is_active")
         .eq("is_active", true).order("category").order("name"),
       db.from("inventory_items")
-        .select("id, name, sku, category, quantity, sale_price, unit_cost, currency")
+        .select("id, name, sku, category, quantity, sale_price, unit_cost")
         .is("archived_at", null).order("name"),
     ]);
     if (catR.error) throw new Error(catR.error.message);
@@ -162,7 +162,7 @@ export const listQuoteSources = createServerFn({ method: "GET" })
         category: i.category ?? "hardware",
         description: null,
         price: Number(i.sale_price ?? i.unit_cost) || 0,
-        currency: i.currency ?? "USD",
+        currency: "USD",
         billing_cycle: null,
         stock: Number(i.quantity) || 0,
       })),
