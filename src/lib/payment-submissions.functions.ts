@@ -38,6 +38,33 @@ async function assertBilling(context: Ctx) {
 
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
+/** Bank / cash / mobile money accounts money can be banked into. */
+async function cashAccounts(db: any) {
+  const { data } = await db.from("cash_accounts")
+    .select("id,name,kind,currency,is_default,is_active")
+    .eq("is_active", true)
+    .order("is_default", { ascending: false }).order("name");
+  return data ?? [];
+}
+
+/** Records the deposit on the finance ledger so the account balance moves. */
+async function bankDeposit(db: any, args: {
+  account_id: string; amount: number; currency: string; occurred_at: string;
+  reference?: string | null; notes?: string | null; created_by?: string | null;
+}) {
+  const { error } = await db.from("cash_movements").insert({
+    account_id: args.account_id,
+    kind: "deposit",
+    amount: args.amount,
+    currency: args.currency || "USD",
+    occurred_at: args.occurred_at,
+    reference: args.reference || null,
+    notes: args.notes || null,
+    created_by: args.created_by || null,
+  } as any);
+  if (error) throw new Error(`Payment recorded but the ledger deposit failed: ${error.message}`);
+}
+
 async function openInvoicesFor(db: any, customerId: string) {
   const [invR, allocR] = await Promise.all([
     db.from("invoices").select("id,invoice_number,total,currency,issue_date,due_date,status")
@@ -83,15 +110,17 @@ export const getSubmissionContext = createServerFn({ method: "POST" })
     const { data: cust } = await db.from("customers")
       .select("id,account_number,company_name,primary_email,status").eq("id", data.customer_id).maybeSingle();
     if (!cust) throw new Error("Customer not found");
-    const [invoices, subs] = await Promise.all([
+    const [invoices, subs, accounts] = await Promise.all([
       openInvoicesFor(db, cust.id),
       db.from("payment_submissions").select("*").eq("customer_id", cust.id)
         .order("created_at", { ascending: false }).limit(20),
+      cashAccounts(db),
     ]);
     return {
       customer: cust,
       openInvoices: invoices,
       submissions: subs.data ?? [],
+      cashAccounts: accounts,
       canRecordDirectly: await isBillingUser(context),
     };
   });
@@ -140,6 +169,7 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
     payment_date?: string;
     reference?: string | null;
     proof_document_id?: string | null;
+    cash_account_id?: string | null;
     notes?: string | null;
     acknowledge_duplicate?: boolean;
   }) => input)
@@ -159,6 +189,15 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
         .eq("id", data.invoice_id).maybeSingle();
       if (!inv || inv.customer_id !== cust.id) throw new Error("That invoice does not belong to this customer");
       invoiceId = inv.id;
+    }
+
+    // Destination account: NMB bank, cash drawer or mobile money.
+    let accountId: string | null = null;
+    if (data.cash_account_id) {
+      const { data: acc } = await db.from("cash_accounts")
+        .select("id,is_active").eq("id", data.cash_account_id).maybeSingle();
+      if (!acc || !acc.is_active) throw new Error("Select an active bank, cash or mobile money account");
+      accountId = acc.id;
     }
 
     // duplicate protection — the caller must acknowledge before we accept it
@@ -192,6 +231,7 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
       payment_date: data.payment_date || new Date().toISOString().slice(0, 10),
       reference: ref,
       proof_document_id: data.proof_document_id || null,
+      cash_account_id: accountId,
       notes: data.notes?.trim() || null,
       status: "pending",
       duplicate_flag: isDuplicate
@@ -319,6 +359,7 @@ export const getSubmissionReview = createServerFn({ method: "POST" })
       openInvoices: openInv,
       events: evR.data ?? [],
       proof: docR.data ?? null,
+      cashAccounts: await cashAccounts(db),
       isBilling: billing,
     };
   });
