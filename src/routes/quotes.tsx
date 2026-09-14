@@ -288,12 +288,19 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
     onSuccess: (res: any, vars) => {
       setBusy(null);
       toast.success(
-        vars.key === "convert" ? `Invoice ${res?.invoice_number} created` :
-        vars.key === "send" ? `Quotation sent to ${res?.sent_to}` : "Quote updated",
+        vars.key === "convert"
+          ? res?.already
+            ? `Already invoiced as ${res?.invoice_number}`
+            : `Invoice ${res?.invoice_number} created as a draft for billing`
+          : vars.key === "send" ? `Quotation sent to ${res?.sent_to}` : "Quote updated",
       );
       onDone();
-      if (vars.key === "convert") onClose();
+      if (vars.key === "convert") {
+        onClose();
+        if (res?.invoice_id) navigate({ to: "/invoices/$id", params: { id: res.invoice_id } });
+      }
     },
+
     onError: (e: Error) => { setBusy(null); toast.error(e.message); },
   });
 
