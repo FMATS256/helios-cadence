@@ -38,6 +38,33 @@ async function assertBilling(context: Ctx) {
 
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
+/** Bank / cash / mobile money accounts money can be banked into. */
+async function cashAccounts(db: any) {
+  const { data } = await db.from("cash_accounts")
+    .select("id,name,kind,currency,is_default,is_active")
+    .eq("is_active", true)
+    .order("is_default", { ascending: false }).order("name");
+  return data ?? [];
+}
+
+/** Records the deposit on the finance ledger so the account balance moves. */
+async function bankDeposit(db: any, args: {
+  account_id: string; amount: number; currency: string; occurred_at: string;
+  reference?: string | null; notes?: string | null; created_by?: string | null;
+}) {
+  const { error } = await db.from("cash_movements").insert({
+    account_id: args.account_id,
+    kind: "deposit",
+    amount: args.amount,
+    currency: args.currency || "USD",
+    occurred_at: args.occurred_at,
+    reference: args.reference || null,
+    notes: args.notes || null,
+    created_by: args.created_by || null,
+  } as any);
+  if (error) throw new Error(`Payment recorded but the ledger deposit failed: ${error.message}`);
+}
+
 async function openInvoicesFor(db: any, customerId: string) {
   const [invR, allocR] = await Promise.all([
     db.from("invoices").select("id,invoice_number,total,currency,issue_date,due_date,status")
