@@ -295,6 +295,21 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
             <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
           <div className="col-span-2 space-y-1"><Label>Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1">
+            <Label>Receipt / invoice</Label>
+            <Input
+              type="file"
+              accept="image/*,application/pdf"
+              disabled={uploading}
+              onChange={(e) => pickFile(e.target.files?.[0])}
+            />
+            <p className="text-xs text-muted-foreground">
+              {uploading ? "Uploading…" : form.attachment_url
+                ? <span className="inline-flex items-center gap-1 text-success"><Paperclip className="h-3 w-3" /> Receipt attached</span>
+                : "Attach a photo or PDF of the receipt or supplier invoice (max 15MB)."}
+            </p>
+          </div>
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
