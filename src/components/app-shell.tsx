@@ -25,10 +25,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
+import { can } from "@/lib/rbac";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
-type NavLeaf = { title: string; url: string; icon: any; masterOnly?: boolean };
+type NavLeaf = { title: string; url: string; icon: any; masterOnly?: boolean; search?: Record<string, string> };
 type NavNode = NavLeaf & { children?: NavLeaf[] };
 
 const siteNav: NavNode[] = [
@@ -69,6 +70,7 @@ const siteNav: NavNode[] = [
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
       { title: "Payments & Receivables", url: "/payments", icon: Receipt },
+      { title: "Payment Submissions", url: "/payments", icon: Receipt, search: { tab: "submissions" } },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
       { title: "Procurement & Vendors", url: "/procurement", icon: ShoppingCart },
     ],
@@ -169,6 +171,7 @@ function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) =>
               <Link
                 key={c.title + c.url}
                 to={c.url}
+                search={(c.search ?? {}) as any}
                 className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
                   isActive(c.url)
                     ? "bg-solar/15 text-solar font-semibold"
@@ -223,6 +226,9 @@ function AppSidebar() {
 }
 
 function TopBar() {
+  const { roles } = useRoles();
+  // Separation of duties: only billing records payments or raises invoices.
+  const canRecord = can(roles, "payments.record");
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 sm:gap-4 border-b border-border bg-background/80 backdrop-blur-xl px-3 sm:px-6">
       <SidebarTrigger className="text-foreground shrink-0" />
@@ -238,7 +244,11 @@ function TopBar() {
             <DropdownMenuLabel>Create</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild><Link to="/customers">New Customer</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/finance" search={{ tab: "payments" }}>Record Payment</Link></DropdownMenuItem>
+            {canRecord ? (
+              <DropdownMenuItem asChild><Link to="/finance" search={{ tab: "payments" }}>Record Payment</Link></DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem asChild><Link to="/payments" search={{ tab: "submissions" }}>Submit Payment to Billing</Link></DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild><Link to="/starlink">New Starlink Account</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/cloud">New Managed Service</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/tickets">New Ticket</Link></DropdownMenuItem>
