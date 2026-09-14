@@ -214,6 +214,7 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
   accounts: any[]; expense: any | null; onClose: () => void; onSaved: () => void;
 }) {
   const fn = useServerFn(upsertExpense);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     expense_date: expense?.expense_date ?? new Date().toISOString().slice(0, 10),
     category: expense?.category ?? "general",
@@ -226,13 +227,33 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
     reference: expense?.reference ?? "",
     status: expense?.status ?? "paid",
     notes: expense?.notes ?? "",
+    attachment_url: expense?.attachment_url ?? "",
   });
+
+  const pickFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { toast.error("File must be 15MB or smaller"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `expenses/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("finance-receipts").upload(path, file, { upsert: false });
+      if (error) throw error;
+      setForm((f) => ({ ...f, attachment_url: path }));
+      toast.success("Receipt attached");
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: () => fn({ data: { id: expense?.id, ...form, amount: Number(form.amount) } as any }),
     onSuccess: () => { toast.success(expense ? "Expense updated" : "Expense recorded"); onSaved(); onClose(); },
     onError: (e: any) => toast.error(e?.message || "Could not save expense"),
   });
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
