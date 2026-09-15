@@ -188,6 +188,21 @@ export function SubmitPaymentDialog({
           </div>
 
           <div>
+            <Label>Money received into</Label>
+            <Select value={activeAccount} onValueChange={setAccount}>
+              <SelectTrigger><SelectValue placeholder="Select bank, cash or mobile money account" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name} · {String(a.kind).replace(/_/g, " ")}{a.is_default ? " (default)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">Billing confirms this before the deposit posts to the finance ledger.</p>
+          </div>
+
+          <div>
             <Label className="flex items-center gap-1.5"><Paperclip className="h-3.5 w-3.5" />Proof of payment</Label>
             <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </div>
