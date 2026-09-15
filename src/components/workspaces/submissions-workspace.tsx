@@ -158,6 +158,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
   const [invoiceId, setInvoiceId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   const { data } = useQuery({
@@ -170,7 +171,10 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
   const proof = data?.proof as any;
   const openInvoices = (data?.openInvoices ?? []) as any[];
   const events = (data?.events ?? []) as any[];
+  const cashAccounts = ((data as any)?.cashAccounts ?? []) as any[];
   const targetInvoice = invoiceId || sub?.invoice_id || "";
+  const targetAccount = accountId || sub?.cash_account_id || cashAccounts.find((a) => a.is_default)?.id || "";
+  const accountName = cashAccounts.find((a) => a.id === targetAccount)?.name ?? "—";
 
   async function openProof() {
     if (!proof?.file_path) return;
@@ -215,6 +219,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
                 <div><dt className="text-muted-foreground">Reference</dt><dd className="font-mono">{sub.reference ?? "—"}</dd></div>
                 <div><dt className="text-muted-foreground">Submitted</dt><dd>{when(sub.submitted_at ?? sub.created_at)}</dd></div>
                 {sub.receipt_number && <div><dt className="text-muted-foreground">Receipt</dt><dd className="font-mono">{sub.receipt_number}</dd></div>}
+                <div><dt className="text-muted-foreground">Banked into</dt><dd>{accountName}</dd></div>
               </dl>
               {sub.notes && <p className="mt-3 rounded bg-muted/50 p-2 text-xs">{sub.notes}</p>}
               {sub.duplicate_flag && (
@@ -262,11 +267,25 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
                   </Select>
                 </div>
                 <div>
+                  <Label>Deposit into account</Label>
+                  <Select value={targetAccount} onValueChange={setAccountId}>
+                    <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                    <SelectContent>
+                      {cashAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name} · {String(a.kind).replace(/_/g, " ")}{a.is_default ? " (default)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">Approving posts the deposit here and moves the account balance.</p>
+                </div>
+                <div>
                   <Label>Review notes</Label>
                   <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Verification notes, or what you need clarified" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "approve", notes: notes.trim() || undefined, invoice_id: targetInvoice || null } }), "Payment approved and recorded")}>
+                  <Button size="sm" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "approve", notes: notes.trim() || undefined, invoice_id: targetInvoice || null, cash_account_id: targetAccount || null } }), "Payment approved and recorded")}>
                     <CheckCircle2 className="mr-1.5 h-4 w-4" />Approve & record
                   </Button>
                   <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "clarify", notes: notes.trim() || undefined } }), "Clarification requested")}>

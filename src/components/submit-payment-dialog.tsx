@@ -42,6 +42,7 @@ export function SubmitPaymentDialog({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [account, setAccount] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
@@ -56,6 +57,8 @@ export function SubmitPaymentDialog({
 
   const openInvoices = (ctx?.openInvoices ?? []) as any[];
   const selected = openInvoices.find((i) => i.id === invoice);
+  const accounts = ((ctx as any)?.cashAccounts ?? []) as any[];
+  const activeAccount = account || accounts.find((a) => a.is_default)?.id || "";
 
   function reset() {
     setAmount(""); setReference(""); setNotes(""); setFile(null);
@@ -96,6 +99,7 @@ export function SubmitPaymentDialog({
           payment_date: date,
           reference: reference.trim() || null,
           proof_document_id: proofId,
+          cash_account_id: activeAccount || null,
           notes: notes.trim() || null,
           acknowledge_duplicate: acknowledge,
         },
@@ -181,6 +185,21 @@ export function SubmitPaymentDialog({
               <Label>Reference</Label>
               <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bank / transaction ref" />
             </div>
+          </div>
+
+          <div>
+            <Label>Money received into</Label>
+            <Select value={activeAccount} onValueChange={setAccount}>
+              <SelectTrigger><SelectValue placeholder="Select bank, cash or mobile money account" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name} · {String(a.kind).replace(/_/g, " ")}{a.is_default ? " (default)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">Billing confirms this before the deposit posts to the finance ledger.</p>
           </div>
 
           <div>
