@@ -158,6 +158,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
   const [invoiceId, setInvoiceId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   const { data } = useQuery({
@@ -170,7 +171,10 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
   const proof = data?.proof as any;
   const openInvoices = (data?.openInvoices ?? []) as any[];
   const events = (data?.events ?? []) as any[];
+  const cashAccounts = ((data as any)?.cashAccounts ?? []) as any[];
   const targetInvoice = invoiceId || sub?.invoice_id || "";
+  const targetAccount = accountId || sub?.cash_account_id || cashAccounts.find((a) => a.is_default)?.id || "";
+  const accountName = cashAccounts.find((a) => a.id === targetAccount)?.name ?? "—";
 
   async function openProof() {
     if (!proof?.file_path) return;
