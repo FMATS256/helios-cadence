@@ -578,6 +578,7 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
       review_notes: data.notes?.trim() || null,
       payment_id: payment.id,
       receipt_number: payment.receipt_number,
+      cash_account_id: account.id,
     } as any).eq("id", sub.id);
     if (upErr) throw new Error(upErr.message);
     await addEvent(db, sub.id, context.userId, "approved", data.notes);
