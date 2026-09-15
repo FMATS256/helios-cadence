@@ -513,6 +513,18 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
     const planned = round(plan.reduce((t, a) => t + a.amount, 0));
     if (planned > amount + 0.005) throw new Error("Allocations exceed the payment amount");
 
+    /* Destination account: billing may confirm or override what the submitter
+     * chose; otherwise fall back to the default active account. */
+    const accounts = await cashAccounts(db);
+    const chosen = data.cash_account_id ?? sub.cash_account_id ?? null;
+    const account =
+      accounts.find((a: any) => a.id === chosen) ??
+      accounts.find((a: any) => a.is_default) ??
+      accounts[0] ?? null;
+    if (!account) throw new Error("No active bank, cash or mobile money account exists to bank this payment into.");
+
+    const paidAtIso = new Date(`${sub.payment_date}T12:00:00Z`).toISOString();
+
     const { data: payment, error: payErr } = await db.from("payments").insert({
       customer_id: cust.id,
       account_number: cust.account_number,
@@ -521,12 +533,25 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
       method: sub.method || "bank_transfer",
       reference: sub.reference,
       status: "received",
-      paid_at: new Date(`${sub.payment_date}T12:00:00Z`).toISOString(),
+      paid_at: paidAtIso,
       notes: [sub.notes, data.notes?.trim()].filter(Boolean).join(" · ") || null,
       invoice_id: plan.length === 1 ? plan[0].invoice_id : sub.invoice_id,
+      cash_account_id: account.id,
       created_by: context.userId,
     } as any).select("*").single();
     if (payErr) throw new Error(payErr.message);
+
+    // Finance ledger: the money lands in the chosen account.
+    await bankDeposit(db, {
+      account_id: account.id,
+      amount,
+      currency: sub.currency || "USD",
+      occurred_at: paidAtIso,
+      reference: payment.receipt_number || sub.reference || null,
+      notes: `Customer payment · ${cust.company_name} (${cust.account_number})`,
+      created_by: context.userId,
+    });
+
 
     if (plan.length) {
       const { error: allocErr } = await db.from("payment_allocations").insert(
