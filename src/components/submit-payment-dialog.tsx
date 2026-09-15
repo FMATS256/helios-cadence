@@ -99,6 +99,7 @@ export function SubmitPaymentDialog({
           payment_date: date,
           reference: reference.trim() || null,
           proof_document_id: proofId,
+          cash_account_id: activeAccount || null,
           notes: notes.trim() || null,
           acknowledge_duplicate: acknowledge,
         },
