@@ -219,6 +219,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
                 <div><dt className="text-muted-foreground">Reference</dt><dd className="font-mono">{sub.reference ?? "—"}</dd></div>
                 <div><dt className="text-muted-foreground">Submitted</dt><dd>{when(sub.submitted_at ?? sub.created_at)}</dd></div>
                 {sub.receipt_number && <div><dt className="text-muted-foreground">Receipt</dt><dd className="font-mono">{sub.receipt_number}</dd></div>}
+                <div><dt className="text-muted-foreground">Banked into</dt><dd>{accountName}</dd></div>
               </dl>
               {sub.notes && <p className="mt-3 rounded bg-muted/50 p-2 text-xs">{sub.notes}</p>}
               {sub.duplicate_flag && (
@@ -264,6 +265,20 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Deposit into account</Label>
+                  <Select value={targetAccount} onValueChange={setAccountId}>
+                    <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                    <SelectContent>
+                      {cashAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name} · {String(a.kind).replace(/_/g, " ")}{a.is_default ? " (default)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">Approving posts the deposit here and moves the account balance.</p>
                 </div>
                 <div>
                   <Label>Review notes</Label>
