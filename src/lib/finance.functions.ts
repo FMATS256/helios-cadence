@@ -540,3 +540,147 @@ export const emailInvoice = createServerFn({ method: "POST" })
 
     return { ok: true, to: recipient, from: fromHeader, invoiceUrl, copySentTo: copySent ? senderEmail : null };
   });
+
+/* =========================================================================
+ * CUSTOMER FINANCIAL ACCOUNT
+ * A single financial account per customer: statement of every invoice,
+ * payment, credit, refund and subscription, with ageing and lifetime totals.
+ * =======================================================================*/
+
+export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { customer_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+    const num = (v: any) => Number(v || 0);
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+
+    const { data: customer } = await db.from("customers")
+      .select("id, company_name, account_number, status, primary_email, primary_phone, currency, account_manager_name, account_manager_code")
+      .eq("id", data.customer_id).maybeSingle();
+    if (!customer) throw new Error("Customer not found");
+
+    const [invR, payR, allocR, credR, refR, subR, subsR] = await Promise.all([
+      db.from("invoices").select("id, invoice_number, status, issue_date, due_date, currency, subtotal, tax, total, paid_at")
+        .eq("customer_id", customer.id).is("archived_at", null).order("issue_date", { ascending: false }),
+      db.from("payments").select("id, receipt_number, amount, currency, method, reference, status, paid_at, invoice_id, cash_account_id, reconciliation_status")
+        .eq("customer_id", customer.id).order("paid_at", { ascending: false }),
+      db.from("payment_allocations").select("payment_id, invoice_id, amount"),
+      db.from("customer_credits").select("id, amount, currency, kind, note, created_at").eq("customer_id", customer.id).order("created_at", { ascending: false }),
+      db.from("refunds").select("id, amount, currency, method, status, reason, refunded_at, created_at").eq("customer_id", customer.id).order("created_at", { ascending: false }),
+      db.from("subscriptions").select("id, plan_name, amount, currency, billing_cycle, status, next_renewal, started_on").eq("customer_id", customer.id),
+      db.from("payment_submissions").select("id, amount, currency, status, method, payment_date, reference, receipt_number, cash_account_id, created_at")
+        .eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(50),
+    ]);
+
+    const invoices = rows(invR) as any[];
+    const payments = rows(payR) as any[];
+    const allocs = rows(allocR) as any[];
+    const invIds = new Set(invoices.map((i) => i.id));
+    const mine = allocs.filter((a: any) => invIds.has(a.invoice_id));
+
+    const paidByInvoice: Record<string, number> = {};
+    for (const a of mine) paidByInvoice[a.invoice_id] = (paidByInvoice[a.invoice_id] || 0) + num(a.amount);
+    const allocByPayment: Record<string, number> = {};
+    for (const a of allocs) allocByPayment[a.payment_id] = (allocByPayment[a.payment_id] || 0) + num(a.amount);
+
+    const now = Date.now();
+    const ageing = { current: 0, d30: 0, d60: 0, d90: 0 };
+    const invoiceRows = invoices.map((i) => {
+      const paid = r2(paidByInvoice[i.id] || 0);
+      const balance = i.status === "void" ? 0 : r2(Math.max(0, num(i.total) - paid));
+      const daysOverdue = i.due_date && balance > 0.005
+        ? Math.floor((now - new Date(i.due_date).getTime()) / 86400000) : 0;
+      if (balance > 0.005) {
+        if (daysOverdue <= 0) ageing.current += balance;
+        else if (daysOverdue <= 30) ageing.d30 += balance;
+        else if (daysOverdue <= 60) ageing.d60 += balance;
+        else ageing.d90 += balance;
+      }
+      return { ...i, paid_amount: paid, balance, days_overdue: Math.max(0, daysOverdue) };
+    });
+
+    const paymentRows = payments
+      .filter((p) => p.status !== "failed")
+      .map((p) => ({ ...p, allocated: r2(allocByPayment[p.id] || 0), unallocated: r2(Math.max(0, num(p.amount) - (allocByPayment[p.id] || 0))) }));
+
+    const accountIds = Array.from(new Set(paymentRows.map((p) => p.cash_account_id).filter(Boolean)));
+    const { data: accts } = accountIds.length
+      ? await db.from("cash_accounts").select("id, name, kind").in("id", accountIds as string[])
+      : { data: [] as any[] };
+    const accountName: Record<string, string> = {};
+    for (const a of (accts ?? []) as any[]) accountName[a.id] = a.name;
+
+    const CYCLE: Record<string, number> = {
+      monthly: 1, quarterly: 1 / 3, semi_annual: 1 / 6, semiannual: 1 / 6,
+      annual: 1 / 12, yearly: 1 / 12, weekly: 4.345, daily: 30.44, one_time: 0,
+    };
+    const subscriptions = rows(subsR) as any[];
+    const mrr = r2(subscriptions.filter((s) => s.status === "active")
+      .reduce((t, s) => t + num(s.amount) * (CYCLE[String(s.billing_cycle || "monthly").toLowerCase()] ?? 1), 0));
+
+    const credits = rows(credR) as any[];
+    const refunds = rows(refR) as any[];
+    const invoicedTotal = r2(invoiceRows.filter((i) => i.status !== "void").reduce((t, i) => t + num(i.total), 0));
+    const paidTotal = r2(invoiceRows.reduce((t, i) => t + i.paid_amount, 0));
+    const balanceDue = r2(invoiceRows.reduce((t, i) => t + i.balance, 0));
+    const creditBalance = r2(credits.reduce((t, c) => t + (String(c.kind) === "debit" ? -num(c.amount) : num(c.amount)), 0));
+    const refundedTotal = r2(refunds.filter((x) => x.status === "completed" || x.status === "recorded").reduce((t, x) => t + num(x.amount), 0));
+
+    // Running statement, newest first.
+    const statement = [
+      ...invoiceRows.filter((i) => i.status !== "void").map((i) => ({
+        date: i.issue_date, kind: "invoice", label: `Invoice ${i.invoice_number}`,
+        reference: i.invoice_number, debit: num(i.total), credit: 0, currency: i.currency, status: i.status, id: i.id,
+      })),
+      ...paymentRows.map((p) => ({
+        date: String(p.paid_at ?? "").slice(0, 10), kind: "payment",
+        label: `Payment ${p.receipt_number ?? ""}`.trim(), reference: p.reference ?? p.receipt_number ?? null,
+        debit: 0, credit: num(p.amount), currency: p.currency, status: p.status, id: p.id,
+        account: p.cash_account_id ? accountName[p.cash_account_id] ?? null : null,
+      })),
+      ...refunds.map((x) => ({
+        date: String(x.refunded_at ?? x.created_at ?? "").slice(0, 10), kind: "refund",
+        label: "Refund", reference: null, debit: num(x.amount), credit: 0, currency: x.currency, status: x.status, id: x.id,
+      })),
+      ...credits.map((c) => ({
+        date: String(c.created_at ?? "").slice(0, 10), kind: "credit", label: c.note || `Credit (${c.kind})`,
+        reference: null, debit: String(c.kind) === "debit" ? num(c.amount) : 0,
+        credit: String(c.kind) === "debit" ? 0 : num(c.amount), currency: c.currency, status: c.kind, id: c.id,
+      })),
+    ].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+    let running = r2(statement.reduce((t, e) => t + e.debit - e.credit, 0));
+    const ledger = statement.map((e) => {
+      const row = { ...e, balance: r2(running) };
+      running = r2(running - e.debit + e.credit);
+      return row;
+    });
+
+    return {
+      customer,
+      totals: {
+        invoiced: invoicedTotal,
+        paid: paidTotal,
+        balance: balanceDue,
+        creditBalance,
+        refunded: refundedTotal,
+        mrr,
+        arr: r2(mrr * 12),
+        openInvoices: invoiceRows.filter((i) => i.balance > 0.005).length,
+        overdue: r2(ageing.d30 + ageing.d60 + ageing.d90),
+        lastPaymentAt: paymentRows[0]?.paid_at ?? null,
+        lastPaymentAmount: paymentRows[0] ? num(paymentRows[0].amount) : 0,
+        unallocated: r2(paymentRows.reduce((t, p) => t + p.unallocated, 0)),
+      },
+      ageing: { current: r2(ageing.current), d30: r2(ageing.d30), d60: r2(ageing.d60), d90: r2(ageing.d90) },
+      invoices: invoiceRows,
+      payments: paymentRows.map((p) => ({ ...p, account_name: p.cash_account_id ? accountName[p.cash_account_id] ?? null : null })),
+      credits,
+      refunds,
+      subscriptions,
+      submissions: rows(subR) as any[],
+      ledger,
+    };
+  });
