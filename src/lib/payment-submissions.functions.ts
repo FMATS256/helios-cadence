@@ -421,6 +421,7 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
     notes?: string;
     reason?: string;
     invoice_id?: string | null;
+    cash_account_id?: string | null;
     allocations?: Array<{ invoice_id: string; amount: number }>;
   }) => input)
   .handler(async ({ data, context }) => {
