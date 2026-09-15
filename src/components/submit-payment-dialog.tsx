@@ -42,6 +42,7 @@ export function SubmitPaymentDialog({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [account, setAccount] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
@@ -56,6 +57,8 @@ export function SubmitPaymentDialog({
 
   const openInvoices = (ctx?.openInvoices ?? []) as any[];
   const selected = openInvoices.find((i) => i.id === invoice);
+  const accounts = ((ctx as any)?.cashAccounts ?? []) as any[];
+  const activeAccount = account || accounts.find((a) => a.is_default)?.id || "";
 
   function reset() {
     setAmount(""); setReference(""); setNotes(""); setFile(null);
