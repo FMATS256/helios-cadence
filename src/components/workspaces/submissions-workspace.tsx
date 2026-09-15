@@ -285,7 +285,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
                   <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Verification notes, or what you need clarified" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "approve", notes: notes.trim() || undefined, invoice_id: targetInvoice || null } }), "Payment approved and recorded")}>
+                  <Button size="sm" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "approve", notes: notes.trim() || undefined, invoice_id: targetInvoice || null, cash_account_id: targetAccount || null } }), "Payment approved and recorded")}>
                     <CheckCircle2 className="mr-1.5 h-4 w-4" />Approve & record
                   </Button>
                   <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => review({ data: { submission_id: sub.id, decision: "clarify", notes: notes.trim() || undefined } }), "Clarification requested")}>
