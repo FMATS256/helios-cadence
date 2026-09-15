@@ -635,5 +635,5 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
       } catch { /* email failure must not roll back the payment */ }
     }
 
-    return { status: "approved", payment, allocations: touched, resumed };
+    return { status: "approved", payment, allocations: touched, resumed, account: { id: account.id, name: account.name, kind: account.kind } };
   });
