@@ -27,6 +27,7 @@ import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspa
 import { MoneyPage } from "@/components/workspaces/money-workspace";
 import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
 import { AccountingPage } from "@/components/workspaces/accounting-workspace";
+import { CustomerAccountsPage } from "@/components/workspaces/customer-accounts-workspace";
 
 
 
