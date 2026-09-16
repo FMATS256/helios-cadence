@@ -177,7 +177,7 @@ function AccountSheet({ target, onClose }: { target: { id: string; name: string 
                   left={<span className="font-medium">{s.plan_name}</span>}
                   meta={`${s.billing_cycle ?? "monthly"}${s.next_renewal ? ` · renews ${s.next_renewal}` : ""}`}
                   right={<p className="text-sm font-semibold">{fmtMoney(s.amount)}</p>}
-                  badge={<StatusBadge tone={s.status === "active" ? "success" : "muted"}>{s.status}</StatusBadge>}
+                  badge={<StatusBadge tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusBadge>}
                 />
               ))}
             </Block>
