@@ -73,6 +73,7 @@ function FinanceHub() {
       {active === "overview" && <FinanceWorkspace />}
       {active === "invoices" && <BillingPage />}
       {active === "payments" && <PaymentsPage />}
+      {active === "customer-accounts" && <CustomerAccountsPage />}
       {active === "subscriptions" && <SubscriptionsPage />}
       {active === "banking" && <MoneyPage section="banking" />}
       {active === "payables" && <MoneyPage section="payables" />}
