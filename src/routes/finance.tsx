@@ -51,6 +51,7 @@ const FINANCE_TABS = [
   { key: "overview", label: "Overview" },
   { key: "invoices", label: "Billing" },
   { key: "payments", label: "Payments" },
+  { key: "customer-accounts", label: "Customer Accounts" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "banking", label: "Banking" },
   { key: "payables", label: "Payables" },
