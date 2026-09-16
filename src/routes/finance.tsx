@@ -27,6 +27,7 @@ import { SubscriptionsPage } from "@/components/workspaces/subscriptions-workspa
 import { MoneyPage } from "@/components/workspaces/money-workspace";
 import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
 import { AccountingPage } from "@/components/workspaces/accounting-workspace";
+import { CustomerAccountsPage } from "@/components/workspaces/customer-accounts-workspace";
 
 
 
@@ -50,6 +51,7 @@ const FINANCE_TABS = [
   { key: "overview", label: "Overview" },
   { key: "invoices", label: "Billing" },
   { key: "payments", label: "Payments" },
+  { key: "customer-accounts", label: "Customer Accounts" },
   { key: "subscriptions", label: "Subscriptions" },
   { key: "banking", label: "Banking" },
   { key: "payables", label: "Payables" },
@@ -71,6 +73,7 @@ function FinanceHub() {
       {active === "overview" && <FinanceWorkspace />}
       {active === "invoices" && <BillingPage />}
       {active === "payments" && <PaymentsPage />}
+      {active === "customer-accounts" && <CustomerAccountsPage />}
       {active === "subscriptions" && <SubscriptionsPage />}
       {active === "banking" && <MoneyPage section="banking" />}
       {active === "payables" && <MoneyPage section="payables" />}

@@ -557,7 +557,7 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
     const r2 = (v: number) => Math.round(v * 100) / 100;
 
     const { data: customer } = await db.from("customers")
-      .select("id, company_name, account_number, status, primary_email, primary_phone, currency, account_manager_name, account_manager_code")
+      .select("id, company_name, account_number, status, primary_email, primary_phone, account_type, tags")
       .eq("id", data.customer_id).maybeSingle();
     if (!customer) throw new Error("Customer not found");
 
