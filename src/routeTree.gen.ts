@@ -9,269 +9,89 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkOrdersRouteImport } from './routes/work-orders'
-import { Route as WebHostingRouteImport } from './routes/web-hosting'
-import { Route as VoipRouteImport } from './routes/voip'
-import { Route as TicketsRouteImport } from './routes/tickets'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
-import { Route as StarlinkRouteImport } from './routes/starlink'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ServiceMapRouteImport } from './routes/service-map'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as QuotesRouteImport } from './routes/quotes'
-import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ProcurementRouteImport } from './routes/procurement'
-import { Route as PosRouteImport } from './routes/pos'
-import { Route as PaymentsRouteImport } from './routes/payments'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as NocRouteImport } from './routes/noc'
-import { Route as MonitoringRouteImport } from './routes/monitoring'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as ManagedNasRouteImport } from './routes/managed-nas'
-import { Route as LicensesRouteImport } from './routes/licenses'
-import { Route as LeadsRouteImport } from './routes/leads'
-import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
-import { Route as KnowledgeRouteImport } from './routes/knowledge'
-import { Route as InventoryRouteImport } from './routes/inventory'
-import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as ExpensesRouteImport } from './routes/expenses'
-import { Route as EmailStudioRouteImport } from './routes/email-studio'
-import { Route as EmailLogsRouteImport } from './routes/email-logs'
-import { Route as CredentialsRouteImport } from './routes/credentials'
-import { Route as CommunicationsRouteImport } from './routes/communications'
-import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
-import { Route as CloudRouteImport } from './routes/cloud'
-import { Route as CatalogRouteImport } from './routes/catalog'
-import { Route as BillingRouteImport } from './routes/billing'
-import { Route as AutomationRouteImport } from './routes/automation'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AssetsRouteImport } from './routes/assets'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CustomersIndexRouteImport } from './routes/customers.index'
-import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
-import { Route as TicketsIdRouteImport } from './routes/tickets_.$id'
-import { Route as TechopsVaultRouteImport } from './routes/techops.vault'
-import { Route as TechopsSocRouteImport } from './routes/techops.soc'
-import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
-import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
-import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
-import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
-import { Route as CustomersNewRouteImport } from './routes/customers.new'
-import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
-import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
-import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
-import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AssetsRouteImport } from './routes/assets'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AutomationRouteImport } from './routes/automation'
+import { Route as BillingRouteImport } from './routes/billing'
+import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
+import { Route as CommunicationsRouteImport } from './routes/communications'
+import { Route as CredentialsRouteImport } from './routes/credentials'
+import { Route as EmailLogsRouteImport } from './routes/email-logs'
+import { Route as EmailStudioRouteImport } from './routes/email-studio'
+import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
+import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as LicensesRouteImport } from './routes/licenses'
+import { Route as ManagedNasRouteImport } from './routes/managed-nas'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as MonitoringRouteImport } from './routes/monitoring'
+import { Route as NocRouteImport } from './routes/noc'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as PosRouteImport } from './routes/pos'
+import { Route as ProcurementRouteImport } from './routes/procurement'
+import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as QuotesRouteImport } from './routes/quotes'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ServiceMapRouteImport } from './routes/service-map'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StarlinkRouteImport } from './routes/starlink'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as VoipRouteImport } from './routes/voip'
+import { Route as WebHostingRouteImport } from './routes/web-hosting'
+import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
-import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
-import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
+import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
+import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
+import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
+import { Route as CustomersIndexRouteImport } from './routes/customers.index'
+import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
+import { Route as CustomersNewRouteImport } from './routes/customers.new'
+import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
+import { Route as TechopsAlertsRouteImport } from './routes/techops.alerts'
+import { Route as TechopsDashboardRouteImport } from './routes/techops.dashboard'
+import { Route as TechopsEquipmentRouteImport } from './routes/techops.equipment'
+import { Route as TechopsSocRouteImport } from './routes/techops.soc'
+import { Route as TechopsVaultRouteImport } from './routes/techops.vault'
+import { Route as TicketsIdRouteImport } from './routes/tickets_.$id'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as CSlugWorkspaceKeyTeamRouteImport } from './routes/c.$slug.$workspaceKey.team'
-import { Route as CSlugWorkspaceKeySupportRouteImport } from './routes/c.$slug.$workspaceKey.support'
-import { Route as CSlugWorkspaceKeyServersRouteImport } from './routes/c.$slug.$workspaceKey.servers'
-import { Route as CSlugWorkspaceKeyBillingRouteImport } from './routes/c.$slug.$workspaceKey.billing'
-import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.$workspaceKey.activity'
-import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/public/hooks/starlink-tick'
-import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
-import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
-import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
-import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
-import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
-import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
-import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
+import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
+import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
+import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
+import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
+import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
+import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
+import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
+import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
+import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
+import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/public/hooks/starlink-tick'
+import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
+import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.$workspaceKey.activity'
+import { Route as CSlugWorkspaceKeyBillingRouteImport } from './routes/c.$slug.$workspaceKey.billing'
+import { Route as CSlugWorkspaceKeyServersRouteImport } from './routes/c.$slug.$workspaceKey.servers'
+import { Route as CSlugWorkspaceKeySupportRouteImport } from './routes/c.$slug.$workspaceKey.support'
+import { Route as CSlugWorkspaceKeyTeamRouteImport } from './routes/c.$slug.$workspaceKey.team'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
-const WorkOrdersRoute = WorkOrdersRouteImport.update({
-  id: '/work-orders',
-  path: '/work-orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WebHostingRoute = WebHostingRouteImport.update({
-  id: '/web-hosting',
-  path: '/web-hosting',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VoipRoute = VoipRouteImport.update({
-  id: '/voip',
-  path: '/voip',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TicketsRoute = TicketsRouteImport.update({
-  id: '/tickets',
-  path: '/tickets',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SubscriptionsRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StarlinkRoute = StarlinkRouteImport.update({
-  id: '/starlink',
-  path: '/starlink',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceMapRoute = ServiceMapRouteImport.update({
-  id: '/service-map',
-  path: '/service-map',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuotesRoute = QuotesRouteImport.update({
-  id: '/quotes',
-  path: '/quotes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProcurementRoute = ProcurementRouteImport.update({
-  id: '/procurement',
-  path: '/procurement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PosRoute = PosRouteImport.update({
-  id: '/pos',
-  path: '/pos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentsRoute = PaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NocRoute = NocRouteImport.update({
-  id: '/noc',
-  path: '/noc',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MonitoringRoute = MonitoringRouteImport.update({
-  id: '/monitoring',
-  path: '/monitoring',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManagedNasRoute = ManagedNasRouteImport.update({
-  id: '/managed-nas',
-  path: '/managed-nas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LicensesRoute = LicensesRouteImport.update({
-  id: '/licenses',
-  path: '/licenses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeadsRoute = LeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
-  id: '/laptop-tracking',
-  path: '/laptop-tracking',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KnowledgeRoute = KnowledgeRouteImport.update({
-  id: '/knowledge',
-  path: '/knowledge',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InventoryRoute = InventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceRoute = FinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExpensesRoute = ExpensesRouteImport.update({
-  id: '/expenses',
-  path: '/expenses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmailStudioRoute = EmailStudioRouteImport.update({
-  id: '/email-studio',
-  path: '/email-studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmailLogsRoute = EmailLogsRouteImport.update({
-  id: '/email-logs',
-  path: '/email-logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CredentialsRoute = CredentialsRouteImport.update({
-  id: '/credentials',
-  path: '/credentials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunicationsRoute = CommunicationsRouteImport.update({
-  id: '/communications',
-  path: '/communications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CloudStorageRoute = CloudStorageRouteImport.update({
-  id: '/cloud-storage',
-  path: '/cloud-storage',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CloudRoute = CloudRouteImport.update({
-  id: '/cloud',
-  path: '/cloud',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CatalogRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BillingRoute = BillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AutomationRoute = AutomationRouteImport.update({
-  id: '/automation',
-  path: '/automation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AssetsRoute = AssetsRouteImport.update({
-  id: '/assets',
-  path: '/assets',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -279,14 +99,206 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AssetsRoute = AssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CustomersIndexRoute = CustomersIndexRouteImport.update({
-  id: '/customers/',
-  path: '/customers/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationRoute = AutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/cloud',
+  path: '/cloud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudStorageRoute = CloudStorageRouteImport.update({
+  id: '/cloud-storage',
+  path: '/cloud-storage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunicationsRoute = CommunicationsRouteImport.update({
+  id: '/communications',
+  path: '/communications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredentialsRoute = CredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailLogsRoute = EmailLogsRouteImport.update({
+  id: '/email-logs',
+  path: '/email-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailStudioRoute = EmailStudioRouteImport.update({
+  id: '/email-studio',
+  path: '/email-studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LaptopTrackingRoute = LaptopTrackingRouteImport.update({
+  id: '/laptop-tracking',
+  path: '/laptop-tracking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LicensesRoute = LicensesRouteImport.update({
+  id: '/licenses',
+  path: '/licenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagedNasRoute = ManagedNasRouteImport.update({
+  id: '/managed-nas',
+  path: '/managed-nas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitoringRoute = MonitoringRouteImport.update({
+  id: '/monitoring',
+  path: '/monitoring',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NocRoute = NocRouteImport.update({
+  id: '/noc',
+  path: '/noc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRoute = PosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProcurementRoute = ProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceMapRoute = ServiceMapRouteImport.update({
+  id: '/service-map',
+  path: '/service-map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StarlinkRoute = StarlinkRouteImport.update({
+  id: '/starlink',
+  path: '/starlink',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketsRoute = TicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VoipRoute = VoipRouteImport.update({
+  id: '/voip',
+  path: '/voip',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebHostingRoute = WebHostingRouteImport.update({
+  id: '/web-hosting',
+  path: '/web-hosting',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkOrdersRoute = WorkOrdersRouteImport.update({
+  id: '/work-orders',
+  path: '/work-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AssetsIdRoute = AssetsIdRouteImport.update({
+  id: '/assets_/$id',
+  path: '/assets/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
@@ -294,49 +306,9 @@ const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
   path: '/cloud-ops/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TicketsIdRoute = TicketsIdRouteImport.update({
-  id: '/tickets_/$id',
-  path: '/tickets/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechopsVaultRoute = TechopsVaultRouteImport.update({
-  id: '/techops/vault',
-  path: '/techops/vault',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechopsSocRoute = TechopsSocRouteImport.update({
-  id: '/techops/soc',
-  path: '/techops/soc',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechopsEquipmentRoute = TechopsEquipmentRouteImport.update({
-  id: '/techops/equipment',
-  path: '/techops/equipment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechopsDashboardRoute = TechopsDashboardRouteImport.update({
-  id: '/techops/dashboard',
-  path: '/techops/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechopsAlertsRoute = TechopsAlertsRouteImport.update({
-  id: '/techops/alerts',
-  path: '/techops/alerts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InvoicesIdRoute = InvoicesIdRouteImport.update({
-  id: '/invoices/$id',
-  path: '/invoices/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersNewRoute = CustomersNewRouteImport.update({
-  id: '/customers/new',
-  path: '/customers/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
-  id: '/customers/$accountNumber',
-  path: '/customers/$accountNumber',
+const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
+  id: '/cloud-ops/$id',
+  path: '/cloud-ops/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudOpsNewRoute = CloudOpsNewRouteImport.update({
@@ -344,41 +316,59 @@ const CloudOpsNewRoute = CloudOpsNewRouteImport.update({
   path: '/cloud-ops/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
-  id: '/cloud-ops/$id',
-  path: '/cloud-ops/$id',
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssetsIdRoute = AssetsIdRouteImport.update({
-  id: '/assets_/$id',
-  path: '/assets/$id',
+const CustomersAccountNumberRoute = CustomersAccountNumberRouteImport.update({
+  id: '/customers/$accountNumber',
+  path: '/customers/$accountNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const TechopsJobsIdRoute = TechopsJobsIdRouteImport.update({
-  id: '/techops/jobs/$id',
-  path: '/techops/jobs/$id',
+const CustomersNewRoute = CustomersNewRouteImport.update({
+  id: '/customers/new',
+  path: '/customers/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
-  id: '/c/$slug/$workspaceKey',
-  path: '/c/$slug/$workspaceKey',
+const InvoicesIdRoute = InvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTestEmailsRoute = ApiPublicTestEmailsRouteImport.update({
-  id: '/api/public/test-emails',
-  path: '/api/public/test-emails',
+const TechopsAlertsRoute = TechopsAlertsRouteImport.update({
+  id: '/techops/alerts',
+  path: '/techops/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsDashboardRoute = TechopsDashboardRouteImport.update({
+  id: '/techops/dashboard',
+  path: '/techops/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsEquipmentRoute = TechopsEquipmentRouteImport.update({
+  id: '/techops/equipment',
+  path: '/techops/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsSocRoute = TechopsSocRouteImport.update({
+  id: '/techops/soc',
+  path: '/techops/soc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechopsVaultRoute = TechopsVaultRouteImport.update({
+  id: '/techops/vault',
+  path: '/techops/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketsIdRoute = TicketsIdRouteImport.update({
+  id: '/tickets_/$id',
+  path: '/tickets/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -387,95 +377,30 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
+const ApiPublicTestEmailsRoute = ApiPublicTestEmailsRouteImport.update({
+  id: '/api/public/test-emails',
+  path: '/api/public/test-emails',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CSlugWorkspaceKeyRoute,
-} as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
+const CSlugWorkspaceKeyRoute = CSlugWorkspaceKeyRouteImport.update({
+  id: '/c/$slug/$workspaceKey',
+  path: '/c/$slug/$workspaceKey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
+const TechopsJobsIdRoute = TechopsJobsIdRouteImport.update({
+  id: '/techops/jobs/$id',
+  path: '/techops/jobs/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CSlugWorkspaceKeyTeamRoute = CSlugWorkspaceKeyTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => CSlugWorkspaceKeyRoute,
+const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
+  id: '/api/public/agent/provision',
+  path: '/api/public/agent/provision',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const CSlugWorkspaceKeySupportRoute =
-  CSlugWorkspaceKeySupportRouteImport.update({
-    id: '/support',
-    path: '/support',
-    getParentRoute: () => CSlugWorkspaceKeyRoute,
-  } as any)
-const CSlugWorkspaceKeyServersRoute =
-  CSlugWorkspaceKeyServersRouteImport.update({
-    id: '/servers',
-    path: '/servers',
-    getParentRoute: () => CSlugWorkspaceKeyRoute,
-  } as any)
-const CSlugWorkspaceKeyBillingRoute =
-  CSlugWorkspaceKeyBillingRouteImport.update({
-    id: '/billing',
-    path: '/billing',
-    getParentRoute: () => CSlugWorkspaceKeyRoute,
-  } as any)
-const CSlugWorkspaceKeyActivityRoute =
-  CSlugWorkspaceKeyActivityRouteImport.update({
-    id: '/activity',
-    path: '/activity',
-    getParentRoute: () => CSlugWorkspaceKeyRoute,
-  } as any)
-const ApiPublicHooksStarlinkTickRoute =
-  ApiPublicHooksStarlinkTickRouteImport.update({
-    id: '/api/public/hooks/starlink-tick',
-    path: '/api/public/hooks/starlink-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksRemindersTickRoute =
-  ApiPublicHooksRemindersTickRouteImport.update({
-    id: '/api/public/hooks/reminders-tick',
-    path: '/api/public/hooks/reminders-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksProvisioningRetryRoute =
-  ApiPublicHooksProvisioningRetryRouteImport.update({
-    id: '/api/public/hooks/provisioning-retry',
-    path: '/api/public/hooks/provisioning-retry',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksMonitoringTickRoute =
-  ApiPublicHooksMonitoringTickRouteImport.update({
-    id: '/api/public/hooks/monitoring-tick',
-    path: '/api/public/hooks/monitoring-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksHostingSyncRoute =
-  ApiPublicHooksHostingSyncRouteImport.update({
-    id: '/api/public/hooks/hosting-sync',
-    path: '/api/public/hooks/hosting-sync',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksBudgetTickRoute =
-  ApiPublicHooksBudgetTickRouteImport.update({
-    id: '/api/public/hooks/budget-tick',
-    path: '/api/public/hooks/budget-tick',
+const ApiPublicHooksAutomationTickRoute =
+  ApiPublicHooksAutomationTickRouteImport.update({
+    id: '/api/public/hooks/automation-tick',
+    path: '/api/public/hooks/automation-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksBackupsTickRoute =
@@ -484,17 +409,92 @@ const ApiPublicHooksBackupsTickRoute =
     path: '/api/public/hooks/backups-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksAutomationTickRoute =
-  ApiPublicHooksAutomationTickRouteImport.update({
-    id: '/api/public/hooks/automation-tick',
-    path: '/api/public/hooks/automation-tick',
+const ApiPublicHooksBudgetTickRoute =
+  ApiPublicHooksBudgetTickRouteImport.update({
+    id: '/api/public/hooks/budget-tick',
+    path: '/api/public/hooks/budget-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
-  id: '/api/public/agent/provision',
-  path: '/api/public/agent/provision',
+const ApiPublicHooksHostingSyncRoute =
+  ApiPublicHooksHostingSyncRouteImport.update({
+    id: '/api/public/hooks/hosting-sync',
+    path: '/api/public/hooks/hosting-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksMonitoringTickRoute =
+  ApiPublicHooksMonitoringTickRouteImport.update({
+    id: '/api/public/hooks/monitoring-tick',
+    path: '/api/public/hooks/monitoring-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksProvisioningRetryRoute =
+  ApiPublicHooksProvisioningRetryRouteImport.update({
+    id: '/api/public/hooks/provisioning-retry',
+    path: '/api/public/hooks/provisioning-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksRemindersTickRoute =
+  ApiPublicHooksRemindersTickRouteImport.update({
+    id: '/api/public/hooks/reminders-tick',
+    path: '/api/public/hooks/reminders-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksStarlinkTickRoute =
+  ApiPublicHooksStarlinkTickRouteImport.update({
+    id: '/api/public/hooks/starlink-tick',
+    path: '/api/public/hooks/starlink-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CSlugWorkspaceKeyRoute,
+} as any)
+const CSlugWorkspaceKeyActivityRoute =
+  CSlugWorkspaceKeyActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => CSlugWorkspaceKeyRoute,
+  } as any)
+const CSlugWorkspaceKeyBillingRoute =
+  CSlugWorkspaceKeyBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => CSlugWorkspaceKeyRoute,
+  } as any)
+const CSlugWorkspaceKeyServersRoute =
+  CSlugWorkspaceKeyServersRouteImport.update({
+    id: '/servers',
+    path: '/servers',
+    getParentRoute: () => CSlugWorkspaceKeyRoute,
+  } as any)
+const CSlugWorkspaceKeySupportRoute =
+  CSlugWorkspaceKeySupportRouteImport.update({
+    id: '/support',
+    path: '/support',
+    getParentRoute: () => CSlugWorkspaceKeyRoute,
+  } as any)
+const CSlugWorkspaceKeyTeamRoute = CSlugWorkspaceKeyTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => CSlugWorkspaceKeyRoute,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CSlugWorkspaceKeyServersServerIdRoute =
   CSlugWorkspaceKeyServersServerIdRouteImport.update({
     id: '/$serverId',
@@ -1067,263 +1067,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/work-orders': {
-      id: '/work-orders'
-      path: '/work-orders'
-      fullPath: '/work-orders'
-      preLoaderRoute: typeof WorkOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/web-hosting': {
-      id: '/web-hosting'
-      path: '/web-hosting'
-      fullPath: '/web-hosting'
-      preLoaderRoute: typeof WebHostingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/voip': {
-      id: '/voip'
-      path: '/voip'
-      fullPath: '/voip'
-      preLoaderRoute: typeof VoipRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tickets': {
-      id: '/tickets'
-      path: '/tickets'
-      fullPath: '/tickets'
-      preLoaderRoute: typeof TicketsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/starlink': {
-      id: '/starlink'
-      path: '/starlink'
-      fullPath: '/starlink'
-      preLoaderRoute: typeof StarlinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service-map': {
-      id: '/service-map'
-      path: '/service-map'
-      fullPath: '/service-map'
-      preLoaderRoute: typeof ServiceMapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quotes': {
-      id: '/quotes'
-      path: '/quotes'
-      fullPath: '/quotes'
-      preLoaderRoute: typeof QuotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/procurement': {
-      id: '/procurement'
-      path: '/procurement'
-      fullPath: '/procurement'
-      preLoaderRoute: typeof ProcurementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pos': {
-      id: '/pos'
-      path: '/pos'
-      fullPath: '/pos'
-      preLoaderRoute: typeof PosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payments': {
-      id: '/payments'
-      path: '/payments'
-      fullPath: '/payments'
-      preLoaderRoute: typeof PaymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/noc': {
-      id: '/noc'
-      path: '/noc'
-      fullPath: '/noc'
-      preLoaderRoute: typeof NocRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/monitoring': {
-      id: '/monitoring'
-      path: '/monitoring'
-      fullPath: '/monitoring'
-      preLoaderRoute: typeof MonitoringRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/managed-nas': {
-      id: '/managed-nas'
-      path: '/managed-nas'
-      fullPath: '/managed-nas'
-      preLoaderRoute: typeof ManagedNasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/licenses': {
-      id: '/licenses'
-      path: '/licenses'
-      fullPath: '/licenses'
-      preLoaderRoute: typeof LicensesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leads': {
-      id: '/leads'
-      path: '/leads'
-      fullPath: '/leads'
-      preLoaderRoute: typeof LeadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/laptop-tracking': {
-      id: '/laptop-tracking'
-      path: '/laptop-tracking'
-      fullPath: '/laptop-tracking'
-      preLoaderRoute: typeof LaptopTrackingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/knowledge': {
-      id: '/knowledge'
-      path: '/knowledge'
-      fullPath: '/knowledge'
-      preLoaderRoute: typeof KnowledgeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inventory': {
-      id: '/inventory'
-      path: '/inventory'
-      fullPath: '/inventory'
-      preLoaderRoute: typeof InventoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finance': {
-      id: '/finance'
-      path: '/finance'
-      fullPath: '/finance'
-      preLoaderRoute: typeof FinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/expenses': {
-      id: '/expenses'
-      path: '/expenses'
-      fullPath: '/expenses'
-      preLoaderRoute: typeof ExpensesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/email-studio': {
-      id: '/email-studio'
-      path: '/email-studio'
-      fullPath: '/email-studio'
-      preLoaderRoute: typeof EmailStudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/email-logs': {
-      id: '/email-logs'
-      path: '/email-logs'
-      fullPath: '/email-logs'
-      preLoaderRoute: typeof EmailLogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/credentials': {
-      id: '/credentials'
-      path: '/credentials'
-      fullPath: '/credentials'
-      preLoaderRoute: typeof CredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communications': {
-      id: '/communications'
-      path: '/communications'
-      fullPath: '/communications'
-      preLoaderRoute: typeof CommunicationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cloud-storage': {
-      id: '/cloud-storage'
-      path: '/cloud-storage'
-      fullPath: '/cloud-storage'
-      preLoaderRoute: typeof CloudStorageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cloud': {
-      id: '/cloud'
-      path: '/cloud'
-      fullPath: '/cloud'
-      preLoaderRoute: typeof CloudRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalog': {
-      id: '/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/billing': {
-      id: '/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof BillingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/automation': {
-      id: '/automation'
-      path: '/automation'
-      fullPath: '/automation'
-      preLoaderRoute: typeof AutomationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/assets': {
-      id: '/assets'
-      path: '/assets'
-      fullPath: '/assets'
-      preLoaderRoute: typeof AssetsRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1333,116 +1081,263 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/assets': {
+      id: '/assets'
+      path: '/assets'
+      fullPath: '/assets'
+      preLoaderRoute: typeof AssetsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customers/': {
-      id: '/customers/'
-      path: '/customers'
-      fullPath: '/customers/'
-      preLoaderRoute: typeof CustomersIndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cloud-ops/': {
-      id: '/cloud-ops/'
-      path: '/cloud-ops'
-      fullPath: '/cloud-ops/'
-      preLoaderRoute: typeof CloudOpsIndexRouteImport
+    '/automation': {
+      id: '/automation'
+      path: '/automation'
+      fullPath: '/automation'
+      preLoaderRoute: typeof AutomationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tickets_/$id': {
-      id: '/tickets_/$id'
-      path: '/tickets/$id'
-      fullPath: '/tickets/$id'
-      preLoaderRoute: typeof TicketsIdRouteImport
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/vault': {
-      id: '/techops/vault'
-      path: '/techops/vault'
-      fullPath: '/techops/vault'
-      preLoaderRoute: typeof TechopsVaultRouteImport
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/soc': {
-      id: '/techops/soc'
-      path: '/techops/soc'
-      fullPath: '/techops/soc'
-      preLoaderRoute: typeof TechopsSocRouteImport
+    '/cloud': {
+      id: '/cloud'
+      path: '/cloud'
+      fullPath: '/cloud'
+      preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/equipment': {
-      id: '/techops/equipment'
-      path: '/techops/equipment'
-      fullPath: '/techops/equipment'
-      preLoaderRoute: typeof TechopsEquipmentRouteImport
+    '/cloud-storage': {
+      id: '/cloud-storage'
+      path: '/cloud-storage'
+      fullPath: '/cloud-storage'
+      preLoaderRoute: typeof CloudStorageRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/dashboard': {
-      id: '/techops/dashboard'
-      path: '/techops/dashboard'
-      fullPath: '/techops/dashboard'
-      preLoaderRoute: typeof TechopsDashboardRouteImport
+    '/communications': {
+      id: '/communications'
+      path: '/communications'
+      fullPath: '/communications'
+      preLoaderRoute: typeof CommunicationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/alerts': {
-      id: '/techops/alerts'
-      path: '/techops/alerts'
-      fullPath: '/techops/alerts'
-      preLoaderRoute: typeof TechopsAlertsRouteImport
+    '/credentials': {
+      id: '/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof CredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invoices/$id': {
-      id: '/invoices/$id'
-      path: '/invoices/$id'
-      fullPath: '/invoices/$id'
-      preLoaderRoute: typeof InvoicesIdRouteImport
+    '/email-logs': {
+      id: '/email-logs'
+      path: '/email-logs'
+      fullPath: '/email-logs'
+      preLoaderRoute: typeof EmailLogsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customers/new': {
-      id: '/customers/new'
-      path: '/customers/new'
-      fullPath: '/customers/new'
-      preLoaderRoute: typeof CustomersNewRouteImport
+    '/email-studio': {
+      id: '/email-studio'
+      path: '/email-studio'
+      fullPath: '/email-studio'
+      preLoaderRoute: typeof EmailStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customers/$accountNumber': {
-      id: '/customers/$accountNumber'
-      path: '/customers/$accountNumber'
-      fullPath: '/customers/$accountNumber'
-      preLoaderRoute: typeof CustomersAccountNumberRouteImport
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cloud-ops/new': {
-      id: '/cloud-ops/new'
-      path: '/cloud-ops/new'
-      fullPath: '/cloud-ops/new'
-      preLoaderRoute: typeof CloudOpsNewRouteImport
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cloud-ops/$id': {
-      id: '/cloud-ops/$id'
-      path: '/cloud-ops/$id'
-      fullPath: '/cloud-ops/$id'
-      preLoaderRoute: typeof CloudOpsIdRouteImport
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assets_/$id': {
-      id: '/assets_/$id'
-      path: '/assets/$id'
-      fullPath: '/assets/$id'
-      preLoaderRoute: typeof AssetsIdRouteImport
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/laptop-tracking': {
+      id: '/laptop-tracking'
+      path: '/laptop-tracking'
+      fullPath: '/laptop-tracking'
+      preLoaderRoute: typeof LaptopTrackingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/licenses': {
+      id: '/licenses'
+      path: '/licenses'
+      fullPath: '/licenses'
+      preLoaderRoute: typeof LicensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/managed-nas': {
+      id: '/managed-nas'
+      path: '/managed-nas'
+      fullPath: '/managed-nas'
+      preLoaderRoute: typeof ManagedNasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitoring': {
+      id: '/monitoring'
+      path: '/monitoring'
+      fullPath: '/monitoring'
+      preLoaderRoute: typeof MonitoringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/noc': {
+      id: '/noc'
+      path: '/noc'
+      fullPath: '/noc'
+      preLoaderRoute: typeof NocRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/procurement': {
+      id: '/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quotes': {
+      id: '/quotes'
+      path: '/quotes'
+      fullPath: '/quotes'
+      preLoaderRoute: typeof QuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service-map': {
+      id: '/service-map'
+      path: '/service-map'
+      fullPath: '/service-map'
+      preLoaderRoute: typeof ServiceMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/starlink': {
+      id: '/starlink'
+      path: '/starlink'
+      fullPath: '/starlink'
+      preLoaderRoute: typeof StarlinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tickets': {
+      id: '/tickets'
+      path: '/tickets'
+      fullPath: '/tickets'
+      preLoaderRoute: typeof TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/voip': {
+      id: '/voip'
+      path: '/voip'
+      fullPath: '/voip'
+      preLoaderRoute: typeof VoipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/web-hosting': {
+      id: '/web-hosting'
+      path: '/web-hosting'
+      fullPath: '/web-hosting'
+      preLoaderRoute: typeof WebHostingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work-orders': {
+      id: '/work-orders'
+      path: '/work-orders'
+      fullPath: '/work-orders'
+      preLoaderRoute: typeof WorkOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -1452,32 +1347,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/techops/jobs/$id': {
-      id: '/techops/jobs/$id'
-      path: '/techops/jobs/$id'
-      fullPath: '/techops/jobs/$id'
-      preLoaderRoute: typeof TechopsJobsIdRouteImport
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/c/$slug/$workspaceKey': {
-      id: '/c/$slug/$workspaceKey'
-      path: '/c/$slug/$workspaceKey'
-      fullPath: '/c/$slug/$workspaceKey'
-      preLoaderRoute: typeof CSlugWorkspaceKeyRouteImport
+    '/assets_/$id': {
+      id: '/assets_/$id'
+      path: '/assets/$id'
+      fullPath: '/assets/$id'
+      preLoaderRoute: typeof AssetsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/test-emails': {
-      id: '/api/public/test-emails'
-      path: '/api/public/test-emails'
-      fullPath: '/api/public/test-emails'
-      preLoaderRoute: typeof ApiPublicTestEmailsRouteImport
+    '/cloud-ops/': {
+      id: '/cloud-ops/'
+      path: '/cloud-ops'
+      fullPath: '/cloud-ops/'
+      preLoaderRoute: typeof CloudOpsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+    '/cloud-ops/$id': {
+      id: '/cloud-ops/$id'
+      path: '/cloud-ops/$id'
+      fullPath: '/cloud-ops/$id'
+      preLoaderRoute: typeof CloudOpsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cloud-ops/new': {
+      id: '/cloud-ops/new'
+      path: '/cloud-ops/new'
+      fullPath: '/cloud-ops/new'
+      preLoaderRoute: typeof CloudOpsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/$accountNumber': {
+      id: '/customers/$accountNumber'
+      path: '/customers/$accountNumber'
+      fullPath: '/customers/$accountNumber'
+      preLoaderRoute: typeof CustomersAccountNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/new': {
+      id: '/customers/new'
+      path: '/customers/new'
+      fullPath: '/customers/new'
+      preLoaderRoute: typeof CustomersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices/$id': {
+      id: '/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/invoices/$id'
+      preLoaderRoute: typeof InvoicesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/alerts': {
+      id: '/techops/alerts'
+      path: '/techops/alerts'
+      fullPath: '/techops/alerts'
+      preLoaderRoute: typeof TechopsAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/dashboard': {
+      id: '/techops/dashboard'
+      path: '/techops/dashboard'
+      fullPath: '/techops/dashboard'
+      preLoaderRoute: typeof TechopsDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/equipment': {
+      id: '/techops/equipment'
+      path: '/techops/equipment'
+      fullPath: '/techops/equipment'
+      preLoaderRoute: typeof TechopsEquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/soc': {
+      id: '/techops/soc'
+      path: '/techops/soc'
+      fullPath: '/techops/soc'
+      preLoaderRoute: typeof TechopsSocRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/techops/vault': {
+      id: '/techops/vault'
+      path: '/techops/vault'
+      fullPath: '/techops/vault'
+      preLoaderRoute: typeof TechopsVaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tickets_/$id': {
+      id: '/tickets_/$id'
+      path: '/tickets/$id'
+      fullPath: '/tickets/$id'
+      preLoaderRoute: typeof TicketsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.lovable/oauth/consent': {
@@ -1487,116 +1459,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/c/$slug/$workspaceKey/': {
-      id: '/c/$slug/$workspaceKey/'
-      path: '/'
-      fullPath: '/c/$slug/$workspaceKey/'
-      preLoaderRoute: typeof CSlugWorkspaceKeyIndexRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/auth/webhook': {
-      id: '/lovable/email/auth/webhook'
-      path: '/lovable/email/auth/webhook'
-      fullPath: '/lovable/email/auth/webhook'
-      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+    '/api/public/test-emails': {
+      id: '/api/public/test-emails'
+      path: '/api/public/test-emails'
+      fullPath: '/api/public/test-emails'
+      preLoaderRoute: typeof ApiPublicTestEmailsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+    '/c/$slug/$workspaceKey': {
+      id: '/c/$slug/$workspaceKey'
+      path: '/c/$slug/$workspaceKey'
+      fullPath: '/c/$slug/$workspaceKey'
+      preLoaderRoute: typeof CSlugWorkspaceKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/c/$slug/$workspaceKey/team': {
-      id: '/c/$slug/$workspaceKey/team'
-      path: '/team'
-      fullPath: '/c/$slug/$workspaceKey/team'
-      preLoaderRoute: typeof CSlugWorkspaceKeyTeamRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/c/$slug/$workspaceKey/support': {
-      id: '/c/$slug/$workspaceKey/support'
-      path: '/support'
-      fullPath: '/c/$slug/$workspaceKey/support'
-      preLoaderRoute: typeof CSlugWorkspaceKeySupportRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/c/$slug/$workspaceKey/servers': {
-      id: '/c/$slug/$workspaceKey/servers'
-      path: '/servers'
-      fullPath: '/c/$slug/$workspaceKey/servers'
-      preLoaderRoute: typeof CSlugWorkspaceKeyServersRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/c/$slug/$workspaceKey/billing': {
-      id: '/c/$slug/$workspaceKey/billing'
-      path: '/billing'
-      fullPath: '/c/$slug/$workspaceKey/billing'
-      preLoaderRoute: typeof CSlugWorkspaceKeyBillingRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/c/$slug/$workspaceKey/activity': {
-      id: '/c/$slug/$workspaceKey/activity'
-      path: '/activity'
-      fullPath: '/c/$slug/$workspaceKey/activity'
-      preLoaderRoute: typeof CSlugWorkspaceKeyActivityRouteImport
-      parentRoute: typeof CSlugWorkspaceKeyRoute
-    }
-    '/api/public/hooks/starlink-tick': {
-      id: '/api/public/hooks/starlink-tick'
-      path: '/api/public/hooks/starlink-tick'
-      fullPath: '/api/public/hooks/starlink-tick'
-      preLoaderRoute: typeof ApiPublicHooksStarlinkTickRouteImport
+    '/techops/jobs/$id': {
+      id: '/techops/jobs/$id'
+      path: '/techops/jobs/$id'
+      fullPath: '/techops/jobs/$id'
+      preLoaderRoute: typeof TechopsJobsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/reminders-tick': {
-      id: '/api/public/hooks/reminders-tick'
-      path: '/api/public/hooks/reminders-tick'
-      fullPath: '/api/public/hooks/reminders-tick'
-      preLoaderRoute: typeof ApiPublicHooksRemindersTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/provisioning-retry': {
-      id: '/api/public/hooks/provisioning-retry'
-      path: '/api/public/hooks/provisioning-retry'
-      fullPath: '/api/public/hooks/provisioning-retry'
-      preLoaderRoute: typeof ApiPublicHooksProvisioningRetryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/monitoring-tick': {
-      id: '/api/public/hooks/monitoring-tick'
-      path: '/api/public/hooks/monitoring-tick'
-      fullPath: '/api/public/hooks/monitoring-tick'
-      preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/hosting-sync': {
-      id: '/api/public/hooks/hosting-sync'
-      path: '/api/public/hooks/hosting-sync'
-      fullPath: '/api/public/hooks/hosting-sync'
-      preLoaderRoute: typeof ApiPublicHooksHostingSyncRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/budget-tick': {
-      id: '/api/public/hooks/budget-tick'
-      path: '/api/public/hooks/budget-tick'
-      fullPath: '/api/public/hooks/budget-tick'
-      preLoaderRoute: typeof ApiPublicHooksBudgetTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/backups-tick': {
-      id: '/api/public/hooks/backups-tick'
-      path: '/api/public/hooks/backups-tick'
-      fullPath: '/api/public/hooks/backups-tick'
-      preLoaderRoute: typeof ApiPublicHooksBackupsTickRouteImport
+    '/api/public/agent/provision': {
+      id: '/api/public/agent/provision'
+      path: '/api/public/agent/provision'
+      fullPath: '/api/public/agent/provision'
+      preLoaderRoute: typeof ApiPublicAgentProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/automation-tick': {
@@ -1606,11 +1501,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksAutomationTickRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/agent/provision': {
-      id: '/api/public/agent/provision'
-      path: '/api/public/agent/provision'
-      fullPath: '/api/public/agent/provision'
-      preLoaderRoute: typeof ApiPublicAgentProvisionRouteImport
+    '/api/public/hooks/backups-tick': {
+      id: '/api/public/hooks/backups-tick'
+      path: '/api/public/hooks/backups-tick'
+      fullPath: '/api/public/hooks/backups-tick'
+      preLoaderRoute: typeof ApiPublicHooksBackupsTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/budget-tick': {
+      id: '/api/public/hooks/budget-tick'
+      path: '/api/public/hooks/budget-tick'
+      fullPath: '/api/public/hooks/budget-tick'
+      preLoaderRoute: typeof ApiPublicHooksBudgetTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/hosting-sync': {
+      id: '/api/public/hooks/hosting-sync'
+      path: '/api/public/hooks/hosting-sync'
+      fullPath: '/api/public/hooks/hosting-sync'
+      preLoaderRoute: typeof ApiPublicHooksHostingSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/monitoring-tick': {
+      id: '/api/public/hooks/monitoring-tick'
+      path: '/api/public/hooks/monitoring-tick'
+      fullPath: '/api/public/hooks/monitoring-tick'
+      preLoaderRoute: typeof ApiPublicHooksMonitoringTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/provisioning-retry': {
+      id: '/api/public/hooks/provisioning-retry'
+      path: '/api/public/hooks/provisioning-retry'
+      fullPath: '/api/public/hooks/provisioning-retry'
+      preLoaderRoute: typeof ApiPublicHooksProvisioningRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/reminders-tick': {
+      id: '/api/public/hooks/reminders-tick'
+      path: '/api/public/hooks/reminders-tick'
+      fullPath: '/api/public/hooks/reminders-tick'
+      preLoaderRoute: typeof ApiPublicHooksRemindersTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/starlink-tick': {
+      id: '/api/public/hooks/starlink-tick'
+      path: '/api/public/hooks/starlink-tick'
+      fullPath: '/api/public/hooks/starlink-tick'
+      preLoaderRoute: typeof ApiPublicHooksStarlinkTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug/$workspaceKey/': {
+      id: '/c/$slug/$workspaceKey/'
+      path: '/'
+      fullPath: '/c/$slug/$workspaceKey/'
+      preLoaderRoute: typeof CSlugWorkspaceKeyIndexRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/c/$slug/$workspaceKey/activity': {
+      id: '/c/$slug/$workspaceKey/activity'
+      path: '/activity'
+      fullPath: '/c/$slug/$workspaceKey/activity'
+      preLoaderRoute: typeof CSlugWorkspaceKeyActivityRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/c/$slug/$workspaceKey/billing': {
+      id: '/c/$slug/$workspaceKey/billing'
+      path: '/billing'
+      fullPath: '/c/$slug/$workspaceKey/billing'
+      preLoaderRoute: typeof CSlugWorkspaceKeyBillingRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/c/$slug/$workspaceKey/servers': {
+      id: '/c/$slug/$workspaceKey/servers'
+      path: '/servers'
+      fullPath: '/c/$slug/$workspaceKey/servers'
+      preLoaderRoute: typeof CSlugWorkspaceKeyServersRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/c/$slug/$workspaceKey/support': {
+      id: '/c/$slug/$workspaceKey/support'
+      path: '/support'
+      fullPath: '/c/$slug/$workspaceKey/support'
+      preLoaderRoute: typeof CSlugWorkspaceKeySupportRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/c/$slug/$workspaceKey/team': {
+      id: '/c/$slug/$workspaceKey/team'
+      path: '/team'
+      fullPath: '/c/$slug/$workspaceKey/team'
+      preLoaderRoute: typeof CSlugWorkspaceKeyTeamRouteImport
+      parentRoute: typeof CSlugWorkspaceKeyRoute
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug/$workspaceKey/servers/$serverId': {
