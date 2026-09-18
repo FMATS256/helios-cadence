@@ -171,11 +171,11 @@ export const postLedger = createServerFn({ method: "POST" })
       sb.from("journal_entries").select("source_type, source_id").not("source_id", "is", null).limit(20000),
       sb.from("chart_of_accounts").select("id, code"),
       sb.from("invoices").select("id, invoice_number, customer_id, status, issue_date, currency, total, archived_at").is("archived_at", null).limit(4000),
-      sb.from("payments").select("id, customer_id, invoice_id, amount, currency, method, reference, status, paid_at, receipt_number").limit(4000),
+      sb.from("payments").select("id, customer_id, invoice_id, amount, currency, method, reference, status, paid_at, receipt_number, cash_account_id").limit(4000),
       sb.from("refunds").select("id, customer_id, amount, currency, method, reason, status, refunded_at").limit(1000),
       sb.from("customer_credits").select("id, customer_id, amount, currency, kind, note, created_at").limit(1000),
       sb.from("expenses").select("id, expense_date, category, description, amount, currency, status, reference, vendor_id, account_id, customer_id, purchase_order_id").limit(4000),
-      sb.from("cash_movements").select("id, account_id, kind, amount, currency, reference, occurred_at, notes").limit(2000),
+      sb.from("cash_movements").select("id, account_id, kind, amount, currency, reference, occurred_at, notes, payment_id").limit(2000),
       sb.from("cash_accounts").select("id, name, kind"),
     ]);
     for (const r of [existingRes, accountsRes, invoicesRes, paymentsRes, expensesRes]) if (r.error) throw new Error(r.error.message);
@@ -222,7 +222,7 @@ export const postLedger = createServerFn({ method: "POST" })
         entry_date: day(p.paid_at), memo: `Payment received · ${p.method ?? "—"}`,
         currency: p.currency || "USD", fx_rate: rateOf(p.currency), customer_id: p.customer_id,
         lines: [
-          { account_code: cashCode(null, p.method), debit: amt, credit: 0, description: "Funds received", customer_id: p.customer_id },
+          { account_code: cashCode(p.cash_account_id, p.method), debit: amt, credit: 0, description: "Funds received", customer_id: p.customer_id },
           { account_code: "1100", debit: 0, credit: amt, description: "Receivable settled", customer_id: p.customer_id },
         ],
       });
@@ -280,6 +280,8 @@ export const postLedger = createServerFn({ method: "POST" })
 
     // Cash movements → cash account against the clearing account
     for (const m of movementsRes.data ?? []) {
+      // Deposits raised by a customer payment are already posted with that payment.
+      if (m.payment_id) continue;
       const amt = usd(m.amount, m.currency);
       if (amt <= 0.009) continue;
       const code = cashCode(m.account_id, null);
