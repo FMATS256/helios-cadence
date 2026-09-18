@@ -33,12 +33,21 @@ export function VaptScanner({ accountNumber }: { accountNumber?: string | null }
   const [profile, setProfile] = useState("standard");
   const [authorised, setAuthorised] = useState(false);
   const [report, setReport] = useState<any | null>(null);
+  const [account, setAccount] = useState("");
 
   const scan = useMutation({
     mutationFn: () =>
-      scanFn({ data: { target, profile: profile as any, account_number: accountNumber ?? null, authorised } }) as Promise<any>,
+      scanFn({
+        data: {
+          target,
+          profile: profile as any,
+          account_number: accountNumber ?? (account.trim() || null),
+          authorised,
+        },
+      }) as Promise<any>,
     onSuccess: (r) => {
       setReport(r);
+      qc.invalidateQueries({ queryKey: ["vapt-assessments"] });
       const crit = r.counts.critical + r.counts.high;
       crit > 0 ? toast.warning(`${crit} high-risk finding(s) — grade ${r.grade}`) : toast.success(`Assessment complete — grade ${r.grade}`);
     },
@@ -128,6 +137,18 @@ export function VaptScanner({ accountNumber }: { accountNumber?: string | null }
             </Select>
           </div>
         </div>
+
+        {!accountNumber && (
+          <div className="mt-3 space-y-1.5">
+            <Label>Client account number (optional — links the report to Customer 360)</Label>
+            <Input
+              value={account}
+              onChange={(e) => setAccount(e.target.value.toUpperCase())}
+              placeholder="M10457"
+              className="h-11 sm:max-w-[260px]"
+            />
+          </div>
+        )}
 
         <label className="mt-4 flex items-start gap-2.5 rounded-lg border p-3 text-sm">
           <Checkbox checked={authorised} onCheckedChange={(v) => setAuthorised(v === true)} className="mt-0.5" />
