@@ -408,6 +408,7 @@ export type Database = {
           kind: string
           notes: string | null
           occurred_at: string
+          payment_id: string | null
           reference: string | null
         }
         Insert: {
@@ -420,6 +421,7 @@ export type Database = {
           kind?: string
           notes?: string | null
           occurred_at?: string
+          payment_id?: string | null
           reference?: string | null
         }
         Update: {
@@ -432,6 +434,7 @@ export type Database = {
           kind?: string
           notes?: string | null
           occurred_at?: string
+          payment_id?: string | null
           reference?: string | null
         }
         Relationships: [
@@ -440,6 +443,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "cash_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
         ]
