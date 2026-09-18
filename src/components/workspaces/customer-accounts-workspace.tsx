@@ -102,14 +102,24 @@ export function CustomerAccountsPage() {
 }
 
 function AccountSheet({ target, onClose }: { target: { id: string; name: string } | null; onClose: () => void }) {
+  const qc = useQueryClient();
   const load = useServerFn(getCustomerFinancialAccount);
   const { data, isLoading } = useQuery({
     queryKey: ["customer-financial-account", target?.id],
     queryFn: () => load({ data: { customer_id: target!.id } }),
     enabled: !!target,
   });
+  const { roles } = useRoles();
+  const canManage = can(roles, "payments.record");
+  const [planOpen, setPlanOpen] = useState(false);
+  const [payInstallment, setPayInstallment] = useState<{ id: string; amount: number; label: string } | null>(null);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["customer-financial-account", target?.id] });
+    qc.invalidateQueries({ queryKey: ["customer-balances"] });
+  };
   const t = data?.totals;
   const a = data?.ageing;
+
 
   return (
     <Sheet open={!!target} onOpenChange={(v) => !v && onClose()}>
