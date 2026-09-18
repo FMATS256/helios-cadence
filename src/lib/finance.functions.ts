@@ -561,7 +561,7 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       .eq("id", data.customer_id).maybeSingle();
     if (!customer) throw new Error("Customer not found");
 
-    const [invR, payR, allocR, credR, refR, subR, subsR] = await Promise.all([
+    const [invR, payR, allocR, credR, refR, subR, subsR, expR, schR, insR] = await Promise.all([
       db.from("invoices").select("id, invoice_number, status, issue_date, due_date, currency, subtotal, tax, total, paid_at")
         .eq("customer_id", customer.id).is("archived_at", null).order("issue_date", { ascending: false }),
       db.from("payments").select("id, receipt_number, amount, currency, method, reference, status, paid_at, invoice_id, cash_account_id, reconciliation_status")
@@ -572,7 +572,14 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       db.from("subscriptions").select("id, plan_name, amount, currency, billing_cycle, status, next_renewal, started_on").eq("customer_id", customer.id),
       db.from("payment_submissions").select("id, amount, currency, status, method, payment_date, reference, receipt_number, cash_account_id, created_at")
         .eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(50),
+      db.from("expenses")
+        .select("id, expense_date, category, vendor, description, amount, currency, status, service_task_id, attachment_url, service_tasks:service_task_id(id, title)")
+        .eq("customer_id", customer.id).order("expense_date", { ascending: false }).limit(300),
+      db.from("payment_schedules").select("*, invoices:invoice_id(id, invoice_number)")
+        .eq("customer_id", customer.id).order("created_at", { ascending: false }),
+      db.from("payment_schedule_installments").select("*").eq("customer_id", customer.id).order("due_date", { ascending: true }),
     ]);
+
 
     const invoices = rows(invR) as any[];
     const payments = rows(payR) as any[];
