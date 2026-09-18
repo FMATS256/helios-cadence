@@ -445,23 +445,6 @@ function MovementDialog({ kind, accounts, onClose, onSaved }: {
             <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
           <div className="space-y-1"><Label>Reference</Label>
             <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
-          <div className="space-y-1"><Label>Customer (optional)</Label>
-            <Select value={form.customer_id || "none"} onValueChange={(v) => setForm({ ...form, customer_id: v === "none" ? "" : v, service_task_id: "" })}>
-              <SelectTrigger><SelectValue placeholder="No customer" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No customer</SelectItem>
-                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name} · {c.account_number}</SelectItem>)}
-              </SelectContent>
-            </Select></div>
-          <div className="space-y-1"><Label>Job / work order (optional)</Label>
-            <Select value={form.service_task_id || "none"} onValueChange={(v) => setForm({ ...form, service_task_id: v === "none" ? "" : v })}>
-              <SelectTrigger><SelectValue placeholder="Not job related" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Not job related</SelectItem>
-                {jobOptions.map((j) => <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Job expenses appear on that customer's financial account.</p></div>
           <div className="col-span-2 space-y-1"><Label>Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
