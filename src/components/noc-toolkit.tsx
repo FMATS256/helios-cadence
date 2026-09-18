@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Globe, Network, Search, ShieldAlert, Mail, Plug, Power, RotateCw, RefreshCw, Pause, Play, KeyRound, Radar,
+  Activity, Route, GitBranch, MapPin, Lock,
 } from "lucide-react";
 import { runNetworkDiagnostic, listRemoteTargets, type DiagTool } from "@/lib/netdiag.functions";
 import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
@@ -17,6 +18,12 @@ import { syncVoipAccount } from "@/lib/voip.functions";
 import { checkStarlinkAccount } from "@/lib/starlink.functions";
 
 const TOOLS: { key: DiagTool; label: string; icon: any; tone: string; hint: string }[] = [
+  { key: "ping", label: "Ping", icon: Activity, tone: "#22c55e", hint: "Latency, jitter and packet loss samples" },
+  { key: "traceroute", label: "Traceroute", icon: Route, tone: "#f97316", hint: "Hop-by-hop path to the target" },
+  { key: "mtr", label: "MTR", icon: GitBranch, tone: "#8b5cf6", hint: "Per-hop loss and latency report" },
+  { key: "ptr", label: "Reverse DNS", icon: Search, tone: "#0891b2", hint: "PTR record for the IP address" },
+  { key: "geoip", label: "GeoIP / ASN", icon: MapPin, tone: "#14b8a6", hint: "Location, ASN and network owner" },
+  { key: "tls", label: "TLS / SSL", icon: Lock, tone: "#4f46e5", hint: "HTTPS handshake and HSTS posture" },
   { key: "http", label: "Reachability", icon: Globe, tone: "#0ea5e9", hint: "HTTP/HTTPS probe with latency" },
   { key: "dns", label: "DNS Records", icon: Network, tone: "#6366f1", hint: "A, AAAA, CNAME, MX, NS, TXT" },
   { key: "tcp", label: "Port Check", icon: Plug, tone: "#0d9488", hint: "TCP connect to a port" },
@@ -29,11 +36,12 @@ export function DiagnosticsPanel() {
   const runFn = useServerFn(runNetworkDiagnostic);
   const [target, setTarget] = useState("");
   const [port, setPort] = useState("443");
+  const [count, setCount] = useState("5");
   const [tool, setTool] = useState<DiagTool>("http");
   const [result, setResult] = useState<any | null>(null);
 
   const run = useMutation({
-    mutationFn: (t: DiagTool) => runFn({ data: { tool: t, target, port: Number(port) || 443 } }) as Promise<any>,
+    mutationFn: (t: DiagTool) => runFn({ data: { tool: t, target, port: Number(port) || 443, count: Number(count) || 5 } }) as Promise<any>,
     onSuccess: (r) => { setResult(r); r.ok ? toast.success(r.summary) : toast.warning(r.summary); },
     onError: (e: any) => toast.error(e?.message || "Diagnostic failed"),
   });
@@ -58,13 +66,19 @@ export function DiagnosticsPanel() {
               className="h-11"
             />
           </div>
-          <div className="space-y-1.5 sm:w-32">
-            <Label>Port</Label>
-            <Input value={port} onChange={(e) => setPort(e.target.value)} inputMode="numeric" className="h-11" />
+          <div className="flex gap-3">
+            <div className="w-full space-y-1.5 sm:w-28">
+              <Label>Port</Label>
+              <Input value={port} onChange={(e) => setPort(e.target.value)} inputMode="numeric" className="h-11" />
+            </div>
+            <div className="w-full space-y-1.5 sm:w-24">
+              <Label>Ping count</Label>
+              <Input value={count} onChange={(e) => setCount(e.target.value)} inputMode="numeric" className="h-11" />
+            </div>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {TOOLS.map((t) => (
             <button
               key={t.key}
