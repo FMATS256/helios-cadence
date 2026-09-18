@@ -635,6 +635,48 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
     const creditBalance = r2(credits.reduce((t, c) => t + (String(c.kind) === "debit" ? -num(c.amount) : num(c.amount)), 0));
     const refundedTotal = r2(refunds.filter((x) => x.status === "completed" || x.status === "recorded").reduce((t, x) => t + num(x.amount), 0));
 
+    // Job expenses recorded against this customer (cost of delivery, by category).
+    const expenseRows = (rows(expR) as any[]).map((e) => ({
+      ...e,
+      job_title: e.service_tasks?.title ?? null,
+      is_job_expense: !!e.service_task_id,
+    }));
+    const expenseTotal = r2(expenseRows.reduce((t, e) => t + num(e.amount), 0));
+    const jobExpenseTotal = r2(expenseRows.filter((e) => e.is_job_expense).reduce((t, e) => t + num(e.amount), 0));
+    const expensesByCategory = Object.entries(
+      expenseRows.reduce((acc: Record<string, number>, e) => {
+        const key = String(e.category || "general");
+        acc[key] = r2((acc[key] || 0) + num(e.amount));
+        return acc;
+      }, {}),
+    ).map(([category, amount]) => ({ category, amount: amount as number }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Installment plans and their live due / overdue state.
+    const { decorateInstallments } = await import("./schedules.functions");
+    const installments = decorateInstallments(rows(insR) as any[]);
+    const schedules = (rows(schR) as any[]).map((s) => {
+      const mine = installments.filter((i) => i.schedule_id === s.id);
+      return {
+        ...s,
+        installments: mine,
+        scheduled: r2(mine.reduce((t, i) => t + num(i.amount_due), 0)),
+        paidAmount: r2(mine.reduce((t, i) => t + num(i.amount_paid), 0)),
+        outstanding: r2(mine.reduce((t, i) => t + i.outstanding, 0)),
+        overdue_amount: r2(mine.filter((i) => i.state === "overdue").reduce((t, i) => t + i.outstanding, 0)),
+        overdue_count: mine.filter((i) => i.state === "overdue").length,
+        next_due: mine.find((i) => i.state !== "paid" && i.status !== "cancelled") ?? null,
+      };
+    });
+    const scheduleTotals = {
+      scheduled: r2(schedules.reduce((t, s) => t + s.scheduled, 0)),
+      paid: r2(schedules.reduce((t, s) => t + s.paidAmount, 0)),
+      outstanding: r2(schedules.reduce((t, s) => t + s.outstanding, 0)),
+      overdue: r2(schedules.reduce((t, s) => t + s.overdue_amount, 0)),
+      overdueCount: schedules.reduce((t, s) => t + s.overdue_count, 0),
+    };
+
+
     // Running statement, newest first.
     const statement = [
       ...invoiceRows.filter((i) => i.status !== "void").map((i) => ({
