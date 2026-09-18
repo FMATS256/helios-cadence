@@ -722,6 +722,12 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
         lastPaymentAt: paymentRows[0]?.paid_at ?? null,
         lastPaymentAmount: paymentRows[0] ? num(paymentRows[0].amount) : 0,
         unallocated: r2(paymentRows.reduce((t, p) => t + p.unallocated, 0)),
+        expenses: expenseTotal,
+        jobExpenses: jobExpenseTotal,
+        margin: r2(invoicedTotal - expenseTotal),
+        scheduled: scheduleTotals.scheduled,
+        scheduledOutstanding: scheduleTotals.outstanding,
+        scheduledOverdue: scheduleTotals.overdue,
       },
       ageing: { current: r2(ageing.current), d30: r2(ageing.d30), d60: r2(ageing.d60), d90: r2(ageing.d90) },
       invoices: invoiceRows,
@@ -730,6 +736,11 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       refunds,
       subscriptions,
       submissions: rows(subR) as any[],
+      expenses: expenseRows,
+      expensesByCategory,
+      schedules,
+      scheduleTotals,
       ledger,
+
     };
   });
