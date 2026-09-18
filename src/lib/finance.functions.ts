@@ -698,7 +698,14 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
         reference: null, debit: String(c.kind) === "debit" ? num(c.amount) : 0,
         credit: String(c.kind) === "debit" ? 0 : num(c.amount), currency: c.currency, status: c.kind, id: c.id,
       })),
-    ].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    ].sort((a, b) => {
+      const d = String(b.date).localeCompare(String(a.date));
+      if (d !== 0) return d;
+      // Same day: invoices are issued before payments/refunds are applied, so
+      // in this newest-first list payments come first.
+      const order = (k: string) => (k === "payment" || k === "credit" ? 0 : 1);
+      return order(a.kind) - order(b.kind);
+    });
 
     let running = r2(statement.reduce((t, e) => t + e.debit - e.credit, 0));
     const ledger = statement.map((e) => {
