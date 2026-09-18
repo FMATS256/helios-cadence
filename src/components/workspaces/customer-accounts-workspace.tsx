@@ -1,15 +1,24 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { getCustomerBalances, getCustomerFinancialAccount } from "@/lib/finance.functions";
+import { createPaymentSchedule, recordInstallmentPayment } from "@/lib/schedules.functions";
+import { useRoles } from "@/hooks/use-roles";
+import { can } from "@/lib/rbac";
 import { PageShell, SectionHeader, KpiRow, StatusBadge, money as fmtMoney } from "@/components/enterprise";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Wallet, AlertTriangle, Users, Search, Receipt, Repeat, ArrowUpRight } from "lucide-react";
+
 
 /**
  * Finance → Customer Accounts.
