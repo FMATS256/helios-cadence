@@ -153,7 +153,11 @@ function AccountSheet({ target, onClose }: { target: { id: string; name: string 
               <Stat label="Refunded" value={fmtMoney(t?.refunded ?? 0)} />
               <Stat label="MRR" value={fmtMoney(t?.mrr ?? 0)} />
               <Stat label="Unapplied payments" value={fmtMoney(t?.unallocated ?? 0)} />
+              <Stat label="Job & customer costs" value={fmtMoney(t?.expenses ?? 0)} />
+              <Stat label="Installments outstanding" value={fmtMoney(t?.scheduledOutstanding ?? 0)}
+                tone={(t?.scheduledOverdue ?? 0) > 0.005 ? "danger" : undefined} />
             </div>
+
 
             <div>
               <h4 className="mb-2 text-sm font-semibold">Ageing</h4>
