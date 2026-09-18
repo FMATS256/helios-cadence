@@ -136,6 +136,7 @@ function SocPage() {
         <TabsList>
           <TabsTrigger value="posture">Security posture</TabsTrigger>
           <TabsTrigger value="incidents">Incident queue</TabsTrigger>
+          <TabsTrigger value="vapt">VAPT scanner</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posture" className="mt-4">
