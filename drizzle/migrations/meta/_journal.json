@@ -8,6 +8,13 @@
       "when": 1789708444387,
       "tag": "0000_tighten_audit_log_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789708544169,
+      "tag": "0001_job_expenses_and_payment_schedules",
+      "breakpoints": true
     }
   ]
 }

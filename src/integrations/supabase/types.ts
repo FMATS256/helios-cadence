@@ -2005,6 +2005,7 @@ export type Database = {
           payment_method: string
           purchase_order_id: string | null
           reference: string | null
+          service_task_id: string | null
           status: string
           updated_at: string
           vendor: string | null
@@ -2027,6 +2028,7 @@ export type Database = {
           payment_method?: string
           purchase_order_id?: string | null
           reference?: string | null
+          service_task_id?: string | null
           status?: string
           updated_at?: string
           vendor?: string | null
@@ -2049,6 +2051,7 @@ export type Database = {
           payment_method?: string
           purchase_order_id?: string | null
           reference?: string | null
+          service_task_id?: string | null
           status?: string
           updated_at?: string
           vendor?: string | null
@@ -2074,6 +2077,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_service_task_id_fkey"
+            columns: ["service_task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
             referencedColumns: ["id"]
           },
           {
@@ -3420,6 +3430,145 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_schedule_installments: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          created_at: string
+          currency: string
+          customer_id: string
+          due_date: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_id: string | null
+          schedule_id: string
+          sequence: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          created_at?: string
+          currency?: string
+          customer_id: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          schedule_id: string
+          sequence: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          schedule_id?: string
+          sequence?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_schedule_installments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_schedule_installments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_schedule_installments_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "payment_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_schedules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          frequency: string
+          id: string
+          installment_count: number
+          invoice_id: string | null
+          notes: string | null
+          start_date: string
+          status: string
+          title: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          frequency?: string
+          id?: string
+          installment_count?: number
+          invoice_id?: string | null
+          notes?: string | null
+          start_date?: string
+          status?: string
+          title: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          frequency?: string
+          id?: string
+          installment_count?: number
+          invoice_id?: string | null
+          notes?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_schedules_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_schedules_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
