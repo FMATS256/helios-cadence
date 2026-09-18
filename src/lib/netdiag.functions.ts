@@ -13,7 +13,12 @@ export type DiagTool =
   | "tls"
   | "whois"
   | "blacklist"
-  | "mail";
+  | "mail"
+  | "portscan"
+  | "headers"
+  | "subdomains"
+  | "propagation"
+  | "redirects";
 
 async function ensureStaff(context: { supabase: any; userId: string }) {
   const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
@@ -54,6 +59,16 @@ export const runNetworkDiagnostic = createServerFn({ method: "POST" })
         return diag.blacklistCheck(target);
       case "mail":
         return diag.mailHealth(target);
+      case "portscan":
+        return diag.portScan(target);
+      case "headers":
+        return diag.headerAudit(target);
+      case "subdomains":
+        return diag.subdomainEnum(target);
+      case "propagation":
+        return diag.dnsPropagation(target);
+      case "redirects":
+        return diag.redirectChain(target);
       default:
         throw new Error("Unknown diagnostic tool");
     }
