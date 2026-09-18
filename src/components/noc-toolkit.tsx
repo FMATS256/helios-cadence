@@ -30,6 +30,11 @@ const TOOLS: { key: DiagTool; label: string; icon: any; tone: string; hint: stri
   { key: "whois", label: "WHOIS / RDAP", icon: Search, tone: "#a855f7", hint: "Domain or IP registry record" },
   { key: "blacklist", label: "Blacklist", icon: ShieldAlert, tone: "#e11d48", hint: "Spamhaus, SpamCop, Barracuda, SORBS" },
   { key: "mail", label: "Mail Health", icon: Mail, tone: "#f59e0b", hint: "MX, SPF and DMARC posture" },
+  { key: "portscan", label: "Port Scan", icon: Radar, tone: "#dc2626", hint: "Common service ports open/closed" },
+  { key: "headers", label: "Security Headers", icon: ShieldAlert, tone: "#7c3aed", hint: "HSTS, CSP, X-Frame-Options audit" },
+  { key: "subdomains", label: "Subdomains", icon: GitBranch, tone: "#0284c7", hint: "Discovery via certificate transparency" },
+  { key: "propagation", label: "DNS Propagation", icon: Globe, tone: "#059669", hint: "A records across global resolvers" },
+  { key: "redirects", label: "Redirect Chain", icon: Route, tone: "#9333ea", hint: "Follow http → https → www hops" },
 ];
 
 export function DiagnosticsPanel() {
