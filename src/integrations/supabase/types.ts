@@ -4645,6 +4645,158 @@ export type Database = {
           },
         ]
       }
+      security_assessment_findings: {
+        Row: {
+          assessment_id: string
+          category: string
+          created_at: string
+          due_date: string | null
+          evidence: string | null
+          finding_key: string
+          id: string
+          impact: string | null
+          incident_id: string | null
+          owner_id: string | null
+          reference: string | null
+          remediation: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          category?: string
+          created_at?: string
+          due_date?: string | null
+          evidence?: string | null
+          finding_key: string
+          id?: string
+          impact?: string | null
+          incident_id?: string | null
+          owner_id?: string | null
+          reference?: string | null
+          remediation?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          category?: string
+          created_at?: string
+          due_date?: string | null
+          evidence?: string | null
+          finding_key?: string
+          id?: string
+          impact?: string | null
+          incident_id?: string | null
+          owner_id?: string | null
+          reference?: string | null
+          remediation?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_assessment_findings_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "security_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_assessment_findings_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_assessments: {
+        Row: {
+          account_number: string | null
+          checks_run: string[]
+          counts: Json
+          created_at: string
+          customer_id: string | null
+          duration_ms: number
+          findings_total: number
+          finished_at: string
+          grade: string
+          id: string
+          notes: string[]
+          open_findings: number
+          profile: string
+          risk_level: string
+          run_by: string | null
+          run_by_email: string | null
+          score: number
+          started_at: string
+          target: string
+        }
+        Insert: {
+          account_number?: string | null
+          checks_run?: string[]
+          counts?: Json
+          created_at?: string
+          customer_id?: string | null
+          duration_ms?: number
+          findings_total?: number
+          finished_at?: string
+          grade?: string
+          id?: string
+          notes?: string[]
+          open_findings?: number
+          profile?: string
+          risk_level?: string
+          run_by?: string | null
+          run_by_email?: string | null
+          score?: number
+          started_at?: string
+          target: string
+        }
+        Update: {
+          account_number?: string | null
+          checks_run?: string[]
+          counts?: Json
+          created_at?: string
+          customer_id?: string | null
+          duration_ms?: number
+          findings_total?: number
+          finished_at?: string
+          grade?: string
+          id?: string
+          notes?: string[]
+          open_findings?: number
+          profile?: string
+          risk_level?: string
+          run_by?: string | null
+          run_by_email?: string | null
+          score?: number
+          started_at?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_assessments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_incident_events: {
         Row: {
           actor_email: string | null
