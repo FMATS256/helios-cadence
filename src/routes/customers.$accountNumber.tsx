@@ -36,13 +36,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog, CreateInvoiceDialog,
+  AddServiceDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
 import { RequestInvoiceDialog } from "@/components/request-invoice-dialog";
-import { useRoles } from "@/hooks/use-roles";
-import { can } from "@/lib/rbac";
 
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
@@ -1554,9 +1552,8 @@ function IspHeroPane(props: {
     primaryEmail: customer.primary_email,
   };
   const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech">(null);
-  const { roles } = useRoles();
-  // Separation of duties: only billing authors invoices; everyone else requests one.
-  const canInvoice = can(roles, "invoices.manage");
+  // Separation of duties: invoices are raised by billing from requests, so
+  // every user — including billing and admins — requests one from here.
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
   const wsCtx = {
     customerId: customer.id,
@@ -1606,7 +1603,7 @@ function IspHeroPane(props: {
         <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
-        <ActionBtn tone="emerald" icon={Receipt}     label={canInvoice ? "Add Invoice" : "Request Invoice"} onClick={() => setOpen("invoice")} />
+        <ActionBtn tone="emerald" icon={Receipt}     label="Request Invoice"    onClick={() => setOpen("invoice")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Submit Payment"     onClick={() => setOpen("payment")} />
         <ComposeEmailDialog
           accountNumber={customer.account_number}
@@ -1668,9 +1665,8 @@ function IspHeroPane(props: {
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
       <SubmitPaymentDialog open={open === "payment"} onOpenChange={(v) => setOpen(v ? "payment" : null)} customerId={customer.id} />
-      {open === "invoice" && (canInvoice
-        ? <CreateInvoiceDialog ctx={ctx} onClose={() => setOpen(null)} />
-        : <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
+      {open === "invoice" && (
+        <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
       )}
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
