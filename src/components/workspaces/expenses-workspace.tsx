@@ -144,7 +144,7 @@ export function ExpensesPage() {
                   <div>
                     <p className="font-medium">{r.description}</p>
                     <p className="text-xs text-muted-foreground capitalize">
-                      {r.category}{r.vendor ? ` · ${r.vendor}` : ""}{r.customers ? ` · ${r.customers.company_name}` : ""}
+                      {r.category}{r.vendor ? ` · ${r.vendor}` : ""}{r.customers ? ` · ${r.customers.company_name}` : ""}{r.service_tasks?.title ? ` · job: ${r.service_tasks.title}` : ""}
                     </p>
                   </div>
                 ) },
@@ -217,6 +217,8 @@ export function ExpensesPage() {
       {expenseOpen && (
         <ExpenseDialog
           accounts={accounts}
+          customers={data?.customers ?? []}
+          jobs={data?.jobs ?? []}
           expense={editing}
           onClose={() => { setExpenseOpen(false); setEditing(null); }}
           onSaved={refresh}
@@ -230,8 +232,8 @@ export function ExpensesPage() {
   );
 }
 
-function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
-  accounts: any[]; expense: any | null; onClose: () => void; onSaved: () => void;
+function ExpenseDialog({ accounts, customers, jobs, expense, onClose, onSaved }: {
+  accounts: any[]; customers: any[]; jobs: any[]; expense: any | null; onClose: () => void; onSaved: () => void;
 }) {
   const fn = useServerFn(upsertExpense);
   const [uploading, setUploading] = useState(false);
@@ -248,6 +250,8 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
     status: expense?.status ?? "paid",
     notes: expense?.notes ?? "",
     attachment_url: expense?.attachment_url ?? "",
+    customer_id: expense?.customer_id ?? "",
+    service_task_id: expense?.service_task_id ?? "",
   });
 
   const pickFile = async (file: File | undefined) => {
@@ -268,8 +272,18 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
     }
   };
 
+  const jobOptions = form.customer_id
+    ? jobs.filter((j) => j.customer_id === form.customer_id)
+    : jobs;
+
   const save = useMutation({
-    mutationFn: () => fn({ data: { id: expense?.id, ...form, amount: Number(form.amount) } as any }),
+    mutationFn: () => fn({
+      data: {
+        id: expense?.id, ...form, amount: Number(form.amount),
+        customer_id: form.customer_id || null,
+        service_task_id: form.service_task_id || null,
+      } as any,
+    }),
     onSuccess: () => { toast.success(expense ? "Expense updated" : "Expense recorded"); onSaved(); onClose(); },
     onError: (e: any) => toast.error(e?.message || "Could not save expense"),
   });
@@ -313,6 +327,23 @@ function ExpenseDialog({ accounts, expense, onClose, onSaved }: {
             </Select></div>
           <div className="space-y-1"><Label>Reference</Label>
             <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Customer (optional)</Label>
+            <Select value={form.customer_id || "none"} onValueChange={(v) => setForm({ ...form, customer_id: v === "none" ? "" : v, service_task_id: "" })}>
+              <SelectTrigger><SelectValue placeholder="No customer" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No customer</SelectItem>
+                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name} · {c.account_number}</SelectItem>)}
+              </SelectContent>
+            </Select></div>
+          <div className="space-y-1"><Label>Job / work order (optional)</Label>
+            <Select value={form.service_task_id || "none"} onValueChange={(v) => setForm({ ...form, service_task_id: v === "none" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="Not job related" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not job related</SelectItem>
+                {jobOptions.map((j) => <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Job expenses appear on that customer's financial account.</p></div>
           <div className="col-span-2 space-y-1"><Label>Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           <div className="col-span-2 space-y-1">
@@ -414,6 +445,23 @@ function MovementDialog({ kind, accounts, onClose, onSaved }: {
             <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
           <div className="space-y-1"><Label>Reference</Label>
             <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Customer (optional)</Label>
+            <Select value={form.customer_id || "none"} onValueChange={(v) => setForm({ ...form, customer_id: v === "none" ? "" : v, service_task_id: "" })}>
+              <SelectTrigger><SelectValue placeholder="No customer" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No customer</SelectItem>
+                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name} · {c.account_number}</SelectItem>)}
+              </SelectContent>
+            </Select></div>
+          <div className="space-y-1"><Label>Job / work order (optional)</Label>
+            <Select value={form.service_task_id || "none"} onValueChange={(v) => setForm({ ...form, service_task_id: v === "none" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="Not job related" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not job related</SelectItem>
+                {jobOptions.map((j) => <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Job expenses appear on that customer's financial account.</p></div>
           <div className="col-span-2 space-y-1"><Label>Notes</Label>
             <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
