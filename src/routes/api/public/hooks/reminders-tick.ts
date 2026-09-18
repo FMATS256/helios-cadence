@@ -147,7 +147,8 @@ async function runReminders() {
   for (const it of (dueInstallments ?? []) as any[]) {
     const outstanding = Number(it.amount_due ?? 0) - Number(it.amount_paid ?? 0);
     if (outstanding <= 0.005) continue;
-    if (it.status !== "overdue") {
+    const firstTime = it.status !== "overdue";
+    if (firstTime) {
       await supabaseAdmin.from("payment_schedule_installments" as any).update({ status: "overdue" }).eq("id", it.id);
     }
     const { data: cust } = await supabaseAdmin
@@ -162,7 +163,7 @@ async function runReminders() {
       (cust as any)?.account_number ? `/customers/${(cust as any).account_number}` : "/finance",
       it.id,
     );
-    await supabaseAdmin.from("customer_timeline" as any).insert({
+    if (firstTime) await supabaseAdmin.from("customer_timeline" as any).insert({
       customer_id: it.customer_id,
       event_type: "installment_overdue",
       title: `Installment ${it.sequence} overdue`,
