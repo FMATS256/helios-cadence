@@ -70,13 +70,13 @@ export const runVaptScan = createServerFn({ method: "POST" })
       if (accountNumber) {
         const { data: cust } = await supabaseAdmin
           .from("customers")
-          .select("id, account_number, company_name, contact_name")
+          .select("id, account_number, company_name")
           .eq("account_number", accountNumber)
           .maybeSingle();
         if (cust) {
           customerId = (cust as any).id;
           accountNumber = (cust as any).account_number;
-          customerLabel = (cust as any).company_name || (cust as any).contact_name || accountNumber;
+          customerLabel = (cust as any).company_name || accountNumber;
         }
       }
 
@@ -166,7 +166,7 @@ export const listAssessments = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     let q = (context.supabase as any)
       .from("security_assessments")
-      .select("*, customers(account_number, company_name, contact_name)")
+      .select("*, customers(account_number, company_name)")
       .order("started_at", { ascending: false })
       .limit(200);
     if (data?.account_number) q = q.eq("account_number", data.account_number);
@@ -183,7 +183,7 @@ export const getAssessment = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: assessment, error } = await (context.supabase as any)
       .from("security_assessments")
-      .select("*, customers(account_number, company_name, contact_name)")
+      .select("*, customers(account_number, company_name)")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);

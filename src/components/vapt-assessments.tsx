@@ -31,7 +31,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function clientLabel(row: any) {
   const c = row?.customers;
-  return c ? c.company_name || c.contact_name || c.account_number : null;
+  return c ? c.company_name || c.account_number : null;
 }
 
 function AssessmentDetail({ id, onBack }: { id: string; onBack: () => void }) {
