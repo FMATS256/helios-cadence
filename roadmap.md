@@ -7,7 +7,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Job expenses shown on the per-customer statement with expense category
+- [x] Job expenses shown on the per-customer statement with expense category
 - [x] Recurring payment schedule per customer: installments, due dates, overdue alerts
 
 ## Later (from earlier plan)
