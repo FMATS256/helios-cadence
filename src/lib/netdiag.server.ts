@@ -397,3 +397,189 @@ export async function tlsCheck(target: string): Promise<DiagResult> {
     return { tool: "tls", target: host, ok: false, ms: null, summary: `TLS handshake failed: ${e?.message ?? e}`, rows: [] };
   }
 }
+/** Quick scan of the most common service ports. */
+export async function portScan(target: string): Promise<DiagResult> {
+  const host = hostOf(target);
+  const ports: { port: number; name: string }[] = [
+    { port: 21, name: "FTP" },
+    { port: 22, name: "SSH" },
+    { port: 25, name: "SMTP" },
+    { port: 53, name: "DNS" },
+    { port: 80, name: "HTTP" },
+    { port: 110, name: "POP3" },
+    { port: 143, name: "IMAP" },
+    { port: 443, name: "HTTPS" },
+    { port: 465, name: "SMTPS" },
+    { port: 587, name: "SMTP submission" },
+    { port: 993, name: "IMAPS" },
+    { port: 995, name: "POP3S" },
+    { port: 3306, name: "MySQL" },
+    { port: 3389, name: "RDP" },
+    { port: 5432, name: "PostgreSQL" },
+    { port: 8080, name: "HTTP alt" },
+    { port: 8443, name: "HTTPS alt" },
+  ];
+  const results = await Promise.all(
+    ports.map(async (p) => {
+      const r = await tcpProbe(host, p.port);
+      return { ...p, open: r.ok, ms: r.ms };
+    }),
+  );
+  const open = results.filter((r) => r.open);
+  return {
+    tool: "portscan",
+    target: host,
+    ok: true,
+    ms: null,
+    summary: open.length
+      ? `${open.length} open port(s): ${open.map((r) => `${r.port} (${r.name})`).join(", ")}`
+      : "No common ports open — host may be firewalled",
+    rows: results.map((r) => ({
+      label: `${r.port} · ${r.name}`,
+      value: r.open ? `open${r.ms != null ? ` (${r.ms} ms)` : ""}` : "closed / filtered",
+    })),
+  };
+}
+
+/** HTTP security header posture audit. */
+export async function headerAudit(target: string): Promise<DiagResult> {
+  const url = /^https?:\/\//i.test(target.trim()) ? target.trim() : `https://${target.trim()}`;
+  const t0 = Date.now();
+  try {
+    const res = await withTimeout((signal) => fetch(url, { method: "GET", redirect: "follow", signal }));
+    const ms = Date.now() - t0;
+    const wanted = [
+      ["strict-transport-security", "HSTS"],
+      ["content-security-policy", "CSP"],
+      ["x-frame-options", "X-Frame-Options"],
+      ["x-content-type-options", "X-Content-Type-Options"],
+      ["referrer-policy", "Referrer-Policy"],
+      ["permissions-policy", "Permissions-Policy"],
+      ["cross-origin-opener-policy", "COOP"],
+    ] as const;
+    const rows = [
+      { label: "Final URL", value: res.url },
+      { label: "Status", value: `${res.status} ${res.statusText}` },
+      { label: "Server", value: res.headers.get("server") ?? "—" },
+      { label: "Powered-By", value: res.headers.get("x-powered-by") ?? "not disclosed" },
+      ...wanted.map(([h, name]) => ({
+        label: name,
+        value: res.headers.get(h) ?? "MISSING",
+      })),
+    ];
+    const missing = wanted.filter(([h]) => !res.headers.get(h)).length;
+    return {
+      tool: "headers",
+      target: res.url,
+      ok: missing <= 2,
+      ms,
+      summary: missing === 0 ? "All key security headers present" : `${missing} of ${wanted.length} security headers missing`,
+      rows,
+    };
+  } catch (e: any) {
+    return { tool: "headers", target: url, ok: false, ms: null, summary: `Header audit failed: ${e?.message ?? e}`, rows: [] };
+  }
+}
+
+/** Subdomain discovery via certificate transparency logs (crt.sh). */
+export async function subdomainEnum(target: string): Promise<DiagResult> {
+  const host = hostOf(target).replace(/^www\./, "");
+  const t0 = Date.now();
+  try {
+    const res = await withTimeout((signal) =>
+      fetch(`https://crt.sh/?q=%25.${encodeURIComponent(host)}&output=json`, {
+        headers: { accept: "application/json" },
+        signal,
+      }),
+    );
+    if (!res.ok) throw new Error(`crt.sh ${res.status}`);
+    const j: any[] = await res.json();
+    const ms = Date.now() - t0;
+    const names = new Set<string>();
+    for (const row of j ?? []) {
+      for (const n of String(row?.name_value ?? "").split("\n")) {
+        const name = n.trim().toLowerCase().replace(/^\*\./, "");
+        if (name.endsWith(host)) names.add(name);
+      }
+    }
+    const list = [...names].sort().slice(0, 100);
+    return {
+      tool: "subdomains",
+      target: host,
+      ok: list.length > 0,
+      ms,
+      summary: list.length ? `${names.size} unique subdomain(s) found via certificate transparency` : "No subdomains found in CT logs",
+      rows: list.map((n, i) => ({ label: String(i + 1), value: n })),
+    };
+  } catch (e: any) {
+    return { tool: "subdomains", target: host, ok: false, ms: null, summary: `Subdomain discovery failed: ${e?.message ?? e}`, rows: [] };
+  }
+}
+
+/** DNS propagation: query A records through multiple public resolvers. */
+export async function dnsPropagation(target: string): Promise<DiagResult> {
+  const host = hostOf(target);
+  const resolvers = [
+    { name: "Cloudflare", url: "https://cloudflare-dns.com/dns-query", accept: "application/dns-json" },
+    { name: "Google", url: "https://dns.google/resolve", accept: "application/json" },
+    { name: "Quad9", url: "https://dns.quad9.net:5053/dns-query", accept: "application/dns-json" },
+  ];
+  const t0 = Date.now();
+  const rows: { label: string; value: string }[] = [];
+  const answers = new Set<string>();
+  for (const r of resolvers) {
+    try {
+      const res = await withTimeout((signal) =>
+        fetch(`${r.url}?name=${encodeURIComponent(host)}&type=A`, { headers: { accept: r.accept }, signal }),
+      );
+      const j: any = await res.json();
+      const vals = (j?.Answer ?? []).filter((a: any) => a.type === 1).map((a: any) => String(a.data));
+      vals.forEach((v: string) => answers.add(v));
+      rows.push({ label: r.name, value: vals.length ? vals.join(", ") : "no A record" });
+    } catch (e: any) {
+      rows.push({ label: r.name, value: `query failed: ${e?.message ?? e}` });
+    }
+  }
+  const ms = Date.now() - t0;
+  return {
+    tool: "propagation",
+    target: host,
+    ok: answers.size <= 1 && rows.some((r) => !r.value.includes("failed") && !r.value.includes("no A")),
+    ms,
+    summary:
+      answers.size === 0
+        ? "No A records returned by any resolver"
+        : answers.size === 1
+          ? `Consistent worldwide — resolves to ${[...answers][0]}`
+          : `Inconsistent — ${answers.size} different answers across resolvers`,
+    rows,
+  };
+}
+
+/** Full redirect chain for a URL (http→https, www, shorteners). */
+export async function redirectChain(target: string): Promise<DiagResult> {
+  let url = /^https?:\/\//i.test(target.trim()) ? target.trim() : `http://${target.trim()}`;
+  const rows: { label: string; value: string }[] = [];
+  const t0 = Date.now();
+  try {
+    for (let i = 1; i <= 8; i++) {
+      const res = await withTimeout((signal) => fetch(url, { method: "GET", redirect: "manual", signal }));
+      const loc = res.headers.get("location");
+      rows.push({ label: `hop ${i}`, value: `${res.status} ${url}` });
+      if (!loc || res.status < 300 || res.status >= 400) break;
+      url = new URL(loc, url).toString();
+    }
+    const ms = Date.now() - t0;
+    const hops = rows.length;
+    return {
+      tool: "redirects",
+      target: url,
+      ok: true,
+      ms,
+      summary: hops === 1 ? "No redirects — direct response" : `${hops - 1} redirect(s) → ${url}`,
+      rows,
+    };
+  } catch (e: any) {
+    return { tool: "redirects", target: url, ok: false, ms: null, summary: `Redirect trace failed: ${e?.message ?? e}`, rows };
+  }
+}
