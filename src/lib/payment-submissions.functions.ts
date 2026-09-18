@@ -50,6 +50,7 @@ async function cashAccounts(db: any) {
 /** Records the deposit on the finance ledger so the account balance moves. */
 async function bankDeposit(db: any, args: {
   account_id: string; amount: number; currency: string; occurred_at: string;
+  payment_id?: string | null;
   reference?: string | null; notes?: string | null; created_by?: string | null;
 }) {
   const { error } = await db.from("cash_movements").insert({
@@ -58,11 +59,58 @@ async function bankDeposit(db: any, args: {
     amount: args.amount,
     currency: args.currency || "USD",
     occurred_at: args.occurred_at,
+    payment_id: args.payment_id || null,
     reference: args.reference || null,
     notes: args.notes || null,
     created_by: args.created_by || null,
   } as any);
   if (error) throw new Error(`Payment recorded but the ledger deposit failed: ${error.message}`);
+}
+
+/**
+ * Double-entry posting for a received payment: the cash/bank account is
+ * debited and the customer receivable credited, in USD reporting terms.
+ * Idempotent on the payment id, so a later "post ledger" run skips it.
+ */
+async function postPaymentToLedger(db: any, args: {
+  payment: any; account: any; customer: any; userId: string;
+}) {
+  const { payment, account, customer, userId } = args;
+  try {
+    const [{ latestRateMap, toBase }, { postJournalEntry, cashAccountCode }] = await Promise.all([
+      import("@/lib/currency.shared"),
+      import("./ledger.server"),
+    ]);
+    const { data: rateRows } = await db.from("exchange_rates")
+      .select("currency, rate, effective_date")
+      .order("effective_date", { ascending: false }).limit(400);
+    const rates = latestRateMap((rateRows ?? []) as any);
+    const currency = String(payment.currency || "USD").toUpperCase();
+    const usd = round(toBase(payment.amount, currency, rates));
+    if (usd <= 0.009) return;
+
+    await postJournalEntry(db, {
+      source_type: "payment",
+      source_id: payment.id,
+      source_ref: payment.receipt_number ?? payment.reference ?? null,
+      entry_date: String(payment.paid_at).slice(0, 10),
+      memo: `Payment received · ${customer.company_name ?? ""} · ${account.name}`.trim(),
+      currency,
+      fx_rate: rates[currency] ?? 1,
+      customer_id: customer.id,
+      lines: [
+        {
+          account_code: cashAccountCode(account.kind, payment.method),
+          debit: usd, credit: 0,
+          description: `Banked into ${account.name}`, customer_id: customer.id,
+        },
+        {
+          account_code: "1100", debit: 0, credit: usd,
+          description: "Receivable settled", customer_id: customer.id,
+        },
+      ],
+    }, userId);
+  } catch { /* ledger posting is best-effort; the payment stands */ }
 }
 
 async function openInvoicesFor(db: any, customerId: string) {
