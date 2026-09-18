@@ -1,7 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type DiagTool = "http" | "dns" | "tcp" | "whois" | "blacklist" | "mail";
+export type DiagTool =
+  | "ping"
+  | "traceroute"
+  | "mtr"
+  | "http"
+  | "dns"
+  | "tcp"
+  | "ptr"
+  | "geoip"
+  | "tls"
+  | "whois"
+  | "blacklist"
+  | "mail";
 
 async function ensureStaff(context: { supabase: any; userId: string }) {
   const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
@@ -10,7 +22,7 @@ async function ensureStaff(context: { supabase: any; userId: string }) {
 
 export const runNetworkDiagnostic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { tool: DiagTool; target: string; port?: number }) => d)
+  .inputValidator((d: { tool: DiagTool; target: string; port?: number; count?: number }) => d)
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
     const target = (data.target ?? "").trim();
@@ -18,6 +30,18 @@ export const runNetworkDiagnostic = createServerFn({ method: "POST" })
 
     const diag = await import("./netdiag.server");
     switch (data.tool) {
+      case "ping":
+        return diag.pingProbe(target, { count: Number(data.count ?? 5), port: Number(data.port ?? 443) });
+      case "traceroute":
+        return diag.tracerouteProbe(target);
+      case "mtr":
+        return diag.mtrProbe(target);
+      case "ptr":
+        return diag.reverseDns(target);
+      case "geoip":
+        return diag.geoIpLookup(target);
+      case "tls":
+        return diag.tlsCheck(target);
       case "http":
         return diag.httpProbe(target);
       case "dns":
