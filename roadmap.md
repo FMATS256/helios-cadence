@@ -8,7 +8,7 @@
 
 ## Open
 - [ ] Job expenses shown on the per-customer statement with expense category
-- [ ] Recurring payment schedule per customer: installments, due dates, overdue alerts
+- [x] Recurring payment schedule per customer: installments, due dates, overdue alerts
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
