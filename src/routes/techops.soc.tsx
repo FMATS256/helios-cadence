@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ShieldCheck, ShieldAlert, Siren, Plus, ArrowUpRight, Gauge } from "lucide-react";
 import { socOverview, createIncident, incidentAction, escalatePostureSignal, getIncident } from "@/lib/soc.functions";
+import { VaptScanner } from "@/components/vapt-scanner";
 
 export const Route = createFileRoute("/techops/soc")({
   head: () => ({
@@ -136,6 +137,7 @@ function SocPage() {
         <TabsList>
           <TabsTrigger value="posture">Security posture</TabsTrigger>
           <TabsTrigger value="incidents">Incident queue</TabsTrigger>
+          <TabsTrigger value="vapt">VAPT scanner</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posture" className="mt-4">
@@ -196,6 +198,10 @@ function SocPage() {
               empty={<EmptyState icon={Siren} title="No security incidents" description="Escalate a posture signal or raise one manually." />}
             />
           </DetailCard>
+        </TabsContent>
+
+        <TabsContent value="vapt" className="mt-4">
+          <VaptScanner />
         </TabsContent>
       </Tabs>
 
