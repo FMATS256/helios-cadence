@@ -350,7 +350,7 @@ function NewPlanDialog({ open, onClose, customerId, invoices, onSaved }: {
         installment_count: Number(form.installment_count),
         frequency: form.frequency as any,
         start_date: form.start_date,
-        notes: form.notes || null,
+        notes: form.notes || undefined,
       } as any,
     }),
     onSuccess: () => { toast.success("Payment plan created"); onSaved(); },
@@ -413,7 +413,7 @@ function InstallmentPaymentDialog({ item, onClose, onSaved }: {
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const save = useMutation({
-    mutationFn: () => fn({ data: { installment_id: item!.id, amount: Number(amount || item!.amount), reference: reference || null } as any }),
+    mutationFn: () => fn({ data: { installment_id: item!.id, amount: Number(amount || item!.amount), notes: reference || undefined } as any }),
     onSuccess: () => { toast.success("Installment updated"); setAmount(""); setReference(""); onSaved(); },
     onError: (e: any) => toast.error(e?.message ?? "Could not record installment"),
   });
