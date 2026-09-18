@@ -303,10 +303,137 @@ function AccountSheet({ target, onClose }: { target: { id: string; name: string 
             )}
           </div>
         )}
+
+        {target && (
+          <NewPlanDialog
+            open={planOpen}
+            onClose={() => setPlanOpen(false)}
+            customerId={target.id}
+            invoices={(data?.invoices as any[]) ?? []}
+            onSaved={() => { setPlanOpen(false); refresh(); }}
+          />
+        )}
+        <InstallmentPaymentDialog
+          item={payInstallment}
+          onClose={() => setPayInstallment(null)}
+          onSaved={() => { setPayInstallment(null); refresh(); }}
+        />
       </SheetContent>
     </Sheet>
   );
 }
+
+function NewPlanDialog({ open, onClose, customerId, invoices, onSaved }: {
+  open: boolean; onClose: () => void; customerId: string; invoices: any[]; onSaved: () => void;
+}) {
+  const fn = useServerFn(createPaymentSchedule);
+  const [form, setForm] = useState({
+    title: "Installment plan",
+    invoice_id: "",
+    total_amount: "",
+    installment_count: "3",
+    frequency: "monthly",
+    start_date: new Date().toISOString().slice(0, 10),
+    notes: "",
+  });
+  const save = useMutation({
+    mutationFn: () => fn({
+      data: {
+        customer_id: customerId,
+        title: form.title,
+        invoice_id: form.invoice_id || null,
+        total_amount: Number(form.total_amount),
+        installment_count: Number(form.installment_count),
+        frequency: form.frequency as any,
+        start_date: form.start_date,
+        notes: form.notes || null,
+      } as any,
+    }),
+    onSuccess: () => { toast.success("Payment plan created"); onSaved(); },
+    onError: (e: any) => toast.error(e?.message ?? "Could not create plan"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle>New payment plan</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 space-y-1"><Label>Title</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1"><Label>Invoice (optional)</Label>
+            <Select value={form.invoice_id || "none"} onValueChange={(v) => {
+              const inv = invoices.find((i) => i.id === v);
+              setForm({ ...form, invoice_id: v === "none" ? "" : v, total_amount: inv ? String(inv.balance ?? inv.total) : form.total_amount });
+            }}>
+              <SelectTrigger><SelectValue placeholder="No invoice" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No invoice</SelectItem>
+                {invoices.map((i) => (
+                  <SelectItem key={i.id} value={i.id}>{i.invoice_number} · {fmtMoney(i.balance ?? i.total)} due</SelectItem>
+                ))}
+              </SelectContent>
+            </Select></div>
+          <div className="space-y-1"><Label>Total amount (USD)</Label>
+            <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Installments</Label>
+            <Input type="number" min="1" value={form.installment_count} onChange={(e) => setForm({ ...form, installment_count: e.target.value })} /></div>
+          <div className="space-y-1"><Label>Frequency</Label>
+            <Select value={form.frequency} onValueChange={(v) => setForm({ ...form, frequency: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["weekly", "fortnightly", "monthly", "quarterly", "annual"].map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select></div>
+          <div className="space-y-1"><Label>First due date</Label>
+            <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+          <div className="col-span-2 space-y-1"><Label>Notes</Label>
+            <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={save.isPending || !Number(form.total_amount)} onClick={() => save.mutate()}>
+            {save.isPending ? "Creating…" : "Create plan"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InstallmentPaymentDialog({ item, onClose, onSaved }: {
+  item: { id: string; amount: number; label: string } | null; onClose: () => void; onSaved: () => void;
+}) {
+  const fn = useServerFn(recordInstallmentPayment);
+  const [amount, setAmount] = useState("");
+  const [reference, setReference] = useState("");
+  const save = useMutation({
+    mutationFn: () => fn({ data: { installment_id: item!.id, amount: Number(amount || item!.amount), reference: reference || null } as any }),
+    onSuccess: () => { toast.success("Installment updated"); setAmount(""); setReference(""); onSaved(); },
+    onError: (e: any) => toast.error(e?.message ?? "Could not record installment"),
+  });
+
+  return (
+    <Dialog open={!!item} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>Record installment payment</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground">{item?.label}</p>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Amount (USD)</Label>
+            <Input type="number" step="0.01" placeholder={String(item?.amount ?? "")} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Reference</Label>
+            <Input value={reference} onChange={(e) => setReference(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving…" : "Record"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "danger" }) {
   return (
