@@ -221,3 +221,179 @@ export async function mailHealth(target: string): Promise<DiagResult> {
   const ok = !!(mx.rows.length && spfRec && dmarcRec);
   return { tool: "mail", target: host, ok, ms: null, summary: ok ? "Mail records complete" : "Mail records incomplete", rows };
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Latency / path tools for NOC engineers.
+   The worker runtime has no raw ICMP, so `ping` samples TCP/HTTP round trips
+   and `traceroute`/`mtr` are executed through a public probe API.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+function stats(samples: number[]) {
+  const s = [...samples].sort((a, b) => a - b);
+  const sum = s.reduce((a, b) => a + b, 0);
+  const avg = sum / s.length;
+  const jitter = s.length > 1 ? Math.sqrt(s.reduce((a, v) => a + (v - avg) ** 2, 0) / s.length) : 0;
+  return { min: s[0]!, max: s[s.length - 1]!, avg, jitter };
+}
+
+/** Repeated reachability samples with min/avg/max, jitter and loss. */
+export async function pingProbe(target: string, opts?: { count?: number; port?: number }): Promise<DiagResult> {
+  const host = hostOf(target);
+  const count = Math.min(Math.max(Number(opts?.count ?? 5), 1), 10);
+  const port = Number(opts?.port ?? 443);
+  const samples: number[] = [];
+  const attempts: { label: string; value: string }[] = [];
+
+  for (let i = 1; i <= count; i++) {
+    const r = await tcpProbe(host, port);
+    if (r.ok && r.ms != null) {
+      samples.push(r.ms);
+      attempts.push({ label: `seq ${i}`, value: `reply from ${host}:${port} — time=${r.ms} ms` });
+    } else {
+      attempts.push({ label: `seq ${i}`, value: `no reply (${r.summary})` });
+    }
+    if (i < count) await new Promise((res) => setTimeout(res, 150));
+  }
+
+  const loss = Math.round(((count - samples.length) / count) * 100);
+  const rows = [...attempts];
+  if (samples.length) {
+    const st = stats(samples);
+    rows.push(
+      { label: "Packets", value: `${count} sent, ${samples.length} received, ${loss}% loss` },
+      { label: "Latency", value: `min ${st.min} ms / avg ${st.avg.toFixed(1)} ms / max ${st.max} ms` },
+      { label: "Jitter", value: `${st.jitter.toFixed(1)} ms` },
+      { label: "Method", value: `TCP SYN probe on port ${port} (edge runtime has no ICMP)` },
+    );
+  } else {
+    rows.push({ label: "Packets", value: `${count} sent, 0 received, 100% loss` });
+  }
+
+  const st = samples.length ? stats(samples) : null;
+  return {
+    tool: "ping",
+    target: `${host}:${port}`,
+    ok: samples.length > 0 && loss < 50,
+    ms: st ? Math.round(st.avg) : null,
+    summary: st
+      ? `${samples.length}/${count} replies · avg ${st.avg.toFixed(1)} ms · jitter ${st.jitter.toFixed(1)} ms · ${loss}% loss`
+      : `No replies from ${host}:${port} — 100% loss`,
+    rows,
+  };
+}
+
+const PROBE_API = "https://api.hackertarget.com";
+
+async function probeApi(path: string, host: string, tool: string, title: string): Promise<DiagResult> {
+  const t0 = Date.now();
+  try {
+    const res = await withTimeout((signal) =>
+      fetch(`${PROBE_API}/${path}/?q=${encodeURIComponent(host)}`, { signal }),
+    );
+    const text = (await res.text()).trim();
+    const ms = Date.now() - t0;
+    if (!text || /error|api count exceeded|invalid/i.test(text.split("\n")[0]!)) {
+      return { tool, target: host, ok: false, ms, summary: text || `${title} unavailable`, rows: [], raw: text };
+    }
+    const lines = text.split("\n").filter((l) => l.trim());
+    return {
+      tool,
+      target: host,
+      ok: true,
+      ms,
+      summary: `${title} completed — ${lines.length} line(s) in ${ms} ms`,
+      rows: lines.map((l, i) => ({ label: `${i + 1}`, value: l.trim() })),
+      raw: text,
+    };
+  } catch (e: any) {
+    return { tool, target: host, ok: false, ms: null, summary: `${title} failed: ${e?.message ?? e}`, rows: [] };
+  }
+}
+
+/** Hop-by-hop path to the target. */
+export function tracerouteProbe(target: string) {
+  return probeApi("mtr", hostOf(target), "traceroute", "Traceroute");
+}
+
+/** Continuous path + per-hop loss report. */
+export function mtrProbe(target: string) {
+  return probeApi("mtr", hostOf(target), "mtr", "MTR path report");
+}
+
+/** Reverse DNS (PTR) for an IP, or for the target's resolved address. */
+export async function reverseDns(target: string): Promise<DiagResult> {
+  const host = hostOf(target);
+  let ip = host;
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+    const a = await dnsLookup(host, "A");
+    ip = a.rows[0]?.value ?? "";
+  }
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+    return { tool: "ptr", target: host, ok: false, ms: null, summary: "Could not resolve an IPv4 address", rows: [] };
+  }
+  const arpa = `${ip.split(".").reverse().join(".")}.in-addr.arpa`;
+  const r = await dnsLookup(arpa, "PTR");
+  return {
+    tool: "ptr",
+    target: ip,
+    ok: r.rows.length > 0,
+    ms: r.ms,
+    summary: r.rows.length ? `PTR: ${r.rows.map((x) => x.value).join(", ")}` : `No PTR record for ${ip}`,
+    rows: [{ label: "IP", value: ip }, { label: "Query", value: arpa }, ...r.rows.map((x) => ({ label: "PTR", value: x.value }))],
+  };
+}
+
+/** GeoIP and ASN / network owner for the target. */
+export async function geoIpLookup(target: string): Promise<DiagResult> {
+  const host = hostOf(target);
+  let ip = host;
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+    const a = await dnsLookup(host, "A");
+    ip = a.rows[0]?.value ?? "";
+  }
+  if (!ip) return { tool: "geoip", target: host, ok: false, ms: null, summary: "Could not resolve an address", rows: [] };
+  const t0 = Date.now();
+  try {
+    const res = await withTimeout((signal) =>
+      fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { headers: { accept: "application/json" }, signal }),
+    );
+    const j: any = await res.json();
+    const ms = Date.now() - t0;
+    if (j?.success === false) throw new Error(j?.message || "lookup failed");
+    const rows = [
+      { label: "IP", value: ip },
+      { label: "Country", value: `${j?.country ?? "—"} (${j?.country_code ?? "—"})` },
+      { label: "Region / City", value: `${j?.region ?? "—"} / ${j?.city ?? "—"}` },
+      { label: "Coordinates", value: j?.latitude != null ? `${j.latitude}, ${j.longitude}` : "—" },
+      { label: "ASN", value: j?.connection?.asn ? `AS${j.connection.asn}` : "—" },
+      { label: "Network owner", value: j?.connection?.org ?? j?.connection?.isp ?? "—" },
+      { label: "ISP", value: j?.connection?.isp ?? "—" },
+      { label: "Timezone", value: j?.timezone?.id ?? "—" },
+    ];
+    return { tool: "geoip", target: ip, ok: true, ms, summary: `${j?.city ?? "?"}, ${j?.country ?? "?"} · ${j?.connection?.org ?? j?.connection?.isp ?? "unknown network"}`, rows };
+  } catch (e: any) {
+    return { tool: "geoip", target: ip, ok: false, ms: null, summary: `GeoIP lookup failed: ${e?.message ?? e}`, rows: [] };
+  }
+}
+
+/** TLS certificate posture for an HTTPS endpoint. */
+export async function tlsCheck(target: string): Promise<DiagResult> {
+  const host = hostOf(target);
+  const t0 = Date.now();
+  try {
+    const res = await withTimeout((signal) => fetch(`https://${host}/`, { method: "GET", redirect: "manual", signal }));
+    const ms = Date.now() - t0;
+    const cf: any = (res as any).cf ?? null;
+    const rows = [
+      { label: "Host", value: host },
+      { label: "Handshake", value: `TLS connection established in ${ms} ms` },
+      { label: "HTTP status", value: `${res.status} ${res.statusText}` },
+      { label: "HSTS", value: res.headers.get("strict-transport-security") ?? "not set" },
+      { label: "Protocol", value: cf?.tlsVersion ?? "negotiated by edge" },
+      { label: "Cipher", value: cf?.tlsCipher ?? "—" },
+    ];
+    return { tool: "tls", target: host, ok: true, ms, summary: `HTTPS/TLS healthy on ${host} (${ms} ms)`, rows };
+  } catch (e: any) {
+    return { tool: "tls", target: host, ok: false, ms: null, summary: `TLS handshake failed: ${e?.message ?? e}`, rows: [] };
+  }
+}
