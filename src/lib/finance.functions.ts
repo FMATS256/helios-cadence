@@ -561,7 +561,7 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       .eq("id", data.customer_id).maybeSingle();
     if (!customer) throw new Error("Customer not found");
 
-    const [invR, payR, allocR, credR, refR, subR, subsR] = await Promise.all([
+    const [invR, payR, allocR, credR, refR, subR, subsR, expR, schR, insR] = await Promise.all([
       db.from("invoices").select("id, invoice_number, status, issue_date, due_date, currency, subtotal, tax, total, paid_at")
         .eq("customer_id", customer.id).is("archived_at", null).order("issue_date", { ascending: false }),
       db.from("payments").select("id, receipt_number, amount, currency, method, reference, status, paid_at, invoice_id, cash_account_id, reconciliation_status")
@@ -572,7 +572,14 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       db.from("subscriptions").select("id, plan_name, amount, currency, billing_cycle, status, next_renewal, started_on").eq("customer_id", customer.id),
       db.from("payment_submissions").select("id, amount, currency, status, method, payment_date, reference, receipt_number, cash_account_id, created_at")
         .eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(50),
+      db.from("expenses")
+        .select("id, expense_date, category, vendor, description, amount, currency, status, service_task_id, attachment_url, service_tasks:service_task_id(id, title)")
+        .eq("customer_id", customer.id).order("expense_date", { ascending: false }).limit(300),
+      db.from("payment_schedules").select("*, invoices:invoice_id(id, invoice_number)")
+        .eq("customer_id", customer.id).order("created_at", { ascending: false }),
+      db.from("payment_schedule_installments").select("*").eq("customer_id", customer.id).order("due_date", { ascending: true }),
     ]);
+
 
     const invoices = rows(invR) as any[];
     const payments = rows(payR) as any[];
@@ -628,6 +635,48 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
     const creditBalance = r2(credits.reduce((t, c) => t + (String(c.kind) === "debit" ? -num(c.amount) : num(c.amount)), 0));
     const refundedTotal = r2(refunds.filter((x) => x.status === "completed" || x.status === "recorded").reduce((t, x) => t + num(x.amount), 0));
 
+    // Job expenses recorded against this customer (cost of delivery, by category).
+    const expenseRows = (rows(expR) as any[]).map((e) => ({
+      ...e,
+      job_title: e.service_tasks?.title ?? null,
+      is_job_expense: !!e.service_task_id,
+    }));
+    const expenseTotal = r2(expenseRows.reduce((t, e) => t + num(e.amount), 0));
+    const jobExpenseTotal = r2(expenseRows.filter((e) => e.is_job_expense).reduce((t, e) => t + num(e.amount), 0));
+    const expensesByCategory = Object.entries(
+      expenseRows.reduce((acc: Record<string, number>, e) => {
+        const key = String(e.category || "general");
+        acc[key] = r2((acc[key] || 0) + num(e.amount));
+        return acc;
+      }, {}),
+    ).map(([category, amount]) => ({ category, amount: amount as number }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Installment plans and their live due / overdue state.
+    const { decorateInstallments } = await import("./schedules.functions");
+    const installments = decorateInstallments(rows(insR) as any[]);
+    const schedules = (rows(schR) as any[]).map((s) => {
+      const mine = installments.filter((i) => i.schedule_id === s.id);
+      return {
+        ...s,
+        installments: mine,
+        scheduled: r2(mine.reduce((t, i) => t + num(i.amount_due), 0)),
+        paidAmount: r2(mine.reduce((t, i) => t + num(i.amount_paid), 0)),
+        outstanding: r2(mine.reduce((t, i) => t + i.outstanding, 0)),
+        overdue_amount: r2(mine.filter((i) => i.state === "overdue").reduce((t, i) => t + i.outstanding, 0)),
+        overdue_count: mine.filter((i) => i.state === "overdue").length,
+        next_due: mine.find((i) => i.state !== "paid" && i.status !== "cancelled") ?? null,
+      };
+    });
+    const scheduleTotals = {
+      scheduled: r2(schedules.reduce((t, s) => t + s.scheduled, 0)),
+      paid: r2(schedules.reduce((t, s) => t + s.paidAmount, 0)),
+      outstanding: r2(schedules.reduce((t, s) => t + s.outstanding, 0)),
+      overdue: r2(schedules.reduce((t, s) => t + s.overdue_amount, 0)),
+      overdueCount: schedules.reduce((t, s) => t + s.overdue_count, 0),
+    };
+
+
     // Running statement, newest first.
     const statement = [
       ...invoiceRows.filter((i) => i.status !== "void").map((i) => ({
@@ -673,6 +722,12 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
         lastPaymentAt: paymentRows[0]?.paid_at ?? null,
         lastPaymentAmount: paymentRows[0] ? num(paymentRows[0].amount) : 0,
         unallocated: r2(paymentRows.reduce((t, p) => t + p.unallocated, 0)),
+        expenses: expenseTotal,
+        jobExpenses: jobExpenseTotal,
+        margin: r2(invoicedTotal - expenseTotal),
+        scheduled: scheduleTotals.scheduled,
+        scheduledOutstanding: scheduleTotals.outstanding,
+        scheduledOverdue: scheduleTotals.overdue,
       },
       ageing: { current: r2(ageing.current), d30: r2(ageing.d30), d60: r2(ageing.d60), d90: r2(ageing.d90) },
       invoices: invoiceRows,
@@ -681,6 +736,11 @@ export const getCustomerFinancialAccount = createServerFn({ method: "POST" })
       refunds,
       subscriptions,
       submissions: rows(subR) as any[],
+      expenses: expenseRows,
+      expensesByCategory,
+      schedules,
+      scheduleTotals,
       ledger,
+
     };
   });

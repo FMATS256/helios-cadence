@@ -138,7 +138,41 @@ async function runReminders() {
     );
   }
 
+  // 6) Overdue installments on customer payment plans — mark + notify finance
+  const { data: dueInstallments } = await supabaseAdmin
+    .from("payment_schedule_installments" as any)
+    .select("id,schedule_id,customer_id,sequence,due_date,amount_due,amount_paid,status")
+    .not("status", "in", "(paid,cancelled)")
+    .lt("due_date", now.slice(0, 10));
+  for (const it of (dueInstallments ?? []) as any[]) {
+    const outstanding = Number(it.amount_due ?? 0) - Number(it.amount_paid ?? 0);
+    if (outstanding <= 0.005) continue;
+    const firstTime = it.status !== "overdue";
+    if (firstTime) {
+      await supabaseAdmin.from("payment_schedule_installments" as any).update({ status: "overdue" }).eq("id", it.id);
+    }
+    const { data: cust } = await supabaseAdmin
+      .from("customers" as any)
+      .select("company_name,account_number")
+      .eq("id", it.customer_id)
+      .maybeSingle();
+    await notifyAll(
+      "installment_overdue",
+      `Installment ${it.sequence} overdue`,
+      `${(cust as any)?.company_name ?? "Customer"} (${(cust as any)?.account_number ?? "—"}) · USD ${outstanding.toFixed(2)} due ${it.due_date}`,
+      (cust as any)?.account_number ? `/customers/${(cust as any).account_number}` : "/finance",
+      it.id,
+    );
+    if (firstTime) await supabaseAdmin.from("customer_timeline" as any).insert({
+      customer_id: it.customer_id,
+      event_type: "installment_overdue",
+      title: `Installment ${it.sequence} overdue`,
+      description: `USD ${outstanding.toFixed(2)} was due on ${it.due_date}.`,
+    });
+  }
+
   return { ok: true, sent };
+
 }
 
 export const Route = createFileRoute("/api/public/hooks/reminders-tick")({
