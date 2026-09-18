@@ -23,7 +23,7 @@ export const getCashWorkspace = createServerFn({ method: "GET" })
       context.supabase.from("cash_accounts").select("*").order("is_default", { ascending: false }).order("name"),
       context.supabase
         .from("expenses")
-        .select("*, customers(id, company_name, account_number), cash_accounts(id, name, kind)")
+        .select("*, customers(id, company_name, account_number), cash_accounts(id, name, kind), service_tasks:service_task_id(id, title, account_number)")
         .order("expense_date", { ascending: false })
         .limit(500),
       context.supabase.from("cash_movements").select("*, cash_accounts(id, name, kind)").order("occurred_at", { ascending: false }).limit(300),
@@ -36,6 +36,13 @@ export const getCashWorkspace = createServerFn({ method: "GET" })
     const expenses: any[] = expensesRes.data ?? [];
     const movements: any[] = movementsRes.data ?? [];
     const payments: any[] = (paymentsRes.data ?? []).filter((p: any) => p.status !== "void" && p.status !== "cancelled");
+
+    const [custRes, jobRes] = await Promise.all([
+      context.supabase.from("customers").select("id, company_name, account_number").is("archived_at", null).order("company_name").limit(1000),
+      context.supabase.from("service_tasks").select("id, title, customer_id, status, due_date").order("created_at", { ascending: false }).limit(500),
+    ]);
+    const customers: any[] = custRes.data ?? [];
+    const jobs: any[] = jobRes.data ?? [];
 
     const isCash = (m?: string | null) => (m ?? "").toLowerCase().includes("cash");
     const defaultCash = accounts.find((a) => a.is_default && a.kind === "cash") ?? accounts.find((a) => a.kind === "cash");
@@ -70,6 +77,8 @@ export const getCashWorkspace = createServerFn({ method: "GET" })
 
     return {
       accounts: balances,
+      customers,
+      jobs,
       expenses,
       movements,
       stats: {
@@ -91,7 +100,7 @@ export const upsertExpense = createServerFn({ method: "POST" })
   .inputValidator((d: {
     id?: string; expense_date: string; category: string; vendor?: string;
     description: string; amount: number; currency?: string; account_id?: string | null;
-    payment_method?: string; reference?: string; status?: string; customer_id?: string | null; notes?: string;
+    payment_method?: string; reference?: string; status?: string; customer_id?: string | null; service_task_id?: string | null; notes?: string;
     attachment_url?: string | null;
   }) => d)
   .handler(async ({ data, context }) => {
@@ -110,6 +119,7 @@ export const upsertExpense = createServerFn({ method: "POST" })
       reference: data.reference?.trim() || null,
       status: data.status || "paid",
       customer_id: data.customer_id || null,
+      service_task_id: data.service_task_id || null,
       notes: data.notes?.trim() || null,
     };
     if (data.attachment_url !== undefined) payload.attachment_url = data.attachment_url || null;
