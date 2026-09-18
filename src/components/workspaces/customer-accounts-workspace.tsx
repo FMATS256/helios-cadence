@@ -182,6 +182,84 @@ function AccountSheet({ target, onClose }: { target: { id: string; name: string 
               ))}
             </Block>
 
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Payment plans (installments)</h4>
+                {canManage && target && (
+                  <Button size="sm" variant="outline" onClick={() => setPlanOpen(true)}>New plan</Button>
+                )}
+              </div>
+              <div className="space-y-3">
+                {(data.schedules as any[]).length === 0 && (
+                  <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+                    No installment plan on this account.
+                  </p>
+                )}
+                {(data.schedules as any[]).map((s) => (
+                  <div key={s.id} className="rounded-lg border border-border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{s.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {s.installment_count} × {s.frequency} from {s.start_date}
+                          {s.invoices?.invoice_number ? ` · ${s.invoices.invoice_number}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{fmtMoney(s.outstanding)} left</p>
+                        <p className="text-xs text-muted-foreground">of {fmtMoney(s.scheduled)}</p>
+                      </div>
+                      <StatusBadge tone={s.overdue_count ? "danger" : s.status === "completed" ? "success" : "info"}>
+                        {s.overdue_count ? `${s.overdue_count} overdue` : s.status}
+                      </StatusBadge>
+                    </div>
+                    <div className="mt-3 space-y-1.5">
+                      {(s.installments as any[]).map((i) => (
+                        <div key={i.id} className="flex items-center gap-3 rounded-md bg-muted/40 px-2.5 py-1.5 text-xs">
+                          <span className="w-6 tabular-nums text-muted-foreground">#{i.sequence}</span>
+                          <span className="tabular-nums">{i.due_date}</span>
+                          <StatusBadge tone={i.state === "paid" ? "success" : i.state === "overdue" ? "danger" : "warning"}>
+                            {i.state === "overdue" ? `${i.days_overdue}d overdue` : i.state}
+                          </StatusBadge>
+                          <span className="ml-auto tabular-nums font-medium">{fmtMoney(i.amount_due)}</span>
+                          <span className="tabular-nums text-muted-foreground">{fmtMoney(i.amount_paid)} paid</span>
+                          {canManage && i.state !== "paid" && i.status !== "cancelled" && (
+                            <Button size="sm" variant="ghost" className="h-6 px-2"
+                              onClick={() => setPayInstallment({ id: i.id, amount: i.outstanding, label: `Installment ${i.sequence} · due ${i.due_date}` })}>
+                              Record
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Block title="Job expenses" empty="No expenses recorded against this customer.">
+              {(data.expenses as any[]).map((e) => (
+                <Row key={e.id}
+                  left={<span className="font-medium">{e.description}</span>}
+                  meta={`${e.expense_date} · ${e.category}${e.job_title ? ` · job: ${e.job_title}` : ""}${e.vendor ? ` · ${e.vendor}` : ""}`}
+                  right={<p className="text-sm font-semibold">{fmtMoney(e.amount)}</p>}
+                  badge={<StatusBadge tone={e.is_job_expense ? "info" : "neutral"}>{e.is_job_expense ? "job cost" : e.category}</StatusBadge>}
+                />
+              ))}
+            </Block>
+
+            {(data.expensesByCategory as any[]).length > 0 && (
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">Cost by category</h4>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {(data.expensesByCategory as any[]).map((c) => (
+                    <Stat key={c.category} label={c.category} value={fmtMoney(c.amount)} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+
             <Block title="Statement" empty="Nothing on this account yet.">
               {(data.ledger as any[]).map((e, idx) => (
                 <Row key={`${e.kind}-${e.id}-${idx}`}
