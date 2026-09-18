@@ -595,10 +595,16 @@ export const reviewPaymentSubmission = createServerFn({ method: "POST" })
       amount,
       currency: sub.currency || "USD",
       occurred_at: paidAtIso,
+      payment_id: payment.id,
       reference: payment.receipt_number || sub.reference || null,
       notes: `Customer payment · ${cust.company_name} (${cust.account_number})`,
       created_by: context.userId,
     });
+
+    // General ledger: DR bank/cash, CR receivable.
+    await postPaymentToLedger(db, { payment, account, customer: cust, userId: context.userId });
+
+
 
 
     if (plan.length) {
