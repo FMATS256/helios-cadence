@@ -49,6 +49,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-amber: var(--amber);
+  --color-violet: var(--violet);
+  --color-teal: var(--teal);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -100,6 +103,9 @@
   --success: oklch(0.65 0.16 150);
   --warning: oklch(0.75 0.16 75);
   --info: oklch(0.6 0.16 240);
+  --amber: oklch(0.55 0.13 70);
+  --violet: oklch(0.5 0.18 300);
+  --teal: oklch(0.6 0.11 195);
 
   --border: oklch(0.92 0.01 255);
   --input: oklch(0.92 0.01 255);

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { ComposeEmailDialog } from "@/components/compose-email-dialog";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,18 +152,64 @@ function classifyServiceLine(...parts: Array<string | null | undefined>): string
   return "other";
 }
 
+/* Colorful per-tab accents — every tab gets its own token color so the
+   strip reads as pressable. Only tabs with data are shown. */
+const TAB_STYLES: Record<string, string> = {
+  overview:       "text-chart-2/70 hover:bg-chart-2/10 hover:text-chart-2 data-[state=active]:bg-chart-2/15 data-[state=active]:text-chart-2 data-[state=active]:border-chart-2/40 data-[state=active]:font-semibold",
+  services:       "text-chart-4/70 hover:bg-chart-4/10 hover:text-chart-4 data-[state=active]:bg-chart-4/15 data-[state=active]:text-chart-4 data-[state=active]:border-chart-4/40 data-[state=active]:font-semibold",
+  "services-mgmt":"text-info/70 hover:bg-info/10 hover:text-info data-[state=active]:bg-info/15 data-[state=active]:text-info data-[state=active]:border-info/40 data-[state=active]:font-semibold",
+  packages:       "text-chart-1/70 hover:bg-chart-1/10 hover:text-chart-1 data-[state=active]:bg-chart-1/15 data-[state=active]:text-chart-1 data-[state=active]:border-chart-1/40 data-[state=active]:font-semibold",
+  subscriptions:  "text-chart-3/70 hover:bg-chart-3/10 hover:text-chart-3 data-[state=active]:bg-chart-3/15 data-[state=active]:text-chart-3 data-[state=active]:border-chart-3/40 data-[state=active]:font-semibold",
+  transactions:   "text-solar/80 hover:bg-solar/10 hover:text-solar data-[state=active]:bg-solar/15 data-[state=active]:text-solar data-[state=active]:border-solar/40 data-[state=active]:font-semibold",
+  invoices:       "text-amber/70 hover:bg-amber/10 hover:text-amber data-[state=active]:bg-amber/15 data-[state=active]:text-amber data-[state=active]:border-amber/40 data-[state=active]:font-semibold",
+  payments:       "text-success/70 hover:bg-success/10 hover:text-success data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:border-success/40 data-[state=active]:font-semibold",
+  quotes:         "text-violet/70 hover:bg-violet/10 hover:text-violet data-[state=active]:bg-violet/15 data-[state=active]:text-violet data-[state=active]:border-violet/40 data-[state=active]:font-semibold",
+  assets:         "text-teal/70 hover:bg-teal/10 hover:text-teal data-[state=active]:bg-teal/15 data-[state=active]:text-teal data-[state=active]:border-teal/40 data-[state=active]:font-semibold",
+  tickets:        "text-destructive/70 hover:bg-destructive/10 hover:text-destructive data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive data-[state=active]:border-destructive/40 data-[state=active]:font-semibold",
+  renewals:       "text-chart-1/70 hover:bg-chart-1/10 hover:text-chart-1 data-[state=active]:bg-chart-1/15 data-[state=active]:text-chart-1 data-[state=active]:border-chart-1/40 data-[state=active]:font-semibold",
+  contacts:       "text-chart-3/70 hover:bg-chart-3/10 hover:text-chart-3 data-[state=active]:bg-chart-3/15 data-[state=active]:text-chart-3 data-[state=active]:border-chart-3/40 data-[state=active]:font-semibold",
+  credentials:    "text-chart-2/70 hover:bg-chart-2/10 hover:text-chart-2 data-[state=active]:bg-chart-2/15 data-[state=active]:text-chart-2 data-[state=active]:border-chart-2/40 data-[state=active]:font-semibold",
+  comms:          "text-violet/70 hover:bg-violet/10 hover:text-violet data-[state=active]:bg-violet/15 data-[state=active]:text-violet data-[state=active]:border-violet/40 data-[state=active]:font-semibold",
+  timeline:       "text-teal/70 hover:bg-teal/10 hover:text-teal data-[state=active]:bg-teal/15 data-[state=active]:text-teal data-[state=active]:border-teal/40 data-[state=active]:font-semibold",
+  notes:          "text-amber/70 hover:bg-amber/10 hover:text-amber data-[state=active]:bg-amber/15 data-[state=active]:text-amber data-[state=active]:border-amber/40 data-[state=active]:font-semibold",
+};
+
+/** Ordered tab labels — the visibility map is supplied per customer. */
+function tabList(show: Record<string, boolean>) {
+  const labels: Record<string, string> = {
+    overview: "Overview", services: "Services", "services-mgmt": "Services Mgmt",
+    packages: "Packages", subscriptions: "Subscriptions", transactions: "Transactions",
+    invoices: "Invoices", payments: "Payments", quotes: "Quotes", assets: "Assets",
+    tickets: "Tickets", renewals: "Renewals", contacts: "Contacts",
+    credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes",
+  };
+  return Object.keys(labels)
+    .filter((k) => show[k])
+    .map((value) => ({ value, label: labels[value] }));
+}
+
 
 function Customer360() {
   const { accountNumber } = Route.useParams();
   const { tab } = Route.useSearch();
   const navigate = useNavigate();
   const activeTab = tab || "overview";
+  const tabBodyRef = useRef<HTMLDivElement>(null);
   const setActiveTab = (v: string) => {
+    // Keep the tab strip visually still: before swapping tabs, reserve enough
+    // page height for the current scroll depth so a shorter tab cannot shrink
+    // the page and drag the strip, and skip the router's scroll reset.
+    const list = document.querySelector('[role="tablist"]') as HTMLElement | null;
+    if (list && tabBodyRef.current) {
+      const needed = window.scrollY + window.innerHeight - list.offsetTop;
+      if (needed > 0) tabBodyRef.current.style.minHeight = `${needed}px`;
+    }
     navigate({
       to: "/customers/$accountNumber",
       params: { accountNumber },
       search: v === "overview" ? {} : { tab: v },
       replace: true,
+      resetScroll: false,
     });
   };
   const { user } = useAuth();
@@ -586,26 +632,26 @@ function Customer360() {
       </Dialog>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {subscriptions.length + services.length + packages.length > 0 && <TabsTrigger value="services">Services</TabsTrigger>}
-          {subscriptions.length > 0 && <TabsTrigger value="services-mgmt">Services Mgmt</TabsTrigger>}
-          {packages.length > 0 && <TabsTrigger value="packages">Packages</TabsTrigger>}
-          {subscriptions.length > 0 && <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>}
-          {(invoices.length + payments.length) > 0 && <TabsTrigger value="transactions">Transactions</TabsTrigger>}
-          {invoices.length > 0 && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
-          {payments.length > 0 && <TabsTrigger value="payments">Payments</TabsTrigger>}
-          {quotes.length > 0 && <TabsTrigger value="quotes">Quotes</TabsTrigger>}
-          {assets.length > 0 && <TabsTrigger value="assets">Assets</TabsTrigger>}
-          {tickets.length > 0 && <TabsTrigger value="tickets">Tickets</TabsTrigger>}
-          {renewalsAll.length > 0 && <TabsTrigger value="renewals">Renewals</TabsTrigger>}
-          {(contacts.length + branches.length) > 0 && <TabsTrigger value="contacts">Contacts</TabsTrigger>}
-          {credentials.length > 0 && <TabsTrigger value="credentials">Credentials</TabsTrigger>}
-          {communications.length > 0 && <TabsTrigger value="comms">Communications</TabsTrigger>}
-          {timeline.length > 0 && <TabsTrigger value="timeline">Timeline</TabsTrigger>}
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+        <TabsList className="flex-wrap h-auto gap-1.5 sticky top-16 z-20 shadow-sm border border-border/60">
+          {tabList({
+            overview: true, services: subscriptions.length + services.length + packages.length > 0,
+            "services-mgmt": subscriptions.length > 0, packages: packages.length > 0,
+            subscriptions: subscriptions.length > 0, transactions: (invoices.length + payments.length) > 0,
+            invoices: invoices.length > 0, payments: payments.length > 0,
+            quotes: quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
+            renewals: renewalsAll.length > 0, contacts: (contacts.length + branches.length) > 0,
+            credentials: credentials.length > 0, comms: communications.length > 0,
+            timeline: timeline.length > 0, notes: true,
+          }).map((t) => (
+            <TabsTrigger key={t.value} value={t.value} className={TAB_STYLES[t.value] ?? TAB_STYLES.overview}>
+              {t.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
+        {/* Reserve the current viewing depth so switching to a shorter tab
+            cannot shrink the page and yank the tab strip out of place. */}
+        <div ref={tabBodyRef}>
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
@@ -1315,6 +1361,7 @@ function Customer360() {
             </div>
           </CardContent></Card>
         </TabsContent>
+        </div>
       </Tabs>
     </div></PageContainer>
 
