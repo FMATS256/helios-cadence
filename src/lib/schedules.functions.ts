@@ -182,9 +182,9 @@ export const createPaymentSchedule = createServerFn({ method: "POST" })
 
     await (db.from("customer_timeline") as any).insert({
       customer_id: data.customer_id,
-      kind: "payment_schedule_created",
+      event_type: "payment_schedule_created",
       title: `Payment plan: ${data.title.trim()}`,
-      body: `${count} installment${count === 1 ? "" : "s"} of ${currency} ${base.toFixed(2)} (${frequency}) from ${data.start_date}.`,
+      description: `${count} installment${count === 1 ? "" : "s"} of ${currency} ${base.toFixed(2)} (${frequency}) from ${data.start_date}.`,
       actor_id: context.userId,
     });
 
@@ -224,9 +224,9 @@ export const recordInstallmentPayment = createServerFn({ method: "POST" })
 
     await (db.from("customer_timeline") as any).insert({
       customer_id: inst.customer_id,
-      kind: "installment_paid",
+      event_type: "installment_paid",
       title: `Installment ${inst.sequence} ${settled ? "settled" : "part paid"}`,
-      body: `${inst.currency} ${amount.toFixed(2)} received against the installment due ${inst.due_date}.`,
+      description: `${inst.currency} ${amount.toFixed(2)} received against the installment due ${inst.due_date}.`,
       actor_id: context.userId,
     });
 
@@ -249,9 +249,9 @@ export const cancelPaymentSchedule = createServerFn({ method: "POST" })
       .update({ status: "cancelled" }).eq("schedule_id", data.schedule_id).neq("status", "paid");
     await (db.from("customer_timeline") as any).insert({
       customer_id: sched.customer_id,
-      kind: "payment_schedule_cancelled",
+      event_type: "payment_schedule_cancelled",
       title: `Payment plan cancelled: ${sched.title}`,
-      body: data.reason?.trim() || null,
+      description: data.reason?.trim() || null,
       actor_id: context.userId,
     });
     return { ok: true };
