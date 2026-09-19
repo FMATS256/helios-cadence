@@ -78,6 +78,8 @@ import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/p
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/public/hooks/starlink-tick'
+import { Route as ApiPublicPortalAccountRouteImport } from './routes/api/public/portal/account'
+import { Route as ApiPublicPortalPaymentStatusRouteImport } from './routes/api/public/portal/payment-status'
 import { Route as ApiPublicPortalPaymentsRouteImport } from './routes/api/public/portal/payments'
 import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
 import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.$workspaceKey.activity'
@@ -88,6 +90,7 @@ import { Route as CSlugWorkspaceKeyTeamRouteImport } from './routes/c.$slug.$wor
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as ApiPublicPortalPaymentsExternalIdRouteImport } from './routes/api/public/portal/payments.$externalId'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -446,6 +449,17 @@ const ApiPublicHooksStarlinkTickRoute =
     path: '/api/public/hooks/starlink-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPortalAccountRoute = ApiPublicPortalAccountRouteImport.update({
+  id: '/api/public/portal/account',
+  path: '/api/public/portal/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPortalPaymentStatusRoute =
+  ApiPublicPortalPaymentStatusRouteImport.update({
+    id: '/api/public/portal/payment-status',
+    path: '/api/public/portal/payment-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPortalPaymentsRoute = ApiPublicPortalPaymentsRouteImport.update({
   id: '/api/public/portal/payments',
   path: '/api/public/portal/payments',
@@ -500,6 +514,12 @@ const LovableEmailTransactionalPreviewRoute =
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPortalPaymentsExternalIdRoute =
+  ApiPublicPortalPaymentsExternalIdRouteImport.update({
+    id: '/$externalId',
+    path: '/$externalId',
+    getParentRoute: () => ApiPublicPortalPaymentsRoute,
   } as any)
 const CSlugWorkspaceKeyServersServerIdRoute =
   CSlugWorkspaceKeyServersServerIdRouteImport.update({
@@ -578,7 +598,9 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
-  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRoute
+  '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
+  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -588,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRoutesByTo {
@@ -659,7 +682,9 @@ export interface FileRoutesByTo {
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
-  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRoute
+  '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
+  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -669,6 +694,7 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRoutesById {
@@ -742,7 +768,9 @@ export interface FileRoutesById {
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
-  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRoute
+  '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
+  '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -752,6 +780,7 @@ export interface FileRoutesById {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
 export interface FileRouteTypes {
@@ -826,6 +855,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
+    | '/api/public/portal/account'
+    | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
@@ -836,6 +867,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey/'
+    | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -907,6 +939,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
+    | '/api/public/portal/account'
+    | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
@@ -917,6 +951,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey'
+    | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   id:
     | '__root__'
@@ -989,6 +1024,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/provisioning-retry'
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
+    | '/api/public/portal/account'
+    | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
@@ -999,6 +1036,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey/'
+    | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesById: FileRoutesById
 }
@@ -1072,7 +1110,9 @@ export interface RootRouteChildren {
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
   ApiPublicHooksStarlinkTickRoute: typeof ApiPublicHooksStarlinkTickRoute
-  ApiPublicPortalPaymentsRoute: typeof ApiPublicPortalPaymentsRoute
+  ApiPublicPortalAccountRoute: typeof ApiPublicPortalAccountRoute
+  ApiPublicPortalPaymentStatusRoute: typeof ApiPublicPortalPaymentStatusRoute
+  ApiPublicPortalPaymentsRoute: typeof ApiPublicPortalPaymentsRouteWithChildren
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1563,6 +1603,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksStarlinkTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/portal/account': {
+      id: '/api/public/portal/account'
+      path: '/api/public/portal/account'
+      fullPath: '/api/public/portal/account'
+      preLoaderRoute: typeof ApiPublicPortalAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/portal/payment-status': {
+      id: '/api/public/portal/payment-status'
+      path: '/api/public/portal/payment-status'
+      fullPath: '/api/public/portal/payment-status'
+      preLoaderRoute: typeof ApiPublicPortalPaymentStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/portal/payments': {
       id: '/api/public/portal/payments'
       path: '/api/public/portal/payments'
@@ -1633,6 +1687,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/portal/payments/$externalId': {
+      id: '/api/public/portal/payments/$externalId'
+      path: '/$externalId'
+      fullPath: '/api/public/portal/payments/$externalId'
+      preLoaderRoute: typeof ApiPublicPortalPaymentsExternalIdRouteImport
+      parentRoute: typeof ApiPublicPortalPaymentsRoute
+    }
     '/c/$slug/$workspaceKey/servers/$serverId': {
       id: '/c/$slug/$workspaceKey/servers/$serverId'
       path: '/$serverId'
@@ -1678,6 +1739,21 @@ const CSlugWorkspaceKeyRouteChildren: CSlugWorkspaceKeyRouteChildren = {
 
 const CSlugWorkspaceKeyRouteWithChildren =
   CSlugWorkspaceKeyRoute._addFileChildren(CSlugWorkspaceKeyRouteChildren)
+
+interface ApiPublicPortalPaymentsRouteChildren {
+  ApiPublicPortalPaymentsExternalIdRoute: typeof ApiPublicPortalPaymentsExternalIdRoute
+}
+
+const ApiPublicPortalPaymentsRouteChildren: ApiPublicPortalPaymentsRouteChildren =
+  {
+    ApiPublicPortalPaymentsExternalIdRoute:
+      ApiPublicPortalPaymentsExternalIdRoute,
+  }
+
+const ApiPublicPortalPaymentsRouteWithChildren =
+  ApiPublicPortalPaymentsRoute._addFileChildren(
+    ApiPublicPortalPaymentsRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1750,7 +1826,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
   ApiPublicHooksStarlinkTickRoute: ApiPublicHooksStarlinkTickRoute,
-  ApiPublicPortalPaymentsRoute: ApiPublicPortalPaymentsRoute,
+  ApiPublicPortalAccountRoute: ApiPublicPortalAccountRoute,
+  ApiPublicPortalPaymentStatusRoute: ApiPublicPortalPaymentStatusRoute,
+  ApiPublicPortalPaymentsRoute: ApiPublicPortalPaymentsRouteWithChildren,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
