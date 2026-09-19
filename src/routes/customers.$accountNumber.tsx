@@ -1675,6 +1675,7 @@ function IspHeroPane(props: {
             <DropdownMenuItem onClick={() => setOpen("ticket")}><LifeBuoy className="h-4 w-4 mr-2" />New Ticket</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpen("comm")}><Mail className="h-4 w-4 mr-2" />Log Communication</DropdownMenuItem>
             <DropdownMenuItem onClick={onSendReminder}><Bell className="h-4 w-4 mr-2" />Send Payment Reminder</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen("credit")}><DollarSign className="h-4 w-4 mr-2 text-teal-600" />Apply Credit (notify Billing)</DropdownMenuItem>
             <DropdownMenuSeparator />
             
             <DropdownMenuItem onClick={() => setWs("billing")}><CreditCard className="h-4 w-4 mr-2" />Billing</DropdownMenuItem>
