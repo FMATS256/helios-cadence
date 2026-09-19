@@ -12,7 +12,9 @@ import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package }
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
 import { PROVISION_FIELDS, KIND_LABEL, kindForCategory } from "@/lib/service-provision.shared";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
-import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
+import {
+  getPaymentWorkspace, recordCustomerPayment, getCustomerBilling, requestCreditApplication,
+} from "@/lib/customer360.functions";
 import {
   createQuoteForCustomer, createTicketForCustomer, logCommunication,
   createInvoiceForCustomer, listAssignableStaff,
@@ -673,6 +675,114 @@ export function LogCommDialog({ ctx, onClose }: { ctx: ClientContext; onClose: (
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button disabled={mut.isPending} onClick={() => mut.mutate()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
             {mut.isPending ? "Logging…" : "Log communication"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ======================= Apply Credit (AM → Billing) ======================= */
+export function ApplyCreditDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+  const refresh = useRefresh(ctx.accountNumber);
+  const billingFn = useServerFn(getCustomerBilling);
+  const requestFn = useServerFn(requestCreditApplication);
+  const { data: billing } = useQuery({
+    queryKey: ["customer-credit-request", ctx.accountNumber],
+    queryFn: async () => (await billingFn({ data: { customer_id: ctx.customerId } })) as any,
+  });
+
+  const credits: any[] = billing?.credits ?? [];
+  const currency = String(credits[0]?.currency || "USD");
+  const available = Math.round(credits.reduce((s, c) => s + Number(c.amount || 0), 0) * 100) / 100;
+  const services: any[] = billing?.recurring ?? [];
+
+  const [disposition, setDisposition] = useState<"new_invoice" | "service">("new_invoice");
+  const [serviceKey, setServiceKey] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+
+  const chosen = services.find((s) => s.id === serviceKey);
+  const mut = useMutation({
+    mutationFn: async () => requestFn({ data: {
+      customer_id: ctx.customerId,
+      amount: Number(amount || available),
+      currency,
+      disposition,
+      service_id: disposition === "service" ? chosen?.id : undefined,
+      service_label: disposition === "service" ? chosen?.label : undefined,
+      note: note || undefined,
+    } }),
+    onSuccess: () => { toast.success("Billing has been notified"); refresh(); onClose(); },
+    onError: (e: any) => toast.error(e?.message || "Could not send the request"),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Apply account credit · {ctx.companyName}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-sm">
+            <span className="font-semibold text-teal-700 dark:text-teal-300">
+              Credit on account: {currency} {available.toFixed(2)}
+            </span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Billing applies the money. This sends them your instruction.
+            </p>
+          </div>
+
+          <div>
+            <Label>What should billing do?</Label>
+            <Select value={disposition} onValueChange={(v) => setDisposition(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new_invoice">Record it on a new invoice</SelectItem>
+                <SelectItem value="service">Pay for a specific service</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {disposition === "service" && (
+            <div>
+              <Label>Service to pay for</Label>
+              <Select value={serviceKey} onValueChange={setServiceKey}>
+                <SelectTrigger><SelectValue placeholder={services.length ? "Choose a service" : "No active services"} /></SelectTrigger>
+                <SelectContent>
+                  {services.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label} · {s.currency} {Number(s.amount || 0).toFixed(2)} / {s.cycle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <Label>Amount to apply</Label>
+            <Input
+              type="number" step="0.01" min="0"
+              value={amount}
+              placeholder={available.toFixed(2)}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label>Note for billing</Label>
+            <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why this credit should be applied now" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            disabled={mut.isPending || available <= 0 || (disposition === "service" && !chosen)}
+            onClick={() => mut.mutate()}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            {mut.isPending ? "Notifying billing…" : "Notify Billing"}
           </Button>
         </DialogFooter>
       </DialogContent>

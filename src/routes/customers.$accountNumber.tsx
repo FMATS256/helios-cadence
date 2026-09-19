@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog,
+  AddServiceDialog, ApplyCreditDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
@@ -1598,7 +1598,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech">(null);
+  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit">(null);
   // Separation of duties: invoices are raised by billing from requests, so
   // every user — including billing and admins — requests one from here.
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
@@ -1675,6 +1675,7 @@ function IspHeroPane(props: {
             <DropdownMenuItem onClick={() => setOpen("ticket")}><LifeBuoy className="h-4 w-4 mr-2" />New Ticket</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpen("comm")}><Mail className="h-4 w-4 mr-2" />Log Communication</DropdownMenuItem>
             <DropdownMenuItem onClick={onSendReminder}><Bell className="h-4 w-4 mr-2" />Send Payment Reminder</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOpen("credit")}><DollarSign className="h-4 w-4 mr-2 text-teal-600" />Apply Credit (notify Billing)</DropdownMenuItem>
             <DropdownMenuSeparator />
             
             <DropdownMenuItem onClick={() => setWs("billing")}><CreditCard className="h-4 w-4 mr-2" />Billing</DropdownMenuItem>
@@ -1719,6 +1720,7 @@ function IspHeroPane(props: {
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "tech"    && <AssignTechDialog    ctx={ctx} onClose={() => setOpen(null)} defaults={{ service_type: view.cloudServers.length ? "cloud" : view.voip.length ? "voip" : "general" }} />}
+      {open === "credit"  && <ApplyCreditDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       <CustomerTasksCard ctx={ctx} />
 
       {ws && <Customer360Workspace kind={ws} ctx={wsCtx} onClose={() => setWs(null)} />}

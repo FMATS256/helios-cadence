@@ -122,8 +122,9 @@ export const Route = createFileRoute("/api/public/portal/payments")({
           notes: `Portal payment ${externalId} received (gateway-confirmed)`,
         } as any);
 
-        // The gateway already confirmed the money, so record it for real:
-        // receipt number, invoice allocation, bank deposit, ledger, timeline.
+        // The gateway already confirmed the money, so receipt it and bank it —
+        // but hold it as account credit. The account manager tells billing
+        // whether to invoice it or apply it to a specific service.
         let recorded: Awaited<ReturnType<typeof import("@/lib/portal-record.server").recordPortalPayment>> | null = null;
         try {
           const { recordPortalPayment } = await import("@/lib/portal-record.server");
@@ -144,23 +145,19 @@ export const Route = createFileRoute("/api/public/portal/payments")({
           );
         }
 
-        if (recorded) {
-          await notifyBilling(
-            sb,
-            "Portal payment recorded",
-            `${row.currency} ${amount.toFixed(2)} received from ${customer.company_name} (${customer.account_number}) via the payments portal · receipt ${recorded.receipt_number ?? "—"}.`,
-          );
-        }
-
         const { data: latest } = await sb.from("payment_submissions").select("*").eq("id", row.id).maybeSingle();
 
         return json({
           ok: true,
           accepted: true,
           recorded: Boolean(recorded),
+          /** pending_instruction = receipted, sitting on the account as credit */
+          disposition: recorded ? "account_credit" : "awaiting_billing",
           receipt_number: recorded?.receipt_number ?? null,
           payment: publicSubmission(latest ?? row),
-          applied_to: recorded?.allocations ?? [],
+          applied_to: [],
+          held_as_credit: recorded?.held_as_credit ?? 0,
+          credit_balance: recorded?.credit_balance ?? 0,
           banked_into: recorded?.account ?? null,
           balance: { open_invoices: await openInvoices(sb, customer.id) },
         }, 201);
