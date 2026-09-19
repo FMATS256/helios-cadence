@@ -114,31 +114,49 @@ export const Route = createFileRoute("/api/public/portal/payments")({
 
         await sb.from("payment_submission_events").insert({
           submission_id: row.id, action: "submitted",
-          notes: `Portal payment ${externalId} received for verification`,
+          notes: `Portal payment ${externalId} received (gateway-confirmed)`,
         } as any);
 
-        await notifyBilling(
-          sb,
-          "Portal payment awaiting verification",
-          `${row.currency} ${amount.toFixed(2)} received from ${customer.company_name} (${customer.account_number}) via the payments portal.`,
-        );
-
+        // The gateway already confirmed the money, so record it for real:
+        // receipt number, invoice allocation, bank deposit, ledger, timeline.
+        let recorded: Awaited<ReturnType<typeof import("@/lib/portal-record.server").recordPortalPayment>> | null = null;
         try {
-          const { recordCustomerEvent } = await import("@/lib/customer-events.server");
-          await recordCustomerEvent(sb, {
-            customer_id: customer.id, account_number: customer.account_number,
-            event_type: "payment_submitted",
-            title: `Portal payment received: ${row.currency} ${amount.toFixed(2)}`,
-            description: `Reference ${reference} · awaiting billing verification`,
-            module: "billing", entity_type: "payment_submission", entity_id: row.id,
-            new_value: { amount, method: row.method, external_id: externalId },
+          const { recordPortalPayment } = await import("@/lib/portal-record.server");
+          const { data: full } = await sb.from("customers")
+            .select("id,account_number,company_name,primary_email").eq("id", customer.id).maybeSingle();
+          recorded = await recordPortalPayment(sb, {
+            submission: row,
+            customer: full ?? (customer as any),
+            account: pick,
+            externalId,
+            gateway: body.gateway ?? null,
           });
-        } catch { /* timeline entry is best-effort */ }
+        } catch (e: any) {
+          await notifyBilling(
+            sb,
+            "Portal payment needs manual recording",
+            `${row.currency} ${amount.toFixed(2)} from ${customer.company_name} (${customer.account_number}) arrived but could not be recorded automatically: ${e?.message ?? e}`,
+          );
+        }
+
+        if (recorded) {
+          await notifyBilling(
+            sb,
+            "Portal payment recorded",
+            `${row.currency} ${amount.toFixed(2)} received from ${customer.company_name} (${customer.account_number}) via the payments portal · receipt ${recorded.receipt_number ?? "—"}.`,
+          );
+        }
+
+        const { data: latest } = await sb.from("payment_submissions").select("*").eq("id", row.id).maybeSingle();
 
         return json({
           ok: true,
           accepted: true,
-          payment: publicSubmission(row),
+          recorded: Boolean(recorded),
+          receipt_number: recorded?.receipt_number ?? null,
+          payment: publicSubmission(latest ?? row),
+          applied_to: recorded?.allocations ?? [],
+          banked_into: recorded?.account ?? null,
           balance: { open_invoices: await openInvoices(sb, customer.id) },
         }, 201);
       },
