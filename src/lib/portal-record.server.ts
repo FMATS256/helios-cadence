@@ -50,7 +50,7 @@ async function postToLedger(db: any, payment: any, account: any, customer: any) 
       source_id: payment.id,
       source_ref: payment.receipt_number ?? payment.reference ?? null,
       entry_date: String(payment.paid_at).slice(0, 10),
-      memo: `Portal payment received · ${customer.company_name ?? ""} · ${account.name}`.trim(),
+      memo: `Portal payment held as account credit · ${customer.company_name ?? ""} · ${account.name}`.trim(),
       currency,
       fx_rate: rates[currency] ?? 1,
       customer_id: customer.id,
@@ -60,7 +60,8 @@ async function postToLedger(db: any, payment: any, account: any, customer: any) 
           debit: usd, credit: 0,
           description: `Banked into ${account.name}`, customer_id: customer.id,
         },
-        { account_code: "1100", debit: 0, credit: usd, description: "Receivable settled", customer_id: customer.id },
+        // Unapplied money is a liability to the customer, not settled revenue.
+        { account_code: "2100", debit: 0, credit: usd, description: "Customer credit on account", customer_id: customer.id },
       ],
     }, null);
   } catch { /* ledger posting is best-effort; the receipt stands */ }
