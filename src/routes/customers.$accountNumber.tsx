@@ -1598,7 +1598,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech">(null);
+  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit">(null);
   // Separation of duties: invoices are raised by billing from requests, so
   // every user — including billing and admins — requests one from here.
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
