@@ -12,7 +12,9 @@ import { Plus, Trash2, CreditCard, Receipt, FileCheck, LifeBuoy, Mail, Package }
 import { listCatalog, assignServices } from "@/lib/catalog.functions";
 import { PROVISION_FIELDS, KIND_LABEL, kindForCategory } from "@/lib/service-provision.shared";
 import { createPaymentRecord, generateInvoiceForSubscription } from "@/lib/ops.functions";
-import { getPaymentWorkspace, recordCustomerPayment } from "@/lib/customer360.functions";
+import {
+  getPaymentWorkspace, recordCustomerPayment, getCustomerBilling, requestCreditApplication,
+} from "@/lib/customer360.functions";
 import {
   createQuoteForCustomer, createTicketForCustomer, logCommunication,
   createInvoiceForCustomer, listAssignableStaff,
