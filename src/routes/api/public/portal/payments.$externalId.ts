@@ -13,9 +13,12 @@ export const Route = createFileRoute("/api/public/portal/payments/$externalId")(
         if (denied) return denied;
 
         const sb = await db();
-        const { data, error } = await sb.from("payment_submissions")
-          .select("*")
-          .or(`external_id.eq.${params.externalId},id.eq.${params.externalId}`)
+        const key = params.externalId;
+        // Accept either our own record id (a UUID) or the portal's transaction id.
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
+        const { data, error } = await (isUuid
+          ? sb.from("payment_submissions").select("*").eq("id", key)
+          : sb.from("payment_submissions").select("*").eq("external_id", key))
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
