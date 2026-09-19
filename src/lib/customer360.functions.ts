@@ -497,6 +497,83 @@ export const addCustomerCredit = createServerFn({ method: "POST" })
     return row;
   });
 
+/**
+ * Account manager → billing: "this credit sitting on the account should be
+ * invoiced" or "put it against this service". The AM never moves the money;
+ * billing does, so separation of duties is untouched.
+ */
+export const requestCreditApplication = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    customer_id: string;
+    amount: number;
+    currency?: string;
+    disposition: "new_invoice" | "service";
+    service_label?: string;
+    service_id?: string;
+    note?: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const amount = Number(data.amount);
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter the amount of credit to apply");
+    if (data.disposition === "service" && !data.service_label?.trim()) {
+      throw new Error("Choose the service the credit should pay for");
+    }
+    const db = await admin();
+    const cust = await loadCustomer(db, data.customer_id);
+    const currency = data.currency || cust.currency || "USD";
+    const available = await creditBalanceOf(db, cust.id);
+    if (amount > available + 0.005) {
+      throw new Error(`Only ${currency} ${available.toFixed(2)} of credit is available on this account`);
+    }
+
+    const instruction = data.disposition === "new_invoice"
+      ? "Raise a new invoice and settle it from the account credit"
+      : `Apply the credit to: ${data.service_label!.trim()}`;
+    const body = `${cust.company_name} (${cust.account_number}) · ${currency} ${amount.toFixed(2)} credit on account. ${instruction}.${data.note?.trim() ? ` Note: ${data.note.trim()}` : ""}`;
+
+    // Billing sees it as a request in their notifications and on the customer.
+    const { data: staff } = await db.from("user_roles").select("user_id")
+      .in("role", ["finance", "operations_manager", "master_admin"] as any);
+    const ids = Array.from(new Set((staff ?? []).map((r: any) => r.user_id)));
+    if (ids.length) {
+      await db.from("notifications").insert(
+        ids.map((id) => ({
+          user_id: id,
+          kind: "credit_application_request",
+          title: "Credit application requested",
+          body,
+          link: `/customers/${cust.account_number}`,
+        })) as any,
+      );
+    }
+
+    await db.from("customer_notes").insert({
+      customer_id: cust.id, account_number: cust.account_number,
+      body: `Credit application requested — ${body}`,
+      note_type: "billing", pinned: true, author_id: context.userId,
+    } as any);
+
+    await recordCustomerEvent(db, {
+      customer_id: cust.id, account_number: cust.account_number,
+      event_type: "credit_application_requested",
+      title: `Credit application requested: ${currency} ${amount.toFixed(2)}`,
+      description: instruction,
+      module: "billing", entity_type: "customer_credit", entity_id: null,
+      new_value: {
+        amount, currency, disposition: data.disposition,
+        service_label: data.service_label?.trim() || null,
+        service_id: data.service_id || null, note: data.note?.trim() || null,
+      },
+      actor_id: context.userId, major: true,
+    });
+
+    return { ok: true, amount, currency, instruction, credit_available: available };
+  });
+
+
+
 export const addBillingNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { customer_id: string; body: string; pinned?: boolean }) => input)
