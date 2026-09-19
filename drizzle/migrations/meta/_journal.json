@@ -36,6 +36,13 @@
       "when": 1789804565968,
       "tag": "0004_portal_payment_api_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789819400972,
+      "tag": "0005_fix_customer_account_number_generator",
+      "breakpoints": true
     }
   ]
 }
