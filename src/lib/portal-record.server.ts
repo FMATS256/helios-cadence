@@ -1,12 +1,12 @@
 /**
- * Records a gateway-confirmed portal payment end to end.
+ * Records a gateway-confirmed portal payment as ACCOUNT CREDIT.
  *
- * The IMT Payments Portal only posts money the gateway already confirmed, so
- * there is nothing left for billing to verify: we issue the official receipt,
- * apply it to the customer's open invoices (oldest first), bank it into the
- * chosen account, post the double entry to the general ledger and write the
- * Customer 360 timeline + audit trail. Billing still sees the payment in the
- * submissions list, already marked approved with its receipt number.
+ * The portal only posts money the gateway already confirmed, so we receipt it,
+ * bank it into the chosen account and post the double entry — but the money is
+ * deliberately NOT applied to any invoice. It sits on the customer's account as
+ * credit until the account manager tells billing what it is for (a new invoice
+ * or a specific service). Billing then applies it, which keeps the decision
+ * with the people allowed to make it.
  */
 import { recordAudit, recordCustomerEvent } from "./customer-events.server";
 
