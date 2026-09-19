@@ -71,8 +71,42 @@ export type PortalRecordResult = {
   payment: any;
   receipt_number: string | null;
   account: { id: string; name: string; kind: string } | null;
-  allocations: Array<{ invoice_id: string; invoice_number?: string; amount: number }>;
+  /** Money is parked on the account, not applied to invoices. */
+  held_as_credit: number;
+  credit_balance: number;
+  open_invoices: Array<{ invoice_number: string; balance: number }>;
 };
+
+/** Tell the account manager (and billing) that credit is waiting for a decision. */
+async function notifyCreditHeld(
+  db: any,
+  cust: { id: string; account_number: string; company_name?: string | null },
+  amount: number,
+  currency: string,
+  receipt: string | null,
+) {
+  try {
+    const [{ data: customerRow }, { data: staff }] = await Promise.all([
+      db.from("customers").select("account_manager_id").eq("id", cust.id).maybeSingle(),
+      db.from("user_roles").select("user_id")
+        .in("role", ["finance", "operations_manager", "master_admin"] as any),
+    ]);
+    const ids = new Set<string>((staff ?? []).map((r: any) => r.user_id));
+    if (customerRow?.account_manager_id) ids.add(customerRow.account_manager_id);
+    if (!ids.size) return;
+    await db.from("notifications").insert(
+      Array.from(ids).map((id) => ({
+        user_id: id,
+        kind: "portal_credit",
+        title: "Portal payment held as account credit",
+        body: `${currency} ${amount.toFixed(2)} from ${cust.company_name ?? cust.account_number} (receipt ${receipt ?? "—"}) is on account. The account manager must tell billing whether to invoice it or apply it to a service.`,
+        link: `/customers/${cust.account_number}`,
+      })) as any,
+    );
+  } catch (e) {
+    console.error("[notifyCreditHeld]", e);
+  }
+}
 
 export async function recordPortalPayment(
   db: any,
@@ -88,23 +122,9 @@ export async function recordPortalPayment(
   const amount = round(n(sub.amount));
   const currency = String(sub.currency || "USD").toUpperCase();
 
-  // Oldest-first allocation, with the targeted invoice taking priority.
-  const open = await openInvoicesFor(db, cust.id);
-  const target = sub.invoice_id;
-  const ordered = target ? [...open.filter((i: any) => i.id === target), ...open.filter((i: any) => i.id !== target)] : open;
-  const plan: Array<{ invoice_id: string; invoice_number?: string; amount: number }> = [];
-  let left = amount;
-  for (const inv of ordered as any[]) {
-    if (left <= 0.005) break;
-    const take = round(Math.min(left, inv.balance));
-    if (take > 0.005) {
-      plan.push({ invoice_id: inv.id, invoice_number: inv.invoice_number, amount: take });
-      left = round(left - take);
-    }
-  }
-
   const paidAtIso = new Date(`${String(sub.payment_date).slice(0, 10)}T12:00:00Z`).toISOString();
 
+  // Receipt the money, but leave it unapplied: no invoice link, no allocation.
   const { data: payment, error: payErr } = await db.from("payments").insert({
     customer_id: cust.id,
     account_number: cust.account_number,
@@ -114,8 +134,8 @@ export async function recordPortalPayment(
     reference: sub.reference || externalId,
     status: "received",
     paid_at: paidAtIso,
-    notes: sub.notes || null,
-    invoice_id: plan.length === 1 ? plan[0].invoice_id : sub.invoice_id,
+    notes: [sub.notes, "Held as account credit — awaiting billing instruction"].filter(Boolean).join(" · "),
+    invoice_id: null,
     cash_account_id: account?.id ?? null,
   } as any).select("*").single();
   if (payErr) throw new Error(payErr.message);
@@ -129,32 +149,27 @@ export async function recordPortalPayment(
       occurred_at: paidAtIso,
       payment_id: payment.id,
       reference: payment.receipt_number || payment.reference || null,
-      notes: `Portal payment · ${cust.company_name} (${cust.account_number})`,
+      notes: `Portal payment (account credit) · ${cust.company_name} (${cust.account_number})`,
     } as any);
     await postToLedger(db, payment, account, cust);
   }
 
-  if (plan.length) {
-    await db.from("payment_allocations").insert(
-      plan.map((a) => ({ payment_id: payment.id, invoice_id: a.invoice_id, amount: a.amount })) as any,
-    );
-  }
-
-  // Nothing outstanding any more → release suspended services.
-  let resumed: any = {};
-  try {
-    const stillOpen = await openInvoicesFor(db, cust.id);
-    if (!stillOpen.length) {
-      const { resumeSuspendedForCustomer } = await import("./customer360.server");
-      resumed = (await resumeSuspendedForCustomer(db, cust.id)) ?? {};
-    }
-  } catch { /* best-effort */ }
+  // The money now sits on the customer's account as credit.
+  await db.from("customer_credits").insert({
+    customer_id: cust.id,
+    account_number: cust.account_number,
+    amount,
+    currency,
+    kind: "advance",
+    source_payment_id: payment.id,
+    note: `Portal payment ${externalId} · receipt ${payment.receipt_number ?? "—"} · awaiting billing instruction`,
+  } as any);
 
   const now = new Date().toISOString();
   await db.from("payment_submissions").update({
     status: "approved",
     reviewed_at: now,
-    review_notes: `Auto-recorded: payment confirmed by ${args.gateway || "the payments portal"} gateway`,
+    review_notes: `Gateway-confirmed by ${args.gateway || "the payments portal"} · receipted and held as account credit (not applied to any invoice)`,
     payment_id: payment.id,
     receipt_number: payment.receipt_number,
     cash_account_id: account?.id ?? null,
@@ -163,36 +178,38 @@ export async function recordPortalPayment(
   await db.from("payment_submission_events").insert({
     submission_id: sub.id,
     action: "approved",
-    notes: `Gateway-confirmed portal payment auto-recorded · receipt ${payment.receipt_number ?? "—"}`,
+    notes: `Portal payment receipted as account credit · receipt ${payment.receipt_number ?? "—"}`,
   } as any);
 
   await recordCustomerEvent(db, {
     customer_id: cust.id,
     account_number: cust.account_number,
-    event_type: "payment_recorded",
-    title: `Portal payment received: ${currency} ${amount.toFixed(2)}`,
-    description: `Receipt ${payment.receipt_number ?? "—"}${plan.length ? ` · applied to ${plan.map((p) => p.invoice_number).join(", ")}` : " · held on account"}`,
+    event_type: "credit_added",
+    title: `Portal payment held as credit: ${currency} ${amount.toFixed(2)}`,
+    description: `Receipt ${payment.receipt_number ?? "—"} · on account until billing is told to invoice it or apply it to a service`,
     module: "billing",
     entity_type: "payment",
     entity_id: payment.id,
     new_value: {
       amount, currency, receipt_number: payment.receipt_number,
-      external_id: externalId, allocations: plan, account: account?.name ?? null, resumed,
+      external_id: externalId, account: account?.name ?? null, held_as_credit: amount,
     },
     major: true,
   });
 
   await recordAudit(db, {
-    action: "payment.portal_recorded",
+    action: "payment.portal_credited",
     entity_type: "payment",
     entity_id: payment.id,
     account_number: cust.account_number,
     module: "billing",
     new_value: {
       amount, currency, receipt_number: payment.receipt_number,
-      external_id: externalId, allocations: plan, cash_account_id: account?.id ?? null,
+      external_id: externalId, cash_account_id: account?.id ?? null, applied: false,
     },
   });
+
+  await notifyCreditHeld(db, cust, amount, currency, payment.receipt_number ?? null);
 
   // Official receipt to the customer.
   if (cust.primary_email) {
@@ -210,10 +227,20 @@ export async function recordPortalPayment(
     } catch { /* email failure must not roll back the payment */ }
   }
 
+  let creditBalance = amount;
+  try {
+    const { data: credits } = await db.from("customer_credits").select("amount").eq("customer_id", cust.id);
+    creditBalance = round((credits ?? []).reduce((s: number, c: any) => s + n(c.amount), 0));
+  } catch { /* fall back to this payment's amount */ }
+
+  const open = await openInvoicesFor(db, cust.id);
+
   return {
     payment,
     receipt_number: payment.receipt_number ?? null,
     account: account ? { id: account.id, name: account.name, kind: account.kind } : null,
-    allocations: plan,
+    held_as_credit: amount,
+    credit_balance: creditBalance,
+    open_invoices: open.map((i: any) => ({ invoice_number: i.invoice_number, balance: i.balance })),
   };
 }
