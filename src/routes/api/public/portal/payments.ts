@@ -82,9 +82,14 @@ export const Route = createFileRoute("/api/public/portal/payments")({
         const { data: accounts } = await sb.from("cash_accounts")
           .select("id,name,kind,is_default,is_active").eq("is_active", true);
         const method = String(body.method ?? "mobile_money").trim().toLowerCase();
-        const pick = (accounts ?? []).find((a: any) =>
-          method.includes("mobile") || method.includes("ecocash") ? a.kind === "mobile_money" : false,
-        ) ?? (accounts ?? []).find((a: any) => a.is_default) ?? (accounts ?? [])[0] ?? null;
+        const wantsMobile = method.includes("mobile") || method.includes("ecocash") || method.includes("innbucks");
+        const wantsBank = method.includes("bank") || method.includes("transfer") || method.includes("card");
+        const pick = (accounts ?? []).find((a: any) => {
+          const kind = String(a.kind ?? "").toLowerCase();
+          if (wantsMobile) return kind.startsWith("mobile");
+          if (wantsBank) return kind === "bank";
+          return kind === "cash";
+        }) ?? (accounts ?? []).find((a: any) => a.is_default) ?? (accounts ?? [])[0] ?? null;
 
         const reference = String(body.reference ?? externalId).trim();
         const noteParts = [
