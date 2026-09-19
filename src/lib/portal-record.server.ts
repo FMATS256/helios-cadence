@@ -22,7 +22,7 @@ async function openInvoicesFor(db: any, customerId: string) {
     db.from("payment_allocations").select("invoice_id, amount"),
   ]);
   const paid: Record<string, number> = {};
-  for (const a of invR.data ? (allocR.data ?? []) : []) {
+  for (const a of allocR.data ?? []) {
     paid[a.invoice_id] = (paid[a.invoice_id] || 0) + n(a.amount);
   }
   return (invR.data ?? []).map((i: any) => ({
