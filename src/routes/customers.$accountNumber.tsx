@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog,
+  AddServiceDialog, ApplyCreditDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
