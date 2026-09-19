@@ -51,7 +51,7 @@ export const Route = createFileRoute("/api/public/portal/payment-status")({
         }
 
         const { data: row, error } = await sb.from("payment_submissions")
-          .update(patch).eq("id", sub.id).select("*").single();
+          .update(patch as any).eq("id", sub.id).select("*").single();
         if (error) return fail(500, error.message);
 
         await sb.from("payment_submission_events").insert({
