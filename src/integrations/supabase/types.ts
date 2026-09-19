@@ -3637,6 +3637,9 @@ export type Database = {
           currency: string
           customer_id: string
           duplicate_flag: Json | null
+          external_id: string | null
+          external_payload: Json | null
+          external_status: string | null
           id: string
           invoice_id: string | null
           method: string
@@ -3650,6 +3653,7 @@ export type Database = {
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          source: string
           status: string
           submitted_at: string
           submitted_by: string | null
@@ -3663,6 +3667,9 @@ export type Database = {
           currency?: string
           customer_id: string
           duplicate_flag?: Json | null
+          external_id?: string | null
+          external_payload?: Json | null
+          external_status?: string | null
           id?: string
           invoice_id?: string | null
           method?: string
@@ -3676,6 +3683,7 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source?: string
           status?: string
           submitted_at?: string
           submitted_by?: string | null
@@ -3689,6 +3697,9 @@ export type Database = {
           currency?: string
           customer_id?: string
           duplicate_flag?: Json | null
+          external_id?: string | null
+          external_payload?: Json | null
+          external_status?: string | null
           id?: string
           invoice_id?: string | null
           method?: string
@@ -3702,6 +3713,7 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source?: string
           status?: string
           submitted_at?: string
           submitted_by?: string | null
