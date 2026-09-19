@@ -1720,6 +1720,7 @@ function IspHeroPane(props: {
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "tech"    && <AssignTechDialog    ctx={ctx} onClose={() => setOpen(null)} defaults={{ service_type: view.cloudServers.length ? "cloud" : view.voip.length ? "voip" : "general" }} />}
+      {open === "credit"  && <ApplyCreditDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       <CustomerTasksCard ctx={ctx} />
 
       {ws && <Customer360Workspace kind={ws} ctx={wsCtx} onClose={() => setWs(null)} />}
