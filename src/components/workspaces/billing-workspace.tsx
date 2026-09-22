@@ -7,6 +7,7 @@ import {
   issueInvoice, voidInvoice, requestInvoice, reviewInvoiceRequest, runRecurringBilling,
 } from "@/lib/billing.functions";
 import { emailInvoice } from "@/lib/finance.functions";
+import { CreditRequestList } from "@/components/workspaces/credit-requests";
 import { useCustomersLite } from "@/components/module-page";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, StatusBadge, toneForStatus,
@@ -116,6 +117,7 @@ export function BillingPage() {
           <TabsTrigger value="recurring">
             Recurring{stats?.dueRecurring ? ` (${stats.dueRecurring})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="credits">Credits</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -145,6 +147,7 @@ export function BillingPage() {
           onChanged={refresh}
         />
       )}
+      {tab === "credits" && <CreditRequestList onChanged={refresh} />}
 
       {editor.open && (
         <InvoiceEditorDialog

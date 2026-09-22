@@ -227,7 +227,6 @@ function ApplyToInvoiceDialog({
             {pending ? "Applying…" : "Apply credit"}
           </Button>
         </DialogFooter>
-      </DialogFooter>
       </DialogContent>
     </Dialog>
   );
