@@ -91,7 +91,7 @@ export function CreditRequestList({ onChanged }: { onChanged?: () => void }) {
                       {r.company_name}
                     </Link>
                     <span className="text-xs text-muted-foreground">{r.account_number}</span>
-                    <StatusBadge status={r.disposition === "service" ? "service" : "new invoice"} tone="info" />
+                    <StatusBadge tone="info">{r.disposition === "service" ? "to service" : "new invoice"}</StatusBadge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {r.instruction ?? "Apply the credit"}
