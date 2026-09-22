@@ -42,6 +42,7 @@ export function SubmissionsWorkspace({ customerId }: { customerId?: string }) {
   const qc = useQueryClient();
   const list = useServerFn(listPaymentSubmissions);
   const [tab, setTab] = useState("pending");
+  const [source, setSource] = useState("all");
   const [search, setSearch] = useState("");
   const [openSubmit, setOpenSubmit] = useState(false);
   const [reviewId, setReviewId] = useState<string | null>(null);
@@ -57,11 +58,13 @@ export function SubmissionsWorkspace({ customerId }: { customerId?: string }) {
 
   const filtered = useMemo(() => submissions.filter((s) => {
     if (tab !== "all" && s.status !== tab) return false;
+    if (source === "portal" && s.source !== "portal") return false;
+    if (source === "staff" && s.source === "portal") return false;
     if (!search) return true;
     const v = search.toLowerCase();
     return [s.customers?.company_name, s.customers?.account_number, s.reference, s.invoices?.invoice_number, s.submitted_by_name, s.receipt_number]
       .some((f) => String(f ?? "").toLowerCase().includes(v));
-  }), [submissions, tab, search]);
+  }), [submissions, tab, source, search]);
 
   return (
     <div className="space-y-4">
@@ -83,6 +86,14 @@ export function SubmissionsWorkspace({ customerId }: { customerId?: string }) {
               </TabsList>
             </Tabs>
             <div className="flex flex-wrap items-center gap-2">
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="portal">Payments portal</SelectItem>
+                  <SelectItem value="staff">Staff submissions</SelectItem>
+                </SelectContent>
+              </Select>
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input className="h-9 pl-10" placeholder="Customer, reference, invoice…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -119,7 +130,12 @@ export function SubmissionsWorkspace({ customerId }: { customerId?: string }) {
                     </TableCell>
                     <TableCell className="font-semibold">{fmtMoney(s.amount, s.currency)}</TableCell>
                     <TableCell className="text-xs">{s.invoices?.invoice_number ?? "Unallocated"}</TableCell>
-                    <TableCell className="text-xs capitalize">{String(s.method ?? "").replace(/_/g, " ")}</TableCell>
+                    <TableCell className="text-xs capitalize">
+                      <div className="flex items-center gap-1.5">
+                        {String(s.method ?? "").replace(/_/g, " ")}
+                        {s.source === "portal" && <StatusBadge tone="info">portal</StatusBadge>}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs">{s.submitted_by_name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{when(s.submitted_at ?? s.created_at)}</TableCell>
                     <TableCell>
