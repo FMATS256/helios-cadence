@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ const money = (n: number, c = "USD") =>
   `${c === "USD" ? "$" : `${c} `}${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function ExpensesPage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const wsFn = useServerFn(getCashWorkspace);
   const { data, isLoading } = useQuery({ queryKey: ["cash-workspace"], queryFn: async () => (await wsFn()) as any });
@@ -221,7 +223,19 @@ export function ExpensesPage() {
           jobs={data?.jobs ?? []}
           expense={editing}
           onClose={() => { setExpenseOpen(false); setEditing(null); }}
-          onSaved={refresh}
+          onSaved={(saved) => {
+            refresh();
+            if (!editing && saved?.customer_id) {
+              const customer = (data?.customers ?? []).find((c: any) => c.id === saved.customer_id);
+              if (customer?.account_number) {
+                navigate({
+                  to: "/customers/$accountNumber",
+                  params: { accountNumber: customer.account_number },
+                  search: { tab: "transactions" },
+                });
+              }
+            }
+          }}
         />
       )}
       {accountOpen && <AccountDialog onClose={() => setAccountOpen(false)} onSaved={refresh} />}
@@ -233,7 +247,7 @@ export function ExpensesPage() {
 }
 
 function ExpenseDialog({ accounts, customers, jobs, expense, onClose, onSaved }: {
-  accounts: any[]; customers: any[]; jobs: any[]; expense: any | null; onClose: () => void; onSaved: () => void;
+  accounts: any[]; customers: any[]; jobs: any[]; expense: any | null; onClose: () => void; onSaved: (saved: any) => void;
 }) {
   const fn = useServerFn(upsertExpense);
   const [uploading, setUploading] = useState(false);
@@ -284,7 +298,7 @@ function ExpenseDialog({ accounts, customers, jobs, expense, onClose, onSaved }:
         service_task_id: form.service_task_id || null,
       } as any,
     }),
-    onSuccess: () => { toast.success(expense ? "Expense updated" : "Expense recorded"); onSaved(); onClose(); },
+    onSuccess: (saved: any) => { toast.success(expense ? "Expense updated" : "Expense recorded"); onSaved(saved); onClose(); },
     onError: (e: any) => toast.error(e?.message || "Could not save expense"),
   });
 
