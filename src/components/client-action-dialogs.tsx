@@ -528,7 +528,6 @@ export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 
 /* ================================ Create Quote =============================== */
 export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
-  const navigate = useNavigate();
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createQuoteForCustomer);
   const [form, setForm] = useState({
@@ -540,7 +539,6 @@ export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClos
     mutationFn: async () => fn({ data: { customer_id: ctx.customerId, ...form, valid_until: form.valid_until || null } }),
     onSuccess: (q: any) => {
       toast.success(`Quote ${q?.quote_number || ""} created`); refresh(); onClose();
-      if (q?.id) navigate({ to: "/quotes", search: { selected: q.id } as any });
     },
     onError: (e: any) => toast.error(e?.message || "Failed to create quote"),
   });
