@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -432,6 +433,7 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 
 /* =============================== Create Invoice ============================== */
 export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+  const navigate = useNavigate();
   const refresh = useRefresh(ctx.accountNumber);
   const invFn = useServerFn(createInvoiceForCustomer);
   const subInvFn = useServerFn(generateInvoiceForSubscription);
@@ -461,7 +463,11 @@ export function CreateInvoiceDialog({ ctx, onClose }: { ctx: ClientContext; onCl
         items: form.items,
       } });
     },
-    onSuccess: (r: any) => { toast.success(`Invoice ${r?.invoice_number || ""} created`); refresh(); onClose(); },
+    onSuccess: (r: any) => {
+      toast.success(`Invoice ${r?.invoice_number || ""} created`); refresh(); onClose();
+      const id = r?.id ?? r?.invoice?.id;
+      if (id) navigate({ to: "/invoices/$id", params: { id } });
+    },
     onError: (e: any) => toast.error(e?.message || "Failed to create invoice"),
   });
 
@@ -531,7 +537,9 @@ export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClos
   const total = form.items.reduce((s, i) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
   const mut = useMutation({
     mutationFn: async () => fn({ data: { customer_id: ctx.customerId, ...form, valid_until: form.valid_until || null } }),
-    onSuccess: (q: any) => { toast.success(`Quote ${q?.quote_number || ""} created`); refresh(); onClose(); },
+    onSuccess: (q: any) => {
+      toast.success(`Quote ${q?.quote_number || ""} created`); refresh(); onClose();
+    },
     onError: (e: any) => toast.error(e?.message || "Failed to create quote"),
   });
   return (
@@ -571,6 +579,7 @@ export function CreateQuoteDialog({ ctx, onClose }: { ctx: ClientContext; onClos
 
 /* ================================ Create Ticket ============================== */
 export function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClose: () => void }) {
+  const navigate = useNavigate();
   const refresh = useRefresh(ctx.accountNumber);
   const fn = useServerFn(createTicketForCustomer);
   const staffFn = useServerFn(listAssignableStaff);
@@ -578,7 +587,10 @@ export function CreateTicketDialog({ ctx, onClose }: { ctx: ClientContext; onClo
   const [form, setForm] = useState({ subject: "", description: "", priority: "normal", category: "", assigned_to: "__unassigned__" });
   const mut = useMutation({
     mutationFn: async () => fn({ data: { customer_id: ctx.customerId, ...form, assigned_to: form.assigned_to === "__unassigned__" ? null : form.assigned_to, category: form.category || undefined } }),
-    onSuccess: (t: any) => { toast.success(`Ticket ${t?.ticket_number} created`); refresh(); onClose(); },
+    onSuccess: (t: any) => {
+      toast.success(`Ticket ${t?.ticket_number} created`); refresh(); onClose();
+      if (t?.id) navigate({ to: "/tickets/$id", params: { id: t.id } });
+    },
     onError: (e: any) => toast.error(e?.message || "Failed to create ticket"),
   });
   return (

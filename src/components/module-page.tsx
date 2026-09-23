@@ -33,6 +33,7 @@ interface ModulePageProps<T> {
   validateForm?: (f: any) => string | null;
   transformInsert?: (f: any) => any;
   onCreate?: (f: any) => Promise<unknown>;
+  onCreated?: (created: any, submitted: any) => void | Promise<void>;
   createDescription?: string;
   extraActions?: ReactNode;
 }
@@ -40,7 +41,7 @@ interface ModulePageProps<T> {
 export function ModulePage<T extends { id: string }>({
   eyebrow, title, description, table, queryKey, orderBy = "created_at",
   columns, searchFields, emptyLabel, createTitle, createLabel = "New",
-  renderForm, emptyForm, validateForm, transformInsert, onCreate, createDescription, extraActions,
+  renderForm, emptyForm, validateForm, transformInsert, onCreate, onCreated, createDescription, extraActions,
 }: ModulePageProps<T>) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -65,17 +66,19 @@ export function ModulePage<T extends { id: string }>({
       }
       const insertData = transformInsert ? transformInsert(form) : form;
       if (onCreate) {
-        await onCreate(insertData);
+        return { created: await onCreate(insertData), submitted: insertData };
       } else {
-        const { error } = await supabase.from(table as any).insert(insertData as any);
+        const { data, error } = await supabase.from(table as any).insert(insertData as any).select("*").single();
         if (error) throw error;
+        return { created: data, submitted: insertData };
       }
     },
-    onSuccess: () => {
+    onSuccess: async ({ created, submitted }) => {
       qc.invalidateQueries({ queryKey: [queryKey] });
       setOpen(false);
       setForm(emptyForm);
       toast.success("Created");
+      await onCreated?.(created, submitted);
     },
     onError: (e: Error) => toast.error(e.message),
   });

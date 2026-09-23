@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ export function AssignTechDialog({
   onClose: () => void;
   defaults?: { service_type?: string; task_type?: string; title?: string; subscription_id?: string };
 }) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const create = useServerFn(createServiceTask);
   const { data: staff = [] } = useTechnicians();
@@ -59,11 +61,12 @@ export function AssignTechDialog({
         open_ticket: openTicket,
       },
     }),
-    onSuccess: () => {
+    onSuccess: (task: any) => {
       toast.success(assignee ? "Task assigned to the technical team" : "Task queued for the technical team");
       qc.invalidateQueries({ queryKey: ["customer-360", ctx.accountNumber] });
       qc.invalidateQueries({ queryKey: ["service-tasks"] });
       onClose();
+      if (task?.id) navigate({ to: "/techops/jobs/$id", params: { id: task.id } });
     },
     onError: (e: any) => toast.error(e?.message || "Failed to create task"),
   });

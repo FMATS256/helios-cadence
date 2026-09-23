@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
 import { createSubscriptionRecord, syncSubscriptionsFromCloudServices } from "@/lib/ops.functions";
@@ -17,6 +17,7 @@ const STATUSES = ["active", "paused", "cancelled", "expired"];
 
 
 export function SubscriptionsPage() {
+  const navigate = useNavigate();
   const { data: customers = [] } = useCustomersLite();
   const createSubscription = useServerFn(createSubscriptionRecord);
   const syncServices = useServerFn(syncSubscriptionsFromCloudServices);
@@ -51,6 +52,14 @@ export function SubscriptionsPage() {
         validateForm={(f) => (!f.customer_id ? "Customer required" : !f.plan_name ? "Plan required" : null)}
         transformInsert={(f) => ({ ...f, amount: Number(f.amount) || 0, started_on: f.started_on || null, next_renewal: f.next_renewal || null })}
         onCreate={(f) => createSubscription({ data: f })}
+        onCreated={(created: any) => {
+          if (!created?.account_number) return;
+          navigate({
+            to: "/customers/$accountNumber",
+            params: { accountNumber: created.account_number },
+            search: { tab: "subscriptions" },
+          });
+        }}
         columns={[
           { header: "Plan", cell: (r: any) => <div><div className="font-semibold">{r.plan_name}</div><div className="text-xs text-muted-foreground">{r.billing_cycle}</div></div> },
           { header: "Customer", cell: (r: any) => <Link to="/customers/$accountNumber" params={{ accountNumber: r.account_number }} className="font-mono text-xs text-solar hover:underline">{r.account_number}</Link> },

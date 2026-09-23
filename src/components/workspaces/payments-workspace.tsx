@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ const CONTEXTS = ["invoice", "subscription", "one_off", "starlink", "voip", "hos
 function fmt(n: number, cur = "USD") { return `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 
 export function PaymentsPage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data: customers = [] } = useCustomersLite();
@@ -243,9 +244,16 @@ export function PaymentsPage() {
         getContext={getContext}
         onSubmit={async (payload) => {
           if (!user) throw new Error("Please sign in.");
-          await createPayment({ data: payload });
+          const created: any = await createPayment({ data: payload });
           qc.invalidateQueries({ queryKey: ["payments-platform"] });
           toast.success(`Payment recorded${payload.allocations?.length ? " and allocated" : ""}`);
+          if (created?.account_number) {
+            navigate({
+              to: "/customers/$accountNumber",
+              params: { accountNumber: created.account_number },
+              search: { tab: "payments" },
+            });
+          }
         }}
       />
 
@@ -275,7 +283,7 @@ function RecordPaymentDialog({
   onOpenChange: (v: boolean) => void;
   customers: any[];
   getContext: (args: { data: { customer_id: string } }) => Promise<any>;
-  onSubmit: (payload: any) => Promise<void>;
+  onSubmit: (payload: any) => Promise<unknown>;
 }) {
   const emptyForm = {
     customer_id: "", walk_in_name: "", walk_in_email: "", walk_in_phone: "",
