@@ -28,7 +28,7 @@ export function AssetsPage() {
       validateForm={(f) => (!f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
       transformInsert={(f) => ({ ...f, customer_id: f.customer_id || null, purchase_date: f.purchase_date || null, warranty_expires: f.warranty_expires || null, cost: Number(f.cost) || null })}
       onCreated={(asset: any) => {
-        if (asset?.id) navigate({ to: "/assets_/$id", params: { id: asset.id } });
+        if (asset?.id) navigate({ to: "/assets/$id", params: { id: asset.id } });
       }}
       columns={[
         { header: "Tag / Serial", cell: (r: any) => <Link to="/assets/$id" params={{ id: r.id }}><div><div className="font-mono text-sm text-solar hover:underline">{r.asset_tag || r.id.slice(0, 8)}</div><div className="text-xs text-muted-foreground">{r.serial_number || "—"}</div></div></Link> },
