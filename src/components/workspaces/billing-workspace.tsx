@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -383,6 +383,7 @@ function InvoiceEditorDialog({
 }: {
   invoiceId?: string; prefill?: any; onClose: () => void; onSaved: () => void;
 }) {
+  const navigate = useNavigate();
   const { data: customers = [] } = useCustomersLite();
   const loadOne = useServerFn(getInvoiceForEdit);
   const create = useServerFn(createInvoice);
@@ -482,6 +483,10 @@ function InvoiceEditorDialog({
           : `Draft ${res.invoice?.invoice_number} created`);
       onSaved();
       onClose();
+      const createdId = res?.invoice?.id;
+      if (!invoiceId && createdId) {
+        navigate({ to: "/invoices/$id", params: { id: createdId }, resetScroll: true });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });

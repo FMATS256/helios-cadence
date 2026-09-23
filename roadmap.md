@@ -7,8 +7,8 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Align Finance workspace UI with Customer 360 styling and anchored colorful tabs
-- [ ] Redirect after successful create forms to prevent duplicate submissions
+- [x] Align Finance workspace UI with Customer 360 styling and anchored colorful tabs
+- [x] Redirect after successful create forms to prevent duplicate submissions
 - [x] Job expenses shown on the per-customer statement with expense category
 - [x] Recurring payment schedule per customer: installments, due dates, overdue alerts
 

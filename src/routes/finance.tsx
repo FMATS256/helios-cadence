@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageContainer } from "@/components/page";
 import { KpiCard, SectionCard, QuickAction } from "@/components/dashboards/shared";
@@ -67,23 +67,34 @@ const FINANCE_TABS = [
 function FinanceHub() {
   const { tab } = Route.useSearch();
   const active = FINANCE_TABS.some((t) => t.key === tab) ? tab! : "overview";
+  const tabBodyRef = useRef<HTMLDivElement>(null);
+  const reserveViewingDepth = () => {
+    const tabs = document.querySelector('[data-finance-tabs="true"]') as HTMLElement | null;
+    if (!tabs || !tabBodyRef.current) return;
+    const needed = window.scrollY + window.innerHeight - tabs.offsetTop;
+    if (needed > 0) tabBodyRef.current.style.minHeight = `${needed}px`;
+  };
   return (
     <div>
-      <WorkspaceTabs tabs={FINANCE_TABS as any} active={active} to="/finance" />
-      {active === "overview" && <FinanceWorkspace />}
-      {active === "invoices" && <BillingPage />}
-      {active === "payments" && <PaymentsPage />}
-      {active === "customer-accounts" && <CustomerAccountsPage />}
-      {active === "subscriptions" && <SubscriptionsPage />}
-      {active === "banking" && <MoneyPage section="banking" />}
-      {active === "payables" && <MoneyPage section="payables" />}
-      {active === "expenses" && <ExpensesPage />}
-      {active === "ledger" && <MoneyPage section="ledger" />}
-      {active === "accounts" && <AccountingPage section="accounts" />}
-      {active === "journal" && <AccountingPage section="journal" />}
-      {active === "trial" && <AccountingPage section="trial" />}
-      {active === "balance" && <AccountingPage section="balance" />}
-      {active === "reports" && <MoneyPage section="reports" />}
+      <div data-finance-tabs="true">
+        <WorkspaceTabs tabs={FINANCE_TABS as any} active={active} to="/finance" colorful onBeforeChange={reserveViewingDepth} />
+      </div>
+      <div ref={tabBodyRef}>
+        {active === "overview" && <FinanceWorkspace />}
+        {active === "invoices" && <BillingPage />}
+        {active === "payments" && <PaymentsPage />}
+        {active === "customer-accounts" && <CustomerAccountsPage />}
+        {active === "subscriptions" && <SubscriptionsPage />}
+        {active === "banking" && <MoneyPage section="banking" />}
+        {active === "payables" && <MoneyPage section="payables" />}
+        {active === "expenses" && <ExpensesPage />}
+        {active === "ledger" && <MoneyPage section="ledger" />}
+        {active === "accounts" && <AccountingPage section="accounts" />}
+        {active === "journal" && <AccountingPage section="journal" />}
+        {active === "trial" && <AccountingPage section="trial" />}
+        {active === "balance" && <AccountingPage section="balance" />}
+        {active === "reports" && <MoneyPage section="reports" />}
+      </div>
     </div>
   );
 }
@@ -330,19 +341,20 @@ function FinanceWorkspace() {
             <Link to="/billing"><Plus className="h-4 w-4 mr-1" />New</Link>
           </Button>
         </div>
-        <div className="flex items-center justify-between px-4 md:px-6 h-11 bg-muted/30 border-b border-border">
-          <div className="flex gap-6">
+        <div className="flex items-center justify-between px-4 md:px-6 min-h-11 bg-muted/30 border-b border-border">
+          <div className="flex gap-1.5 py-1.5">
             {(["dashboard", "recent"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={cn(
-                  "relative h-11 text-sm font-semibold transition capitalize",
-                  tab === t ? "text-info" : "text-muted-foreground hover:text-foreground",
+                  "rounded-md border px-3 py-2 text-sm font-semibold transition capitalize",
+                  tab === t
+                    ? t === "dashboard" ? "border-info/40 bg-info/15 text-info" : "border-success/40 bg-success/15 text-success"
+                    : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 {t === "dashboard" ? "Dashboard" : "Recent Updates"}
-                {tab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-info rounded-full" />}
               </button>
             ))}
           </div>

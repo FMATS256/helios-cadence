@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -43,6 +43,7 @@ const LANES = [
 ] as const;
 
 function TicketsPage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -87,6 +88,7 @@ function TicketsPage() {
       setOpen(false);
       setForm({ customer_id: "", subject: "", description: "", priority: "normal", category: "", assigned_to: "" });
       toast.success(`Ticket ${t?.ticket_number ?? ""} created — customer notified by email`);
+      if (t?.id) navigate({ to: "/tickets/$id", params: { id: t.id } });
     },
     onError: (e: Error) => toast.error(e.message),
   });
