@@ -282,8 +282,8 @@ export const styles = {
 
 export function EmailShell({
   preview,
-  kicker,
-  title,
+  title: _title,
+  kicker: _kicker,
   subtitle,
   senderName,
   senderRole,
@@ -292,8 +292,8 @@ export function EmailShell({
   children,
 }: {
   preview: string
+  title?: string
   kicker?: string
-  title: string
   subtitle?: string
   senderName?: string
   senderRole?: string
