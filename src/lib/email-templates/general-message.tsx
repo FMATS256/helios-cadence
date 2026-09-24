@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Section, Text } from '@react-email/components'
+import { Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
 import { BRAND, EmailShell, greeting, styles } from './_brand'
 
@@ -26,25 +26,34 @@ export const GeneralMessageEmail = ({
 }: Props) => (
   <EmailShell
     preview={subject}
-    kicker="Message"
-    title={subject}
-    subtitle={`From the ${BRAND.name} team`}
     senderName={senderName}
     senderRole={senderRole}
     senderEmail={senderEmail}
     senderPhone={senderPhone}
   >
     {recipientName && <Text style={styles.text}>{greeting(recipientTitle, recipientName)}</Text>}
-    <Section style={styles.card}>
-      {String(message)
-        .split(/\n{2,}/)
-        .filter(Boolean)
-        .map((para, i) => (
-          <Text key={i} style={styles.text}>
-            {para}
-          </Text>
-        ))}
-    </Section>
+    {String(message)
+      .split(/\n{2,}/)
+      .filter(Boolean)
+      .map((para, i) => (
+        <Text key={i} style={styles.plainText}>
+          {para}
+        </Text>
+      ))}
+    {senderName && (
+      <Text style={styles.plainText}>
+        Kind regards,
+        <br />
+        <strong>{senderName}</strong>
+        <br />
+        <span style={{ color: BRAND.mute, fontSize: '13px' }}>
+          {senderRole ? `${senderRole} · ` : ''}
+          {BRAND.name}
+          {senderEmail ? ` · ${senderEmail}` : ''}
+          {senderPhone ? ` · ${senderPhone}` : ''}
+        </span>
+      </Text>
+    )}
   </EmailShell>
 )
 
