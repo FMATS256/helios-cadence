@@ -2,11 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   getAttachmentLink,
   getEnquiryThread,
@@ -20,14 +19,27 @@ import {
 import type { EnquiryListItem, InboxMessage } from "@/lib/inbox.shared";
 import {
   AlertCircle,
+  Archive,
   ArrowLeft,
   CheckCircle2,
-  Clock,
+  ChevronDown,
+  Clock3,
+  FileText,
+  Folder,
+  Forward,
   Inbox as InboxIcon,
   Mail,
+  MailPlus,
+  MoreHorizontal,
   Paperclip,
+  RefreshCw,
+  Reply,
+  Search,
   Send,
+  Star,
+  Trash2,
   UserCog,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -48,31 +60,36 @@ export const Route = createFileRoute("/inbox")({
   component: InboxPage,
 });
 
-const SCOPES: { key: InboxScope; label: string }[] = [
-  { key: "mine", label: "Mine" },
-  { key: "unassigned", label: "Unassigned" },
-  { key: "all", label: "All" },
+const SCOPES: { key: InboxScope; label: string; icon: typeof InboxIcon }[] = [
+  { key: "mine", label: "Inbox", icon: InboxIcon },
+  { key: "unassigned", label: "Unassigned", icon: Users },
+  { key: "all", label: "All enquiries", icon: Mail },
 ];
+
+const STATUS_ITEMS = [
+  { key: "awaiting_customer", label: "Awaiting customer", icon: Clock3 },
+  { key: "closed", label: "Closed", icon: CheckCircle2 },
+] as const;
 
 function relativeTime(iso?: string | null) {
   if (!iso) return "—";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.round(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return "Now";
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}h`;
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
-function statusTone(status: string): "success" | "warning" | "neutral" {
-  if (status === "open") return "warning";
-  if (status === "awaiting_customer") return "info" as any;
-  return "neutral";
 }
 
 function statusLabel(status: string) {
   return status === "open" ? "Needs reply" : status === "awaiting_customer" ? "Awaiting customer" : "Closed";
+}
+
+function statusClass(status: string) {
+  if (status === "open") return "bg-warning text-primary";
+  if (status === "awaiting_customer") return "bg-info/15 text-info";
+  return "bg-muted text-muted-foreground";
 }
 
 function stripHtml(html?: string | null): string {
@@ -83,14 +100,25 @@ function stripHtml(html?: string | null): string {
     .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-function EnquiryCard({
+function initials(name?: string | null, email?: string) {
+  const source = name?.trim() || email?.split("@")[0] || "Customer";
+  return source
+    .split(/[\s._-]+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function EnquiryRow({
   enquiry,
   active,
   onSelect,
@@ -99,88 +127,111 @@ function EnquiryCard({
   active: boolean;
   onSelect: () => void;
 }) {
+  const sender = enquiry.contact_name || enquiry.contact_email;
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onSelect}
-      className={`w-full text-left rounded-xl border p-3.5 transition-colors ${
-        active ? "border-solar bg-solar/10" : "border-border bg-card hover:border-solar/50 hover:bg-solar/5"
+      className={`relative h-auto w-full justify-start rounded-none border-b border-border px-4 py-3 text-left transition-colors ${
+        active ? "bg-accent hover:bg-accent" : "bg-card hover:bg-muted/60"
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs font-bold text-solar">{enquiry.reference}</span>
-        <StatusPill tone={statusTone(enquiry.status) as any}>{statusLabel(enquiry.status)}</StatusPill>
+      {active ? <span className="absolute inset-y-0 left-0 w-1 bg-solar" /> : null}
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <span className={`truncate text-sm ${enquiry.status === "open" ? "font-bold text-foreground" : "font-semibold"}`}>
+            {sender}
+          </span>
+          <span className="shrink-0 text-[11px] font-normal text-muted-foreground">{relativeTime(enquiry.last_message_at)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-xs font-semibold text-solar">{enquiry.subject}</span>
+          <Star className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-xs font-normal text-muted-foreground">
+            {enquiry.reference} · {enquiry.customer_account_number ?? "Walk-in enquiry"}
+          </span>
+          <span className={`shrink-0 px-1.5 py-0.5 text-[10px] font-semibold ${statusClass(enquiry.status)}`}>
+            {statusLabel(enquiry.status)}
+          </span>
+        </div>
       </div>
-      <div className="mt-1.5 font-semibold text-sm truncate">{enquiry.subject}</div>
-      <div className="mt-1 text-xs text-muted-foreground truncate">
-        {enquiry.contact_name ? `${enquiry.contact_name} · ` : ""}
-        {enquiry.contact_email}
-      </div>
-      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-        <span className="text-muted-foreground truncate">
-          {enquiry.customer_account_number ? (
-            <Link
-              to="/customers/$accountNumber"
-              params={{ accountNumber: enquiry.customer_account_number }}
-              className="font-mono hover:text-solar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {enquiry.customer_account_number}
-            </Link>
-          ) : (
-            "Walk-in"
-          )}
-        </span>
-        <span className="flex items-center gap-1 text-muted-foreground shrink-0">
-          <Clock className="h-3 w-3" /> {relativeTime(enquiry.last_message_at)}
-        </span>
-      </div>
-    </button>
+    </Button>
   );
 }
 
-function MessageBubble({ message, onOpenAttachment }: { message: InboxMessage; onOpenAttachment: (m: InboxMessage, a: any) => void }) {
+function MessagePanel({
+  message,
+  onOpenAttachment,
+}: {
+  message: InboxMessage;
+  onOpenAttachment: (m: InboxMessage, a: InboxMessage["attachments"][number]) => void;
+}) {
   const inbound = message.direction === "inbound";
   const body = message.body_text?.trim() || stripHtml(message.body_html);
+  const sender = inbound ? message.from_address : "IMT Solutions";
+
   return (
-    <div className={`flex ${inbound ? "justify-start" : "justify-end"}`}>
-      <div
-        className={`max-w-[92%] sm:max-w-[80%] rounded-xl border p-3.5 ${
-          inbound ? "border-border bg-card" : "border-solar/30 bg-solar/10"
-        }`}
-      >
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className={`font-semibold ${inbound ? "text-info" : "text-solar"}`}>
-            {inbound ? message.from_address : "You (IMT)"}
-          </span>
-          <span>to {inbound ? "Sales Team" : message.to_address}</span>
-          <span>{new Date(message.created_at).toLocaleString("en-GB", { timeZone: "Africa/Harare" })}</span>
-          {!inbound && (
-            <StatusPill tone={message.delivery_status === "sent" || message.delivery_status === "delivered" ? "success" : message.delivery_status === "failed" ? "danger" : "neutral"}>
+    <article className="border-b border-border bg-card px-4 py-4 sm:px-6">
+      <div className="flex gap-3">
+        <Avatar className={`h-9 w-9 shrink-0 border ${inbound ? "border-info/30" : "border-solar/40"}`}>
+          <AvatarFallback className={inbound ? "bg-info/15 text-info" : "bg-solar/15 text-solar"}>
+            {initials(sender)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">{sender}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                To: {inbound ? "sales@imtsolutions.co.zw" : message.to_address}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">
+                {new Date(message.created_at).toLocaleString("en-GB", {
+                  timeZone: "Africa/Harare",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="More message actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          {!inbound ? (
+            <p className={`mt-1 text-[11px] font-medium ${message.delivery_status === "failed" ? "text-destructive" : "text-success"}`}>
               {message.delivery_status === "failed" ? "Send failed" : message.delivery_status}
-            </StatusPill>
-          )}
+            </p>
+          ) : null}
+          {message.delivery_error ? (
+            <div className="mt-2 flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="h-3 w-3" /> {message.delivery_error}
+            </div>
+          ) : null}
+          <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{body || "(empty message)"}</div>
+          {message.attachments?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {message.attachments.map((attachment) => (
+                <Button
+                  key={attachment.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenAttachment(message, attachment)}
+                  className="h-8 rounded-sm text-xs"
+                >
+                  <Paperclip className="h-3.5 w-3.5" /> {attachment.filename}
+                </Button>
+              ))}
+            </div>
+          ) : null}
         </div>
-        {message.delivery_error && (
-          <div className="mt-1 text-xs text-destructive flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" /> {message.delivery_error}
-          </div>
-        )}
-        <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed break-words">{body || "(empty message)"}</div>
-        {!!message.attachments?.length && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {message.attachments.map((a: any) => (
-              <button
-                key={a.id}
-                onClick={() => onOpenAttachment(message, a)}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs hover:border-solar"
-              >
-                <Paperclip className="h-3 w-3" /> {a.filename}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -189,7 +240,6 @@ function InboxPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { enquiry: selectedId } = Route.useSearch();
-
   const [scope, setScope] = useState<InboxScope>("mine");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -213,13 +263,14 @@ function InboxPage() {
     enabled: !!user,
     refetchInterval: 30000,
   });
-
   const thread = useQuery({
     queryKey: ["inbox-thread", selectedId, user?.id],
-    queryFn: () => threadFn({ data: { enquiryId: selectedId! } }),
+    queryFn: () => {
+      if (!selectedId) throw new Error("No enquiry selected");
+      return threadFn({ data: { enquiryId: selectedId } });
+    },
     enabled: !!user && !!selectedId,
   });
-
   const managers = useQuery({
     queryKey: ["inbox-managers", user?.id],
     queryFn: () => managersFn(),
@@ -229,9 +280,7 @@ function InboxPage() {
   const enquiries = list.data?.enquiries ?? [];
   const canAssign = !!list.data?.canAssign;
   const active = thread.data?.enquiry ?? null;
-
   const filteredManagers = useMemo(() => managers.data ?? [], [managers.data]);
-
   const openEnquiry = (id: string) => navigate({ to: "/inbox", search: { enquiry: id } });
 
   async function openAttachment(messageId: string, attachmentId: string) {
@@ -239,8 +288,8 @@ function InboxPage() {
       const res = await attachmentFn({ data: { messageId, attachmentId } });
       if (res.url) window.open(res.url, "_blank", "noopener");
       else setError(res.error ?? "Could not open attachment");
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     }
   }
 
@@ -249,14 +298,20 @@ function InboxPage() {
     setSending(true);
     setError(null);
     try {
-      await replyFn({ data: { enquiryId: selectedId, body: reply.trim(), cc: cc.trim() ? cc.split(",").map((s) => s.trim()) : undefined } });
+      await replyFn({
+        data: {
+          enquiryId: selectedId,
+          body: reply.trim(),
+          cc: cc.trim() ? cc.split(",").map((address) => address.trim()) : undefined,
+        },
+      });
       setReply("");
       setCc("");
       setShowCc(false);
       await queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
       await queryClient.invalidateQueries({ queryKey: ["inbox"] });
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setSending(false);
     }
@@ -269,8 +324,8 @@ function InboxPage() {
       await assignFn({ data: { enquiryId: selectedId, amId } });
       await queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
       await queryClient.invalidateQueries({ queryKey: ["inbox"] });
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     }
   }
 
@@ -281,200 +336,291 @@ function InboxPage() {
       await statusFn({ data: { enquiryId: selectedId, status: next } });
       await queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
       await queryClient.invalidateQueries({ queryKey: ["inbox"] });
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     }
   }
 
   return (
-    <PageContainer>
-      <PageHeader
-        eyebrow="Sales · Customer Enquiries"
-        title="Email Inbox"
-        description="Every enquiry sent to sales@imtsolutions.co.zw lands here, acknowledged automatically, and stays threaded with the customer."
-      />
+    <div className="flex h-[calc(100dvh-4rem)] min-h-[560px] overflow-hidden bg-card">
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
+        <div className="border-b border-border p-3">
+          <Button className="h-10 w-full justify-start rounded-sm bg-solar text-solar-foreground hover:bg-solar/90">
+            <MailPlus className="h-4 w-4" /> New mail
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="mb-2 flex items-center gap-2 px-2 text-sm font-semibold">
+            <ChevronDown className="h-3.5 w-3.5" /> sales@imtsolutions.co.zw
+          </div>
+          <nav aria-label="Mailbox folders" className="space-y-0.5">
+            {SCOPES.map((item) => (
+              <Button
+                key={item.key}
+                variant="ghost"
+                onClick={() => {
+                  setScope(item.key);
+                  setStatus("all");
+                }}
+                className={`h-9 w-full justify-start rounded-sm px-3 text-sm ${
+                  scope === item.key && status === "all" ? "bg-solar/15 font-semibold text-solar hover:bg-solar/15" : "text-muted-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+                {item.key === "mine" && enquiries.length ? (
+                  <span className="ml-auto text-xs font-semibold text-solar">{enquiries.length}</span>
+                ) : null}
+              </Button>
+            ))}
+            {STATUS_ITEMS.map((item) => (
+              <Button
+                key={item.key}
+                variant="ghost"
+                onClick={() => setStatus(item.key)}
+                className={`h-9 w-full justify-start rounded-sm px-3 text-sm ${
+                  status === item.key ? "bg-solar/15 font-semibold text-solar hover:bg-solar/15" : "text-muted-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4" /> {item.label}
+              </Button>
+            ))}
+          </nav>
+          <div className="mt-5 mb-1 flex items-center gap-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
+            <ChevronDown className="h-3 w-3" /> Folders
+          </div>
+          <div className="space-y-0.5">
+            {[{ label: "Drafts", icon: FileText }, { label: "Sent", icon: Send }, { label: "Archive", icon: Archive }, { label: "Deleted", icon: Trash2 }].map((item) => (
+              <div key={item.label} className="flex h-8 items-center gap-2 px-3 text-sm text-muted-foreground">
+                <item.icon className="h-4 w-4" /> {item.label}
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center gap-2 px-3 text-sm text-muted-foreground">
+            <Folder className="h-4 w-4" /> Customer Enquiries
+          </div>
+        </div>
+      </aside>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex rounded-lg border border-border overflow-hidden w-fit">
-          {SCOPES.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setScope(s.key)}
-              className={`px-4 py-2 text-sm font-semibold transition-colors ${
-                scope === s.key ? "bg-solar text-background" : "bg-card text-muted-foreground hover:text-foreground"
-              }`}
+      <section className={`${selectedId ? "hidden lg:flex" : "flex"} w-full shrink-0 flex-col border-r border-border bg-card lg:w-[350px] xl:w-[370px]`}>
+        <div className="border-b border-border px-4 pb-3 pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h1 className="font-display text-xl font-semibold">Inbox</h1>
+              <p className="text-xs text-muted-foreground">Customer enquiries</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => list.refetch()} title="Refresh inbox">
+              <RefreshCw className={`h-4 w-4 ${list.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="Search email"
+              placeholder="Search mail"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-9 rounded-sm bg-muted/60 pl-9"
+            />
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex gap-1 xl:hidden">
+              {SCOPES.map((item) => (
+                <Button
+                  key={item.key}
+                  variant={scope === item.key ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setScope(item.key)}
+                  className="h-7 rounded-sm px-2 text-xs"
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+            <select
+              aria-label="Filter by status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              className="ml-auto h-7 border-0 bg-transparent text-xs font-medium text-muted-foreground outline-none"
             >
-              {s.label}
-            </button>
-          ))}
+              <option value="all">All statuses</option>
+              <option value="open">Needs reply</option>
+              <option value="awaiting_customer">Awaiting customer</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
         </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="h-10 rounded-md border border-border bg-card px-3 text-sm capitalize"
-        >
-          <option value="all">All statuses</option>
-          <option value="open">Needs reply</option>
-          <option value="awaiting_customer">Awaiting customer</option>
-          <option value="closed">Closed</option>
-        </select>
-        <Input
-          placeholder="Search reference, subject, sender…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:max-w-xs"
-        />
-      </div>
 
-      {error && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
-        </div>
-      )}
+        {error ? (
+          <div className="flex items-start gap-2 border-b border-destructive/25 bg-destructive/10 p-3 text-xs text-destructive">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
+          </div>
+        ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
-        {/* Enquiry list */}
-        <div className={`${selectedId ? "hidden lg:flex" : "flex"} flex-col gap-2.5`}>
+        <div className="flex-1 overflow-y-auto">
           {list.isLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading enquiries…</div>
+            <div className="p-6 text-sm text-muted-foreground">Loading messages…</div>
           ) : enquiries.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <div className="px-8 py-14 text-center">
               <InboxIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-semibold">No enquiries here</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                New emails to sales@imtsolutions.co.zw appear automatically with a unique reference.
-              </p>
+              <p className="mt-3 text-sm font-semibold">Your inbox is clear</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">New customer emails appear here automatically.</p>
             </div>
           ) : (
-            enquiries.map((e) => (
-              <EnquiryCard key={e.id} enquiry={e} active={e.id === selectedId} onSelect={() => openEnquiry(e.id)} />
+            enquiries.map((item) => (
+              <EnquiryRow key={item.id} enquiry={item} active={item.id === selectedId} onSelect={() => openEnquiry(item.id)} />
             ))
           )}
         </div>
+      </section>
 
-        {/* Conversation */}
-        <div className={`${selectedId ? "flex" : "hidden lg:flex"} flex-col rounded-xl border border-border bg-card`}>
-          {!selectedId ? (
-            <div className="flex flex-1 items-center justify-center p-10 text-center text-sm text-muted-foreground">
-              Select an enquiry to read the conversation.
+      <section className={`${selectedId ? "flex" : "hidden lg:flex"} min-w-0 flex-1 flex-col bg-background`}>
+        {!selectedId ? (
+          <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-solar/10 text-solar">
+              <Mail className="h-8 w-8" />
             </div>
-          ) : thread.isLoading ? (
-            <div className="p-6 text-sm text-muted-foreground">Loading conversation…</div>
-          ) : thread.isError || !active ? (
-            <div className="p-6 text-sm text-destructive">Could not load this enquiry. It may have been reassigned.</div>
-          ) : (
-            <>
-              <div className="border-b border-border p-4 space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <button
-                      onClick={() => navigate({ to: "/inbox", search: { enquiry: undefined } })}
-                      className="lg:hidden mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground"
-                    >
-                      <ArrowLeft className="h-3 w-3" /> Back to inbox
-                    </button>
-                    <div className="font-mono text-xs font-bold text-solar">{active.reference}</div>
-                    <div className="font-display text-lg font-bold truncate">{active.subject}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {active.contact_name ? `${active.contact_name} · ` : ""}
-                      {active.contact_email}
-                      {active.customer_account_number && (
-                        <>
-                          {" · "}
-                          <Link
-                            to="/customers/$accountNumber"
-                            params={{ accountNumber: active.customer_account_number }}
-                            className="font-mono hover:text-solar"
-                          >
-                            {active.customer_account_number}
-                          </Link>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <StatusPill tone={statusTone(active.status) as any}>{statusLabel(active.status)}</StatusPill>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {canAssign && (
-                    <div className="flex items-center gap-1.5">
-                      <UserCog className="h-3.5 w-3.5 text-muted-foreground" />
-                      <select
-                        value={active.assigned_am_id ?? ""}
-                        onChange={(e) => changeAssignee(e.target.value || null)}
-                        className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-                      >
-                        <option value="">Unassigned</option>
-                        {filteredManagers.map((m: any) => (
-                          <option key={m.id} value={m.id}>
-                            {m.full_name} ({m.role_label})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {!canAssign && (
-                    <span className="text-xs text-muted-foreground">
-                      Account Manager: {active.am_name ?? "Unassigned"}
-                    </span>
-                  )}
-                  {active.status !== "closed" ? (
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => changeStatus("closed")}>
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Close
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => changeStatus("open")}>
-                      Reopen
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-y-auto p-4 max-h-[52vh] min-h-[200px]">
-                {thread.data?.messages.map((m) => (
-                  <MessageBubble
-                    key={m.id}
-                    message={m}
-                    onOpenAttachment={(msg, a) => openAttachment(msg.id, a.id)}
-                  />
-                ))}
-              </div>
-
-              {active.status !== "closed" && (
-                <div className="border-t border-border p-4 space-y-2">
-                  <Label htmlFor="inbox-reply">Reply to customer</Label>
-                  <Textarea
-                    id="inbox-reply"
-                    rows={4}
-                    placeholder="Type your reply — it is sent from your own @imtsolutions.co.zw address and stays on this enquiry."
-                    value={reply}
-                    onChange={(e) => setReply(e.target.value)}
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    {showCc ? (
-                      <Input
-                        value={cc}
-                        onChange={(e) => setCc(e.target.value)}
-                        placeholder="CC addresses, comma separated"
-                        className="h-9 max-w-xs text-xs"
-                      />
-                    ) : (
-                      <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowCc(true)}>
-                        + Add CC
-                      </button>
-                    )}
-                    <Button onClick={sendReply} disabled={sending || !reply.trim()} className="gap-2">
-                      <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send reply"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Mail className="h-3 w-3" /> Customer replies return to this thread automatically.
-                  </p>
-                </div>
+            <p className="mt-4 text-base font-semibold">Select a message to read</p>
+            <p className="mt-1 text-sm text-muted-foreground">Choose a customer enquiry from the list.</p>
+          </div>
+        ) : thread.isLoading ? (
+          <div className="p-6 text-sm text-muted-foreground">Loading conversation…</div>
+        ) : thread.isError || !active ? (
+          <div className="p-6 text-sm text-destructive">This enquiry is unavailable or has been reassigned.</div>
+        ) : (
+          <>
+            <div className="flex min-h-12 items-center gap-1 border-b border-border bg-card px-2 sm:px-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate({ to: "/inbox", search: { enquiry: undefined } })}
+                className="lg:hidden"
+                title="Back to inbox"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => changeStatus("awaiting_customer")} className="rounded-sm">
+                <Reply className="h-4 w-4" /> <span className="hidden sm:inline">Reply</span>
+              </Button>
+              <Button variant="ghost" size="sm" className="hidden rounded-sm sm:inline-flex">
+                <Forward className="h-4 w-4" /> Forward
+              </Button>
+              <span className="mx-1 h-5 w-px bg-border" />
+              <Button variant="ghost" size="icon" className="rounded-sm" title="Archive">
+                <Archive className="h-4 w-4" />
+              </Button>
+              {active.status !== "closed" ? (
+                <Button variant="ghost" size="sm" onClick={() => changeStatus("closed")} className="rounded-sm">
+                  <CheckCircle2 className="h-4 w-4" /> <span className="hidden sm:inline">Close</span>
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => changeStatus("open")} className="rounded-sm">Reopen</Button>
               )}
-            </>
-          )}
-        </div>
-      </div>
-    </PageContainer>
+              <Button variant="ghost" size="icon" className="ml-auto rounded-sm" title="More actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <header className="border-b border-border bg-card px-4 py-4 sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-1 text-xs font-semibold text-solar">{active.reference}</div>
+                  <h2 className="truncate font-display text-xl font-semibold text-foreground">{active.subject}</h2>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                    <span>{active.contact_name || active.contact_email}</span>
+                    <span>·</span>
+                    <span>{thread.data.messages.length} messages</span>
+                    {active.customer_account_number ? (
+                      <>
+                        <span>·</span>
+                        <Link
+                          to="/customers/$accountNumber"
+                          params={{ accountNumber: active.customer_account_number }}
+                          className="font-mono font-semibold text-solar hover:underline"
+                        >
+                          {active.customer_account_number}
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+                <span className={`shrink-0 px-2 py-1 text-xs font-semibold ${statusClass(active.status)}`}>
+                  {statusLabel(active.status)}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {canAssign ? (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <UserCog className="h-3.5 w-3.5" />
+                    <select
+                      aria-label="Assigned account manager"
+                      value={active.assigned_am_id ?? ""}
+                      onChange={(event) => changeAssignee(event.target.value || null)}
+                      className="h-7 border border-border bg-background px-2 text-xs text-foreground outline-none"
+                    >
+                      <option value="">Unassigned</option>
+                      {filteredManagers.map((manager: { id: string; full_name: string; role_label: string }) => (
+                        <option key={manager.id} value={manager.id}>{manager.full_name} ({manager.role_label})</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Account Manager: {active.am_name ?? "Unassigned"}</span>
+                )}
+              </div>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {thread.data.messages.map((message) => (
+                <MessagePanel
+                  key={message.id}
+                  message={message}
+                  onOpenAttachment={(mail, attachment) => openAttachment(mail.id, attachment.id)}
+                />
+              ))}
+            </div>
+
+            {active.status !== "closed" ? (
+              <div className="border-t border-border bg-card p-3 sm:p-4">
+                {showCc ? (
+                  <div className="mb-2 flex items-center gap-2 border-b border-border pb-2">
+                    <span className="text-xs text-muted-foreground">Cc</span>
+                    <Input
+                      aria-label="CC recipients"
+                      value={cc}
+                      onChange={(event) => setCc(event.target.value)}
+                      placeholder="Email addresses, separated by commas"
+                      className="h-7 flex-1 border-0 px-0 text-xs shadow-none focus-visible:ring-0"
+                    />
+                  </div>
+                ) : null}
+                <Textarea
+                  aria-label="Reply to customer"
+                  rows={3}
+                  placeholder={`Reply to ${active.contact_name || active.contact_email}`}
+                  value={reply}
+                  onChange={(event) => setReply(event.target.value)}
+                  className="min-h-20 resize-none rounded-sm border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                />
+                <div className="mt-2 flex items-center gap-1 border-t border-border pt-2">
+                  <Button onClick={sendReply} disabled={sending || !reply.trim()} className="h-8 rounded-sm bg-solar px-4 text-solar-foreground hover:bg-solar/90">
+                    <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send"}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowCc((visible) => !visible)} className="h-8 rounded-sm text-xs">
+                    Cc
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm" title="Add attachment">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <span className="ml-auto hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex">
+                    <Mail className="h-3 w-3" /> Replies stay in this enquiry
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+      </section>
+    </div>
   );
 }
