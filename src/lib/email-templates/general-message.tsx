@@ -40,7 +40,7 @@ export const GeneralMessageEmail = ({
           {para}
         </Text>
       ))}
-    <Text style={styles.plainText}>Kind regards,</Text>
+    <Text style={{ ...styles.plainText, marginBottom: 0 }}>Kind regards,</Text>
   </EmailShell>
 )
 
