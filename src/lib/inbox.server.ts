@@ -303,27 +303,10 @@ interface InboundEvent {
  * Ingest one email.received webhook event: dedupe, match/patch the enquiry,
  * store message + attachments, reopen if needed, auto-ack new enquiries.
  */
-export async function ingestReceivedEmail(event: InboundEvent): Promise<{
-  status: "created" | "appended" | "duplicate" | "skipped";
-  reference?: string;
-  error?: string;
-}> {
+export async function ingestReceivedEmail(event: InboundEvent): Promise<IngestResult> {
   const emailId = event.data?.email_id;
   const fromEmail = extractEmail(event.data?.from);
   if (!emailId || !fromEmail) return { status: "skipped", error: "missing email_id or from" };
-
-  const admin = adminClient();
-
-  // Dedupe on the provider email id and the RFC Message-ID.
-  const { data: dupe } = await admin
-    .from("email_messages")
-    .select("id")
-    .eq("resend_email_id", emailId)
-    .limit(1)
-    .maybeSingle();
-  if (dupe) return { status: "duplicate" };
-
-  // Webhooks carry metadata only — pull body/headers/attachments from the Receiving API.
   let full: any = null;
   let attachments: any[] = [];
   try {
@@ -333,9 +316,82 @@ export async function ingestReceivedEmail(event: InboundEvent): Promise<{
   } catch (e: any) {
     console.error("[inbox] receiving fetch failed:", e?.message);
   }
-
   const headers = full?.headers ?? {};
-  const rawMessageId = stripMessageId(headers["message-id"] ?? event.data?.message_id);
+  return ingestNormalizedEmail({
+    providerId: emailId,
+    messageId: headers["message-id"] ?? event.data?.message_id ?? null,
+    from: headers.from ?? event.data?.from ?? "",
+    to: event.data?.to ?? [],
+    cc: event.data?.cc ?? [],
+    subject: headers.subject ?? event.data?.subject ?? null,
+    html: full?.html ?? null,
+    text: full?.text ?? null,
+    inReplyTo: headers["in-reply-to"] ?? null,
+    references: headers["references"] ?? null,
+    attachments: attachments.map((a) => ({
+      filename: a.filename || a.name || "attachment",
+      content_type: a.content_type ?? a.contentType ?? null,
+      size_bytes: a.size_bytes ?? a.size ?? null,
+      attachment_id: a.id ?? null,
+    })),
+  });
+}
+
+type IngestResult = {
+  status: "created" | "appended" | "duplicate" | "skipped";
+  reference?: string;
+  error?: string;
+};
+
+export interface NormalizedInbound {
+  providerId: string;
+  messageId?: string | null;
+  from: string;
+  to?: string[];
+  cc?: string[];
+  subject?: string | null;
+  html?: string | null;
+  text?: string | null;
+  inReplyTo?: string | null;
+  references?: string | null;
+  receivedAt?: string | null;
+  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+}
+
+/** Most recent open enquiry from the same sender in the last 30 days. */
+async function findRecentOpenEnquiry(admin: any, email: string) {
+  const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const { data } = await admin
+    .from("email_enquiries")
+    .select("*")
+    .ilike("contact_email", email)
+    .neq("status", "closed")
+    .gte("last_message_at", since)
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/**
+ * Core ingest shared by Resend webhooks and the IMT website email gateway.
+ */
+export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<IngestResult> {
+  const emailId = input.providerId;
+  const fromEmail = extractEmail(input.from);
+  if (!emailId || !fromEmail) return { status: "skipped", error: "missing provider_id or from" };
+  const admin = adminClient();
+
+  const { data: dupe } = await admin
+    .from("email_messages")
+    .select("id")
+    .eq("resend_email_id", emailId)
+    .limit(1)
+    .maybeSingle();
+  if (dupe) return { status: "duplicate" };
+
+  const attachments = input.attachments ?? [];
+  const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
       .from("email_messages")
@@ -346,11 +402,13 @@ export async function ingestReceivedEmail(event: InboundEvent): Promise<{
     if (dupe2) return { status: "duplicate" };
   }
 
-  const inReplyTo = headers["in-reply-to"] ?? null;
-  const references = headers["references"] ?? null;
-  const subject = (full?.headers?.subject ?? event.data?.subject ?? "(no subject)").toString().slice(0, 300);
-  const text: string | null = full?.text ?? null;
-  const html: string | null = full?.html ?? null;
+  const inReplyTo = input.inReplyTo ?? null;
+  const references = input.references ?? null;
+  const subject = (input.subject || "(no subject)").toString().slice(0, 300);
+  const text: string | null = input.text ?? null;
+  const html: string | null = input.html ?? null;
+  const event = { data: { from: input.from, to: input.to ?? [], cc: input.cc ?? [] } };
+  const headers: Record<string, string> = {};
 
   // 1. Threading: In-Reply-To / References, then the enquiry reference, else a new enquiry.
   let enquiry = await findEnquiryByChain(admin, inReplyTo, references);
