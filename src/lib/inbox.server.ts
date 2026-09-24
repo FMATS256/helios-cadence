@@ -188,12 +188,17 @@ async function resolveAm(admin: any, customerId: string | null | undefined) {
 }
 
 function escapeHtml(s: string): string {
+  const AMP = String.fromCharCode(38);
+  const LT = String.fromCharCode(60);
+  const GT = String.fromCharCode(62);
+  const QUOT = String.fromCharCode(34);
   return s
-    .split("&").join("&")
-    .split("<").join("<")
-    .split(">").join(">")
-    .split('"').join(""");
+    .split(AMP).join(AMP + "amp;")
+    .split(LT).join(AMP + "lt;")
+    .split(GT).join(AMP + "gt;")
+    .split(QUOT).join(AMP + "quot;");
 }
+
 
 function textToHtml(s: string): string {
   return escapeHtml(s)
