@@ -1803,6 +1803,198 @@ export type Database = {
           },
         ]
       }
+      email_enquiries: {
+        Row: {
+          assigned_am_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          closed_at: string | null
+          contact_email: string
+          contact_name: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          last_inbound_at: string | null
+          last_message_at: string | null
+          message_count: number
+          reference: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_am_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          closed_at?: string | null
+          contact_email: string
+          contact_name?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_message_at?: string | null
+          message_count?: number
+          reference: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_am_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          closed_at?: string | null
+          contact_email?: string
+          contact_name?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_message_at?: string | null
+          message_count?: number
+          reference?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_enquiries_assigned_am_id_fkey"
+            columns: ["assigned_am_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_enquiries_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_enquiries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_message_attachments: {
+        Row: {
+          attachment_id: string | null
+          content_type: string | null
+          created_at: string
+          filename: string
+          id: string
+          message_id: string
+          size_bytes: number | null
+        }
+        Insert: {
+          attachment_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          message_id: string
+          size_bytes?: number | null
+        }
+        Update: {
+          attachment_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          message_id?: string
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_messages: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          cc_address: string | null
+          created_at: string
+          created_by: string | null
+          delivery_error: string | null
+          delivery_status: string
+          direction: string
+          enquiry_id: string
+          from_address: string
+          id: string
+          in_reply_to: string | null
+          message_id: string | null
+          references_header: string | null
+          resend_email_id: string | null
+          subject: string
+          to_address: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          cc_address?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
+          direction: string
+          enquiry_id: string
+          from_address: string
+          id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
+          references_header?: string | null
+          resend_email_id?: string | null
+          subject?: string
+          to_address: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          cc_address?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_error?: string | null
+          delivery_status?: string
+          direction?: string
+          enquiry_id?: string
+          from_address?: string
+          id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
+          references_header?: string | null
+          resend_email_id?: string | null
+          subject?: string
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: false
+            referencedRelation: "email_enquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_template_versions: {
         Row: {
           created_at: string
@@ -6575,6 +6767,7 @@ export type Database = {
         Args: { _user: string; _workspace: string }
         Returns: boolean
       }
+      next_enquiry_reference: { Args: never; Returns: string }
       portal_customer_id: { Args: { _user_id: string }; Returns: string }
       recompute_invoice_status: {
         Args: { _invoice_id: string }

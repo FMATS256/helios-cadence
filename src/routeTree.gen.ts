@@ -24,6 +24,7 @@ import { Route as EmailLogsRouteImport } from './routes/email-logs'
 import { Route as EmailStudioRouteImport } from './routes/email-studio'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
@@ -73,6 +74,7 @@ import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public
 import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
 import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
 import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
+import { Route as ApiPublicHooksEmailInboundRouteImport } from './routes/api/public/hooks/email-inbound'
 import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
@@ -166,6 +168,11 @@ const ExpensesRoute = ExpensesRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -419,6 +426,12 @@ const ApiPublicHooksBudgetTickRoute =
     path: '/api/public/hooks/budget-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksEmailInboundRoute =
+  ApiPublicHooksEmailInboundRouteImport.update({
+    id: '/api/public/hooks/email-inbound',
+    path: '/api/public/hooks/email-inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksHostingSyncRoute =
   ApiPublicHooksHostingSyncRouteImport.update({
     id: '/api/public/hooks/hosting-sync',
@@ -544,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -593,6 +607,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -629,6 +644,7 @@ export interface FileRoutesByTo {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -677,6 +693,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -714,6 +731,7 @@ export interface FileRoutesById {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
@@ -763,6 +781,7 @@ export interface FileRoutesById {
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
+  '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -801,6 +820,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/inbox'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -850,6 +870,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -886,6 +907,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/inbox'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -934,6 +956,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -970,6 +993,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/inbox'
     | '/inventory'
     | '/knowledge'
     | '/laptop-tracking'
@@ -1019,6 +1043,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/budget-tick'
+    | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -1056,6 +1081,7 @@ export interface RootRouteChildren {
   EmailStudioRoute: typeof EmailStudioRoute
   ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRoute
+  InboxRoute: typeof InboxRoute
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
@@ -1105,6 +1131,7 @@ export interface RootRouteChildren {
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
   ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
+  ApiPublicHooksEmailInboundRoute: typeof ApiPublicHooksEmailInboundRoute
   ApiPublicHooksHostingSyncRoute: typeof ApiPublicHooksHostingSyncRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
@@ -1223,6 +1250,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -1568,6 +1602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBudgetTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/email-inbound': {
+      id: '/api/public/hooks/email-inbound'
+      path: '/api/public/hooks/email-inbound'
+      fullPath: '/api/public/hooks/email-inbound'
+      preLoaderRoute: typeof ApiPublicHooksEmailInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/hosting-sync': {
       id: '/api/public/hooks/hosting-sync'
       path: '/api/public/hooks/hosting-sync'
@@ -1771,6 +1812,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailStudioRoute: EmailStudioRoute,
   ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRoute,
+  InboxRoute: InboxRoute,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
@@ -1821,6 +1863,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
   ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
+  ApiPublicHooksEmailInboundRoute: ApiPublicHooksEmailInboundRoute,
   ApiPublicHooksHostingSyncRoute: ApiPublicHooksHostingSyncRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,

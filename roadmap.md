@@ -7,10 +7,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [x] Align Finance workspace UI with Customer 360 styling and anchored colorful tabs
-- [x] Redirect after successful create forms to prevent duplicate submissions
-- [x] Job expenses shown on the per-customer statement with expense category
-- [x] Recurring payment schedule per customer: installments, due dates, overdue alerts
+- [ ] AM Email Inbox: engine, API functions, inbound webhook route, /inbox UI and nav all built; awaiting Resend connection + RESEND_WEBHOOK_SECRET from user to go live (then point Resend webhook at /api/public/hooks/email-inbound)
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance

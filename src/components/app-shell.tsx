@@ -8,7 +8,7 @@ import {
   Warehouse, BarChart3, Bell, Settings, Shield, Plus, ChevronDown, Package,
   FileText, CreditCard, Repeat, BookOpen, Laptop, PhoneCall, Satellite,
   Globe, HardDrive, Database, ShieldCheck, ShoppingCart, MessageSquare, Mail, Wallet, Banknote, MapPin, Target, Wrench,
-  PackageCheck, Siren,
+  PackageCheck, Siren, Inbox,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -79,6 +79,7 @@ const siteNav: NavNode[] = [
     title: "CRM", url: "/leads", icon: MessageSquare,
     children: [
       { title: "Leads", url: "/leads", icon: Target },
+      { title: "Email Inbox", url: "/inbox", icon: Inbox },
       { title: "Quotations", url: "/quotes", icon: FileText },
       { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Projects", url: "/projects", icon: FolderKanban },
