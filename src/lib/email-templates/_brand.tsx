@@ -146,6 +146,8 @@ export const styles = {
   content: { padding: '34px 42px 14px' },
   h2: { fontSize: '15px', fontWeight: 600 as const, color: BRAND.ink, margin: '0 0 10px' },
   text: { fontSize: '15px', color: BRAND.body, lineHeight: '24px', margin: '0 0 16px' },
+  // Plain email-style paragraph — no boxes, no borders, just normal wording
+  plainText: { fontSize: '15px', color: BRAND.ink, lineHeight: '26px', margin: '0 0 18px', whiteSpace: 'pre-line' as const },
 
   // Card — subtle hairline, no fill
   card: {
