@@ -411,6 +411,9 @@ export interface NormalizedInbound {
   references?: string | null;
   receivedAt?: string | null;
   attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+  /** Gateway-supplied enquiry reference / contact name to prefer when creating. */
+  referenceHint?: string | null;
+  contactNameHint?: string | null;
 }
 
 /** Most recent open enquiry from the same sender in the last 30 days. */
@@ -468,12 +471,14 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   // 1. Threading: In-Reply-To / References, then the enquiry reference, else a new enquiry.
   let enquiry = await findEnquiryByChain(admin, inReplyTo, references);
   if (!enquiry) enquiry = await findEnquiryByReference(admin, `${subject} ${text ?? ""}`);
+  if (!enquiry && input.referenceHint) enquiry = await findEnquiryByReference(admin, input.referenceHint);
   if (!enquiry) enquiry = await findRecentOpenEnquiry(admin, fromEmail);
 
   const customer = enquiry?.customer_id
     ? (await admin.from("customers").select("id, account_number, company_name, title, account_manager_id").eq("id", enquiry.customer_id).maybeSingle()).data
     : await matchCustomer(admin, fromEmail);
-  const contactName = extractName(headers.from ?? event.data?.from) ?? enquiry?.contact_name ?? null;
+  const contactName =
+    extractName(headers.from ?? event.data?.from) ?? input.contactNameHint ?? enquiry?.contact_name ?? null;
 
   if (!enquiry) {
     const am = await resolveAm(admin, customer?.id);
