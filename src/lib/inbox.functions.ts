@@ -63,7 +63,7 @@ async function decorate(rows: any[]): Promise<EnquiryListItem[]> {
     customer_id: r.customer_id,
     customer_account_number: customers.get(r.customer_id)?.account_number ?? null,
     customer_name: customers.get(r.customer_id)?.company_name ?? customers.get(r.customer_id)?.title ?? null,
-    am_name: profiles.get(r.assigned_am_id) ?? null,
+    am_name: profiles.get(r.assigned_am_id)?.full_name ?? null,
   }));
 }
 
