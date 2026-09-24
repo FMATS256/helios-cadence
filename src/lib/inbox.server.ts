@@ -277,7 +277,8 @@ export async function sendInboxEmail(opts: {
     const fromAddr = extractEmail(opts.from);
     if (!fromAddr.endsWith(`@${MAIL_DOMAIN}`)) return { ok: false, error: `Sender must be @${MAIL_DOMAIN}` };
     const payload: Record<string, unknown> = {
-      from: opts.from,
+      // Gateway validates `from` as a bare email address (no display name).
+      from: fromAddr,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
