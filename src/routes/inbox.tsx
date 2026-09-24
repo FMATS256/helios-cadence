@@ -368,7 +368,7 @@ function InboxPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <button
-                      onClick={() => navigate({ to: "/inbox", search: {} })}
+                      onClick={() => navigate({ to: "/inbox", search: {} as { enquiry?: string | undefined } })}
                       className="lg:hidden mb-1 inline-flex items-center gap-1 text-xs text-muted-foreground"
                     >
                       <ArrowLeft className="h-3 w-3" /> Back to inbox
