@@ -578,7 +578,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
     const result = await sendInboxEmail({
       from: `IMT Solutions Sales <${SALES_INBOX}>`,
       to: fromEmail,
-      subject: `Re: ${subject}`,
+      subject: `Re: ${subject} [${enquiry.reference}]`,
       html: ackHtml(enquiry.reference, contactName, subject),
       text: ackText,
       headers: rawMessageId
@@ -749,6 +749,7 @@ export async function sendEnquiryReply(opts: {
 
 /** Fresh, short-lived download URLs for a received email's attachments. */
 export async function getAttachmentDownloadUrl(emailId: string, attachmentId: string): Promise<{ url?: string; error?: string }> {
+  if (/^https?:\/\//i.test(attachmentId)) return { url: attachmentId };
   try {
     const res = await resendRequest<{ download_url?: string; data?: { download_url?: string } }>(
       "GET",
