@@ -209,10 +209,31 @@ function textToHtml(s: string): string {
 /** Shared IMT footer used on every inbox email. */
 function brandFooter(): string {
   return `
-  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#6b7280;line-height:1.6">
-    <div style="font-weight:700;color:#111827;font-size:12px;margin-bottom:4px">IMT Solutions</div>
-    <div>Support: ${AM_PHONE} &middot; ${SALES_INBOX}</div>
-    <div style="margin-top:6px">This email and any attachments are confidential and intended solely for the addressee. If you received it in error, please notify the sender and delete it. IMT Solutions accepts no liability for unauthorised use of this message.</div>
+  <div style="margin-top:24px;padding-top:18px;border-top:1px solid #eff1f5;font-family:Arial,Helvetica,sans-serif;color:#3b4658;line-height:1.55">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="width:42px;padding:0 12px 0 0;border-right:2px solid #16233f;vertical-align:top;text-align:center">
+          <div style="width:24px;height:24px;line-height:24px;border-radius:50%;background:#16233f;color:#fff;font-size:12px;font-weight:700;text-align:center;margin:0 auto 7px">●</div>
+          <div style="width:24px;height:24px;line-height:24px;border-radius:50%;background:#16233f;color:#fff;font-size:12px;font-weight:700;text-align:center;margin:0 auto 7px">@</div>
+          <div style="width:24px;height:24px;line-height:24px;border-radius:50%;background:#16233f;color:#fff;font-size:12px;font-weight:700;text-align:center;margin:0 auto 7px">☎</div>
+          <div style="width:24px;height:24px;line-height:24px;border-radius:50%;background:#16233f;color:#fff;font-size:12px;font-weight:700;text-align:center;margin:0 auto">⌖</div>
+        </td>
+        <td style="padding:0 0 0 16px;vertical-align:top">
+          <div style="font-size:19px;line-height:23px;font-weight:700;color:#0b1220">IMT Solutions</div>
+          <div style="font-size:13px;line-height:19px;font-weight:600;color:#1f6be0;margin:2px 0 8px">Sales Team · IMT Solutions</div>
+          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">w:</b> <a href="https://imtsolutions.co.zw" style="color:#1f6be0;text-decoration:none">imtsolutions.co.zw</a> &nbsp;·&nbsp; <b style="color:#1f6be0">e:</b> <a href="mailto:${SALES_INBOX}" style="color:#1f6be0;text-decoration:none">${SALES_INBOX}</a></div>
+          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">m:</b> ${AM_PHONE}</div>
+          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">a:</b> IMT Solutions, Harare, Zimbabwe</div>
+        </td>
+      </tr>
+    </table>
+    <div style="border-top:1px solid #eff1f5;color:#7b8798;font-size:9px;line-height:14px;margin:18px 0 16px;padding-top:13px">CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient and may contain confidential, privileged or copyright information. If you received it in error, please notify the sender, delete it, and do not copy, share or act on its contents.</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0;border:0">
+      <tr>
+        <td style="width:43%;padding:20px;background:#ffffff;vertical-align:middle"><img src="https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png" alt="IMT Solutions" width="150" height="35" style="display:block;border:0;max-width:100%;height:auto" /></td>
+        <td style="width:57%;padding:19px 22px;background:#1f6be0;vertical-align:middle"><div style="color:#ffffff;font-size:16px;line-height:21px;font-weight:700">Connect. Protect. Grow.</div><div style="color:#d9edff;font-size:10px;line-height:15px;font-weight:600;margin-top:5px">Business technology that keeps you moving.</div></td>
+      </tr>
+    </table>
   </div>`;
 }
 

@@ -49,13 +49,14 @@ export const BRAND = {
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
 export const styles = {
-  main: { backgroundColor: '#EEF2F7', fontFamily: FONT, margin: 0, padding: '28px 0' },
+  main: { backgroundColor: '#ffffff', fontFamily: FONT, margin: 0, padding: 0 },
   container: {
+    width: '100%',
     maxWidth: '600px',
     margin: '0 auto',
     backgroundColor: '#ffffff',
-    borderRadius: '6px',
-    border: `1px solid ${BRAND.border}`,
+    border: 'none',
+    borderRadius: 0,
     overflow: 'hidden' as const,
   },
 
@@ -258,9 +259,7 @@ export const styles = {
     width: '100%',
     borderCollapse: 'collapse' as const,
     backgroundColor: BRAND.primary,
-    marginTop: '16px',
-    borderRadius: '22px',
-    overflow: 'hidden' as const,
+    margin: 0,
   },
   signatureBannerLogoCell: { width: '43%', padding: '20px', backgroundColor: '#ffffff', verticalAlign: 'middle' as const },
   signatureBannerMessageCell: { width: '57%', padding: '19px 22px', backgroundColor: BRAND.primary, verticalAlign: 'middle' as const },
@@ -362,21 +361,21 @@ export function EmailShell({
               please notify the sender, delete it, and do not copy, share or act on its contents. Email transmission
               cannot be guaranteed secure or error-free; please scan attachments before opening them. © {new Date().getFullYear()} {BRAND.name}.
             </Text>
-            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.signatureBanner}>
-              <tbody>
-                <tr>
-                  <td style={styles.signatureBannerLogoCell}>
-                    <Img src={BRAND.logoUrl} alt={BRAND.name} width="150" height="35" style={styles.footerLogo} />
-                  </td>
-                  <td style={styles.signatureBannerMessageCell}>
-                    <Text style={styles.bannerCallout}>Connect. Protect. Grow.</Text>
-                    <Text style={styles.bannerSub}>Business technology that keeps you moving.</Text>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
             <Text style={styles.footerCta}>Your trusted partner for business technologies</Text>
           </Section>
+          <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.signatureBanner}>
+            <tbody>
+              <tr>
+                <td style={styles.signatureBannerLogoCell}>
+                  <Img src={BRAND.logoUrl} alt={BRAND.name} width="150" height="35" style={styles.footerLogo} />
+                </td>
+                <td style={styles.signatureBannerMessageCell}>
+                  <Text style={styles.bannerCallout}>Connect. Protect. Grow.</Text>
+                  <Text style={styles.bannerSub}>Business technology that keeps you moving.</Text>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </Container>
       </Body>
     </Html>
