@@ -73,7 +73,7 @@ export const listEnquiries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { scope?: InboxScope; status?: string; search?: string }) => input ?? {})
   .handler(async ({ data, context }) => {
-    await amOrAdmin(context);
+    const role = await amOrAdmin(context);
     let q = context.supabase
       .from("email_enquiries")
       .select("*")
@@ -88,7 +88,28 @@ export const listEnquiries = createServerFn({ method: "POST" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return decorate(rows ?? []);
+    return {
+      enquiries: await decorate(rows ?? []),
+      canAssign: role === "master_admin" || role === "operations_manager",
+    };
+  });
+
+/** Managers available for (re)assignment — admins only. */
+export const listManagers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "master_admin",
+    });
+    const { data: isOps } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "operations_manager",
+    });
+    if (!isAdmin && !isOps) return [];
+    const { listAccountManagerRecords } = await import("./account-managers.server");
+    const managers = await listAccountManagerRecords(adminClient());
+    return managers.map((m: any) => ({ id: m.id, full_name: m.full_name, email: m.email, role_label: m.role_label }));
   });
 
 export const getEnquiryThread = createServerFn({ method: "POST" })
