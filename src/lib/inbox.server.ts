@@ -525,10 +525,10 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
     await admin.from("email_message_attachments").insert(
       attachments.map((a) => ({
         message_id: message.id,
-        filename: a.filename || a.name || "attachment",
-        content_type: a.content_type ?? a.content_type ?? a.contentType ?? null,
-        size_bytes: a.size_bytes ?? a.size ?? null,
-        attachment_id: a.id ?? null,
+        filename: a.filename || "attachment",
+        content_type: a.content_type ?? null,
+        size_bytes: a.size_bytes ?? null,
+        attachment_id: a.attachment_id ?? null,
       })),
     );
   }
