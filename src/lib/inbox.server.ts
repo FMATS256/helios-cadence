@@ -189,10 +189,10 @@ async function resolveAm(admin: any, customerId: string | null | undefined) {
 
 function escapeHtml(s: string): string {
   return s
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, """);
+    .split("&").join("&")
+    .split("<").join("<")
+    .split(">").join(">")
+    .split('"').join(""");
 }
 
 function textToHtml(s: string): string {
