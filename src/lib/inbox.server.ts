@@ -247,10 +247,6 @@ function replyHtml(opts: {
     )
     .join("");
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:14px;line-height:1.7">
-  <div style="padding:12px 16px;background:#f3f4f6;border-radius:8px;margin-bottom:16px">
-    <span style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px">Enquiry reference</span>
-    <div style="font-weight:700">${escapeHtml(opts.reference)}</div>
-  </div>
   <div>${textToHtml(opts.replyText)}</div>
   <p style="margin-top:20px">Kind regards,<br/><strong>${escapeHtml(opts.amName)}</strong><br/>
   <span style="color:#6b7280;font-size:12px">${escapeHtml(opts.amRole)} &middot; IMT Solutions<br/>${escapeHtml(opts.amEmail)} &middot; ${AM_PHONE}</span></p>

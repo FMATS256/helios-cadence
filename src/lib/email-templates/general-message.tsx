@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Section, Text } from '@react-email/components'
+import { Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
 import { BRAND, EmailShell, greeting, styles } from './_brand'
 
