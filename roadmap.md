@@ -7,10 +7,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [x] Align Finance workspace UI with Customer 360 styling and anchored colorful tabs
-- [x] Redirect after successful create forms to prevent duplicate submissions
-- [x] Job expenses shown on the per-customer statement with expense category
-- [x] Recurring payment schedule per customer: installments, due dates, overdue alerts
+- [ ] AM Email Inbox: enquiry capture at sales@imtsolutions.co.zw, unique references (IMTQSD…), auto-acknowledgement, reply threading via Resend, dedupe, AM assignment/reassignment and role-scoped visibility (Resend API key pending from user)
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
