@@ -7,7 +7,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] AM Email Inbox: enquiry capture at sales@imtsolutions.co.zw, unique references (IMTQSD…), auto-acknowledgement, reply threading via Resend, dedupe, AM assignment/reassignment and role-scoped visibility (Resend API key pending from user)
+- [ ] AM Email Inbox: engine, API functions, inbound webhook route, /inbox UI and nav all built; awaiting Resend connection + RESEND_WEBHOOK_SECRET from user to go live (then point Resend webhook at /api/public/hooks/email-inbound)
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
