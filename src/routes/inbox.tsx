@@ -529,7 +529,7 @@ function InboxPage() {
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                     <span>{active.contact_name || active.contact_email}</span>
                     <span>·</span>
-                    <span>{thread.data.messages.length} messages</span>
+                    <span>{thread.data?.messages.length ?? 0} messages</span>
                     {active.customer_account_number ? (
                       <>
                         <span>·</span>
@@ -571,7 +571,7 @@ function InboxPage() {
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {thread.data.messages.map((message) => (
+              {(thread.data?.messages ?? []).map((message) => (
                 <MessagePanel
                   key={message.id}
                   message={message}
