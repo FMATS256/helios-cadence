@@ -79,6 +79,7 @@ const siteNav: NavNode[] = [
     title: "CRM", url: "/leads", icon: MessageSquare,
     children: [
       { title: "Leads", url: "/leads", icon: Target },
+      { title: "Email Inbox", url: "/inbox", icon: Inbox },
       { title: "Quotations", url: "/quotes", icon: FileText },
       { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Projects", url: "/projects", icon: FolderKanban },
