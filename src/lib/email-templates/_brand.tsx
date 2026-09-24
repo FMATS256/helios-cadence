@@ -43,7 +43,7 @@ export const BRAND = {
   logoUrl:
     'https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png',
   bannerUrl:
-    'https://management.imtsolutions.co.zw/__l5e/assets-v1/f314eeab-7375-4951-81de-efc0c2372913/imt-hero-banner.jpg',
+    'https://management.imtsolutions.co.zw/__l5e/assets-v1/00b3025d-c371-40d1-af32-d5ed5be49192/imt-hero-banner-short.jpg',
 }
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -86,7 +86,7 @@ export const styles = {
     fontWeight: 700 as const,
     margin: 0,
   },
-  header: { padding: '0 42px' },
+  header: { padding: '0 24px' },
   headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
   heroBanner: {
     display: 'block',
@@ -319,7 +319,7 @@ export function EmailShell({
                 src={BRAND.bannerUrl}
                 alt={`${BRAND.name} — Zimbabwe's Trusted ICT Partner`}
                 width="600"
-                height="250"
+                height="180"
                 style={styles.heroBanner}
               />
             </Link>
