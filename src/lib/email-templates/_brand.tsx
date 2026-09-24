@@ -249,12 +249,12 @@ export const styles = {
   footerLabel: { color: BRAND.primary, fontWeight: 700 as const },
   footerLink: { color: BRAND.primary, textDecoration: 'none' },
   signatureDisclaimer: {
-    borderTop: `1px solid ${BRAND.hair}`,
     color: '#7B8798',
     fontSize: '9px',
-    lineHeight: '14px',
+    lineHeight: '15px',
     margin: '18px 0 0',
-    padding: '13px 0 0',
+    padding: 0,
+    textAlign: 'justify' as const,
   },
   signatureBanner: {
     width: '100%',
