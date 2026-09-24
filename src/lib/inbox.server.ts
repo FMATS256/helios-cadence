@@ -270,6 +270,40 @@ export async function sendInboxEmail(opts: {
   headers?: Record<string, string>;
   replyTo?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  // Preferred path: the IMT website email gateway (holds the Resend connection).
+  const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
+  const gatewayKey = process.env.IMT_EMAIL_API_KEY;
+  if (gatewayUrl && gatewayKey) {
+    const fromAddr = extractEmail(opts.from);
+    if (!fromAddr.endsWith(`@${MAIL_DOMAIN}`)) return { ok: false, error: `Sender must be @${MAIL_DOMAIN}` };
+    const payload: Record<string, unknown> = {
+      from: opts.from,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    };
+    if (opts.cc?.length) payload.cc = opts.cc;
+    if (opts.replyTo) payload.reply_to = opts.replyTo;
+    if (opts.headers) payload.headers = opts.headers;
+    try {
+      const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${gatewayKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const bodyText = await res.text();
+      if (!res.ok) {
+        console.error(`[inbox] gateway send failed [${res.status}]: ${bodyText}`);
+        return { ok: false, error: `Gateway ${res.status}: ${bodyText.slice(0, 400)}` };
+      }
+      let parsed: any = {};
+      try { parsed = JSON.parse(bodyText); } catch { /* non-JSON ok */ }
+      return { ok: true, id: String(parsed.id ?? parsed.provider_id ?? parsed.data?.id ?? "") };
+    } catch (e: any) {
+      return { ok: false, error: `Gateway unreachable: ${String(e?.message ?? e)}` };
+    }
+  }
   try {
     const body: Record<string, unknown> = {
       from: opts.from,
@@ -286,6 +320,27 @@ export async function sendInboxEmail(opts: {
   } catch (e: any) {
     return { ok: false, error: String(e?.message ?? e) };
   }
+}
+
+/** Read message history from the IMT website email gateway. */
+export async function listGatewayMessages(q: {
+  direction?: "inbound" | "outbound";
+  since?: string;
+  mailbox?: string;
+  thread_id?: string;
+  limit?: number;
+}): Promise<{ ok: true; data: any } | { ok: false; error: string }> {
+  const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
+  const gatewayKey = process.env.IMT_EMAIL_API_KEY;
+  if (!gatewayUrl || !gatewayKey) return { ok: false, error: "Email gateway is not configured" };
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") params.set(k, String(v));
+  const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/messages?${params}`, {
+    headers: { Authorization: `Bearer ${gatewayKey}` },
+  });
+  const bodyText = await res.text();
+  if (!res.ok) return { ok: false, error: `Gateway ${res.status}: ${bodyText.slice(0, 400)}` };
+  try { return { ok: true, data: JSON.parse(bodyText) }; } catch { return { ok: true, data: bodyText }; }
 }
 
 interface InboundEvent {
@@ -413,6 +468,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   // 1. Threading: In-Reply-To / References, then the enquiry reference, else a new enquiry.
   let enquiry = await findEnquiryByChain(admin, inReplyTo, references);
   if (!enquiry) enquiry = await findEnquiryByReference(admin, `${subject} ${text ?? ""}`);
+  if (!enquiry) enquiry = await findRecentOpenEnquiry(admin, fromEmail);
 
   const customer = enquiry?.customer_id
     ? (await admin.from("customers").select("id, account_number, company_name, title, account_manager_id").eq("id", enquiry.customer_id).maybeSingle()).data
@@ -620,12 +676,16 @@ export async function sendEnquiryReply(opts: {
     quotes,
   });
   const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}\nEnquiry reference: ${enquiry.reference}`;
+  const baseSubject = enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`;
+  const taggedSubject = new RegExp(enquiry.reference, "i").test(baseSubject)
+    ? baseSubject
+    : `${baseSubject} [${enquiry.reference}]`;
 
   const result = await sendInboxEmail({
     from: fromLine,
     to: enquiry.contact_email,
     cc: opts.cc?.filter(Boolean),
-    subject: enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`,
+    subject: taggedSubject,
     html,
     text,
     headers,
@@ -641,12 +701,13 @@ export async function sendEnquiryReply(opts: {
       from_address: fromAddress,
       to_address: enquiry.contact_email,
       cc_address: opts.cc?.filter(Boolean).join(", ") || null,
-      subject: enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`,
+      subject: taggedSubject,
       body_html: html,
       body_text: opts.body,
-      message_id: messageId,
+      message_id: stripMessageId(messageId),
       in_reply_to: lastInbound?.message_id ? stripMessageId(lastInbound.message_id) : null,
-      resend_email_id: result.ok ? result.id : null,
+      references_header: headers["References"] ?? null,
+      resend_email_id: result.ok && result.id ? result.id : null,
       delivery_status: result.ok ? "sent" : "failed",
       delivery_error: result.ok ? null : result.error,
       created_by: opts.senderId,
