@@ -411,6 +411,9 @@ export interface NormalizedInbound {
   references?: string | null;
   receivedAt?: string | null;
   attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+  /** Gateway-supplied enquiry reference / contact name to prefer when creating. */
+  referenceHint?: string | null;
+  contactNameHint?: string | null;
 }
 
 /** Most recent open enquiry from the same sender in the last 30 days. */
