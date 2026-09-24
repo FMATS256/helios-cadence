@@ -47,8 +47,8 @@ async function decorate(rows: any[]): Promise<EnquiryListItem[]> {
       ? admin.from("profiles").select("id, full_name").in("id", amIds)
       : Promise.resolve({ data: [] } as any),
   ]);
-  const customers = new Map((customersRes.data ?? []).map((c: any) => [c.id, c]));
-  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p.full_name]));
+  const customers = new Map<string, any>((customersRes.data ?? []).map((c: any) => [c.id, c]));
+  const profiles = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
   return rows.map((r) => ({
     id: r.id,
     reference: r.reference,
