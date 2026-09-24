@@ -144,7 +144,7 @@ export const styles = {
     lineHeight: '24px',
   },
 
-  content: { padding: '34px 42px 14px' },
+  content: { padding: '34px 42px 8px' },
   h2: { fontSize: '15px', fontWeight: 600 as const, color: BRAND.ink, margin: '0 0 10px' },
   text: { fontSize: '15px', color: BRAND.body, lineHeight: '24px', margin: '0 0 16px' },
   // Plain email-style paragraph — no boxes, no borders, just normal wording
@@ -216,7 +216,7 @@ export const styles = {
     color: BRAND.ink,
   },
 
-  divider: { borderColor: BRAND.hair, margin: '24px 0 0', borderTop: `1px solid ${BRAND.hair}` },
+  divider: { borderColor: BRAND.hair, margin: '14px 0 0', borderTop: `1px solid ${BRAND.hair}` },
 
   // Reference-led signature: a slim icon rail, strong identity block,
   // legal copy and the branded image-style panel in that exact order.
