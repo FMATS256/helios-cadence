@@ -226,5 +226,10 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
       .eq("id", data.messageId)
       .maybeSingle();
     if (!message?.resend_email_id) throw new Error("Attachment source email not found");
-    return getAttachmentDownloadUrl(message.resend_email_id, data.attachmentId);
+    const { data: att } = await context.supabase
+      .from("email_message_attachments")
+      .select("attachment_id")
+      .eq("id", data.attachmentId)
+      .maybeSingle();
+    return getAttachmentDownloadUrl(message.resend_email_id, att?.attachment_id ?? data.attachmentId);
   });

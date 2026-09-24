@@ -270,6 +270,40 @@ export async function sendInboxEmail(opts: {
   headers?: Record<string, string>;
   replyTo?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  // Preferred path: the IMT website email gateway (holds the Resend connection).
+  const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
+  const gatewayKey = process.env.IMT_EMAIL_API_KEY;
+  if (gatewayUrl && gatewayKey) {
+    const fromAddr = extractEmail(opts.from);
+    if (!fromAddr.endsWith(`@${MAIL_DOMAIN}`)) return { ok: false, error: `Sender must be @${MAIL_DOMAIN}` };
+    const payload: Record<string, unknown> = {
+      from: opts.from,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    };
+    if (opts.cc?.length) payload.cc = opts.cc;
+    if (opts.replyTo) payload.reply_to = opts.replyTo;
+    if (opts.headers) payload.headers = opts.headers;
+    try {
+      const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${gatewayKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const bodyText = await res.text();
+      if (!res.ok) {
+        console.error(`[inbox] gateway send failed [${res.status}]: ${bodyText}`);
+        return { ok: false, error: `Gateway ${res.status}: ${bodyText.slice(0, 400)}` };
+      }
+      let parsed: any = {};
+      try { parsed = JSON.parse(bodyText); } catch { /* non-JSON ok */ }
+      return { ok: true, id: String(parsed.id ?? parsed.provider_id ?? parsed.data?.id ?? "") };
+    } catch (e: any) {
+      return { ok: false, error: `Gateway unreachable: ${String(e?.message ?? e)}` };
+    }
+  }
   try {
     const body: Record<string, unknown> = {
       from: opts.from,
@@ -288,6 +322,27 @@ export async function sendInboxEmail(opts: {
   }
 }
 
+/** Read message history from the IMT website email gateway. */
+export async function listGatewayMessages(q: {
+  direction?: "inbound" | "outbound";
+  since?: string;
+  mailbox?: string;
+  thread_id?: string;
+  limit?: number;
+}): Promise<{ ok: true; data: any } | { ok: false; error: string }> {
+  const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
+  const gatewayKey = process.env.IMT_EMAIL_API_KEY;
+  if (!gatewayUrl || !gatewayKey) return { ok: false, error: "Email gateway is not configured" };
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") params.set(k, String(v));
+  const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/messages?${params}`, {
+    headers: { Authorization: `Bearer ${gatewayKey}` },
+  });
+  const bodyText = await res.text();
+  if (!res.ok) return { ok: false, error: `Gateway ${res.status}: ${bodyText.slice(0, 400)}` };
+  try { return { ok: true, data: JSON.parse(bodyText) }; } catch { return { ok: true, data: bodyText }; }
+}
+
 interface InboundEvent {
   data?: {
     email_id?: string;
@@ -303,27 +358,10 @@ interface InboundEvent {
  * Ingest one email.received webhook event: dedupe, match/patch the enquiry,
  * store message + attachments, reopen if needed, auto-ack new enquiries.
  */
-export async function ingestReceivedEmail(event: InboundEvent): Promise<{
-  status: "created" | "appended" | "duplicate" | "skipped";
-  reference?: string;
-  error?: string;
-}> {
+export async function ingestReceivedEmail(event: InboundEvent): Promise<IngestResult> {
   const emailId = event.data?.email_id;
   const fromEmail = extractEmail(event.data?.from);
   if (!emailId || !fromEmail) return { status: "skipped", error: "missing email_id or from" };
-
-  const admin = adminClient();
-
-  // Dedupe on the provider email id and the RFC Message-ID.
-  const { data: dupe } = await admin
-    .from("email_messages")
-    .select("id")
-    .eq("resend_email_id", emailId)
-    .limit(1)
-    .maybeSingle();
-  if (dupe) return { status: "duplicate" };
-
-  // Webhooks carry metadata only — pull body/headers/attachments from the Receiving API.
   let full: any = null;
   let attachments: any[] = [];
   try {
@@ -333,9 +371,82 @@ export async function ingestReceivedEmail(event: InboundEvent): Promise<{
   } catch (e: any) {
     console.error("[inbox] receiving fetch failed:", e?.message);
   }
-
   const headers = full?.headers ?? {};
-  const rawMessageId = stripMessageId(headers["message-id"] ?? event.data?.message_id);
+  return ingestNormalizedEmail({
+    providerId: emailId,
+    messageId: headers["message-id"] ?? event.data?.message_id ?? null,
+    from: headers.from ?? event.data?.from ?? "",
+    to: event.data?.to ?? [],
+    cc: event.data?.cc ?? [],
+    subject: headers.subject ?? event.data?.subject ?? null,
+    html: full?.html ?? null,
+    text: full?.text ?? null,
+    inReplyTo: headers["in-reply-to"] ?? null,
+    references: headers["references"] ?? null,
+    attachments: attachments.map((a) => ({
+      filename: a.filename || a.name || "attachment",
+      content_type: a.content_type ?? a.contentType ?? null,
+      size_bytes: a.size_bytes ?? a.size ?? null,
+      attachment_id: a.id ?? null,
+    })),
+  });
+}
+
+type IngestResult = {
+  status: "created" | "appended" | "duplicate" | "skipped";
+  reference?: string;
+  error?: string;
+};
+
+export interface NormalizedInbound {
+  providerId: string;
+  messageId?: string | null;
+  from: string;
+  to?: string[];
+  cc?: string[];
+  subject?: string | null;
+  html?: string | null;
+  text?: string | null;
+  inReplyTo?: string | null;
+  references?: string | null;
+  receivedAt?: string | null;
+  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+}
+
+/** Most recent open enquiry from the same sender in the last 30 days. */
+async function findRecentOpenEnquiry(admin: any, email: string) {
+  const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const { data } = await admin
+    .from("email_enquiries")
+    .select("*")
+    .ilike("contact_email", email)
+    .neq("status", "closed")
+    .gte("last_message_at", since)
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/**
+ * Core ingest shared by Resend webhooks and the IMT website email gateway.
+ */
+export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<IngestResult> {
+  const emailId = input.providerId;
+  const fromEmail = extractEmail(input.from);
+  if (!emailId || !fromEmail) return { status: "skipped", error: "missing provider_id or from" };
+  const admin = adminClient();
+
+  const { data: dupe } = await admin
+    .from("email_messages")
+    .select("id")
+    .eq("resend_email_id", emailId)
+    .limit(1)
+    .maybeSingle();
+  if (dupe) return { status: "duplicate" };
+
+  const attachments = input.attachments ?? [];
+  const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
       .from("email_messages")
@@ -346,15 +457,18 @@ export async function ingestReceivedEmail(event: InboundEvent): Promise<{
     if (dupe2) return { status: "duplicate" };
   }
 
-  const inReplyTo = headers["in-reply-to"] ?? null;
-  const references = headers["references"] ?? null;
-  const subject = (full?.headers?.subject ?? event.data?.subject ?? "(no subject)").toString().slice(0, 300);
-  const text: string | null = full?.text ?? null;
-  const html: string | null = full?.html ?? null;
+  const inReplyTo = input.inReplyTo ?? null;
+  const references = input.references ?? null;
+  const subject = (input.subject || "(no subject)").toString().slice(0, 300);
+  const text: string | null = input.text ?? null;
+  const html: string | null = input.html ?? null;
+  const event = { data: { from: input.from, to: input.to ?? [], cc: input.cc ?? [] } };
+  const headers: Record<string, string> = {};
 
   // 1. Threading: In-Reply-To / References, then the enquiry reference, else a new enquiry.
   let enquiry = await findEnquiryByChain(admin, inReplyTo, references);
   if (!enquiry) enquiry = await findEnquiryByReference(admin, `${subject} ${text ?? ""}`);
+  if (!enquiry) enquiry = await findRecentOpenEnquiry(admin, fromEmail);
 
   const customer = enquiry?.customer_id
     ? (await admin.from("customers").select("id, account_number, company_name, title, account_manager_id").eq("id", enquiry.customer_id).maybeSingle()).data
@@ -464,7 +578,7 @@ export async function ingestReceivedEmail(event: InboundEvent): Promise<{
     const result = await sendInboxEmail({
       from: `IMT Solutions Sales <${SALES_INBOX}>`,
       to: fromEmail,
-      subject: `Re: ${subject}`,
+      subject: `Re: ${subject} [${enquiry.reference}]`,
       html: ackHtml(enquiry.reference, contactName, subject),
       text: ackText,
       headers: rawMessageId
@@ -562,12 +676,16 @@ export async function sendEnquiryReply(opts: {
     quotes,
   });
   const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}\nEnquiry reference: ${enquiry.reference}`;
+  const baseSubject = enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`;
+  const taggedSubject = new RegExp(enquiry.reference, "i").test(baseSubject)
+    ? baseSubject
+    : `${baseSubject} [${enquiry.reference}]`;
 
   const result = await sendInboxEmail({
     from: fromLine,
     to: enquiry.contact_email,
     cc: opts.cc?.filter(Boolean),
-    subject: enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`,
+    subject: taggedSubject,
     html,
     text,
     headers,
@@ -583,12 +701,13 @@ export async function sendEnquiryReply(opts: {
       from_address: fromAddress,
       to_address: enquiry.contact_email,
       cc_address: opts.cc?.filter(Boolean).join(", ") || null,
-      subject: enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`,
+      subject: taggedSubject,
       body_html: html,
       body_text: opts.body,
-      message_id: messageId,
+      message_id: stripMessageId(messageId),
       in_reply_to: lastInbound?.message_id ? stripMessageId(lastInbound.message_id) : null,
-      resend_email_id: result.ok ? result.id : null,
+      references_header: headers["References"] ?? null,
+      resend_email_id: result.ok && result.id ? result.id : null,
       delivery_status: result.ok ? "sent" : "failed",
       delivery_error: result.ok ? null : result.error,
       created_by: opts.senderId,
@@ -630,6 +749,7 @@ export async function sendEnquiryReply(opts: {
 
 /** Fresh, short-lived download URLs for a received email's attachments. */
 export async function getAttachmentDownloadUrl(emailId: string, attachmentId: string): Promise<{ url?: string; error?: string }> {
+  if (/^https?:\/\//i.test(attachmentId)) return { url: attachmentId };
   try {
     const res = await resendRequest<{ download_url?: string; data?: { download_url?: string } }>(
       "GET",
