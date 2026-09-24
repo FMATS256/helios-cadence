@@ -216,11 +216,12 @@ export const styles = {
     color: BRAND.ink,
   },
 
-  divider: { borderColor: BRAND.hair, margin: '24px 42px 0', borderTop: `1px solid ${BRAND.hair}` },
+  divider: { borderColor: BRAND.hair, margin: '24px 0 0', borderTop: `1px solid ${BRAND.hair}` },
 
   // Reference-led signature: a slim icon rail, strong identity block,
   // legal copy and the branded image-style panel in that exact order.
-  footer: { padding: '26px 42px 24px', backgroundColor: '#ffffff' },
+  // Side padding is small so the signature spreads across the full width.
+  footer: { padding: '26px 20px 24px', backgroundColor: '#ffffff' },
   signatureTable: { width: '100%', borderCollapse: 'collapse' as const },
   signatureRailCell: {
     width: '42px',
