@@ -86,7 +86,7 @@ export const styles = {
     fontWeight: 700 as const,
     margin: 0,
   },
-  header: { padding: '0' },
+  header: { padding: '0 42px' },
   headerLogo: { display: 'block', border: 0, outline: 'none', textDecoration: 'none' },
   heroBanner: {
     display: 'block',

@@ -40,20 +40,7 @@ export const GeneralMessageEmail = ({
           {para}
         </Text>
       ))}
-    {senderName && (
-      <Text style={styles.plainText}>
-        Kind regards,
-        <br />
-        <strong>{senderName}</strong>
-        <br />
-        <span style={{ color: BRAND.mute, fontSize: '13px' }}>
-          {senderRole ? `${senderRole} · ` : ''}
-          {BRAND.name}
-          {senderEmail ? ` · ${senderEmail}` : ''}
-          {senderPhone ? ` · ${senderPhone}` : ''}
-        </span>
-      </Text>
-    )}
+    <Text style={styles.plainText}>Kind regards,</Text>
   </EmailShell>
 )
 
