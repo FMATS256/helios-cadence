@@ -8,7 +8,53 @@ const addressList = z
   .optional()
   .transform((v) => (v == null ? [] : Array.isArray(v) ? v : v.split(",").map((s) => s.trim()).filter(Boolean)));
 
-const Payload = z.object({
+const Attachment = z.object({
+  filename: z.string().max(500).nullish(),
+  content_type: z.string().max(200).nullish(),
+  size: z.number().nullish(),
+  size_bytes: z.number().nullish(),
+  path: z.string().max(4000).nullish(),
+  id: z.string().max(500).nullish(),
+  url: z.string().max(4000).nullish(),
+  download_url: z.string().max(4000).nullish(),
+});
+
+// Exact shape pushed by the IMT Solutions website email gateway.
+const GatewayEnvelope = z.object({
+  type: z.literal("email.received"),
+  enquiry: z
+    .object({
+      id: z.string().nullish(),
+      reference: z.string().max(50).nullish(),
+      customer_email: z.string().max(500).nullish(),
+      customer_name: z.string().max(500).nullish(),
+      subject: z.string().max(2000).nullish(),
+      status: z.string().max(50).nullish(),
+    })
+    .nullish(),
+  data: z.object({
+    id: z.string().nullish(),
+    direction: z.string().nullish(),
+    enquiry_id: z.string().nullish(),
+    provider_id: z.string().min(1).max(300),
+    message_id: z.string().max(998).nullish(),
+    in_reply_to: z.string().max(998).nullish(),
+    references_header: z.string().max(20_000).nullish(),
+    thread_id: z.string().max(998).nullish(),
+    from_address: z.string().min(3).max(500),
+    to_addresses: addressList,
+    cc_addresses: addressList,
+    subject: z.string().max(2000).nullish(),
+    html: z.string().max(2_000_000).nullish(),
+    text_body: z.string().max(1_000_000).nullish(),
+    attachments: z.array(Attachment).max(50).nullish(),
+    status: z.string().max(50).nullish(),
+    created_at: z.string().max(64).nullish(),
+  }),
+});
+
+// Legacy flat shape (kept so older gateway builds keep working).
+const FlatPayload = z.object({
   provider_id: z.string().min(1).max(300),
   message_id: z.string().max(998).nullish(),
   thread_id: z.string().max(300).nullish(),
@@ -21,21 +67,19 @@ const Payload = z.object({
   in_reply_to: z.string().max(998).nullish(),
   references_header: z.string().max(20_000).nullish(),
   received_at: z.string().max(64).nullish(),
-  attachments: z
-    .array(
-      z.object({
-        filename: z.string().max(500).nullish(),
-        content_type: z.string().max(200).nullish(),
-        size: z.number().nullish(),
-        size_bytes: z.number().nullish(),
-        id: z.string().max(500).nullish(),
-        url: z.string().max(4000).nullish(),
-        download_url: z.string().max(4000).nullish(),
-      }),
-    )
-    .max(50)
-    .nullish(),
+  attachments: z.array(Attachment).max(50).nullish(),
 });
+
+function mapAttachments(list: z.infer<typeof Attachment>[] | null | undefined) {
+  return (list ?? []).map((att) => ({
+    filename: att.filename || "attachment",
+    content_type: att.content_type ?? null,
+    size_bytes: att.size_bytes ?? att.size ?? null,
+    // Gateway attachments are private storage paths; keep the path (or a URL
+    // when provided) so the file can be fetched from the gateway later.
+    attachment_id: att.path ?? att.download_url ?? att.url ?? att.id ?? null,
+  }));
+}
 
 export const Route = createFileRoute("/api/public/email/inbound")({
   server: {
@@ -59,31 +103,58 @@ export const Route = createFileRoute("/api/public/email/inbound")({
         } catch {
           return Response.json({ error: "Invalid JSON" }, { status: 400 });
         }
-        const parsed = Payload.safeParse(json);
-        if (!parsed.success) {
-          return Response.json({ error: "Invalid payload", issues: parsed.error.issues.slice(0, 10) }, { status: 400 });
-        }
-        const p = parsed.data;
 
-        const result = await ingestNormalizedEmail({
-          providerId: p.provider_id,
-          messageId: p.message_id ?? null,
-          from: p.from,
-          to: p.to,
-          cc: p.cc,
-          subject: p.subject ?? null,
-          html: p.html ?? null,
-          text: p.text ?? null,
-          inReplyTo: p.in_reply_to ?? null,
-          references: p.references_header ?? null,
-          receivedAt: p.received_at ?? null,
-          attachments: (p.attachments ?? []).map((att) => ({
-            filename: att.filename || "attachment",
-            content_type: att.content_type ?? null,
-            size_bytes: att.size_bytes ?? att.size ?? null,
-            attachment_id: att.download_url ?? att.url ?? att.id ?? null,
-          })),
-        });
+        let input: Parameters<typeof ingestNormalizedEmail>[0];
+        let referenceHint: string | null = null;
+        let contactNameHint: string | null = null;
+
+        const envelope = GatewayEnvelope.safeParse(json);
+        if (envelope.success) {
+          const d = envelope.data.data;
+          referenceHint = envelope.data.enquiry?.reference ?? null;
+          contactNameHint = envelope.data.enquiry?.customer_name ?? null;
+          input = {
+            providerId: d.provider_id,
+            messageId: d.message_id ?? null,
+            from: d.from_address,
+            to: d.to_addresses,
+            cc: d.cc_addresses,
+            subject: d.subject ?? null,
+            html: d.html ?? null,
+            text: d.text_body ?? null,
+            inReplyTo: d.in_reply_to ?? null,
+            references: d.references_header ?? d.thread_id ?? null,
+            receivedAt: d.created_at ?? null,
+            attachments: mapAttachments(d.attachments),
+            referenceHint,
+            contactNameHint,
+          };
+        } else {
+          const flat = FlatPayload.safeParse(json);
+          if (!flat.success) {
+            return Response.json(
+              { error: "Invalid payload", issues: flat.error.issues.slice(0, 10) },
+              { status: 400 },
+            );
+          }
+          const p = flat.data;
+          input = {
+            providerId: p.provider_id,
+            messageId: p.message_id ?? null,
+            from: p.from,
+            to: p.to,
+            cc: p.cc,
+            subject: p.subject ?? null,
+            html: p.html ?? null,
+            text: p.text ?? null,
+            inReplyTo: p.in_reply_to ?? null,
+            references: p.references_header ?? null,
+            receivedAt: p.received_at ?? null,
+            attachments: mapAttachments(p.attachments),
+          };
+        }
+
+        const result = await ingestNormalizedEmail(input);
 
         if (result.status === "skipped") {
           console.error("[email-inbound] skipped:", result.error);
