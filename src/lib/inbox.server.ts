@@ -227,7 +227,7 @@ function brandFooter(): string {
         </td>
       </tr>
     </table>
-    <div style="border-top:1px solid #eff1f5;color:#7b8798;font-size:9px;line-height:14px;margin:18px 0 16px;padding-top:13px">CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient and may contain confidential, privileged or copyright information. If you received it in error, please notify the sender, delete it, and do not copy, share or act on its contents.</div>
+    <div style="color:#7b8798;font-size:9px;line-height:15px;margin:18px 0 16px;text-align:justify">CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient and may contain confidential, privileged or copyright information. If you received it in error, please notify the sender, delete it, and do not copy, share or act on its contents.</div>
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0;border:0">
       <tr>
         <td style="width:43%;padding:20px;background:#ffffff;vertical-align:middle"><img src="https://management.imtsolutions.co.zw/__l5e/assets-v1/97880e6d-84db-4b70-99fe-3b27a1da5f49/imt-solutions-logo.png" alt="IMT Solutions" width="150" height="35" style="display:block;border:0;max-width:100%;height:auto" /></td>
