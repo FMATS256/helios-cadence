@@ -1805,6 +1805,7 @@ export type Database = {
       }
       email_enquiries: {
         Row: {
+          archived_at: string | null
           assigned_am_id: string | null
           assigned_at: string | null
           assigned_by: string | null
@@ -1823,6 +1824,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           assigned_am_id?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
@@ -1841,6 +1843,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           assigned_am_id?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
@@ -1890,7 +1893,9 @@ export type Database = {
           filename: string
           id: string
           message_id: string
+          quote_id: string | null
           size_bytes: number | null
+          storage_path: string | null
         }
         Insert: {
           attachment_id?: string | null
@@ -1899,7 +1904,9 @@ export type Database = {
           filename: string
           id?: string
           message_id: string
+          quote_id?: string | null
           size_bytes?: number | null
+          storage_path?: string | null
         }
         Update: {
           attachment_id?: string | null
@@ -1908,7 +1915,9 @@ export type Database = {
           filename?: string
           id?: string
           message_id?: string
+          quote_id?: string | null
           size_bytes?: number | null
+          storage_path?: string | null
         }
         Relationships: [
           {
@@ -1916,6 +1925,13 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_message_attachments_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
