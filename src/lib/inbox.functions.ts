@@ -4,6 +4,7 @@ import {
   getAttachmentDownloadUrl,
   getStoredAttachmentDownloadUrl,
   sendEnquiryReply,
+  createAndSendEnquiryEmail,
   adminClient,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
@@ -178,6 +179,31 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
     return result;
   });
 
+export const composeEnquiryEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { to: string; subject: string; body: string; cc?: string[]; customerId?: string | null; quoteId?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const role = await amOrAdmin(context);
+    if (!data.subject?.trim()) throw new Error("Subject is required");
+    if (!data.body?.trim()) throw new Error("Message is required");
+    const { data: profile } = await context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const roleLabel = String(role).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const result = await createAndSendEnquiryEmail({
+      senderId: context.userId,
+      senderName: profile?.full_name || "IMT Solutions",
+      senderRole: roleLabel,
+      senderEmail: profile?.email ?? null,
+      to: data.to,
+      subject: data.subject,
+      body: data.body,
+      cc: data.cc,
+      customerId: data.customerId,
+      quoteId: data.quoteId,
+    });
+    if (!result.ok) throw new Error(result.error);
+    return result;
+  });
+
 export const assignEnquiry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { enquiryId: string; amId: string | null }) => input)
@@ -236,18 +262,18 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
   .inputValidator((input: { messageId: string; attachmentId: string }) => input)
   .handler(async ({ data, context }) => {
     await amOrAdmin(context);
-    const { data: message } = await context.supabase
-      .from("email_messages")
-      .select("resend_email_id")
-      .eq("id", data.messageId)
-      .maybeSingle();
-    if (!message?.resend_email_id) throw new Error("Attachment source email not found");
     const { data: att } = await context.supabase
       .from("email_message_attachments")
       .select("attachment_id, storage_path")
       .eq("id", data.attachmentId)
       .maybeSingle();
     if (att?.storage_path) return getStoredAttachmentDownloadUrl(att.storage_path);
+    const { data: message } = await context.supabase
+      .from("email_messages")
+      .select("resend_email_id")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (!message?.resend_email_id) throw new Error("Attachment source email not found");
     return getAttachmentDownloadUrl(message.resend_email_id, att?.attachment_id ?? data.attachmentId);
   });
 

@@ -831,6 +831,52 @@ export async function sendEnquiryReply(opts: {
   return result.ok ? { ok: true, messageId: message.id } : { ok: false, error: result.error };
 }
 
+export async function createAndSendEnquiryEmail(opts: {
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  senderEmail: string | null;
+  to: string;
+  subject: string;
+  body: string;
+  cc?: string[];
+  customerId?: string | null;
+  quoteId?: string | null;
+}): Promise<{ ok: true; enquiryId: string; messageId: string } | { ok: false; error: string }> {
+  const admin = adminClient();
+  const contactEmail = extractEmail(opts.to);
+  if (!contactEmail) return { ok: false, error: "Enter a valid recipient email" };
+  const customer = opts.customerId
+    ? (await admin.from("customers").select("id, account_number, company_name").eq("id", opts.customerId).maybeSingle()).data
+    : await matchCustomer(admin, contactEmail);
+  const { data: reference } = await admin.rpc("next_enquiry_reference");
+  const { data: enquiry, error } = await admin.from("email_enquiries").insert({
+    reference,
+    customer_id: customer?.id ?? null,
+    contact_email: contactEmail,
+    contact_name: customer?.company_name ?? null,
+    subject: opts.subject.trim(),
+    status: "open",
+    assigned_am_id: opts.senderId,
+    assigned_by: opts.senderId,
+    assigned_at: new Date().toISOString(),
+    message_count: 0,
+    last_message_at: new Date().toISOString(),
+  }).select("id").single();
+  if (error || !enquiry) return { ok: false, error: error?.message ?? "Could not create conversation" };
+  const sent = await sendEnquiryReply({
+    enquiryId: enquiry.id,
+    senderId: opts.senderId,
+    senderName: opts.senderName,
+    senderRole: opts.senderRole,
+    senderEmail: opts.senderEmail,
+    body: opts.body,
+    cc: opts.cc,
+    quoteId: opts.quoteId,
+  });
+  return sent.ok ? { ok: true, enquiryId: enquiry.id, messageId: sent.messageId } : sent;
+}
+
 /** Fresh, short-lived download URLs for a received email's attachments. */
 export async function getAttachmentDownloadUrl(emailId: string, attachmentId: string): Promise<{ url?: string; error?: string }> {
   if (/^https?:\/\//i.test(attachmentId)) return { url: attachmentId };
