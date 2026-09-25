@@ -286,6 +286,7 @@ export async function sendInboxEmail(opts: {
   text: string;
   headers?: Record<string, string>;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: Uint8Array | string; contentType?: string }>;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   // Preferred path: the IMT website email gateway (holds the Resend connection).
   const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
@@ -304,6 +305,15 @@ export async function sendInboxEmail(opts: {
     if (opts.cc?.length) payload.cc = opts.cc;
     if (opts.replyTo) payload.reply_to = opts.replyTo;
     if (opts.headers) payload.headers = opts.headers;
+    if (opts.attachments?.length) {
+      payload.attachments = opts.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: typeof attachment.content === "string"
+          ? attachment.content
+          : Buffer.from(attachment.content).toString("base64"),
+        content_type: attachment.contentType ?? "application/octet-stream",
+      }));
+    }
     try {
       const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/send`, {
         method: "POST",
@@ -333,6 +343,15 @@ export async function sendInboxEmail(opts: {
     if (opts.cc?.length) body.cc = opts.cc;
     if (opts.replyTo) body.reply_to = opts.replyTo;
     if (opts.headers) body.headers = opts.headers;
+    if (opts.attachments?.length) {
+      body.attachments = opts.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: typeof attachment.content === "string"
+          ? attachment.content
+          : Buffer.from(attachment.content).toString("base64"),
+        content_type: attachment.contentType ?? "application/octet-stream",
+      }));
+    }
     const res = await resendRequest<{ id?: string }>("POST", "/emails", body);
     return { ok: true, id: res.id ?? "" };
   } catch (e: any) {
@@ -651,6 +670,7 @@ export async function sendEnquiryReply(opts: {
   senderEmail: string | null;
   body: string;
   cc?: string[];
+  quoteId?: string | null;
 }): Promise<{ ok: true; messageId: string } | { ok: false; error: string }> {
   const admin = adminClient();
   const { data: enquiry } = await admin.from("email_enquiries").select("*").eq("id", opts.enquiryId).maybeSingle();
@@ -704,6 +724,29 @@ export async function sendEnquiryReply(opts: {
     ? baseSubject
     : `${baseSubject} [${enquiry.reference}]`;
 
+  let quoteAttachment: { filename: string; content: Uint8Array; contentType: string; quoteId: string } | null = null;
+  if (opts.quoteId) {
+    const { data: quote } = await admin
+      .from("quotes")
+      .select("id, quote_number, title, customer_id, studio_document_id")
+      .eq("id", opts.quoteId)
+      .maybeSingle();
+    if (!quote) return { ok: false, error: "Quotation not found" };
+    if (enquiry.customer_id && quote.customer_id !== enquiry.customer_id) {
+      return { ok: false, error: "This quotation belongs to a different customer" };
+    }
+    const { quoteStudio } = await import("./quote-studio.server");
+    if (!quote.studio_document_id) return { ok: false, error: "Generate the quotation document before attaching it" };
+    const pdf = await quoteStudio.documentPdf(quote.studio_document_id, { userId: opts.senderId, userName: opts.senderName });
+    if (!pdf.ok) return { ok: false, error: pdf.error };
+    quoteAttachment = {
+      filename: `${quote.quote_number || quote.title || "quotation"}.pdf`.replace(/[^\w.-]+/g, "-"),
+      content: pdf.data.bytes,
+      contentType: "application/pdf",
+      quoteId: quote.id,
+    };
+  }
+
   const result = await sendInboxEmail({
     from: fromLine,
     to: enquiry.contact_email,
@@ -713,6 +756,7 @@ export async function sendEnquiryReply(opts: {
     text,
     headers,
     replyTo: fromAddress,
+    attachments: quoteAttachment ? [quoteAttachment] : undefined,
   });
 
   const now = new Date().toISOString();
@@ -738,6 +782,23 @@ export async function sendEnquiryReply(opts: {
     .select("*")
     .single();
   if (error) return { ok: false, error: error.message };
+
+  if (quoteAttachment) {
+    const storagePath = `${enquiry.id}/${message.id}/${quoteAttachment.filename}`;
+    const { error: uploadError } = await admin.storage
+      .from("email-attachments")
+      .upload(storagePath, quoteAttachment.content, { contentType: quoteAttachment.contentType, upsert: false });
+    if (uploadError) console.error("[inbox] quotation archive failed:", uploadError.message);
+    await admin.from("email_message_attachments").insert({
+      message_id: message.id,
+      filename: quoteAttachment.filename,
+      content_type: quoteAttachment.contentType,
+      size_bytes: quoteAttachment.content.byteLength,
+      attachment_id: result.ok ? result.id : null,
+      storage_path: uploadError ? null : storagePath,
+      quote_id: quoteAttachment.quoteId,
+    });
+  }
 
   await admin
     .from("email_enquiries")
@@ -783,4 +844,9 @@ export async function getAttachmentDownloadUrl(emailId: string, attachmentId: st
   } catch (e: any) {
     return { error: String(e?.message ?? e) };
   }
+}
+
+export async function getStoredAttachmentDownloadUrl(storagePath: string): Promise<{ url?: string; error?: string }> {
+  const { data, error } = await adminClient().storage.from("email-attachments").createSignedUrl(storagePath, 300);
+  return error ? { error: error.message } : { url: data?.signedUrl };
 }
