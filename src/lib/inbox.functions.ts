@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   getAttachmentDownloadUrl,
+  getStoredAttachmentDownloadUrl,
   sendEnquiryReply,
+  createAndSendEnquiryEmail,
   adminClient,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
@@ -71,7 +73,7 @@ export type InboxScope = "mine" | "unassigned" | "all";
 
 export const listEnquiries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string }) => input ?? {})
+  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string; folder?: "inbox" | "sent" | "archive" }) => input ?? {})
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     let q = context.supabase
@@ -81,6 +83,18 @@ export const listEnquiries = createServerFn({ method: "POST" })
       .limit(200);
     if (data.scope === "mine") q = q.eq("assigned_am_id", context.userId);
     if (data.scope === "unassigned") q = q.is("assigned_am_id", null);
+    if (data.folder === "archive") q = q.not("archived_at", "is", null);
+    else q = q.is("archived_at", null);
+    if (data.folder === "sent") {
+      const { data: sent } = await context.supabase
+        .from("email_messages")
+        .select("enquiry_id")
+        .eq("direction", "outbound")
+        .eq("created_by", context.userId);
+      const ids = [...new Set((sent ?? []).map((row: any) => row.enquiry_id))];
+      if (!ids.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
+      q = q.in("id", ids);
+    }
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     if (data.search?.trim()) {
       const s = data.search.trim();
@@ -138,9 +152,11 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
 
 export const replyToEnquiry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { enquiryId: string; body: string; cc?: string[] }) => input)
+  .inputValidator((input: { enquiryId: string; body: string; cc?: string[]; quoteId?: string | null }) => input)
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
+    const { data: visible } = await context.supabase.from("email_enquiries").select("id").eq("id", data.enquiryId).maybeSingle();
+    if (!visible) throw new Error("Enquiry not found or not visible to you");
     const { data: profile } = await context.supabase
       .from("profiles")
       .select("full_name, email")
@@ -157,6 +173,32 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       senderEmail: profile?.email ?? null,
       body: data.body,
       cc: data.cc,
+      quoteId: data.quoteId,
+    });
+    if (!result.ok) throw new Error(result.error);
+    return result;
+  });
+
+export const composeEnquiryEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { to: string; subject: string; body: string; cc?: string[]; customerId?: string | null; quoteId?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const role = await amOrAdmin(context);
+    if (!data.subject?.trim()) throw new Error("Subject is required");
+    if (!data.body?.trim()) throw new Error("Message is required");
+    const { data: profile } = await context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const roleLabel = String(role).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const result = await createAndSendEnquiryEmail({
+      senderId: context.userId,
+      senderName: profile?.full_name || "IMT Solutions",
+      senderRole: roleLabel,
+      senderEmail: profile?.email ?? null,
+      to: data.to,
+      subject: data.subject,
+      body: data.body,
+      cc: data.cc,
+      customerId: data.customerId,
+      quoteId: data.quoteId,
     });
     if (!result.ok) throw new Error(result.error);
     return result;
@@ -220,16 +262,55 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
   .inputValidator((input: { messageId: string; attachmentId: string }) => input)
   .handler(async ({ data, context }) => {
     await amOrAdmin(context);
+    const { data: att } = await context.supabase
+      .from("email_message_attachments")
+      .select("attachment_id, storage_path")
+      .eq("id", data.attachmentId)
+      .maybeSingle();
+    if (att?.storage_path) return getStoredAttachmentDownloadUrl(att.storage_path);
     const { data: message } = await context.supabase
       .from("email_messages")
       .select("resend_email_id")
       .eq("id", data.messageId)
       .maybeSingle();
     if (!message?.resend_email_id) throw new Error("Attachment source email not found");
-    const { data: att } = await context.supabase
-      .from("email_message_attachments")
-      .select("attachment_id")
-      .eq("id", data.attachmentId)
-      .maybeSingle();
     return getAttachmentDownloadUrl(message.resend_email_id, att?.attachment_id ?? data.attachmentId);
+  });
+
+export const listInboxQuotes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { enquiryId: string }) => input)
+  .handler(async ({ data, context }) => {
+    await amOrAdmin(context);
+    const { data: enquiry } = await context.supabase
+      .from("email_enquiries")
+      .select("customer_id, contact_email")
+      .eq("id", data.enquiryId)
+      .maybeSingle();
+    if (!enquiry) throw new Error("Enquiry not found or not visible to you");
+    let query = context.supabase
+      .from("quotes")
+      .select("id, quote_number, title, amount, currency, status, customer_id, walkin_email, studio_document_id")
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    query = enquiry.customer_id
+      ? query.eq("customer_id", enquiry.customer_id)
+      : query.ilike("walkin_email", enquiry.contact_email);
+    const { data: quotes, error } = await query;
+    if (error) throw new Error(error.message);
+    return quotes ?? [];
+  });
+
+export const archiveEnquiry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { enquiryId: string; archived: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    await amOrAdmin(context);
+    const { error } = await context.supabase
+      .from("email_enquiries")
+      .update({ archived_at: data.archived ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+      .eq("id", data.enquiryId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
