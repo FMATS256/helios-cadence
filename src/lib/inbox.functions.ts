@@ -279,24 +279,26 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
 
 export const listInboxQuotes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { enquiryId: string }) => input)
+  .inputValidator((input: { enquiryId?: string | null }) => input ?? {})
   .handler(async ({ data, context }) => {
     await amOrAdmin(context);
-    const { data: enquiry } = await context.supabase
-      .from("email_enquiries")
-      .select("customer_id, contact_email")
-      .eq("id", data.enquiryId)
-      .maybeSingle();
-    if (!enquiry) throw new Error("Enquiry not found or not visible to you");
     let query = context.supabase
       .from("quotes")
       .select("id, quote_number, title, amount, currency, status, customer_id, walkin_email, studio_document_id")
       .neq("status", "cancelled")
       .order("created_at", { ascending: false })
       .limit(50);
-    query = enquiry.customer_id
-      ? query.eq("customer_id", enquiry.customer_id)
-      : query.ilike("walkin_email", enquiry.contact_email);
+    if (data.enquiryId) {
+      const { data: enquiry } = await context.supabase
+        .from("email_enquiries")
+        .select("customer_id, contact_email")
+        .eq("id", data.enquiryId)
+        .maybeSingle();
+      if (!enquiry) throw new Error("Enquiry not found or not visible to you");
+      query = enquiry.customer_id
+        ? query.eq("customer_id", enquiry.customer_id)
+        : query.ilike("walkin_email", enquiry.contact_email);
+    }
     const { data: quotes, error } = await query;
     if (error) throw new Error(error.message);
     return quotes ?? [];

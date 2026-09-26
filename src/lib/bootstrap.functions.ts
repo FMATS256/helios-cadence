@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const MASTER_NAME = "Master Administrator";
+const MASTER_NAME = "Farai Matare";
 
 export const ensureMasterAdmin = createServerFn({ method: "POST" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
