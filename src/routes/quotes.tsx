@@ -433,6 +433,9 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
             <Button size="sm" style={{ background: "#25D366", color: "#fff" }} onClick={shareWhatsApp}>
               <MessageCircle className="h-4 w-4 mr-1.5" />Send via WhatsApp
             </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/inbox" search={{ quote: row.id, enquiry: undefined }}>Send via Email (Inbox)</Link>
+            </Button>
             <Button size="sm" variant="outline" onClick={() => onEdit(row.id)} disabled={!["draft", "sent"].includes(row.status)}>
               <Pencil className="h-4 w-4 mr-1.5" />Edit quotation
             </Button>
