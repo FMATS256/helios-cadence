@@ -14,6 +14,9 @@ import {
   replyToEnquiry,
   assignEnquiry,
   setEnquiryStatus,
+  composeEnquiryEmail,
+  listInboxQuotes,
+  archiveEnquiry,
   type InboxScope,
 } from "@/lib/inbox.functions";
 import type { EnquiryListItem, InboxMessage } from "@/lib/inbox.shared";
@@ -42,6 +45,12 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+type QuoteOption = { id: string; quote_number: string | null; title: string | null; amount: number | null; currency: string | null; status: string | null };
+const quoteLabel = (q: QuoteOption) =>
+  `${q.quote_number || "Draft"} · ${q.title || "Quotation"} · ${q.currency || "USD"} ${Number(q.amount ?? 0).toFixed(2)}`;
 
 export const Route = createFileRoute("/inbox")({
   head: () => ({
@@ -56,6 +65,7 @@ export const Route = createFileRoute("/inbox")({
   }),
   validateSearch: (search: Record<string, unknown>) => ({
     enquiry: typeof search.enquiry === "string" ? search.enquiry : undefined,
+    quote: typeof search.quote === "string" ? search.quote : undefined,
   }),
   component: InboxPage,
 });
@@ -239,7 +249,12 @@ function InboxPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { enquiry: selectedId } = Route.useSearch();
+  const { enquiry: selectedId, quote: quoteParam } = Route.useSearch();
+  const [folder, setFolder] = useState<"inbox" | "sent" | "archive">("inbox");
+  const [quoteId, setQuoteId] = useState("");
+  const [composeOpen, setComposeOpen] = useState(!!quoteParam);
+  const [compose, setCompose] = useState({ to: "", cc: "", subject: "", body: "", quoteId: quoteParam ?? "" });
+  const [composing, setComposing] = useState(false);
   const [scope, setScope] = useState<InboxScope>("mine");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -256,10 +271,13 @@ function InboxPage() {
   const assignFn = useServerFn(assignEnquiry);
   const statusFn = useServerFn(setEnquiryStatus);
   const attachmentFn = useServerFn(getAttachmentLink);
+  const composeFn = useServerFn(composeEnquiryEmail);
+  const quotesFn = useServerFn(listInboxQuotes);
+  const archiveFn = useServerFn(archiveEnquiry);
 
   const list = useQuery({
-    queryKey: ["inbox", scope, status, search, user?.id],
-    queryFn: () => listEnquiriesFn({ data: { scope, status, search } }),
+    queryKey: ["inbox", scope, status, search, folder, user?.id],
+    queryFn: () => listEnquiriesFn({ data: { scope, status, search, folder } }),
     enabled: !!user,
     refetchInterval: 30000,
   });
@@ -277,11 +295,76 @@ function InboxPage() {
     enabled: !!user,
   });
 
+  const threadQuotes = useQuery({
+    queryKey: ["inbox-quotes", selectedId, user?.id],
+    queryFn: () => quotesFn({ data: { enquiryId: selectedId } }),
+    enabled: !!user && !!selectedId,
+  });
+  const allQuotes = useQuery({
+    queryKey: ["inbox-quotes-all", user?.id],
+    queryFn: () => quotesFn({ data: {} }),
+    enabled: !!user && composeOpen,
+  });
+
+  async function sendCompose() {
+    if (!compose.to.trim() || !compose.subject.trim() || !compose.body.trim()) {
+      toast.error("To, subject and message are required");
+      return;
+    }
+    setComposing(true);
+    try {
+      const res = await composeFn({
+        data: {
+          to: compose.to.trim(),
+          subject: compose.subject.trim(),
+          body: compose.body.trim(),
+          cc: compose.cc.trim() ? compose.cc.split(",").map((a) => a.trim()) : undefined,
+          quoteId: compose.quoteId || null,
+        },
+      });
+      toast.success(compose.quoteId ? "Email sent with quotation attached" : "Email sent");
+      setComposeOpen(false);
+      setCompose({ to: "", cc: "", subject: "", body: "", quoteId: "" });
+      await queryClient.invalidateQueries({ queryKey: ["inbox"] });
+      if ((res as any)?.enquiryId) navigate({ to: "/inbox", search: { enquiry: (res as any).enquiryId, quote: undefined } });
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setComposing(false);
+    }
+  }
+
+  async function toggleArchive() {
+    if (!selectedId) return;
+    try {
+      await archiveFn({ data: { enquiryId: selectedId, archived: folder !== "archive" } });
+      toast.success(folder === "archive" ? "Moved back to inbox" : "Archived");
+      await queryClient.invalidateQueries({ queryKey: ["inbox"] });
+      navigate({ to: "/inbox", search: { enquiry: undefined, quote: undefined } });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    }
+  }
+
+  function forwardActive() {
+    const t = thread.data;
+    if (!t) return;
+    const last = t.messages[t.messages.length - 1];
+    setCompose({
+      to: "",
+      cc: "",
+      subject: `Fwd: ${t.enquiry.subject}`,
+      body: `\n\n---------- Forwarded message ----------\nFrom: ${last?.from_address ?? ""}\nSubject: ${t.enquiry.subject}\n\n${last?.body_text ?? stripHtml(last?.body_html)}`,
+      quoteId: "",
+    });
+    setComposeOpen(true);
+  }
+
   const enquiries = list.data?.enquiries ?? [];
   const canAssign = !!list.data?.canAssign;
   const active = thread.data?.enquiry ?? null;
   const filteredManagers = useMemo(() => managers.data ?? [], [managers.data]);
-  const openEnquiry = (id: string) => navigate({ to: "/inbox", search: { enquiry: id } });
+  const openEnquiry = (id: string) => navigate({ to: "/inbox", search: { enquiry: id, quote: undefined } });
 
   async function openAttachment(messageId: string, attachmentId: string) {
     try {
@@ -303,9 +386,12 @@ function InboxPage() {
           enquiryId: selectedId,
           body: reply.trim(),
           cc: cc.trim() ? cc.split(",").map((address) => address.trim()) : undefined,
+          quoteId: quoteId || null,
         },
       });
+      if (quoteId) toast.success("Reply sent with quotation attached");
       setReply("");
+      setQuoteId("");
       setCc("");
       setShowCc(false);
       await queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
@@ -345,7 +431,7 @@ function InboxPage() {
     <div className="flex h-[calc(100dvh-4rem)] min-h-[560px] overflow-hidden bg-card">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
         <div className="border-b border-border p-3">
-          <Button className="h-10 w-full justify-start rounded-sm bg-solar text-solar-foreground hover:bg-solar/90">
+          <Button onClick={() => setComposeOpen(true)} className="h-10 w-full justify-start rounded-sm bg-solar text-solar-foreground hover:bg-solar/90">
             <MailPlus className="h-4 w-4" /> New mail
           </Button>
         </div>
@@ -361,9 +447,10 @@ function InboxPage() {
                 onClick={() => {
                   setScope(item.key);
                   setStatus("all");
+                  setFolder("inbox");
                 }}
                 className={`h-9 w-full justify-start rounded-sm px-3 text-sm ${
-                  scope === item.key && status === "all" ? "bg-solar/15 font-semibold text-solar hover:bg-solar/15" : "text-muted-foreground"
+                  scope === item.key && status === "all" && folder === "inbox" ? "bg-solar/15 font-semibold text-solar hover:bg-solar/15" : "text-muted-foreground"
                 }`}
               >
                 <item.icon className="h-4 w-4" />
@@ -390,10 +477,15 @@ function InboxPage() {
             <ChevronDown className="h-3 w-3" /> Folders
           </div>
           <div className="space-y-0.5">
-            {[{ label: "Drafts", icon: FileText }, { label: "Sent", icon: Send }, { label: "Archive", icon: Archive }, { label: "Deleted", icon: Trash2 }].map((item) => (
-              <div key={item.label} className="flex h-8 items-center gap-2 px-3 text-sm text-muted-foreground">
+            {([{ key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
+              <Button
+                key={item.key}
+                variant="ghost"
+                onClick={() => { setFolder(item.key); setScope("all"); setStatus("all"); }}
+                className={`h-8 w-full justify-start rounded-sm px-3 text-sm ${folder === item.key ? "bg-solar/15 font-semibold text-solar hover:bg-solar/15" : "text-muted-foreground"}`}
+              >
                 <item.icon className="h-4 w-4" /> {item.label}
-              </div>
+              </Button>
             ))}
           </div>
           <div className="mt-5 flex items-center gap-2 px-3 text-sm text-muted-foreground">
@@ -406,9 +498,12 @@ function InboxPage() {
         <div className="border-b border-border px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="font-display text-xl font-semibold">Inbox</h1>
+              <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : "Inbox"}</h1>
               <p className="text-xs text-muted-foreground">Customer enquiries</p>
             </div>
+            <Button size="sm" onClick={() => setComposeOpen(true)} className="ml-auto h-8 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90 xl:hidden">
+              <MailPlus className="h-4 w-4" /> New
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => list.refetch()} title="Refresh inbox">
               <RefreshCw className={`h-4 w-4 ${list.isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -493,7 +588,7 @@ function InboxPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate({ to: "/inbox", search: { enquiry: undefined } })}
+                onClick={() => navigate({ to: "/inbox", search: { enquiry: undefined, quote: undefined } })}
                 className="lg:hidden"
                 title="Back to inbox"
               >
@@ -502,11 +597,11 @@ function InboxPage() {
               <Button variant="ghost" size="sm" onClick={() => changeStatus("awaiting_customer")} className="rounded-sm">
                 <Reply className="h-4 w-4" /> <span className="hidden sm:inline">Reply</span>
               </Button>
-              <Button variant="ghost" size="sm" className="hidden rounded-sm sm:inline-flex">
-                <Forward className="h-4 w-4" /> Forward
+              <Button variant="ghost" size="sm" onClick={forwardActive} className="rounded-sm">
+                <Forward className="h-4 w-4" /> <span className="hidden sm:inline">Forward</span>
               </Button>
               <span className="mx-1 h-5 w-px bg-border" />
-              <Button variant="ghost" size="icon" className="rounded-sm" title="Archive">
+              <Button variant="ghost" size="icon" onClick={toggleArchive} className="rounded-sm" title={folder === "archive" ? "Move to inbox" : "Archive"}>
                 <Archive className="h-4 w-4" />
               </Button>
               {active.status !== "closed" ? (
@@ -609,9 +704,20 @@ function InboxPage() {
                   <Button variant="ghost" size="sm" onClick={() => setShowCc((visible) => !visible)} className="h-8 rounded-sm text-xs">
                     Cc
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm" title="Add attachment">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
+                  <div className="flex min-w-0 items-center gap-1">
+                    <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <select
+                      aria-label="Attach quotation"
+                      value={quoteId}
+                      onChange={(event) => setQuoteId(event.target.value)}
+                      className="h-8 max-w-[170px] truncate border border-border bg-background px-1 text-xs outline-none sm:max-w-[260px]"
+                    >
+                      <option value="">{threadQuotes.data?.length ? "Attach quotation…" : "No quotations for this client"}</option>
+                      {((threadQuotes.data ?? []) as QuoteOption[]).map((q) => (
+                        <option key={q.id} value={q.id}>{quoteLabel(q)}</option>
+                      ))}
+                    </select>
+                  </div>
                   <span className="ml-auto hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex">
                     <Mail className="h-3 w-3" /> Replies stay in this enquiry
                   </span>
@@ -621,6 +727,41 @@ function InboxPage() {
           </>
         )}
       </section>
+
+      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>New message</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Input aria-label="To" placeholder="To (client email)" value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} />
+            <Input aria-label="Cc" placeholder="Cc (optional, comma separated)" value={compose.cc} onChange={(e) => setCompose({ ...compose, cc: e.target.value })} />
+            <Input aria-label="Subject" placeholder="Subject" value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} />
+            <Textarea aria-label="Message" rows={8} placeholder="Write your message…" value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} />
+            <div className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
+              <select
+                aria-label="Attach quotation"
+                value={compose.quoteId}
+                onChange={(e) => setCompose({ ...compose, quoteId: e.target.value })}
+                className="h-9 flex-1 border border-border bg-background px-2 text-sm outline-none"
+              >
+                <option value="">No quotation attached</option>
+                {((allQuotes.data ?? []) as QuoteOption[]).map((q) => (
+                  <option key={q.id} value={q.id}>{quoteLabel(q)}</option>
+                ))}
+              </select>
+            </div>
+            {compose.quoteId ? (
+              <p className="flex items-center gap-1.5 text-xs text-solar"><FileText className="h-3.5 w-3.5" /> The quotation PDF will be attached and kept on the conversation.</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComposeOpen(false)}>Discard</Button>
+            <Button onClick={sendCompose} disabled={composing} className="bg-solar text-solar-foreground hover:bg-solar/90">
+              <Send className="h-4 w-4" /> {composing ? "Sending…" : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
