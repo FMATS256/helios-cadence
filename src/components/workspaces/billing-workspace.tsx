@@ -552,25 +552,25 @@ function InvoiceEditorDialog({
                 {lines.map((l, i) => {
                   const lt = (Number(l.quantity) || 0) * (Number(l.unit_price) || 0);
                   return (
-                    <div key={i} className="grid grid-cols-12 items-center gap-2">
+                    <div key={i} className="grid grid-cols-2 items-center gap-2 sm:grid-cols-12">
                       <Input
-                        className="col-span-12 sm:col-span-5" placeholder="Description" value={l.description} disabled={locked}
+                        className="col-span-2 sm:col-span-5" placeholder="Description" value={l.description} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
                       />
                       <Input
-                        className="col-span-3 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Qty" value={l.quantity} disabled={locked}
+                        className="col-span-1 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Qty" value={l.quantity} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
                       />
                       <Input
-                        className="col-span-4 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price} disabled={locked}
+                        className="col-span-1 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: e.target.value } : x))}
                       />
                       <Input
-                        className="col-span-3 sm:col-span-1" type="number" min="0" step="0.1" placeholder="Tax %" value={l.tax_rate} disabled={locked}
+                        className="col-span-1 sm:col-span-1" type="number" min="0" step="0.1" placeholder="Tax %" value={l.tax_rate} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, tax_rate: e.target.value } : x))}
                       />
                       <div className="col-span-1 text-right font-mono text-xs">{lt.toFixed(2)}</div>
-                      <div className="col-span-1 text-right">
+                      <div className="col-span-2 text-right sm:col-span-1">
                         {!locked && lines.length > 1 && (
                           <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
                             onClick={() => setLines(lines.filter((_, j) => j !== i))}>
@@ -786,14 +786,14 @@ function RequestInvoiceDialog({
               </Button>
             </div>
             {lines.map((l, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2">
-                <Input className="col-span-6" placeholder="Description" value={l.description}
+              <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-12">
+                <Input className="col-span-2 sm:col-span-6" placeholder="Description" value={l.description}
                   onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
-                <Input className="col-span-2" type="number" min="0" placeholder="Qty" value={l.quantity}
+                <Input className="col-span-1 sm:col-span-2" type="number" min="0" placeholder="Qty" value={l.quantity}
                   onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
-                <Input className="col-span-3" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price}
+                <Input className="col-span-1 sm:col-span-3" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price}
                   onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: e.target.value } : x))} />
-                <div className="col-span-1 text-right">
+                <div className="col-span-2 text-right sm:col-span-1">
                   {lines.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setLines(lines.filter((_, j) => j !== i))}>
                       <Trash2 className="h-4 w-4 text-destructive" />

@@ -292,6 +292,7 @@ function RecordPaymentDialog({
   };
   const [form, setForm] = useState<any>(emptyForm);
   const [allocations, setAllocations] = useState<Record<string, string>>({});
+  const [cashAccountId, setCashAccountId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const isWalkin = form.customer_id === "__walkin__";
@@ -304,17 +305,27 @@ function RecordPaymentDialog({
   });
 
   const openInvoices: any[] = ctxQuery.data?.openInvoices ?? [];
+  const cashAccounts: any[] = ctxQuery.data?.cashAccounts ?? [];
+  const suggestedAccount = cashAccounts.find((a) =>
+    form.method === "cash"
+      ? String(a.kind).toLowerCase() === "cash"
+      : form.method === "mobile_money"
+        ? String(a.kind).toLowerCase() === "mobile_money"
+        : String(a.kind).toLowerCase() === "bank",
+  ) ?? cashAccounts.find((a) => a.is_default) ?? cashAccounts[0];
+  const activeCashAccountId = cashAccountId || suggestedAccount?.id || "";
   const allocSum = Object.values(allocations).reduce((s, v) => s + (Number(v) || 0), 0);
   const amount = Number(form.amount) || 0;
   const remaining = amount - allocSum;
 
-  function reset() { setForm(emptyForm); setAllocations({}); }
+  function reset() { setForm(emptyForm); setAllocations({}); setCashAccountId(""); }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.customer_id) return toast.error("Select a customer");
     if (isWalkin && !form.walk_in_name) return toast.error("Walk-in name required");
     if (!amount || amount <= 0) return toast.error("Enter an amount");
+    if (!activeCashAccountId) return toast.error("Select where the money was received");
     if (allocSum > amount + 0.001) return toast.error("Allocations exceed the payment amount");
     setSaving(true);
     try {
@@ -324,6 +335,7 @@ function RecordPaymentDialog({
       await onSubmit({
         ...form,
         amount,
+        cash_account_id: activeCashAccountId,
         paid_at: form.paid_at ? new Date(form.paid_at).toISOString() : new Date().toISOString(),
         allocations: allocs,
       });
@@ -350,7 +362,7 @@ function RecordPaymentDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={submit} className="grid grid-cols-1 gap-5 px-6 py-5 lg:grid-cols-[1fr_360px]">
+        <form onSubmit={submit} className="grid min-w-0 grid-cols-1 gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Left: payment details */}
           <div className="space-y-4">
             <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
@@ -373,7 +385,7 @@ function RecordPaymentDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                 <div><Label>Amount *</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
                 <div><Label>Currency</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} /></div>
                 <div>
@@ -390,6 +402,23 @@ function RecordPaymentDialog({
                     <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label>Money received into *</Label>
+                <Select value={activeCashAccountId} onValueChange={setCashAccountId} disabled={!showContext}>
+                  <SelectTrigger><SelectValue placeholder="Select bank, cash or mobile money account" /></SelectTrigger>
+                  <SelectContent>
+                    {cashAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} · {String(a.kind).replace(/_/g, " ")}{a.is_default ? " (default)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {form.method === "cash" ? "Cash payments are posted to a cash drawer such as Main Cash." : "This account receives the payment and updates the ledger."}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -425,17 +454,17 @@ function RecordPaymentDialog({
                 ) : (
                   <div className="space-y-2">
                     {openInvoices.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 rounded-lg border p-2">
+                      <div key={inv.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border p-2 sm:flex sm:gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="font-mono text-xs font-semibold">{inv.invoice_number}</div>
                           <div className="text-xs text-muted-foreground">{inv.status} · due {inv.due_date ?? "—"} · {fmt(inv.total, inv.currency)}</div>
                         </div>
                         <Input
-                          type="number" step="0.01" placeholder="0.00" className="w-28 h-8 font-mono text-right"
+                          type="number" step="0.01" placeholder="0.00" className="h-8 w-24 font-mono text-right sm:w-28"
                           value={allocations[inv.id] ?? ""}
                           onChange={(e) => setAllocations((prev) => ({ ...prev, [inv.id]: e.target.value }))}
                         />
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setAllocations((prev) => ({ ...prev, [inv.id]: String(inv.total) }))}>Full</Button>
+                        <Button type="button" size="sm" variant="ghost" className="col-start-2" onClick={() => setAllocations((prev) => ({ ...prev, [inv.id]: String(inv.total) }))}>Full</Button>
                       </div>
                     ))}
                   </div>
