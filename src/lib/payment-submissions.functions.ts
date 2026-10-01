@@ -39,7 +39,7 @@ async function assertBilling(context: Ctx) {
 const admin = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
 /** Bank / cash / mobile money accounts money can be banked into. */
-async function cashAccounts(db: any) {
+export async function cashAccounts(db: any) {
   const { data } = await db.from("cash_accounts")
     .select("id,name,kind,currency,is_default,is_active")
     .eq("is_active", true)
@@ -48,7 +48,7 @@ async function cashAccounts(db: any) {
 }
 
 /** Records the deposit on the finance ledger so the account balance moves. */
-async function bankDeposit(db: any, args: {
+export async function bankDeposit(db: any, args: {
   account_id: string; amount: number; currency: string; occurred_at: string;
   payment_id?: string | null;
   reference?: string | null; notes?: string | null; created_by?: string | null;
@@ -72,7 +72,7 @@ async function bankDeposit(db: any, args: {
  * debited and the customer receivable credited, in USD reporting terms.
  * Idempotent on the payment id, so a later "post ledger" run skips it.
  */
-async function postPaymentToLedger(db: any, args: {
+export async function postPaymentToLedger(db: any, args: {
   payment: any; account: any; customer: any; userId: string;
 }) {
   const { payment, account, customer, userId } = args;

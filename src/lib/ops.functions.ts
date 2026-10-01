@@ -178,6 +178,7 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
     paid_at?: string;
     notes?: string;
     service_context?: string;
+    cash_account_id?: string;
     allocations?: Array<{ invoice_id: string; amount: number }>;
   }) => input)
   .handler(async ({ data, context }) => {
@@ -228,6 +229,20 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
       accountNumber = customer.account_number;
     }
 
+    const { cashAccounts, bankDeposit, postPaymentToLedger } = await import("./payment-submissions.functions");
+    const accounts = await cashAccounts(supabaseAdmin);
+    const method = data.method || "cash";
+    const methodKind = method === "cash" ? "cash" : method === "mobile_money" ? "mobile_money" : "bank";
+    const account =
+      accounts.find((a: any) => a.id === data.cash_account_id) ??
+      accounts.find((a: any) => String(a.kind).toLowerCase() === methodKind) ??
+      accounts.find((a: any) => a.is_default) ??
+      accounts[0] ?? null;
+    if (!account) throw new Error("No active bank, cash or mobile money account is available.");
+    if (method === "cash" && String(account.kind).toLowerCase() !== "cash") {
+      throw new Error("Cash payments must be received into a cash account.");
+    }
+
     const { data: row, error } = await supabaseAdmin
       .from("payments")
       .insert({
@@ -235,18 +250,38 @@ export const createPaymentRecord = createServerFn({ method: "POST" })
         account_number: accountNumber,
         amount,
         currency: data.currency || "USD",
-        method: data.method || "cash",
+        method,
         reference: data.reference?.trim() || null,
         status: data.status || "received",
         paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : new Date().toISOString(),
         notes: data.notes?.trim() || null,
         service_context: data.service_context || null,
+        cash_account_id: account.id,
         invoice_id: allocs.length === 1 ? allocs[0].invoice_id : null,
         created_by: context.userId,
       } as any)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    await bankDeposit(supabaseAdmin, {
+      account_id: account.id,
+      amount,
+      currency: data.currency || "USD",
+      occurred_at: row.paid_at,
+      payment_id: row.id,
+      reference: row.receipt_number || row.reference || null,
+      notes: `Customer payment · ${accountNumber}`,
+      created_by: context.userId,
+    });
+    const { data: ledgerCustomer } = await supabaseAdmin
+      .from("customers")
+      .select("id,company_name,account_number")
+      .eq("id", customerId)
+      .single();
+    if (ledgerCustomer) {
+      await postPaymentToLedger(supabaseAdmin, { payment: row, account, customer: ledgerCustomer, userId: context.userId });
+    }
 
     // Auto-create allocations to invoices; triggers recompute invoice status + reconciliation
     if (allocs.length > 0) {
@@ -283,12 +318,13 @@ export const getCustomerPaymentContext = createServerFn({ method: "POST" })
     const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
     if (!hasRole) throw new Error("Staff role required");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [customer, invoices, subscriptions, tickets, payments] = await Promise.all([
+    const [customer, invoices, subscriptions, tickets, payments, cashAccountRows] = await Promise.all([
       supabaseAdmin.from("customers").select("id,account_number,company_name,primary_email,primary_phone,status").eq("id", data.customer_id).single(),
       supabaseAdmin.from("invoices").select("id,invoice_number,status,total,currency,issue_date,due_date").eq("customer_id", data.customer_id).is("archived_at", null).in("status", ["sent", "partial", "overdue", "draft"]).order("issue_date", { ascending: false }).limit(20),
       supabaseAdmin.from("subscriptions").select("id,plan_name,status,amount,currency,next_renewal").eq("customer_id", data.customer_id).order("created_at", { ascending: false }).limit(10),
       supabaseAdmin.from("tickets").select("id,ticket_number,subject,status,priority,created_at").eq("customer_id", data.customer_id).order("created_at", { ascending: false }).limit(5),
       supabaseAdmin.from("payments").select("id,receipt_number,amount,currency,method,paid_at,status,reconciliation_status").eq("customer_id", data.customer_id).order("paid_at", { ascending: false }).limit(10),
+      supabaseAdmin.from("cash_accounts").select("id,name,kind,currency,is_default").eq("is_active", true).order("is_default", { ascending: false }).order("name"),
     ]);
     return {
       customer: customer.data,
@@ -296,6 +332,7 @@ export const getCustomerPaymentContext = createServerFn({ method: "POST" })
       subscriptions: subscriptions.data ?? [],
       recentTickets: tickets.data ?? [],
       recentPayments: payments.data ?? [],
+      cashAccounts: cashAccountRows.data ?? [],
     };
   });
 

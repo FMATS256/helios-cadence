@@ -72,10 +72,10 @@ function FinanceHub() {
     const tabs = document.querySelector('[data-finance-tabs="true"]') as HTMLElement | null;
     if (!tabs || !tabBodyRef.current) return;
     const needed = window.scrollY + window.innerHeight - tabs.offsetTop;
-    if (needed > 0) tabBodyRef.current.style.minHeight = `${needed}px`;
+    if (needed > 0) tabBodyRef.current.style.minHeight = `${Math.min(needed, window.innerHeight * 2)}px`;
   };
   return (
-    <div>
+    <div className="min-w-0 overflow-x-clip">
       <div data-finance-tabs="true">
         <WorkspaceTabs tabs={FINANCE_TABS as any} active={active} to="/finance" colorful onBeforeChange={reserveViewingDepth} />
       </div>
@@ -297,7 +297,7 @@ function FinanceWorkspace() {
     <PageContainer>
       {/* ── Top workspace bar ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 px-4 md:px-6 h-14 border-b border-border" style={{ background: "var(--gradient-navy)" }}>
+        <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-4 py-2 sm:flex md:px-6" style={{ background: "var(--gradient-navy)" }}>
           <div className="flex items-center gap-2 text-navy-foreground">
             <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: "var(--gradient-solar)" }}>
               <BookOpen className="h-4 w-4 text-solar-foreground" />
@@ -314,7 +314,7 @@ function FinanceWorkspace() {
           >
             <RefreshCw className="h-4 w-4" />
           </button>
-          <div className="flex-1 max-w-2xl mx-2 md:mx-4">
+          <div className="col-span-2 min-w-0 sm:order-none sm:col-span-1 sm:mx-2 sm:flex-1 md:mx-4 md:max-w-2xl">
             <div className="flex items-center gap-2 h-9 rounded-md bg-white/10 border border-white/15 px-3">
               <Search className="h-4 w-4 text-navy-foreground/60 shrink-0" />
               <Input
@@ -342,7 +342,7 @@ function FinanceWorkspace() {
           </Button>
         </div>
         <div className="flex items-center justify-between px-4 md:px-6 min-h-11 bg-muted/30 border-b border-border">
-          <div className="flex gap-1.5 py-1.5">
+          <div className="flex min-w-0 gap-1.5 overflow-x-auto py-1.5">
             {(["dashboard", "recent"] as const).map((t) => (
               <button
                 key={t}
@@ -591,7 +591,7 @@ function TopExpensesCard({ data, currency }: { data: { name: string; value: numb
         {data.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-12">No expense data yet</p>
         ) : (
-          <div className="grid grid-cols-[160px_1fr] gap-4 items-center">
+          <div className="grid grid-cols-1 gap-4 items-center sm:grid-cols-[160px_minmax(0,1fr)]">
             <DonutChart
               data={data}
               height={180}
@@ -1029,7 +1029,7 @@ function NetzurDashboard({ data, currency, onPickCustomer }: { data: any; curren
     <div className="p-4 md:p-6 space-y-5 bg-muted/20">
       <h2 className="text-sm font-semibold text-muted-foreground">Finance Dashboard</h2>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <NetzurStat icon={TrendingUp} label="Total Revenue"
           value={money(revenueTotal, currency)} bg="#3fa87a" />
         <NetzurStat icon={FileText} label="Invoices Issued"
@@ -1040,7 +1040,7 @@ function NetzurDashboard({ data, currency, onPickCustomer }: { data: any; curren
           value={`${overdueInv.length} (${money(overdueInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e07a5f" />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <NetzurStat icon={ClipboardList} label="Unpaid Invoices"
           value={`${unpaidInv.length} (${money(unpaidInv.reduce((a, x) => a + bal(x), 0), currency)})`} bg="#e6a15f" />
         <NetzurStat icon={FileText} label="Open Quotes"

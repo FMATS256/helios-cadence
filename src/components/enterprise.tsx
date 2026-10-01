@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 /** Standard page wrapper — same padding/rhythm as Customer 360. */
 export function PageShell({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6", className)}>{children}</div>;
+  return <div className={cn("min-w-0 overflow-x-clip p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6", className)}>{children}</div>;
 }
 
 /** Page header with eyebrow / title / description / actions. */
@@ -55,7 +55,7 @@ export function SectionHeader({
         </h1>
         {description && <p className="text-sm sm:text-base text-muted-foreground mt-1.5 sm:mt-2 max-w-2xl">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="grid min-w-0 grid-cols-1 items-center gap-2 sm:flex sm:flex-wrap">{actions}</div>}
     </div>
   );
 }
@@ -383,7 +383,7 @@ export function DataGrid<T extends { id?: string | number }>({
   if (loading) return <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>;
   if (!rows.length) return <div className="p-10">{empty ?? <EmptyState title="No records" description="Nothing to display here." />}</div>;
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("min-w-0 w-full overflow-hidden", className)}>
       <Table>
         <TableHeader>
           <TableRow>
