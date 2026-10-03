@@ -33,14 +33,11 @@ import {
   Inbox as InboxIcon,
   Mail,
   MailPlus,
-  MoreHorizontal,
   Paperclip,
   RefreshCw,
   Reply,
   Search,
   Send,
-  Star,
-  Trash2,
   UserCog,
   Users,
 } from "lucide-react";
@@ -142,12 +139,12 @@ function EnquiryRow({
     <Button
       variant="ghost"
       onClick={onSelect}
-      className={`relative h-auto w-full justify-start rounded-none border-b border-border px-4 py-3 text-left transition-colors ${
+      className={`relative h-auto w-full justify-start rounded-none border-b border-border px-4 py-2.5 text-left transition-colors ${
         active ? "bg-accent hover:bg-accent" : "bg-card hover:bg-muted/60"
       }`}
     >
-      {active ? <span className="absolute inset-y-0 left-0 w-1 bg-solar" /> : null}
-      <div className="min-w-0 flex-1 space-y-1">
+      {active || enquiry.status === "open" ? <span className="absolute inset-y-0 left-0 w-1 bg-solar" /> : null}
+      <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center justify-between gap-3">
           <span className={`truncate text-sm ${enquiry.status === "open" ? "font-bold text-foreground" : "font-semibold"}`}>
             {sender}
@@ -155,8 +152,8 @@ function EnquiryRow({
           <span className="shrink-0 text-[11px] font-normal text-muted-foreground">{relativeTime(enquiry.last_message_at)}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs font-semibold text-solar">{enquiry.subject}</span>
-          <Star className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+          <span className={`truncate text-xs ${enquiry.status === "open" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{enquiry.subject}</span>
+          {enquiry.message_count > 1 ? <span className="shrink-0 text-[11px] text-muted-foreground">{enquiry.message_count}</span> : null}
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs font-normal text-muted-foreground">
@@ -183,7 +180,7 @@ function MessagePanel({
   const sender = inbound ? message.from_address : "IMT Solutions";
 
   return (
-    <article className="border-b border-border bg-card px-4 py-4 sm:px-6">
+    <article className="border-b border-border bg-card px-4 py-5 sm:px-7">
       <div className="flex gap-3">
         <Avatar className={`h-9 w-9 shrink-0 border ${inbound ? "border-info/30" : "border-solar/40"}`}>
           <AvatarFallback className={inbound ? "bg-info/15 text-info" : "bg-solar/15 text-solar"}>
@@ -208,9 +205,7 @@ function MessagePanel({
                   minute: "2-digit",
                 })}
               </span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" title="More message actions">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              <span className="sm:hidden">{relativeTime(message.created_at)}</span>
             </div>
           </div>
           {!inbound ? (
@@ -325,8 +320,8 @@ function InboxPage() {
       toast.success(compose.quoteId ? "Email sent with quotation attached" : "Email sent");
       setComposeOpen(false);
       setCompose({ to: "", cc: "", subject: "", body: "", quoteId: "" });
-      await queryClient.invalidateQueries({ queryKey: ["inbox"] });
-      if ((res as any)?.enquiryId) navigate({ to: "/inbox", search: { enquiry: (res as any).enquiryId, quote: undefined } });
+      void queryClient.invalidateQueries({ queryKey: ["inbox"] });
+      if (res.enquiryId) void navigate({ to: "/inbox", search: { enquiry: res.enquiryId, quote: undefined } });
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -389,13 +384,13 @@ function InboxPage() {
           quoteId: quoteId || null,
         },
       });
-      if (quoteId) toast.success("Reply sent with quotation attached");
+      toast.success(quoteId ? "Reply sent with quotation attached" : "Reply sent");
       setReply("");
       setQuoteId("");
       setCc("");
       setShowCc(false);
-      await queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
-      await queryClient.invalidateQueries({ queryKey: ["inbox"] });
+      void queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
+      void queryClient.invalidateQueries({ queryKey: ["inbox"] });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
