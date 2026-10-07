@@ -82,8 +82,11 @@ import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/ap
 import { Route as ApiPublicHooksRemindersTickRouteImport } from './routes/api/public/hooks/reminders-tick'
 import { Route as ApiPublicHooksStarlinkTickRouteImport } from './routes/api/public/hooks/starlink-tick'
 import { Route as ApiPublicPortalAccountRouteImport } from './routes/api/public/portal/account'
+import { Route as ApiPublicPortalInvoicesRouteImport } from './routes/api/public/portal/invoices'
+import { Route as ApiPublicPortalJobsRouteImport } from './routes/api/public/portal/jobs'
 import { Route as ApiPublicPortalPaymentStatusRouteImport } from './routes/api/public/portal/payment-status'
 import { Route as ApiPublicPortalPaymentsRouteImport } from './routes/api/public/portal/payments'
+import { Route as ApiPublicPortalTicketsRouteImport } from './routes/api/public/portal/tickets'
 import { Route as CSlugWorkspaceKeyIndexRouteImport } from './routes/c.$slug.$workspaceKey.index'
 import { Route as CSlugWorkspaceKeyActivityRouteImport } from './routes/c.$slug.$workspaceKey.activity'
 import { Route as CSlugWorkspaceKeyBillingRouteImport } from './routes/c.$slug.$workspaceKey.billing'
@@ -473,6 +476,16 @@ const ApiPublicPortalAccountRoute = ApiPublicPortalAccountRouteImport.update({
   path: '/api/public/portal/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPortalInvoicesRoute = ApiPublicPortalInvoicesRouteImport.update({
+  id: '/api/public/portal/invoices',
+  path: '/api/public/portal/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPortalJobsRoute = ApiPublicPortalJobsRouteImport.update({
+  id: '/api/public/portal/jobs',
+  path: '/api/public/portal/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPortalPaymentStatusRoute =
   ApiPublicPortalPaymentStatusRouteImport.update({
     id: '/api/public/portal/payment-status',
@@ -482,6 +495,11 @@ const ApiPublicPortalPaymentStatusRoute =
 const ApiPublicPortalPaymentsRoute = ApiPublicPortalPaymentsRouteImport.update({
   id: '/api/public/portal/payments',
   path: '/api/public/portal/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPortalTicketsRoute = ApiPublicPortalTicketsRouteImport.update({
+  id: '/api/public/portal/tickets',
+  path: '/api/public/portal/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugWorkspaceKeyIndexRoute = CSlugWorkspaceKeyIndexRouteImport.update({
@@ -621,8 +639,11 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/invoices': typeof ApiPublicPortalInvoicesRoute
+  '/api/public/portal/jobs': typeof ApiPublicPortalJobsRoute
   '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
   '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
+  '/api/public/portal/tickets': typeof ApiPublicPortalTicketsRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -708,8 +729,11 @@ export interface FileRoutesByTo {
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/invoices': typeof ApiPublicPortalInvoicesRoute
+  '/api/public/portal/jobs': typeof ApiPublicPortalJobsRoute
   '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
   '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
+  '/api/public/portal/tickets': typeof ApiPublicPortalTicketsRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -797,8 +821,11 @@ export interface FileRoutesById {
   '/api/public/hooks/reminders-tick': typeof ApiPublicHooksRemindersTickRoute
   '/api/public/hooks/starlink-tick': typeof ApiPublicHooksStarlinkTickRoute
   '/api/public/portal/account': typeof ApiPublicPortalAccountRoute
+  '/api/public/portal/invoices': typeof ApiPublicPortalInvoicesRoute
+  '/api/public/portal/jobs': typeof ApiPublicPortalJobsRoute
   '/api/public/portal/payment-status': typeof ApiPublicPortalPaymentStatusRoute
   '/api/public/portal/payments': typeof ApiPublicPortalPaymentsRouteWithChildren
+  '/api/public/portal/tickets': typeof ApiPublicPortalTicketsRoute
   '/c/$slug/$workspaceKey/activity': typeof CSlugWorkspaceKeyActivityRoute
   '/c/$slug/$workspaceKey/billing': typeof CSlugWorkspaceKeyBillingRoute
   '/c/$slug/$workspaceKey/servers': typeof CSlugWorkspaceKeyServersRouteWithChildren
@@ -887,8 +914,11 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
     | '/api/public/portal/account'
+    | '/api/public/portal/invoices'
+    | '/api/public/portal/jobs'
     | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
+    | '/api/public/portal/tickets'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -974,8 +1004,11 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
     | '/api/public/portal/account'
+    | '/api/public/portal/invoices'
+    | '/api/public/portal/jobs'
     | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
+    | '/api/public/portal/tickets'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -1062,8 +1095,11 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminders-tick'
     | '/api/public/hooks/starlink-tick'
     | '/api/public/portal/account'
+    | '/api/public/portal/invoices'
+    | '/api/public/portal/jobs'
     | '/api/public/portal/payment-status'
     | '/api/public/portal/payments'
+    | '/api/public/portal/tickets'
     | '/c/$slug/$workspaceKey/activity'
     | '/c/$slug/$workspaceKey/billing'
     | '/c/$slug/$workspaceKey/servers'
@@ -1151,8 +1187,11 @@ export interface RootRouteChildren {
   ApiPublicHooksRemindersTickRoute: typeof ApiPublicHooksRemindersTickRoute
   ApiPublicHooksStarlinkTickRoute: typeof ApiPublicHooksStarlinkTickRoute
   ApiPublicPortalAccountRoute: typeof ApiPublicPortalAccountRoute
+  ApiPublicPortalInvoicesRoute: typeof ApiPublicPortalInvoicesRoute
+  ApiPublicPortalJobsRoute: typeof ApiPublicPortalJobsRoute
   ApiPublicPortalPaymentStatusRoute: typeof ApiPublicPortalPaymentStatusRoute
   ApiPublicPortalPaymentsRoute: typeof ApiPublicPortalPaymentsRouteWithChildren
+  ApiPublicPortalTicketsRoute: typeof ApiPublicPortalTicketsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1671,6 +1710,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPortalAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/portal/invoices': {
+      id: '/api/public/portal/invoices'
+      path: '/api/public/portal/invoices'
+      fullPath: '/api/public/portal/invoices'
+      preLoaderRoute: typeof ApiPublicPortalInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/portal/jobs': {
+      id: '/api/public/portal/jobs'
+      path: '/api/public/portal/jobs'
+      fullPath: '/api/public/portal/jobs'
+      preLoaderRoute: typeof ApiPublicPortalJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/portal/payment-status': {
       id: '/api/public/portal/payment-status'
       path: '/api/public/portal/payment-status'
@@ -1683,6 +1736,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/portal/payments'
       fullPath: '/api/public/portal/payments'
       preLoaderRoute: typeof ApiPublicPortalPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/portal/tickets': {
+      id: '/api/public/portal/tickets'
+      path: '/api/public/portal/tickets'
+      fullPath: '/api/public/portal/tickets'
+      preLoaderRoute: typeof ApiPublicPortalTicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug/$workspaceKey/': {
@@ -1891,8 +1951,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksRemindersTickRoute: ApiPublicHooksRemindersTickRoute,
   ApiPublicHooksStarlinkTickRoute: ApiPublicHooksStarlinkTickRoute,
   ApiPublicPortalAccountRoute: ApiPublicPortalAccountRoute,
+  ApiPublicPortalInvoicesRoute: ApiPublicPortalInvoicesRoute,
+  ApiPublicPortalJobsRoute: ApiPublicPortalJobsRoute,
   ApiPublicPortalPaymentStatusRoute: ApiPublicPortalPaymentStatusRoute,
   ApiPublicPortalPaymentsRoute: ApiPublicPortalPaymentsRouteWithChildren,
+  ApiPublicPortalTicketsRoute: ApiPublicPortalTicketsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

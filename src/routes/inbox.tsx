@@ -33,6 +33,7 @@ import {
   Inbox as InboxIcon,
   Mail,
   MailPlus,
+  MoreHorizontal,
   Paperclip,
   RefreshCw,
   Reply,

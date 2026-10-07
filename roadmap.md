@@ -1,6 +1,9 @@
 # Roadmap
 
 ## Done
+- Client-app API for Base44: portal endpoints for account, invoices/statement, tickets, jobs (+ existing payments); integration brief saved to Files
+- Fixed inbox.tsx build error (missing MoreHorizontal import)
+
 - Payment submission → billing approval → ledger/account posting (verified end to end; test data removed)
 - Customer Accounts tab under Finance (per-customer financial statement)
 - Firecrawl reconnected in the new workspace
