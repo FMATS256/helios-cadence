@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/public/portal/tickets")({
         const ticketIds = (data ?? []).map((t: any) => t.id);
         const { data: messages } = ticketIds.length
           ? await sb.from("ticket_messages")
-              .select("ticket_id,author_name,body,created_at,is_internal")
+              .select("ticket_id,body,created_at,is_internal")
               .in("ticket_id", ticketIds)
               .order("created_at", { ascending: true })
           : { data: [] as any[] };
@@ -77,7 +77,6 @@ export const Route = createFileRoute("/api/public/portal/tickets")({
         for (const m of messages ?? []) {
           if (m.is_internal) continue; // never leak staff-only notes
           (msgsByTicket[m.ticket_id] ??= []).push({
-            author: m.author_name,
             body: m.body,
             created_at: m.created_at,
           });
@@ -106,15 +105,22 @@ export const Route = createFileRoute("/api/public/portal/tickets")({
 
         const sb = await db();
 
-        const externalId = String(body.external_id ?? "").trim();
-        if (externalId) {
-          const { data: existing } = await sb.from("tickets")
-            .select("*").eq("external_id", externalId).maybeSingle();
-          if (existing) return json({ ok: true, duplicate: true, ticket: publicTicket(existing) });
-        }
-
         const customer = await findCustomer(sb, body.account_number, body.customer_id);
         if (!customer) return fail(404, "Customer not found for that account number");
+
+        // Soft idempotency: an identical open ticket created in the last
+        // 10 minutes is almost certainly a retry of the same tap.
+        const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: existing } = await sb.from("tickets")
+          .select("*")
+          .eq("customer_id", customer.id)
+          .ilike("subject", subject)
+          .eq("status", "open")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing) return json({ ok: true, duplicate: true, ticket: publicTicket(existing) });
 
         const priority = ["low", "normal", "high", "urgent"].includes(String(body.priority).toLowerCase())
           ? String(body.priority).toLowerCase()
@@ -122,15 +128,12 @@ export const Route = createFileRoute("/api/public/portal/tickets")({
 
         const { data: row, error } = await sb.from("tickets").insert({
           customer_id: customer.id,
+          account_number: customer.account_number,
           subject,
           description: body.description?.trim() || null,
           priority,
           category: body.category?.trim() || "general",
           status: "open",
-          source: "portal",
-          external_id: externalId || null,
-          requester_email: body.requester_email?.trim() || null,
-          requester_name: body.requester_name?.trim() || null,
         } as any).select("*").single();
         if (error) return fail(500, error.message);
 

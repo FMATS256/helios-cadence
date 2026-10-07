@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/portal/jobs")({
         if (!customer) return fail(404, "Customer not found");
 
         const { data: tasks, error } = await sb.from("service_tasks")
-          .select("id,title,task_type,status,priority,scheduled_date,site_address,site_latitude,site_longitude,completed_at,created_at")
+          .select("id,title,task_type,status,priority,scheduled_at,site_name,site_address,site_lat,site_lng,completed_at,created_at")
           .eq("customer_id", customer.id)
           .order("created_at", { ascending: false })
           .limit(limit);
@@ -44,9 +44,9 @@ export const Route = createFileRoute("/api/public/portal/jobs")({
             type: t.task_type,
             status: t.status,
             priority: t.priority,
-            scheduled_date: t.scheduled_date,
+            scheduled_at: t.scheduled_at,
             site: t.site_address
-              ? { address: t.site_address, latitude: t.site_latitude, longitude: t.site_longitude }
+              ? { name: t.site_name, address: t.site_address, latitude: t.site_lat, longitude: t.site_lng }
               : null,
             completed_at: t.completed_at,
             created_at: t.created_at,
