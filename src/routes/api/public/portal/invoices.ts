@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/public/portal/invoices")({
             .order("payment_date", { ascending: false })
             .limit(50),
           sb.from("customer_credits")
-            .select("id,amount,balance,currency,status,created_at")
+            .select("id,amount,kind,note,created_at")
             .eq("customer_id", customer.id)
             .order("created_at", { ascending: false })
             .limit(20),
@@ -91,14 +91,14 @@ export const Route = createFileRoute("/api/public/portal/invoices")({
         const scheduleIds = (schedules ?? []).map((s: any) => s.id);
         const { data: installments } = scheduleIds.length
           ? await sb.from("payment_schedule_installments")
-              .select("schedule_id,due_date,amount,status,paid_at")
+              .select("schedule_id,due_date,amount_due,amount_paid,status,paid_at")
               .in("schedule_id", scheduleIds)
               .order("due_date", { ascending: true })
           : { data: [] as any[] };
 
         const outstanding = round(open.reduce((t: number, i: any) => t + num(i.balance), 0));
         const creditBalance = round(
-          (credits ?? []).reduce((t: number, c: any) => t + num(c.balance), 0),
+          (credits ?? []).reduce((t: number, c: any) => t + num(c.amount), 0),
         );
 
         return json({
@@ -130,9 +130,8 @@ export const Route = createFileRoute("/api/public/portal/invoices")({
           credits: (credits ?? []).map((c: any) => ({
             id: c.id,
             amount: round(num(c.amount)),
-            balance: round(num(c.balance)),
-            currency: c.currency,
-            status: c.status,
+            kind: c.kind,
+            note: c.note,
           })),
           installment_schedules: (schedules ?? []).map((s: any) => ({
             id: s.id,
@@ -145,7 +144,8 @@ export const Route = createFileRoute("/api/public/portal/invoices")({
               .filter((x: any) => x.schedule_id === s.id)
               .map((x: any) => ({
                 due_date: x.due_date,
-                amount: round(num(x.amount)),
+                amount: round(num(x.amount_due)),
+                paid: round(num(x.amount_paid)),
                 status: x.status,
                 paid_at: x.paid_at,
               })),
