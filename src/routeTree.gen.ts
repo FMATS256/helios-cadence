@@ -74,6 +74,7 @@ import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public
 import { Route as ApiPublicEmailInboundRouteImport } from './routes/api/public/email/inbound'
 import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
 import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
+import { Route as ApiPublicHooksBase44TicketsRouteImport } from './routes/api/public/hooks/base44-tickets'
 import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
 import { Route as ApiPublicHooksEmailInboundRouteImport } from './routes/api/public/hooks/email-inbound'
 import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
@@ -429,6 +430,12 @@ const ApiPublicHooksBackupsTickRoute =
     path: '/api/public/hooks/backups-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBase44TicketsRoute =
+  ApiPublicHooksBase44TicketsRouteImport.update({
+    id: '/api/public/hooks/base44-tickets',
+    path: '/api/public/hooks/base44-tickets',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBudgetTickRoute =
   ApiPublicHooksBudgetTickRouteImport.update({
     id: '/api/public/hooks/budget-tick',
@@ -631,6 +638,7 @@ export interface FileRoutesByFullPath {
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -721,6 +729,7 @@ export interface FileRoutesByTo {
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -813,6 +822,7 @@ export interface FileRoutesById {
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
+  '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
@@ -906,6 +916,7 @@ export interface FileRouteTypes {
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
@@ -996,6 +1007,7 @@ export interface FileRouteTypes {
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
@@ -1087,6 +1099,7 @@ export interface FileRouteTypes {
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
+    | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
     | '/api/public/hooks/hosting-sync'
@@ -1179,6 +1192,7 @@ export interface RootRouteChildren {
   ApiPublicEmailInboundRoute: typeof ApiPublicEmailInboundRoute
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
+  ApiPublicHooksBase44TicketsRoute: typeof ApiPublicHooksBase44TicketsRoute
   ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
   ApiPublicHooksEmailInboundRoute: typeof ApiPublicHooksEmailInboundRoute
   ApiPublicHooksHostingSyncRoute: typeof ApiPublicHooksHostingSyncRoute
@@ -1654,6 +1668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBackupsTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/base44-tickets': {
+      id: '/api/public/hooks/base44-tickets'
+      path: '/api/public/hooks/base44-tickets'
+      fullPath: '/api/public/hooks/base44-tickets'
+      preLoaderRoute: typeof ApiPublicHooksBase44TicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/budget-tick': {
       id: '/api/public/hooks/budget-tick'
       path: '/api/public/hooks/budget-tick'
@@ -1943,6 +1964,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEmailInboundRoute: ApiPublicEmailInboundRoute,
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
+  ApiPublicHooksBase44TicketsRoute: ApiPublicHooksBase44TicketsRoute,
   ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
   ApiPublicHooksEmailInboundRoute: ApiPublicHooksEmailInboundRoute,
   ApiPublicHooksHostingSyncRoute: ApiPublicHooksHostingSyncRoute,
