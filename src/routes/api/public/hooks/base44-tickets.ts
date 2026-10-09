@@ -2,14 +2,24 @@
  * Webhook: support tickets from the Base44 client app.
  *
  * POST /api/public/hooks/base44-tickets
- * Auth: `x-api-key: <PORTAL_API_KEY>` or `Authorization: Bearer <PORTAL_API_KEY>`.
+ * Auth: `x-api-key: <BASE44_API_KEY>` or `Authorization: Bearer <BASE44_API_KEY>`.
  * Body (JSON): { external_id?, account_number? | customer_email?, subject, description?,
  *   priority?, category?, requester_name?, requester_email? }
  * Replaying the same external_id returns the original ticket (idempotent).
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { db, fail, findCustomer, json, requireApiKey } from "@/lib/portal-api.server";
+import { db, fail, findCustomer, json } from "@/lib/portal-api.server";
+
+function requireBase44Key(request: Request): Response | null {
+  const expected = process.env["BASE44_API_KEY"];
+  if (!expected) return fail(503, "Base44 key not configured");
+  const got = (request.headers.get("x-api-key") ?? (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "")).trim();
+  const a = new TextEncoder().encode(got), b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return fail(401, "Invalid or missing API key");
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i];
+  return d === 0 ? null : fail(401, "Invalid or missing API key");
+}
 import { slaDueFrom } from "@/lib/support.server";
 
 const Schema = z.object({
@@ -29,7 +39,7 @@ export const Route = createFileRoute("/api/public/hooks/base44-tickets")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const denied = requireApiKey(request);
+        const denied = requireBase44Key(request);
         if (denied) return denied;
 
         let raw: unknown;
