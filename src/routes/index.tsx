@@ -12,6 +12,10 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Dashboard — IMT Operations Platform" },
       { name: "description", content: "Role-tailored command center: finance, account management, and support." },
+      { property: "og:title", content: "Dashboard — IMT Operations Platform" },
+      { property: "og:description", content: "Role-tailored command center: finance, account management, and support." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
