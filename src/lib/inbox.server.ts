@@ -288,7 +288,7 @@ export async function sendInboxEmail(opts: {
   replyTo?: string;
   attachments?: Array<{ filename: string; content: Uint8Array | string; contentType?: string }>;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  // Preferred path: the IMT website email gateway (holds the Resend connection).
+  // The IMT website is the only outbound transport; never fall back to Resend.
   const gatewayUrl = process.env.IMT_EMAIL_GATEWAY_URL;
   const gatewayKey = process.env.IMT_EMAIL_API_KEY;
   if (gatewayUrl && gatewayKey) {
@@ -332,31 +332,7 @@ export async function sendInboxEmail(opts: {
       return { ok: false, error: `Gateway unreachable: ${String(e?.message ?? e)}` };
     }
   }
-  try {
-    const body: Record<string, unknown> = {
-      from: opts.from,
-      to: [opts.to],
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text,
-    };
-    if (opts.cc?.length) body.cc = opts.cc;
-    if (opts.replyTo) body.reply_to = opts.replyTo;
-    if (opts.headers) body.headers = opts.headers;
-    if (opts.attachments?.length) {
-      body.attachments = opts.attachments.map((attachment) => ({
-        filename: attachment.filename,
-        content: typeof attachment.content === "string"
-          ? attachment.content
-          : Buffer.from(attachment.content).toString("base64"),
-        content_type: attachment.contentType ?? "application/octet-stream",
-      }));
-    }
-    const res = await resendRequest<{ id?: string }>("POST", "/emails", body);
-    return { ok: true, id: res.id ?? "" };
-  } catch (e: any) {
-    return { ok: false, error: String(e?.message ?? e) };
-  }
+  return { ok: false, error: "IMT email gateway is not configured" };
 }
 
 /** Read message history from the IMT website email gateway. */
@@ -747,18 +723,6 @@ export async function sendEnquiryReply(opts: {
     };
   }
 
-  const result = await sendInboxEmail({
-    from: fromLine,
-    to: enquiry.contact_email,
-    cc: opts.cc?.filter(Boolean),
-    subject: taggedSubject,
-    html,
-    text,
-    headers,
-    replyTo: fromAddress,
-    attachments: quoteAttachment ? [quoteAttachment] : undefined,
-  });
-
   const now = new Date().toISOString();
   const { data: message, error } = await admin
     .from("email_messages")
@@ -774,30 +738,54 @@ export async function sendEnquiryReply(opts: {
       message_id: stripMessageId(messageId),
       in_reply_to: lastInbound?.message_id ? stripMessageId(lastInbound.message_id) : null,
       references_header: headers["References"] ?? null,
-      resend_email_id: result.ok && result.id ? result.id : null,
-      delivery_status: result.ok ? "sent" : "failed",
-      delivery_error: result.ok ? null : result.error,
+      resend_email_id: null,
+      delivery_status: "failed",
+      delivery_error: "Delivery not attempted",
       created_by: opts.senderId,
     })
     .select("*")
     .single();
-  if (error) return { ok: false, error: error.message };
+  if (error || !message) return { ok: false, error: error?.message ?? "Could not save outgoing message; no email was sent" };
 
   if (quoteAttachment) {
     const storagePath = `${enquiry.id}/${message.id}/${quoteAttachment.filename}`;
     const { error: uploadError } = await admin.storage
       .from("email-attachments")
       .upload(storagePath, quoteAttachment.content, { contentType: quoteAttachment.contentType, upsert: false });
-    if (uploadError) console.error("[inbox] quotation archive failed:", uploadError.message);
-    await admin.from("email_message_attachments").insert({
+    if (uploadError) return { ok: false, error: `Could not retain quotation; no email was sent: ${uploadError.message}` };
+    const { error: attachmentError } = await admin.from("email_message_attachments").insert({
       message_id: message.id,
       filename: quoteAttachment.filename,
       content_type: quoteAttachment.contentType,
       size_bytes: quoteAttachment.content.byteLength,
-      attachment_id: result.ok ? result.id : null,
-      storage_path: uploadError ? null : storagePath,
+      attachment_id: null,
+      storage_path: storagePath,
       quote_id: quoteAttachment.quoteId,
     });
+    if (attachmentError) return { ok: false, error: `Could not save quotation attachment; no email was sent: ${attachmentError.message}` };
+  }
+
+  const result = await sendInboxEmail({
+    from: fromLine,
+    to: enquiry.contact_email,
+    cc: opts.cc?.filter(Boolean),
+    subject: taggedSubject,
+    html,
+    text,
+    headers,
+    replyTo: fromAddress,
+    attachments: quoteAttachment ? [quoteAttachment] : undefined,
+  });
+  const { error: deliveryError } = await admin.from("email_messages").update({
+    resend_email_id: result.ok && result.id ? result.id : null,
+    delivery_status: result.ok ? "sent" : "failed",
+    delivery_error: result.ok ? null : result.error,
+  }).eq("id", message.id);
+  if (deliveryError) {
+    console.error("[inbox] delivery status persistence failed:", deliveryError.message);
+    return { ok: false, error: result.ok
+      ? `Email was accepted by the gateway, but its sent status could not be saved. Do not resend. ${deliveryError.message}`
+      : `${result.error}; delivery status could not be saved: ${deliveryError.message}` };
   }
 
   await admin
@@ -810,7 +798,7 @@ export async function sendEnquiryReply(opts: {
     })
     .eq("id", enquiry.id);
 
-  if (enquiry.customer_id) {
+  if (result.ok && enquiry.customer_id) {
     const customer = (await admin.from("customers").select("account_number").eq("id", enquiry.customer_id).maybeSingle()).data;
     if (customer) {
       await recordCustomerEvent(admin, {
