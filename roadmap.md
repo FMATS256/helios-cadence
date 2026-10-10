@@ -13,7 +13,7 @@
 - [ ] Fix inbox post-send error without duplicate delivery; bring Email Inbox closer to Outlook on desktop and mobile
 - [ ] Make cash payment recording explicit and fix Finance workspace overlap across screen sizes
 - [ ] Outlook-style Email Inbox enhancements: compose mail, functional mail actions, quotation PDF sending and retained outbound attachments
-- [ ] AM Email Inbox: engine, API functions, inbound webhook route, /inbox UI and nav all built; awaiting Resend connection + RESEND_WEBHOOK_SECRET from user to go live (then point Resend webhook at /api/public/hooks/email-inbound)
+- [ ] Verify current IMT website gateway sending, received messages and retained email history; no direct Resend connection required
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance

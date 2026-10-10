@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,6 @@ import {
   Inbox as InboxIcon,
   Mail,
   MailPlus,
-  MoreHorizontal,
   Paperclip,
   RefreshCw,
   Reply,
@@ -259,6 +258,7 @@ function InboxPage() {
   const [showCc, setShowCc] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const replyInput = useRef<HTMLTextAreaElement>(null);
 
   const listEnquiriesFn = useServerFn(listEnquiries);
   const threadFn = useServerFn(getEnquiryThread);
@@ -360,7 +360,7 @@ function InboxPage() {
   const canAssign = !!list.data?.canAssign;
   const active = thread.data?.enquiry ?? null;
   const filteredManagers = useMemo(() => managers.data ?? [], [managers.data]);
-  const openEnquiry = (id: string) => navigate({ to: "/inbox", search: { enquiry: id, quote: undefined } });
+  const openEnquiry = (id: string) => navigate({ to: "/inbox", search: { enquiry: id, quote: undefined }, resetScroll: false });
 
   async function openAttachment(messageId: string, attachmentId: string) {
     try {
@@ -424,12 +424,23 @@ function InboxPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] min-h-[560px] overflow-hidden bg-card">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-0 min-w-0 flex-col overflow-hidden bg-card">
+      <div className="flex h-11 shrink-0 items-center gap-5 border-b border-border bg-card px-4">
+        <span className="flex items-center gap-2 text-sm font-semibold text-solar"><Mail className="h-4 w-4" /> IMT Mail</span>
+        <span className="flex h-full items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
+        <span className="ml-auto hidden text-xs text-muted-foreground sm:block">sales@imtsolutions.co.zw</span>
+      </div>
+      <div className="flex min-h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-muted/40 px-3 py-1">
+        <Button onClick={() => setComposeOpen(true)} size="sm" className="mr-2 h-8 shrink-0 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90"><MailPlus className="h-4 w-4" /> New mail</Button>
+        <Button variant="ghost" size="sm" disabled={!active || active.status === "closed"} onClick={() => replyInput.current?.focus()} className="shrink-0 rounded-sm"><Reply className="h-4 w-4" /> Reply</Button>
+        <Button variant="ghost" size="sm" disabled={!active} onClick={forwardActive} className="shrink-0 rounded-sm"><Forward className="h-4 w-4" /> Forward</Button>
+        <span className="mx-2 h-5 w-px shrink-0 bg-border" />
+        <Button variant="ghost" size="sm" disabled={!active} onClick={toggleArchive} className="shrink-0 rounded-sm"><Archive className="h-4 w-4" /> {folder === "archive" ? "Move to inbox" : "Archive"}</Button>
+      </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <aside className="hidden w-48 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
         <div className="border-b border-border p-3">
-          <Button onClick={() => setComposeOpen(true)} className="h-10 w-full justify-start rounded-sm bg-solar text-solar-foreground hover:bg-solar/90">
-            <MailPlus className="h-4 w-4" /> New mail
-          </Button>
+          <span className="text-xs font-semibold text-muted-foreground">Favourites</span>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">
           <div className="mb-2 flex items-center gap-2 px-2 text-sm font-semibold">
@@ -495,11 +506,8 @@ function InboxPage() {
           <div className="flex items-center justify-between gap-2">
             <div>
               <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : "Inbox"}</h1>
-              <p className="text-xs text-muted-foreground">Customer enquiries</p>
+              <p className="text-xs text-muted-foreground">{enquiries.length} conversations</p>
             </div>
-            <Button size="sm" onClick={() => setComposeOpen(true)} className="ml-auto h-8 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90 xl:hidden">
-              <MailPlus className="h-4 w-4" /> New
-            </Button>
             <Button variant="ghost" size="icon" onClick={() => list.refetch()} title="Refresh inbox">
               <RefreshCw className={`h-4 w-4 ${list.isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -514,8 +522,9 @@ function InboxPage() {
               className="h-9 rounded-sm bg-muted/60 pl-9"
             />
           </div>
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex gap-1 xl:hidden">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <select aria-label="Mailbox folder" value={folder} onChange={(event) => { const next = event.target.value; if (next === "inbox" || next === "sent" || next === "archive") { setFolder(next); setStatus("all"); if (next !== "inbox") setScope("all"); } }} className="h-7 max-w-full border border-border bg-background px-2 text-xs xl:hidden"><option value="inbox">Inbox</option><option value="sent">Sent</option><option value="archive">Archive</option></select>
+            <div className="flex flex-wrap gap-1 xl:hidden">
               {SCOPES.map((item) => (
                 <Button
                   key={item.key}
@@ -542,20 +551,21 @@ function InboxPage() {
           </div>
         </div>
 
-        {error ? (
+        {error || list.isError ? (
           <div className="flex items-start gap-2 border-b border-destructive/25 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error || list.error?.message}
           </div>
         ) : null}
 
         <div className="flex-1 overflow-y-auto">
           {list.isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading messages…</div>
+          ) : list.isError ? (
+            <div className="p-6"><Button variant="outline" onClick={() => list.refetch()}><RefreshCw className="h-4 w-4" /> Retry</Button></div>
           ) : enquiries.length === 0 ? (
             <div className="px-8 py-14 text-center">
               <InboxIcon className="mx-auto h-8 w-8 text-muted-foreground" />
               <p className="mt-3 text-sm font-semibold">Your inbox is clear</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">New customer emails appear here automatically.</p>
             </div>
           ) : (
             enquiries.map((item) => (
@@ -572,7 +582,6 @@ function InboxPage() {
               <Mail className="h-8 w-8" />
             </div>
             <p className="mt-4 text-base font-semibold">Select a message to read</p>
-            <p className="mt-1 text-sm text-muted-foreground">Choose a customer enquiry from the list.</p>
           </div>
         ) : thread.isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Loading conversation…</div>
@@ -590,7 +599,7 @@ function InboxPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => changeStatus("awaiting_customer")} className="rounded-sm">
+              <Button variant="ghost" size="sm" disabled={active.status === "closed"} onClick={() => replyInput.current?.focus()} className="rounded-sm" title="Reply">
                 <Reply className="h-4 w-4" /> <span className="hidden sm:inline">Reply</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={forwardActive} className="rounded-sm">
@@ -607,8 +616,8 @@ function InboxPage() {
               ) : (
                 <Button variant="ghost" size="sm" onClick={() => changeStatus("open")} className="rounded-sm">Reopen</Button>
               )}
-              <Button variant="ghost" size="icon" className="ml-auto rounded-sm" title="More actions">
-                <MoreHorizontal className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={() => thread.refetch()} className="ml-auto rounded-sm" title="Refresh conversation">
+                <RefreshCw className={`h-4 w-4 ${thread.isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
 
@@ -616,9 +625,9 @@ function InboxPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="mb-1 text-xs font-semibold text-solar">{active.reference}</div>
-                  <h2 className="truncate font-display text-xl font-semibold text-foreground">{active.subject}</h2>
+                  <h2 className="break-words font-display text-lg font-semibold text-foreground">{active.subject}</h2>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                    <span>{active.contact_name || active.contact_email}</span>
+                    <span className="break-all">{active.contact_name || active.contact_email}</span>
                     <span>·</span>
                     <span>{thread.data?.messages.length ?? 0} messages</span>
                     {active.customer_account_number ? (
@@ -635,7 +644,7 @@ function InboxPage() {
                     ) : null}
                   </div>
                 </div>
-                <span className={`shrink-0 px-2 py-1 text-xs font-semibold ${statusClass(active.status)}`}>
+                <span className={`max-w-24 shrink-0 whitespace-normal px-2 py-1 text-xs font-semibold ${statusClass(active.status)}`}>
                   {statusLabel(active.status)}
                 </span>
               </div>
@@ -672,7 +681,8 @@ function InboxPage() {
             </div>
 
             {active.status !== "closed" ? (
-              <div className="border-t border-border bg-card p-3 sm:p-4">
+              <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4">
+                {error ? <p role="alert" className="mb-2 break-words text-xs text-destructive">{error}</p> : null}
                 {showCc ? (
                   <div className="mb-2 flex items-center gap-2 border-b border-border pb-2">
                     <span className="text-xs text-muted-foreground">Cc</span>
@@ -686,6 +696,7 @@ function InboxPage() {
                   </div>
                 ) : null}
                 <Textarea
+                  ref={replyInput}
                   aria-label="Reply to customer"
                   rows={3}
                   placeholder={`Reply to ${active.contact_name || active.contact_email}`}
@@ -693,7 +704,7 @@ function InboxPage() {
                   onChange={(event) => setReply(event.target.value)}
                   className="min-h-20 resize-none rounded-sm border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
                 />
-                <div className="mt-2 flex items-center gap-1 border-t border-border pt-2">
+                <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border pt-2">
                   <Button onClick={sendReply} disabled={sending || !reply.trim()} className="h-8 rounded-sm bg-solar px-4 text-solar-foreground hover:bg-solar/90">
                     <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send"}
                   </Button>
@@ -714,15 +725,13 @@ function InboxPage() {
                       ))}
                     </select>
                   </div>
-                  <span className="ml-auto hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex">
-                    <Mail className="h-3 w-3" /> Replies stay in this enquiry
-                  </span>
                 </div>
               </div>
             ) : null}
           </>
         )}
       </section>
+      </div>
 
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="max-w-2xl">
@@ -746,9 +755,6 @@ function InboxPage() {
                 ))}
               </select>
             </div>
-            {compose.quoteId ? (
-              <p className="flex items-center gap-1.5 text-xs text-solar"><FileText className="h-3.5 w-3.5" /> The quotation PDF will be attached and kept on the conversation.</p>
-            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setComposeOpen(false)}>Discard</Button>
