@@ -214,9 +214,10 @@ function MessagePanel({
             </p>
           ) : null}
           {message.delivery_error ? (
-            <div className="mt-2 flex items-center gap-1 text-xs text-destructive">
-              <AlertCircle className="h-3 w-3" /> {message.delivery_error}
-            </div>
+            <details className="mt-2 text-xs text-destructive">
+              <summary className="cursor-pointer">{message.delivery_error.startsWith("Gateway 500") ? "Email service error (500) — details" : "Delivery error — details"}</summary>
+              <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{message.delivery_error}</pre>
+            </details>
           ) : null}
           <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{body || "(empty message)"}</div>
           {message.attachments?.length ? (
@@ -250,6 +251,7 @@ function InboxPage() {
   const [composeOpen, setComposeOpen] = useState(!!quoteParam);
   const [compose, setCompose] = useState({ to: "", cc: "", subject: "", body: "", quoteId: quoteParam ?? "" });
   const [composing, setComposing] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
   const [scope, setScope] = useState<InboxScope>("mine");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -303,7 +305,9 @@ function InboxPage() {
   });
 
   async function sendCompose() {
+    setComposeError(null);
     if (!compose.to.trim() || !compose.subject.trim() || !compose.body.trim()) {
+      setComposeError("To, subject and message are required");
       toast.error("To, subject and message are required");
       return;
     }
@@ -324,6 +328,7 @@ function InboxPage() {
       void queryClient.invalidateQueries({ queryKey: ["inbox"] });
       if (res.enquiryId) void navigate({ to: "/inbox", search: { enquiry: res.enquiryId, quote: undefined } });
     } catch (caught) {
+      setComposeError(caught instanceof Error ? caught.message : String(caught));
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setComposing(false);
@@ -737,6 +742,7 @@ function InboxPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>New message</DialogTitle></DialogHeader>
           <div className="space-y-2">
+            {composeError ? <div role="alert" className="text-sm text-destructive"><p>{composeError.startsWith("Gateway 500") ? "The IMT email service returned error 500. Your email was not accepted; your message is still here." : composeError}</p><details className="mt-1 text-xs"><summary className="cursor-pointer">Error details</summary><pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{composeError}</pre></details></div> : null}
             <Input aria-label="To" placeholder="To (client email)" value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} />
             <Input aria-label="Cc" placeholder="Cc (optional, comma separated)" value={compose.cc} onChange={(e) => setCompose({ ...compose, cc: e.target.value })} />
             <Input aria-label="Subject" placeholder="Subject" value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} />
