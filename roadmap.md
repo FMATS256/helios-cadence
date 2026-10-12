@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Created the Base44 client account and reassigned existing Base44 tickets; webhook ownership is fixed by protected configuration rather than requester details
 - Client-app API for Base44: portal endpoints for account, invoices/statement, tickets, jobs (+ existing payments); integration brief saved to Files
 - Fixed inbox.tsx build error (missing MoreHorizontal import)
 - Outlook-style Home toolbar, functional reply focus, phone folder switcher and stable three-pane inbox verified without browser errors or page overflow

@@ -9,7 +9,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { db, fail, findCustomer, json } from "@/lib/portal-api.server";
+import { db, fail, json } from "@/lib/portal-api.server";
 
 function requireBase44Key(request: Request): Response | null {
   const expected = process.env["BASE44_API_KEY"];
@@ -49,19 +49,15 @@ export const Route = createFileRoute("/api/public/hooks/base44-tickets")({
         const b = parsed.data;
 
         const sb: any = await db();
-        let customer = await findCustomer(sb, b.account_number, b.customer_id);
-        const email = b.customer_email || b.requester_email;
-        if (!customer && email) {
-          const { data: c } = await sb.from("customers")
-            .select("id,account_number,company_name,status").ilike("primary_email", email).limit(1).maybeSingle();
-          customer = c;
-          if (!customer) {
-            const { data: ct } = await sb.from("customer_contacts")
-              .select("customer_id").ilike("email", email).limit(1).maybeSingle();
-            if (ct) customer = await findCustomer(sb, null, ct.customer_id);
-          }
-        }
-        if (!customer) return fail(404, "Customer not found — send account_number or a registered email");
+        // Client ownership is configured by this platform, never by inbound identifiers.
+        const { data: setting, error: settingError } = await sb.from("system_settings")
+          .select("value").eq("key", "base44_ticket_customer_id").maybeSingle();
+        if (settingError) return fail(500, settingError.message);
+        if (typeof setting?.value !== "string") return fail(503, "Base44 client account is not configured");
+        const { data: customer, error: customerError } = await sb.from("customers")
+          .select("id,account_number,company_name,status").eq("id", setting.value).maybeSingle();
+        if (customerError) return fail(500, customerError.message);
+        if (!customer) return fail(503, "Base44 client account is unavailable");
 
         const marker = b.external_id ? `[base44:${b.external_id}]` : null;
         if (marker) {
@@ -72,7 +68,8 @@ export const Route = createFileRoute("/api/public/hooks/base44-tickets")({
 
         const p = String(b.priority ?? "normal").toLowerCase();
         const priority = ["low", "normal", "high", "critical"].includes(p) ? p : p === "urgent" ? "critical" : "normal";
-        const who = b.requester_name || b.requester_email ? `\n\nRequested by: ${[b.requester_name, b.requester_email].filter(Boolean).join(" · ")}` : "";
+        const requesterEmail = b.requester_email || b.customer_email;
+        const who = b.requester_name || requesterEmail ? `\n\nRequested by: ${[b.requester_name, requesterEmail].filter(Boolean).join(" · ")}` : "";
         const description = `${b.description ?? ""}${who}${marker ? `\n\n${marker}` : ""}`.trim() || null;
 
         const { data: ticket, error } = await sb.from("tickets").insert({
