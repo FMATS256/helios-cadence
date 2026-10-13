@@ -12,6 +12,20 @@ export const Route = createFileRoute("/api/public/test-emails")({
     handlers: {
       GET: async ({ request }) => {
         const requestedTemplate = new URL(request.url).searchParams.get("template");
+        if (requestedTemplate === "welcome-boss") {
+          const { imtSignature } = await import("@/lib/email-signature.shared");
+          const body = `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#202124"><p>Dear Farai,</p><p>Welcome, our boss Farai Matare! We are delighted to have you leading IMT Solutions and look forward to achieving great things together.</p></div>`;
+          const html = `${body}<br/>${imtSignature({ name: "Farai Matare", role: "admin", email: "farai.matare@imtsolutions.co.zw" })}`;
+          const res = await sendInboxEmail({
+            from: "Farai Matare <farai.matare@imtsolutions.co.zw>",
+            to: ALLOWED_RECIPIENT,
+            subject: "Welcome our boss Farai Matare",
+            html,
+            text: "Dear Farai,\n\nWelcome, our boss Farai Matare! We are delighted to have you leading IMT Solutions and look forward to achieving great things together.\n\nKind regards,\nFarai Matare",
+            replyTo: "sales@imtsolutions.co.zw",
+          });
+          return Response.json({ recipient: ALLOWED_RECIPIENT, ok: res.ok, reason: res.ok ? undefined : res.error });
+        }
         if (requestedTemplate && !TEMPLATES[requestedTemplate]) {
           return Response.json({ error: "Unknown email template" }, { status: 400 });
         }
