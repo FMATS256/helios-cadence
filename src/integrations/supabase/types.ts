@@ -1817,6 +1817,7 @@ export type Database = {
           id: string
           last_inbound_at: string | null
           last_message_at: string | null
+          mailbox_address: string
           message_count: number
           reference: string
           status: string
@@ -1836,6 +1837,7 @@ export type Database = {
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string | null
+          mailbox_address?: string
           message_count?: number
           reference: string
           status?: string
@@ -1855,6 +1857,7 @@ export type Database = {
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string | null
+          mailbox_address?: string
           message_count?: number
           reference?: string
           status?: string
@@ -1881,6 +1884,38 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_internal_notes: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          enquiry_id: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          enquiry_id: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          enquiry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_internal_notes_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: false
+            referencedRelation: "email_enquiries"
             referencedColumns: ["id"]
           },
         ]
@@ -1938,6 +1973,7 @@ export type Database = {
       }
       email_messages: {
         Row: {
+          bcc_address: string | null
           body_html: string | null
           body_text: string | null
           cc_address: string | null
@@ -1953,10 +1989,12 @@ export type Database = {
           message_id: string | null
           references_header: string | null
           resend_email_id: string | null
+          sender_name: string | null
           subject: string
           to_address: string
         }
         Insert: {
+          bcc_address?: string | null
           body_html?: string | null
           body_text?: string | null
           cc_address?: string | null
@@ -1972,10 +2010,12 @@ export type Database = {
           message_id?: string | null
           references_header?: string | null
           resend_email_id?: string | null
+          sender_name?: string | null
           subject?: string
           to_address: string
         }
         Update: {
+          bcc_address?: string | null
           body_html?: string | null
           body_text?: string | null
           cc_address?: string | null
@@ -1991,6 +2031,7 @@ export type Database = {
           message_id?: string | null
           references_header?: string | null
           resend_email_id?: string | null
+          sender_name?: string | null
           subject?: string
           to_address?: string
         }
@@ -2169,6 +2210,30 @@ export type Database = {
           tagline?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      email_workspace_preferences: {
+        Row: {
+          drafts: Json
+          organization: Json
+          signature_html: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          drafts?: Json
+          organization?: Json
+          signature_html?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          drafts?: Json
+          organization?: Json
+          signature_html?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

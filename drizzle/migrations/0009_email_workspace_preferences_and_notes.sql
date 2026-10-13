@@ -1,0 +1,18 @@
+CREATE TABLE public.email_workspace_preferences (user_id uuid PRIMARY KEY, drafts jsonb NOT NULL DEFAULT '{}'::jsonb, organization jsonb NOT NULL DEFAULT '{}'::jsonb, signature_html text NOT NULL DEFAULT '', updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.email_workspace_preferences TO authenticated;
+GRANT ALL ON public.email_workspace_preferences TO service_role;
+ALTER TABLE public.email_workspace_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY email_preferences_owner ON public.email_workspace_preferences FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE TABLE public.email_internal_notes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), enquiry_id uuid NOT NULL REFERENCES public.email_enquiries(id) ON DELETE CASCADE, author_id uuid NOT NULL, body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT ON public.email_internal_notes TO authenticated;
+GRANT ALL ON public.email_internal_notes TO service_role;
+ALTER TABLE public.email_internal_notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY email_notes_visible ON public.email_internal_notes FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.email_enquiries e WHERE e.id = email_internal_notes.enquiry_id));
+CREATE POLICY email_notes_author ON public.email_internal_notes FOR INSERT TO authenticated WITH CHECK (author_id = auth.uid() AND EXISTS (SELECT 1 FROM public.email_enquiries e WHERE e.id = email_internal_notes.enquiry_id));
+ALTER TABLE public.email_messages ADD COLUMN IF NOT EXISTS sender_name text;
+ALTER TABLE public.email_messages ADD COLUMN IF NOT EXISTS bcc_address text;
+ALTER TABLE public.email_enquiries ADD COLUMN IF NOT EXISTS mailbox_address text NOT NULL DEFAULT 'sales@imtsolutions.co.zw';
+UPDATE public.email_messages m SET sender_name = p.full_name FROM public.profiles p WHERE m.created_by::text = p.id::text AND m.sender_name IS NULL;
+CREATE POLICY department_enquiries_read ON public.email_enquiries FOR SELECT TO authenticated USING ((mailbox_address IN ('accounts@imtsolutions.co.zw','billing@imtsolutions.co.zw') AND public.has_role(auth.uid(),'finance'::public.app_role)) OR (mailbox_address IN ('support@imtsolutions.co.zw','helpdesk@imtsolutions.co.zw') AND EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id=auth.uid() AND r.role::text IN ('technical_support','cloud_engineer','cyber_security','noc'))));
+CREATE POLICY department_messages_read ON public.email_messages FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.email_enquiries e WHERE e.id=email_messages.enquiry_id AND e.mailbox_address IN ('accounts@imtsolutions.co.zw','billing@imtsolutions.co.zw','support@imtsolutions.co.zw','helpdesk@imtsolutions.co.zw')));
+CREATE POLICY department_attachments_read ON public.email_message_attachments FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.email_messages m WHERE m.id=email_message_attachments.message_id));

@@ -64,6 +64,13 @@
       "when": 1790319533754,
       "tag": "0008_email_inbox_quote_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791918897334,
+      "tag": "0009_email_workspace_preferences_and_notes",
+      "breakpoints": true
     }
   ]
 }
