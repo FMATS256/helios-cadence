@@ -17,6 +17,7 @@ import {
   composeEnquiryEmail,
   listInboxQuotes,
   archiveEnquiry,
+  retryFailedMessage,
   type InboxScope,
 } from "@/lib/inbox.functions";
 import type { EnquiryListItem, InboxMessage } from "@/lib/inbox.shared";
@@ -171,9 +172,11 @@ function EnquiryRow({
 function MessagePanel({
   message,
   onOpenAttachment,
+  onRetry,
 }: {
   message: InboxMessage;
   onOpenAttachment: (m: InboxMessage, a: InboxMessage["attachments"][number]) => void;
+  onRetry?: (messageId: string) => void;
 }) {
   const inbound = message.direction === "inbound";
   const body = message.body_text?.trim() || stripHtml(message.body_html);
@@ -209,8 +212,18 @@ function MessagePanel({
             </div>
           </div>
           {!inbound ? (
-            <p className={`mt-1 text-[11px] font-medium ${message.delivery_status === "failed" ? "text-destructive" : "text-success"}`}>
+            <p className={`mt-1 flex items-center gap-2 text-[11px] font-medium ${message.delivery_status === "failed" ? "text-destructive" : "text-success"}`}>
               {message.delivery_status === "failed" ? "Send failed" : message.delivery_status}
+              {message.delivery_status === "failed" && onRetry ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 rounded-sm px-2 text-[11px]"
+                  onClick={() => onRetry(message.id)}
+                >
+                  <RefreshCw className="h-3 w-3" /> Retry
+                </Button>
+              ) : null}
             </p>
           ) : null}
           {message.delivery_error ? (
@@ -272,6 +285,7 @@ function InboxPage() {
   const composeFn = useServerFn(composeEnquiryEmail);
   const quotesFn = useServerFn(listInboxQuotes);
   const archiveFn = useServerFn(archiveEnquiry);
+  const retryFn = useServerFn(retryFailedMessage);
 
   const list = useQuery({
     queryKey: ["inbox", scope, status, search, folder, user?.id],
@@ -401,6 +415,18 @@ function InboxPage() {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setSending(false);
+    }
+  }
+
+  async function retryMessage(messageId: string) {
+    setError(null);
+    try {
+      await retryFn({ data: { messageId } });
+      toast.success("Message resent successfully");
+      void queryClient.invalidateQueries({ queryKey: ["inbox-thread", selectedId] });
+      void queryClient.invalidateQueries({ queryKey: ["inbox"] });
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : String(caught));
     }
   }
 
@@ -681,6 +707,7 @@ function InboxPage() {
                   key={message.id}
                   message={message}
                   onOpenAttachment={(mail, attachment) => openAttachment(mail.id, attachment.id)}
+                  onRetry={(id) => void retryMessage(id)}
                 />
               ))}
             </div>
