@@ -1,4 +1,4 @@
-import promotion from "@/assets/imt-signature-excel-screen.png.asset.json";
+import promotion from "@/assets/imt-signature-m365.png.asset.json";
 import logo from "@/assets/imt-solutions-logo.png.asset.json";
 
 const origin = "https://management.imtsolutions.co.zw";
