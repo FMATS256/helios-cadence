@@ -71,6 +71,13 @@
       "when": 1791918897334,
       "tag": "0009_email_workspace_preferences_and_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791918959458,
+      "tag": "0010_atomic_email_preferences",
+      "breakpoints": true
     }
   ]
 }
