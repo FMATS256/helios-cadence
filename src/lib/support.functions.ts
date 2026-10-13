@@ -274,7 +274,7 @@ export const postTicketMessage = createServerFn({ method: "POST" })
           description: `${to ? `To ${to}: ` : "No recipient email: "}${data.body.trim().slice(0, 300)}`,
         }),
       ]);
-      return { ...msg, recipient: to };
+      (msg as any).recipient = to;
     }
 
     if (ticket.assigned_to && ticket.assigned_to !== context.userId) {
