@@ -5,6 +5,7 @@ import {
   getStoredAttachmentDownloadUrl,
   sendEnquiryReply,
   createAndSendEnquiryEmail,
+  retryFailedMessageSend,
   adminClient,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
@@ -175,6 +176,23 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       cc: data.cc,
       quoteId: data.quoteId,
     });
+    if (!result.ok) throw new Error(result.error);
+    return result;
+  });
+
+export const retryFailedMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { messageId: string }) => input)
+  .handler(async ({ data, context }) => {
+    await amOrAdmin(context);
+    // RLS scope check: the message must be visible to this user.
+    const { data: visible } = await context.supabase
+      .from("email_messages")
+      .select("id")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (!visible) throw new Error("Message not found or not visible to you");
+    const result = await retryFailedMessageSend(data.messageId);
     if (!result.ok) throw new Error(result.error);
     return result;
   });
