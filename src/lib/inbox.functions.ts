@@ -9,6 +9,7 @@ import {
   adminClient,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
+import { mailboxesForRoles, type EmailDraft, type EmailOrganization } from "./inbox.shared";
 
 const AM_OR_ADMIN_ROLES = [
   "master_admin",
@@ -18,6 +19,7 @@ const AM_OR_ADMIN_ROLES = [
   "customer_account_manager",
   "account_manager",
   "finance",
+  "sales", "technical_support", "cloud_engineer", "cyber_security", "noc",
 ];
 
 async function amOrAdmin(context: any) {
@@ -52,6 +54,9 @@ async function decorate(rows: any[]): Promise<EnquiryListItem[]> {
   ]);
   const customers = new Map<string, any>((customersRes.data ?? []).map((c: any) => [c.id, c]));
   const profiles = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+  const { data: replies } = await admin.from("email_messages").select("enquiry_id, sender_name, created_by").in("enquiry_id", rows.map((r) => r.id)).eq("direction", "outbound").eq("delivery_status", "sent").not("created_by", "is", null).order("created_at", { ascending: false }).limit(1000);
+  const lastReply = new Map<string, string>();
+  for (const reply of replies ?? []) if (!lastReply.has(reply.enquiry_id) && reply.sender_name) lastReply.set(reply.enquiry_id, reply.sender_name);
   return rows.map((r) => ({
     id: r.id,
     reference: r.reference,
@@ -67,6 +72,8 @@ async function decorate(rows: any[]): Promise<EnquiryListItem[]> {
     customer_account_number: customers.get(r.customer_id)?.account_number ?? null,
     customer_name: customers.get(r.customer_id)?.company_name ?? customers.get(r.customer_id)?.title ?? null,
     am_name: profiles.get(r.assigned_am_id)?.full_name ?? null,
+    replied_by: lastReply.get(r.id) ?? null,
+    mailbox_address: r.mailbox_address,
   }));
 }
 
@@ -74,7 +81,7 @@ export type InboxScope = "mine" | "unassigned" | "all";
 
 export const listEnquiries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string; folder?: "inbox" | "sent" | "archive" }) => input ?? {})
+  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string; folder?: "inbox" | "sent" | "archive"; mailbox?: string }) => input ?? {})
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     let q = context.supabase
@@ -83,6 +90,7 @@ export const listEnquiries = createServerFn({ method: "POST" })
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (data.scope === "mine") q = q.eq("assigned_am_id", context.userId);
+    if (data.mailbox) { await authorizedMailbox(context, data.mailbox); q = q.eq("mailbox_address", data.mailbox); }
     if (data.scope === "unassigned") q = q.is("assigned_am_id", null);
     if (data.folder === "archive") q = q.not("archived_at", "is", null);
     else q = q.is("archived_at", null);
@@ -141,13 +149,23 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
     if (!enquiry) throw new Error("Enquiry not found or not visible to you");
     const { data: messages } = await context.supabase
       .from("email_messages")
-      .select("*, attachments:email_message_attachments(id, filename, content_type, size_bytes)")
+      .select("*, attachments:email_message_attachments(id, filename, content_type, size_bytes, content_id, storage_path, attachment_id)")
       .eq("enquiry_id", data.enquiryId)
       .order("created_at", { ascending: true });
     const [decorated] = await decorate([enquiry]);
+    const renderedMessages = await Promise.all((messages ?? []).map(async (message: any) => {
+      let html = message.body_html ?? null;
+      for (const attachment of message.attachments ?? []) {
+        if (!html || !attachment.content_id) continue;
+        const link = attachment.storage_path ? await getStoredAttachmentDownloadUrl(attachment.storage_path) : await getAttachmentDownloadUrl(message.resend_email_id ?? "", attachment.attachment_id ?? "");
+        if (link.url?.startsWith("https://")) html = html.split(`cid:${String(attachment.content_id).replace(/^<|>$/g, "")}`).join(link.url.replace(/&/g, "&amp;"));
+      }
+      const { bcc_address: _privateBcc, ...safe } = message;
+      return { ...safe, body_html: html, attachments: (message.attachments ?? []).map((a: any) => ({ id: a.id, filename: a.filename, content_type: a.content_type, size_bytes: a.size_bytes })) };
+    }));
     return {
       enquiry: { ...decorated, created_at: enquiry.created_at, assigned_at: enquiry.assigned_at },
-      messages: (messages ?? []) as unknown as InboxMessage[],
+      messages: renderedMessages as unknown as InboxMessage[],
     } satisfies EnquiryThread;
   });
 
@@ -170,7 +188,7 @@ function checkAddresses(list: string[] | undefined, label: string) {
 
 export const replyToEnquiry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { enquiryId: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; quoteId?: string | null; files?: ComposerFileInput[] }) => input)
+  .inputValidator((input: { enquiryId: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; quoteId?: string | null; files?: ComposerFileInput[]; mailbox?: string }) => input)
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     const { data: visible } = await context.supabase.from("email_enquiries").select("id").eq("id", data.enquiryId).maybeSingle();
@@ -189,6 +207,8 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: roleLabel,
       senderEmail: profile?.email ?? null,
+      mailbox: await authorizedMailbox(context, data.mailbox),
+      signatureHtml: await personalSignature(context),
       body: data.body,
       bodyHtml: data.bodyHtml,
       cc: checkAddresses(data.cc, "Cc"),
@@ -219,7 +239,7 @@ export const retryFailedMessage = createServerFn({ method: "POST" })
 
 export const composeEnquiryEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { to: string; subject: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; customerId?: string | null; quoteId?: string | null; files?: ComposerFileInput[] }) => input)
+  .inputValidator((input: { to: string; subject: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; customerId?: string | null; quoteId?: string | null; files?: ComposerFileInput[]; mailbox?: string }) => input)
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     if (!data.subject?.trim()) throw new Error("Subject is required");
@@ -231,6 +251,8 @@ export const composeEnquiryEmail = createServerFn({ method: "POST" })
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: roleLabel,
       senderEmail: profile?.email ?? null,
+      mailbox: await authorizedMailbox(context, data.mailbox),
+      signatureHtml: await personalSignature(context),
       to: data.to,
       subject: data.subject,
       body: data.body,
@@ -307,7 +329,9 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
       .from("email_message_attachments")
       .select("attachment_id, storage_path")
       .eq("id", data.attachmentId)
+      .eq("message_id", data.messageId)
       .maybeSingle();
+    if (!att) throw new Error("Attachment not found or not visible to you");
     if (att?.storage_path) return getStoredAttachmentDownloadUrl(att.storage_path);
     const { data: message } = await context.supabase
       .from("email_messages")
@@ -316,6 +340,54 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!message?.resend_email_id) throw new Error("Attachment source email not found");
     return getAttachmentDownloadUrl(message.resend_email_id, att?.attachment_id ?? data.attachmentId);
+  });
+
+async function authorizedMailbox(context: any, requested?: string) {
+  const { data, error } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
+  if (error) throw new Error(error.message);
+  const addresses = mailboxesForRoles((data ?? []).map((r: any) => String(r.role))).flatMap((d) => d.addresses);
+  const address = requested || addresses[0];
+  if (!address || !addresses.includes(address)) throw new Error("This mailbox is not available to your department");
+  return address;
+}
+async function personalSignature(context: any) {
+  const { data } = await context.supabase.from("email_workspace_preferences").select("signature_html").eq("user_id", context.userId).maybeSingle();
+  return data?.signature_html || "";
+}
+export const getEmailWorkspace = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  await amOrAdmin(context);
+  const [{ data: roles }, { data: preferences }] = await Promise.all([
+    context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+    context.supabase.from("email_workspace_preferences").select("*").eq("user_id", context.userId).maybeSingle(),
+  ]);
+  return { departments: mailboxesForRoles((roles ?? []).map((r: any) => String(r.role))), drafts: (preferences?.drafts ?? {}) as Record<string, EmailDraft>, organization: (preferences?.organization ?? {}) as Record<string, EmailOrganization>, signatureHtml: preferences?.signature_html ?? "" };
+});
+export const saveEmailWorkspace = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: { field: "drafts" | "organization" | "signature_html"; key?: string; value: EmailDraft | EmailOrganization | string | null }) => input)
+  .handler(async ({ data, context }) => {
+    await amOrAdmin(context);
+    if (!["drafts", "organization", "signature_html"].includes(data.field)) throw new Error("Invalid preference");
+    if (JSON.stringify(data.value).length > 22 * 1024 * 1024) throw new Error("Draft is too large");
+    const { error } = await context.supabase.rpc("save_email_workspace_value", { p_field: data.field, p_key: data.key ?? "", p_value: data.value });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+export const emailInternalNotes = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: { enquiryId: string; body?: string }) => input)
+  .handler(async ({ data, context }) => {
+    await amOrAdmin(context);
+    const { data: visible } = await context.supabase.from("email_enquiries").select("id").eq("id", data.enquiryId).maybeSingle();
+    if (!visible) throw new Error("Enquiry not visible");
+    if (data.body?.trim()) {
+      if (data.body.length > 5000) throw new Error("Note is too long");
+      const { error } = await context.supabase.from("email_internal_notes").insert({ enquiry_id: data.enquiryId, author_id: context.userId, body: data.body.trim() });
+      if (error) throw new Error(error.message);
+    }
+    const { data: notes, error } = await context.supabase.from("email_internal_notes").select("*").eq("enquiry_id", data.enquiryId).order("created_at");
+    if (error) throw new Error(error.message);
+    const ids = [...new Set((notes ?? []).map((n: any) => n.author_id))];
+    const { data: profiles } = ids.length ? await adminClient().from("profiles").select("id, full_name").in("id", ids) : { data: [] };
+    return (notes ?? []).map((n: any) => ({ ...n, author: profiles?.find((p: any) => p.id === n.author_id)?.full_name ?? "Staff" }));
   });
 
 export const listInboxQuotes = createServerFn({ method: "POST" })

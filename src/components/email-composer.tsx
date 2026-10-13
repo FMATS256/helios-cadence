@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Eraser, Paperclip, X, FileText, Sparkles } from "lucide-react";
+import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Eraser, Paperclip, X, FileText, Sparkles, ImagePlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export type ComposerFile = { filename: string; contentType: string; base64: string; size: number };
@@ -29,11 +30,6 @@ const TEMPLATES: { key: string; label: string; html: string }[] = [
     key: "proof-of-payment",
     label: "Proof of payment request",
     html: "<p>Dear {{customer_name}},</p><p>Thank you for your business. Kindly send us the proof of payment for reference {{reference}} so that our Billing team can allocate it to your account.</p><p>Please include your account number or the invoice number as the payment reference.</p>",
-  },
-  {
-    key: "bank-details",
-    label: "Bank details",
-    html: "<p>Dear {{customer_name}},</p><p>Please find our payment details below. Kindly use your account number or invoice number as the reference.</p><p><b>Bank:</b> NMB Bank<br/><b>Account name:</b> IMT Solutions</p><p>Once paid, please send the proof of payment to this email.</p>",
   },
   {
     key: "maintenance",
@@ -78,7 +74,7 @@ type Props = {
   vars?: TemplateVars;
   files: ComposerFile[];
   onFilesChange: (files: ComposerFile[]) => void;
-  onChange?: (text: string) => void;
+  onChange?: (text: string, html: string) => void;
   extraToolbar?: React.ReactNode;
 };
 
@@ -88,13 +84,14 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
 ) {
   const editor = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
   const [empty, setEmpty] = useState(true);
   const [dragging, setDragging] = useState(false);
 
   const sync = () => {
     const text = editor.current?.innerText.trim() ?? "";
     setEmpty(!text);
-    onChange?.(text);
+    onChange?.(text, editor.current?.innerHTML ?? "");
   };
 
   useImperativeHandle(ref, () => ({
@@ -155,6 +152,12 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
     onFilesChange(next);
   }
 
+  async function insertImage(file: File) {
+    if (!["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type)) { toast.error("Choose a PNG, JPEG, GIF or WebP image"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Inline images are limited to 2 MB"); return; }
+    const base64 = await readAsBase64(file);
+    exec("insertHTML", `<img src="data:${file.type};base64,${base64}" alt="" style="max-width:100%;height:auto"/>`);
+  }
   const btn = "inline-flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground";
 
   return (
@@ -165,17 +168,19 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
       onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files?.length) void addFiles(e.dataTransfer.files); }}
     >
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border px-1.5 py-1">
-        <button type="button" aria-label="Bold" title="Bold" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}><Bold className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Italic" title="Italic" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}><Italic className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Underline" title="Underline" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")}><Underline className="h-3.5 w-3.5" /></button>
+        <Button variant="ghost" type="button" aria-label="Bold" title="Bold" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}><Bold className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Italic" title="Italic" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}><Italic className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Underline" title="Underline" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")}><Underline className="h-3.5 w-3.5" /></Button>
         <span className="mx-1 h-4 w-px bg-border" />
-        <button type="button" aria-label="Bulleted list" title="Bullets" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("insertUnorderedList")}><List className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Numbered list" title="Numbering" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("insertOrderedList")}><ListOrdered className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Quote" title="Quote" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("formatBlock", "blockquote")}><Quote className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Insert link" title="Link" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={addLink}><Link2 className="h-3.5 w-3.5" /></button>
-        <button type="button" aria-label="Clear formatting" title="Clear formatting" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("removeFormat")}><Eraser className="h-3.5 w-3.5" /></button>
+        <Button variant="ghost" type="button" aria-label="Bulleted list" title="Bullets" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("insertUnorderedList")}><List className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Numbered list" title="Numbering" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("insertOrderedList")}><ListOrdered className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Quote" title="Quote" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("formatBlock", "blockquote")}><Quote className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Insert link" title="Link" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={addLink}><Link2 className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Clear formatting" title="Clear formatting" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("removeFormat")}><Eraser className="h-3.5 w-3.5" /></Button>
         <span className="mx-1 h-4 w-px bg-border" />
-        <button type="button" aria-label="Attach files" title="Attach files" className={btn} onClick={() => fileInput.current?.click()}><Paperclip className="h-3.5 w-3.5" /></button>
+        <Button variant="ghost" type="button" aria-label="Attach files" title="Attach files" className={btn} onClick={() => fileInput.current?.click()}><Paperclip className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" type="button" aria-label="Insert image" title="Insert image" className={btn} onClick={() => imageInput.current?.click()}><ImagePlus className="h-3.5 w-3.5" /></Button>
+        <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) void insertImage(file); e.target.value = ""; }} />
         <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) void addFiles(e.target.files); e.target.value = ""; }} />
         <div className="flex items-center gap-1">
           <Sparkles className="ml-1 h-3.5 w-3.5 text-solar" />
@@ -206,7 +211,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
             if (e.clipboardData.files?.length) { e.preventDefault(); void addFiles(e.clipboardData.files); }
           }}
           style={{ minHeight }}
-          className="max-h-[50vh] overflow-y-auto px-3 py-2 text-sm leading-relaxed outline-none [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:pl-6"
+          className="[&_img]:max-w-full [&_img]:h-auto max-h-[50vh] overflow-y-auto px-3 py-2 text-sm leading-relaxed outline-none [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:pl-6"
         />
       </div>
 
@@ -217,9 +222,9 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
               <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="max-w-[160px] truncate">{f.filename}</span>
               <span className="text-muted-foreground">{formatSize(f.size)}</span>
-              <button type="button" aria-label={`Remove ${f.filename}`} className="text-muted-foreground hover:text-destructive" onClick={() => onFilesChange(files.filter((_, j) => j !== i))}>
+              <Button variant="ghost" type="button" aria-label={`Remove ${f.filename}`} className="text-muted-foreground hover:text-destructive" onClick={() => onFilesChange(files.filter((_, j) => j !== i))}>
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </span>
           ))}
         </div>

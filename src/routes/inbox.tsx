@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EmailHtmlView } from "@/components/email-html-view";
 import { EmailComposer, type ComposerFile, type ComposerHandle } from "@/components/email-composer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  getEmailWorkspace, saveEmailWorkspace, emailInternalNotes,
   getAttachmentLink,
   getEnquiryThread,
   listEnquiries,
@@ -20,7 +22,7 @@ import {
   retryFailedMessage,
   type InboxScope,
 } from "@/lib/inbox.functions";
-import type { EnquiryListItem, InboxMessage } from "@/lib/inbox.shared";
+import type { EmailDraft, EmailOrganization, EnquiryListItem, InboxMessage } from "@/lib/inbox.shared";
 import {
   AlertCircle,
   Archive,
@@ -40,7 +42,7 @@ import {
   Search,
   Send,
   UserCog,
-  Users,
+  Users, Flag, Pin, Tag, StickyNote, Settings2, Save, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -130,10 +132,12 @@ function EnquiryRow({
   enquiry,
   active,
   onSelect,
+  organization,
 }: {
   enquiry: EnquiryListItem;
   active: boolean;
   onSelect: () => void;
+  organization?: EmailOrganization;
 }) {
   const sender = enquiry.contact_name || enquiry.contact_email;
   return (
@@ -148,7 +152,7 @@ function EnquiryRow({
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center justify-between gap-3">
           <span className={`truncate text-sm ${enquiry.status === "open" ? "font-bold text-foreground" : "font-semibold"}`}>
-            {sender}
+            {organization?.pinned ? <Pin className="mr-1 inline h-3 w-3 text-solar" /> : null}{sender}
           </span>
           <span className="shrink-0 text-[11px] font-normal text-muted-foreground">{relativeTime(enquiry.last_message_at)}</span>
         </div>
@@ -163,6 +167,12 @@ function EnquiryRow({
           <span className={`shrink-0 px-1.5 py-0.5 text-[10px] font-semibold ${statusClass(enquiry.status)}`}>
             {statusLabel(enquiry.status)}
           </span>
+        </div>
+        <div className="flex flex-wrap gap-1 pt-1">
+          {enquiry.replied_by ? <span className="max-w-full truncate rounded-sm bg-teal/15 px-1.5 py-0.5 text-[10px] font-medium text-teal">Replied by {enquiry.replied_by}</span> : null}
+          {organization?.flagged ? <Flag className="h-3 w-3 text-amber" /> : null}
+          {organization?.unread ? <Mail className="h-3 w-3 text-solar" /> : null}
+          {organization?.category ? <span className={`rounded-sm px-1.5 text-[10px] ${organization.category === "Urgent" ? "bg-destructive/10 text-destructive" : organization.category === "Finance" ? "bg-success/15 text-success" : "bg-violet/15 text-violet"}`}>{organization.category}</span> : null}
         </div>
       </div>
     </Button>
@@ -180,7 +190,7 @@ function MessagePanel({
 }) {
   const inbound = message.direction === "inbound";
   const body = message.body_text?.trim() || stripHtml(message.body_html);
-  const sender = inbound ? message.from_address : "IMT Solutions";
+  const sender = message.sender_name || message.from_address;
 
   return (
     <article className="border-b border-border bg-card px-4 py-5 sm:px-7">
@@ -195,7 +205,7 @@ function MessagePanel({
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">{sender}</p>
               <p className="truncate text-xs text-muted-foreground">
-                To: {inbound ? "sales@imtsolutions.co.zw" : message.to_address}
+                To: {message.to_address}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
@@ -211,6 +221,8 @@ function MessagePanel({
               <span className="sm:hidden">{relativeTime(message.created_at)}</span>
             </div>
           </div>
+          {message.cc_address ? <p className="mt-1 break-all text-xs text-muted-foreground">Cc: {message.cc_address}</p> : null}
+          {!inbound && message.sender_name && message.delivery_status === "sent" ? <span className="mt-1 inline-block rounded-sm bg-teal/15 px-2 py-0.5 text-[10px] font-medium text-teal">Replied by {message.sender_name}</span> : null}
           {!inbound ? (
             <p className={`mt-1 flex items-center gap-2 text-[11px] font-medium ${message.delivery_status === "failed" ? "text-destructive" : "text-success"}`}>
               {message.delivery_status === "failed" ? "Send failed" : message.delivery_status}
@@ -232,7 +244,7 @@ function MessagePanel({
               <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{message.delivery_error}</pre>
             </details>
           ) : null}
-          <div className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{body || "(empty message)"}</div>
+          <div className="mt-4">{message.body_html ? <EmailHtmlView html={message.body_html} title={`Email from ${sender}`} /> : <div className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{body || "(empty message)"}</div>}</div>
           {message.attachments?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {message.attachments.map((attachment) => (
@@ -259,7 +271,20 @@ function InboxPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { enquiry: selectedId, quote: quoteParam } = Route.useSearch();
-  const [folder, setFolder] = useState<"inbox" | "sent" | "archive">("inbox");
+  const [folder, setFolder] = useState<"inbox" | "sent" | "archive" | "drafts" | "flagged">("inbox");
+  const [mailbox, setMailbox] = useState("");
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signatureHtml, setSignatureHtml] = useState("");
+  const [note, setNote] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
+  const [draftState, setDraftState] = useState("Saved");
+  const [composeHtml, setComposeHtml] = useState("");
+  const [replyHtmlDraft, setReplyHtmlDraft] = useState("");
+  const [draftKey, setDraftKey] = useState("new");
+  const [draftsReady, setDraftsReady] = useState(false);
+  const composeRestored = useRef(false);
+  const sendingRef = useRef(false);
+  const restoredReply = useRef<string | null>(null);
   const [quoteId, setQuoteId] = useState("");
   const [composeOpen, setComposeOpen] = useState(!!quoteParam);
   const [compose, setCompose] = useState({ to: "", cc: "", subject: "", body: "", quoteId: quoteParam ?? "" });
@@ -269,6 +294,7 @@ function InboxPage() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
+  const [replyExpanded, setReplyExpanded] = useState(false);
   const [cc, setCc] = useState("");
   const [showCc, setShowCc] = useState(false);
   const [sending, setSending] = useState(false);
@@ -305,13 +331,9 @@ function InboxPage() {
   const quotesFn = useServerFn(listInboxQuotes);
   const archiveFn = useServerFn(archiveEnquiry);
   const retryFn = useServerFn(retryFailedMessage);
-
-  const list = useQuery({
-    queryKey: ["inbox", scope, status, search, folder, user?.id],
-    queryFn: () => listEnquiriesFn({ data: { scope, status, search, folder } }),
-    enabled: !!user,
-    refetchInterval: 30000,
-  });
+  const workspaceFn = useServerFn(getEmailWorkspace);
+  const saveWorkspaceFn = useServerFn(saveEmailWorkspace);
+  const notesFn = useServerFn(emailInternalNotes);
   const thread = useQuery({
     queryKey: ["inbox-thread", selectedId, user?.id],
     queryFn: () => {
@@ -319,6 +341,67 @@ function InboxPage() {
       return threadFn({ data: { enquiryId: selectedId } });
     },
     enabled: !!user && !!selectedId,
+  });
+  const workspace = useQuery({ queryKey: ["email-workspace", user?.id], queryFn: () => workspaceFn(), enabled: !!user });
+  const notes = useQuery({ queryKey: ["email-notes", selectedId], queryFn: () => { if (!selectedId) throw new Error("No enquiry"); return notesFn({ data: { enquiryId: selectedId } }); }, enabled: !!selectedId && showNotes });
+  const organization = workspace.data?.organization ?? {};
+  useEffect(() => { if (workspace.data && !mailbox) { const address = workspace.data.departments[0]?.addresses[0] ?? ""; setMailbox(address); if (address && address !== "sales@imtsolutions.co.zw") setScope("all"); } }, [workspace.data, mailbox]);
+  useEffect(() => {
+    if (!workspace.data || composeRestored.current) return;
+    composeRestored.current = true;
+    const draft = workspace.data.drafts.new;
+    if (draft && !quoteParam) { setCompose({ to: draft.to ?? "", cc: draft.cc ?? "", subject: draft.subject ?? "", body: "", quoteId: draft.quoteId ?? "" }); setComposeHtml(draft.html); setComposeFiles(draft.files ?? []); setComposeBcc(draft.bcc ?? ""); }
+    setDraftsReady(true);
+  }, [workspace.data, quoteParam]);
+  useEffect(() => {
+    if (!composeOpen || !composeHtml) return;
+    const timer = window.setTimeout(() => composeEditor.current?.setHtml(composeHtml), 50);
+    return () => window.clearTimeout(timer);
+  }, [composeOpen, draftKey]);
+  useEffect(() => {
+    if (!workspace.data || !selectedId || restoredReply.current === selectedId || !thread.data) return;
+    restoredReply.current = selectedId;
+    const draft = workspace.data.drafts[`reply:${selectedId}`];
+    const html = draft?.html ?? "";
+    setReplyHtmlDraft(html); setReplyFiles(draft?.files ?? []); setCc(draft?.cc ?? ""); setBcc(draft?.bcc ?? ""); setQuoteId(draft?.quoteId ?? "");
+    const timer = window.setTimeout(() => { replyInput.current?.setHtml(html); }, 50);
+    return () => window.clearTimeout(timer);
+  }, [workspace.data, selectedId, thread.data]);
+  useEffect(() => {
+    if (!draftsReady || !composeOpen || sendingRef.current || (!composeHtml && !compose.to && !compose.subject)) return;
+    setDraftState("Saving…");
+    const timer = window.setTimeout(async () => {
+      try { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: { to: compose.to, cc: compose.cc, bcc: composeBcc, subject: compose.subject, html: composeHtml, quoteId: compose.quoteId, mailbox, files: composeFiles, updatedAt: new Date().toISOString() } } }); setDraftState("Saved"); } catch { setDraftState("Not saved"); }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [compose, composeHtml, composeBcc, composeFiles, mailbox, composeOpen, draftsReady, draftKey, saveWorkspaceFn]);
+  useEffect(() => {
+    if (!selectedId || restoredReply.current !== selectedId || sendingRef.current || (!replyHtmlDraft && !replyFiles.length && !cc && !bcc && !quoteId)) return;
+    const timer = window.setTimeout(async () => {
+      try { await saveWorkspaceFn({ data: { field: "drafts", key: `reply:${selectedId}`, value: { html: replyHtmlDraft, cc, bcc, quoteId, files: replyFiles, mailbox, subject: thread.data?.enquiry.subject } } }); } catch { toast.error("Reply draft could not be saved"); }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [replyHtmlDraft, replyFiles, cc, bcc, quoteId, selectedId, mailbox, saveWorkspaceFn]);
+  async function organize(patch: EmailOrganization) {
+    if (!selectedId) return;
+    try { await saveWorkspaceFn({ data: { field: "organization", key: selectedId, value: { ...organization[selectedId], ...patch } } }); await workspace.refetch(); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+  }
+  async function addNote() {
+    if (!selectedId || !note.trim()) return;
+    try { await notesFn({ data: { enquiryId: selectedId, body: note } }); setNote(""); await notes.refetch(); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+  }
+  function openDraft(key: string, draft: EmailDraft) {
+    setDraftKey(key); setCompose({ to: draft.to ?? "", cc: draft.cc ?? "", subject: draft.subject ?? "", body: "", quoteId: draft.quoteId ?? "" }); setComposeHtml(draft.html); setComposeBcc(draft.bcc ?? ""); setComposeFiles(draft.files ?? []); if (draft.mailbox) setMailbox(draft.mailbox); setComposeOpen(true);
+  }
+  async function removeDraft() {
+    try { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: null } }); setComposeHtml(""); setCompose({ to: "", cc: "", subject: "", body: "", quoteId: "" }); setComposeFiles([]); setComposeBcc(""); setComposeOpen(false); await workspace.refetch(); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+  }
+
+  const list = useQuery({
+    queryKey: ["inbox", scope, status, search, folder, mailbox, user?.id],
+    queryFn: () => listEnquiriesFn({ data: { scope, status, search, folder: folder === "drafts" || folder === "flagged" ? "inbox" : folder, mailbox: mailbox || undefined } }),
+    enabled: !!user,
+    refetchInterval: 30000,
   });
   const managers = useQuery({
     queryKey: ["inbox-managers", user?.id],
@@ -347,6 +430,7 @@ function InboxPage() {
       return;
     }
     setComposing(true);
+    sendingRef.current = true;
     try {
       const res = await composeFn({
         data: {
@@ -358,9 +442,12 @@ function InboxPage() {
           bcc: splitAddrs(composeBcc),
           quoteId: compose.quoteId || null,
           files: toFilePayload(composeFiles),
+          mailbox,
         },
       });
       toast.success(compose.quoteId ? "Email sent with quotation attached" : "Email sent");
+      void saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: null } }).then(() => workspace.refetch());
+      setComposeHtml("");
       setComposeOpen(false);
       setCompose({ to: "", cc: "", subject: "", body: "", quoteId: "" });
       setComposeBcc("");
@@ -373,6 +460,7 @@ function InboxPage() {
       toast.error(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setComposing(false);
+      sendingRef.current = false;
     }
   }
 
@@ -399,10 +487,13 @@ function InboxPage() {
       body: `\n\n---------- Forwarded message ----------\nFrom: ${last?.from_address ?? ""}\nSubject: ${t.enquiry.subject}\n\n${last?.body_text ?? stripHtml(last?.body_html)}`,
       quoteId: "",
     });
+    setDraftKey(`forward:${Date.now()}`);
+    setComposeHtml("");
+    setComposeFiles([]);
     setComposeOpen(true);
   }
 
-  const enquiries = list.data?.enquiries ?? [];
+  const enquiries = [...(list.data?.enquiries ?? [])].filter((e) => folder !== "flagged" || organization[e.id]?.flagged).sort((a, b) => Number(!!organization[b.id]?.pinned) - Number(!!organization[a.id]?.pinned));
   const canAssign = !!list.data?.canAssign;
   const active = thread.data?.enquiry ?? null;
   const filteredManagers = useMemo(() => managers.data ?? [], [managers.data]);
@@ -423,6 +514,7 @@ function InboxPage() {
     const bodyHtml = replyInput.current?.getHtml() ?? "";
     if (!selectedId || !bodyText) return;
     setSending(true);
+    sendingRef.current = true;
     setError(null);
     try {
       await replyFn({
@@ -434,9 +526,12 @@ function InboxPage() {
           bcc: splitAddrs(bcc),
           quoteId: quoteId || null,
           files: toFilePayload(replyFiles),
+          mailbox,
         },
       });
       toast.success(quoteId ? "Reply sent with quotation attached" : "Reply sent");
+      void saveWorkspaceFn({ data: { field: "drafts", key: `reply:${selectedId}`, value: null } }).then(() => workspace.refetch());
+      setReplyHtmlDraft("");
       setReply("");
       replyInput.current?.clear();
       setReplyFiles([]);
@@ -450,6 +545,7 @@ function InboxPage() {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setSending(false);
+      sendingRef.current = false;
     }
   }
 
@@ -491,26 +587,31 @@ function InboxPage() {
 
   return (
     <div className="flex h-[calc(100dvh-4rem)] min-h-0 min-w-0 flex-col overflow-hidden bg-card">
-      <div className="flex h-11 shrink-0 items-center gap-5 border-b border-border bg-card px-4">
+      <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-solar/10 px-4 py-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-solar"><Mail className="h-4 w-4" /> IMT Mail</span>
-        <span className="flex h-full items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
-        <span className="ml-auto hidden text-xs text-muted-foreground sm:block">sales@imtsolutions.co.zw</span>
+        <span className="flex h-8 items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
+        <select aria-label="Department mailbox" value={mailbox} onChange={(e) => { setMailbox(e.target.value); setScope("all"); }} className="ml-auto h-8 min-w-0 max-w-[calc(100%-3rem)] rounded-sm border border-border bg-card px-2 text-xs">
+          {(workspace.data?.departments ?? []).map((d) => <optgroup key={d.department} label={d.department}>{d.addresses.map((address) => <option key={address} value={address}>{d.department} · {address}</option>)}</optgroup>)}
+        </select>
+        <Button variant="ghost" size="icon" title="Email signature" aria-label="Email signature" onClick={() => { setSignatureHtml(workspace.data?.signatureHtml ?? ""); setSignatureOpen(true); }}><Settings2 className="h-4 w-4" /></Button>
       </div>
       <div className="flex min-h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-muted/40 px-3 py-1">
-        <Button onClick={() => setComposeOpen(true)} size="sm" className="mr-2 h-8 shrink-0 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90"><MailPlus className="h-4 w-4" /> New mail</Button>
-        <Button variant="ghost" size="sm" disabled={!active || active.status === "closed"} onClick={() => replyInput.current?.focus()} className="shrink-0 rounded-sm"><Reply className="h-4 w-4" /> Reply</Button>
+        <Button onClick={() => { setDraftKey("new"); setComposeOpen(true); }} size="sm" className="mr-2 h-8 shrink-0 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90"><MailPlus className="h-4 w-4" /> New mail</Button>
+        <Button variant="ghost" size="sm" disabled={!active || active.status === "closed"} onClick={() => { setReplyExpanded(true); window.setTimeout(() => replyInput.current?.focus(), 50); }} className="shrink-0 rounded-sm"><Reply className="h-4 w-4" /> Reply</Button>
         <Button variant="ghost" size="sm" disabled={!active} onClick={forwardActive} className="shrink-0 rounded-sm"><Forward className="h-4 w-4" /> Forward</Button>
         <span className="mx-2 h-5 w-px shrink-0 bg-border" />
         <Button variant="ghost" size="sm" disabled={!active} onClick={toggleArchive} className="shrink-0 rounded-sm"><Archive className="h-4 w-4" /> {folder === "archive" ? "Move to inbox" : "Archive"}</Button>
+        <Button variant="ghost" size="sm" disabled={!active} title="Follow up" onClick={() => organize({ flagged: !organization[selectedId ?? ""]?.flagged })}><Flag className={`h-4 w-4 ${organization[selectedId ?? ""]?.flagged ? "text-amber" : ""}`} /> Follow up</Button>
+        <Button variant="ghost" size="sm" disabled={!active} onClick={() => organize({ unread: !organization[selectedId ?? ""]?.unread })}><Mail className="h-4 w-4" /> {organization[selectedId ?? ""]?.unread ? "Mark read" : "Mark unread"}</Button>
       </div>
       <div className="flex min-h-0 flex-1 overflow-hidden">
-      <aside className="hidden w-48 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
+      <aside className="hidden w-52 shrink-0 flex-col border-r border-border bg-muted/35 xl:flex">
         <div className="border-b border-border p-3">
           <span className="text-xs font-semibold text-muted-foreground">Favourites</span>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          <div className="mb-2 flex items-center gap-2 px-2 text-sm font-semibold">
-            <ChevronDown className="h-3.5 w-3.5" /> sales@imtsolutions.co.zw
+          <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold">
+            <ChevronDown className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{mailbox}</span>
           </div>
           <nav aria-label="Mailbox folders" className="space-y-0.5">
             {SCOPES.map((item) => (
@@ -550,7 +651,7 @@ function InboxPage() {
             <ChevronDown className="h-3 w-3" /> Folders
           </div>
           <div className="space-y-0.5">
-            {([{ key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
+            {([{ key: "drafts", label: "Drafts", icon: FileText }, { key: "flagged", label: "Follow up", icon: Flag }, { key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
               <Button
                 key={item.key}
                 variant="ghost"
@@ -571,7 +672,7 @@ function InboxPage() {
         <div className="border-b border-border px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : "Inbox"}</h1>
+              <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : folder === "drafts" ? "Drafts" : folder === "flagged" ? "Follow up" : "Inbox"}</h1>
               <p className="text-xs text-muted-foreground">{enquiries.length} conversations</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => list.refetch()} title="Refresh inbox">
@@ -589,7 +690,7 @@ function InboxPage() {
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <select aria-label="Mailbox folder" value={folder} onChange={(event) => { const next = event.target.value; if (next === "inbox" || next === "sent" || next === "archive") { setFolder(next); setStatus("all"); if (next !== "inbox") setScope("all"); } }} className="h-7 max-w-full border border-border bg-background px-2 text-xs xl:hidden"><option value="inbox">Inbox</option><option value="sent">Sent</option><option value="archive">Archive</option></select>
+            <select aria-label="Mailbox folder" value={folder} onChange={(event) => { const next = event.target.value; if (next === "inbox" || next === "sent" || next === "archive" || next === "drafts" || next === "flagged") { setFolder(next); setStatus("all"); if (next !== "inbox") setScope("all"); } }} className="h-7 max-w-full border border-border bg-background px-2 text-xs xl:hidden"><option value="inbox">Inbox</option><option value="sent">Sent</option><option value="archive">Archive</option><option value="drafts">Drafts</option><option value="flagged">Follow up</option></select>
             <div className="flex flex-wrap gap-1 xl:hidden">
               {SCOPES.map((item) => (
                 <Button
@@ -624,7 +725,7 @@ function InboxPage() {
         ) : null}
 
         <div className="flex-1 overflow-y-auto">
-          {list.isLoading ? (
+          {folder === "drafts" ? <div>{Object.entries(workspace.data?.drafts ?? {}).filter(([, d]) => d.html || d.subject || d.to).map(([key, draft]) => <Button key={key} variant="ghost" className="h-auto w-full justify-start rounded-none border-b border-border p-4 text-left" onClick={() => key.startsWith("reply:") ? openEnquiry(key.slice(6)) : openDraft(key, draft)}><FileText className="h-4 w-4 shrink-0 text-solar" /><span className="min-w-0"><span className="block truncate text-sm font-semibold">{draft.subject || "(No subject)"}</span><span className="block truncate text-xs text-muted-foreground">{draft.to || "Reply draft"}</span></span></Button>)}</div> : list.isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Loading messages…</div>
           ) : list.isError ? (
             <div className="p-6"><Button variant="outline" onClick={() => list.refetch()}><RefreshCw className="h-4 w-4" /> Retry</Button></div>
@@ -635,7 +736,7 @@ function InboxPage() {
             </div>
           ) : (
             enquiries.map((item) => (
-              <EnquiryRow key={item.id} enquiry={item} active={item.id === selectedId} onSelect={() => openEnquiry(item.id)} />
+              <EnquiryRow key={item.id} organization={organization[item.id]} enquiry={item} active={item.id === selectedId} onSelect={() => openEnquiry(item.id)} />
             ))
           )}
         </div>
@@ -665,7 +766,7 @@ function InboxPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" disabled={active.status === "closed"} onClick={() => replyInput.current?.focus()} className="rounded-sm" title="Reply">
+              <Button variant="ghost" size="sm" disabled={active.status === "closed"} onClick={() => { setReplyExpanded(true); window.setTimeout(() => replyInput.current?.focus(), 50); }} className="rounded-sm" title="Reply">
                 <Reply className="h-4 w-4" /> <span className="hidden sm:inline">Reply</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={forwardActive} className="rounded-sm">
@@ -734,9 +835,15 @@ function InboxPage() {
                   <span className="text-xs text-muted-foreground">Account Manager: {active.am_name ?? "Unassigned"}</span>
                 )}
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="ghost" title="Pin conversation" onClick={() => organize({ pinned: !organization[active.id]?.pinned })}><Pin className={`h-4 w-4 ${organization[active.id]?.pinned ? "text-solar" : ""}`} /></Button>
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" /><select aria-label="Email category" value={organization[active.id]?.category ?? ""} onChange={(e) => organize({ category: e.target.value })} className="h-7 border border-border bg-card px-2 text-xs"><option value="">Categorize</option><option>Urgent</option><option>Finance</option><option>Technical</option><option>Sales</option></select>
+                <Button variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)}><StickyNote className="h-3.5 w-3.5" /> Internal notes</Button>
+              </div>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
+              {showNotes ? <section className="border-b border-border bg-warning/10 p-4"><h3 className="mb-2 text-xs font-semibold">Internal notes · Not sent to the customer</h3>{(notes.data ?? []).map((n: any) => <div key={n.id} className="mb-2 text-xs"><span className="font-semibold">{n.author}</span><p className="whitespace-pre-wrap break-words">{n.body}</p></div>)}<div className="flex gap-2"><Input aria-label="Internal note" value={note} onChange={(e) => setNote(e.target.value)} /><Button variant="outline" size="sm" disabled={!note.trim()} onClick={addNote}>Add note</Button></div></section> : null}
               {(thread.data?.messages ?? []).map((message) => (
                 <MessagePanel
                   key={message.id}
@@ -748,7 +855,8 @@ function InboxPage() {
             </div>
 
             {active.status !== "closed" ? (
-              <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4">
+              <div className={`${replyExpanded ? "block" : "hidden lg:block"} max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4`}>
+                <Button variant="ghost" size="sm" className="mb-1 lg:hidden" onClick={() => setReplyExpanded(false)}>Minimize reply</Button>
                 {error ? <p role="alert" className="mb-2 break-words text-xs text-destructive">{error}</p> : null}
                 {showCc ? (
                   <div className="mb-2 space-y-1 border-b border-border pb-2">
@@ -769,7 +877,7 @@ function InboxPage() {
                   vars={{ customer_name: active.contact_name, reference: active.reference, sender_name: user?.user_metadata?.full_name as string | undefined }}
                   files={replyFiles}
                   onFilesChange={setReplyFiles}
-                  onChange={setReply}
+                  onChange={(text, html) => { setReply(text); setReplyHtmlDraft(html); }}
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border pt-2">
                   <Button onClick={sendReply} disabled={sending || !reply.trim()} className="h-8 rounded-sm bg-solar px-4 text-solar-foreground hover:bg-solar/90">
@@ -800,9 +908,10 @@ function InboxPage() {
       </section>
       </div>
 
-      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>New message</DialogTitle></DialogHeader>
+      <Dialog open={composeOpen} onOpenChange={(open) => { setComposeOpen(open); if (!open) void workspace.refetch(); }}>
+        <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto">
+          <DialogHeader><DialogTitle>New message <span className="ml-2 text-xs font-normal text-muted-foreground">{draftState}</span></DialogTitle></DialogHeader>
+          <p className="break-all text-xs text-muted-foreground">From: {mailbox}</p>
           <div className="space-y-2">
             {composeError ? <div role="alert" className="text-sm text-destructive"><p>{composeError.startsWith("Gateway 500") ? "The IMT email service returned error 500. Your email was not accepted; your message is still here." : composeError}</p><details className="mt-1 text-xs"><summary className="cursor-pointer">Error details</summary><pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{composeError}</pre></details></div> : null}
             <Input aria-label="To" placeholder="To (client email)" value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} />
@@ -819,6 +928,7 @@ function InboxPage() {
               vars={{ sender_name: user?.user_metadata?.full_name as string | undefined }}
               files={composeFiles}
               onFilesChange={setComposeFiles}
+              onChange={(_text, html) => setComposeHtml(html)}
             />
             <div className="flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-muted-foreground" />
@@ -836,13 +946,14 @@ function InboxPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setComposeOpen(false)}>Discard</Button>
+            <Button variant="ghost" onClick={removeDraft}><Trash2 className="h-4 w-4" /> Discard</Button><Button variant="outline" onClick={async () => { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: { to: compose.to, cc: compose.cc, bcc: composeBcc, subject: compose.subject, html: composeEditor.current?.getHtml() ?? composeHtml, files: composeFiles, mailbox, quoteId: compose.quoteId } } }); setComposeOpen(false); await workspace.refetch(); }}><Save className="h-4 w-4" /> Save draft</Button>
             <Button onClick={sendCompose} disabled={composing} className="bg-solar text-solar-foreground hover:bg-solar/90">
               <Send className="h-4 w-4" /> {composing ? "Sending…" : "Send"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={signatureOpen} onOpenChange={setSignatureOpen}><DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Your email signature</DialogTitle></DialogHeader><textarea aria-label="HTML signature" className="min-h-32 w-full rounded-sm border border-border bg-background p-3 font-mono text-xs" value={signatureHtml} onChange={(e) => setSignatureHtml(e.target.value)} placeholder="Paste your HTML signature" /><EmailHtmlView html={signatureHtml} title="Signature preview" /><DialogFooter><Button variant="ghost" onClick={() => setSignatureOpen(false)}>Cancel</Button><Button onClick={async () => { try { await saveWorkspaceFn({ data: { field: "signature_html", value: signatureHtml } }); await workspace.refetch(); setSignatureOpen(false); toast.success("Signature saved"); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}><Save className="h-4 w-4" /> Save signature</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }

@@ -1,12 +1,13 @@
 // Server-only engine for the Account Manager email inbox.
 // Inbound ingest (Resend Receiving), outbound replies (Resend sending),
 // enquiry threading, dedupe, AM assignment and auto-acknowledgements.
+import sanitizeHtml from "sanitize-html";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { listAccountManagerRecords } from "./account-managers.server";
 import { AM_PHONE } from "./account-managers.shared";
 import { recordCustomerEvent } from "./customer-events.server";
-import { MAIL_DOMAIN, SALES_INBOX, type EnquiryStatus } from "./inbox.shared";
+import { MAIL_DOMAIN, SALES_INBOX, type EnquiryStatus, DEPARTMENT_MAILBOXES } from "./inbox.shared";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/resend";
 
@@ -206,26 +207,21 @@ function textToHtml(s: string): string {
     .replace(/\r?\n/g, "<br/>");
 }
 
-const ALLOWED_TAGS = new Set(["p","br","b","strong","i","em","u","s","ul","ol","li","a","blockquote","h2","h3","h4","div","span","table","thead","tbody","tr","td","th","hr"]);
-
-/** Allow-list sanitizer for composer HTML (no scripts, styles, handlers or js: links). */
+/** Parse and sanitize rich mail rather than using regex as a security boundary. */
 export function sanitizeEmailHtml(input: string): string {
-  let html = String(input ?? "")
-    .replace(/<(script|style|iframe|object|embed|svg|math|form|textarea|select)[\s\S]*?<\/\1>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
-  html = html.replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (full, tagRaw: string, attrs: string) => {
-    const tag = tagRaw.toLowerCase();
-    if (!ALLOWED_TAGS.has(tag)) return "";
-    if (full.startsWith("</")) return `</${tag}>`;
-    if (tag === "a") {
-      const m = attrs.match(/href\s*=\s*("([^"]*)"|'([^']*)')/i);
-      const href = (m?.[2] ?? m?.[3] ?? "").trim();
-      if (/^(https?:|mailto:|tel:)/i.test(href)) return `<a href="${escapeHtml(href)}" style="color:#1f6be0">`;
-      return "<a>";
-    }
-    return tag === "br" || tag === "hr" ? `<${tag}/>` : `<${tag}>`;
+  return sanitizeHtml(String(input ?? ""), {
+    allowedTags: [...sanitizeHtml.defaults.allowedTags, "img"],
+    allowedAttributes: { "*": ["style"], a: ["href", "title"], img: ["src", "alt", "width", "height"], td: ["colspan", "rowspan", "width"], table: ["width", "cellpadding", "cellspacing"] },
+    allowedSchemes: ["https", "mailto", "tel"],
+    allowedSchemesByTag: { img: ["https", "data"] },
+    allowProtocolRelative: false,
+    allowedStyles: { "*": { color: [/^#[0-9a-f]{3,8}$/i, /^[a-z]+$/i], "background-color": [/^#[0-9a-f]{3,8}$/i], "font-size": [/^\d+(px|pt|em|%)$/], "font-family": [/^[a-zA-Z ,'-]+$/], "font-weight": [/^(normal|bold|[1-9]00)$/], "text-align": [/^(left|right|center)$/], width: [/^\d+(px|%)$/], "max-width": [/^\d+(px|%)$/], height: [/^(auto|\d+px)$/] } },
+    transformTags: { img: (tagName, attribs) => {
+      const src = attribs.src || "";
+      if (src.startsWith("data:") && !/^data:image\/(png|jpeg|gif|webp);base64,/i.test(src)) delete attribs.src;
+      return { tagName, attribs };
+    } },
   });
-  return html;
 }
 
 export function htmlToPlainText(html: string): string {
@@ -293,6 +289,7 @@ function replyHtml(opts: {
   reference: string;
   replyText: string;
   replyHtml?: string | null;
+  signatureHtml?: string;
   quotes: { from: string; at: string; text: string | null; direction: string }[];
 }): string {
   const quotesHtml = opts.quotes
@@ -308,7 +305,7 @@ function replyHtml(opts: {
   <p style="margin-top:20px">Kind regards,<br/><strong>${escapeHtml(opts.amName)}</strong><br/>
   <span style="color:#6b7280;font-size:12px">${escapeHtml(opts.amRole)} &middot; IMT Solutions<br/>${escapeHtml(opts.amEmail)} &middot; ${AM_PHONE}</span></p>
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
-  ${brandFooter()}
+  ${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : brandFooter()}
 </div>`;
 }
 
@@ -420,6 +417,7 @@ export async function retryFailedMessageSend(
     cc: message.cc_address
       ? String(message.cc_address).split(",").map((s) => s.trim()).filter(Boolean)
       : undefined,
+    bcc: message.bcc_address ? String(message.bcc_address).split(",").map((s) => s.trim()).filter(Boolean) : undefined,
     subject: message.subject ?? "(no subject)",
     html: message.body_html ?? "",
     text: message.body_text ?? "",
@@ -528,7 +526,7 @@ export interface NormalizedInbound {
   inReplyTo?: string | null;
   references?: string | null;
   receivedAt?: string | null;
-  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null; content?: string | null; content_id?: string | null }>;
   /** Gateway-supplied enquiry reference / contact name to prefer when creating. */
   referenceHint?: string | null;
   contactNameHint?: string | null;
@@ -567,6 +565,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (dupe) return { status: "duplicate" };
 
   const attachments = input.attachments ?? [];
+  if (attachments.reduce((sum, a) => sum + Math.floor((a.content?.length ?? 0) * 0.75), 0) > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
   const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
@@ -608,6 +607,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
         customer_id: customer?.id ?? null,
         contact_email: fromEmail,
         contact_name: contactName,
+        mailbox_address: (input.to ?? []).map(extractEmail).find((address) => DEPARTMENT_MAILBOXES.some((d) => d.addresses.includes(address))) || SALES_INBOX,
         subject,
         status: "open",
         assigned_am_id: am?.id ?? null,
@@ -645,13 +645,29 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (msgError) return { status: "skipped", error: msgError.message };
 
   if (attachments.length) {
+    const retained = [];
+    let bytesTotal = 0;
+    for (const attachment of attachments) {
+      let storagePath: string | null = null;
+      if (attachment.content) {
+        const bytes = new Uint8Array(Buffer.from(attachment.content, "base64"));
+        bytesTotal += bytes.byteLength;
+        if (bytesTotal > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
+        storagePath = `${enquiry.id}/${message.id}/${randomUUID()}-${(attachment.filename || "attachment").replace(/[^\w.-]/g, "-")}`;
+        const { error } = await admin.storage.from("email-attachments").upload(storagePath, bytes, { contentType: attachment.content_type || "application/octet-stream" });
+        if (error) return { status: "skipped", error: `Could not retain inbound attachment: ${error.message}` };
+      }
+      retained.push({ ...attachment, storage_path: storagePath });
+    }
     await admin.from("email_message_attachments").insert(
-      attachments.map((a) => ({
+      retained.map((a) => ({
         message_id: message.id,
         filename: a.filename || "attachment",
         content_type: a.content_type ?? null,
         size_bytes: a.size_bytes ?? null,
         attachment_id: a.attachment_id ?? null,
+        storage_path: a.storage_path,
+        content_id: a.content_id ?? null,
       })),
     );
   }
@@ -749,6 +765,8 @@ export async function sendEnquiryReply(opts: {
   senderName: string;
   senderRole: string;
   senderEmail: string | null;
+  mailbox?: string;
+  signatureHtml?: string;
   body: string;
   bodyHtml?: string | null;
   cc?: string[];
@@ -762,9 +780,7 @@ export async function sendEnquiryReply(opts: {
   if (!opts.body?.trim()) return { ok: false, error: "Reply message is empty" };
 
   // Their own verified @imtsolutions.co.zw address.
-  const fromAddress = opts.senderEmail?.toLowerCase().endsWith(`@${MAIL_DOMAIN}`)
-    ? opts.senderEmail.toLowerCase()
-    : `${localPart(opts.senderEmail || opts.senderName)}@${MAIL_DOMAIN}`;
+  const fromAddress = opts.mailbox || SALES_INBOX;
   const fromLine = `"${opts.senderName.replace(/["\\<>]/g, "")}" <${fromAddress}>`;
 
   const history = await admin
@@ -801,6 +817,7 @@ export async function sendEnquiryReply(opts: {
     reference: enquiry.reference,
     replyText: opts.body,
     replyHtml: opts.bodyHtml,
+    signatureHtml: opts.signatureHtml,
     quotes,
   });
   const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}\nEnquiry reference: ${enquiry.reference}`;
@@ -851,6 +868,8 @@ export async function sendEnquiryReply(opts: {
       delivery_status: "failed",
       delivery_error: "Delivery not attempted",
       created_by: opts.senderId,
+      sender_name: opts.senderName,
+      bcc_address: opts.bcc?.join(", ") || null,
     })
     .select("*")
     .single();
@@ -951,6 +970,8 @@ export async function createAndSendEnquiryEmail(opts: {
   senderName: string;
   senderRole: string;
   senderEmail: string | null;
+  mailbox?: string;
+  signatureHtml?: string;
   to: string;
   subject: string;
   body: string;
@@ -976,6 +997,7 @@ export async function createAndSendEnquiryEmail(opts: {
     subject: opts.subject.trim(),
     status: "open",
     assigned_am_id: opts.senderId,
+    mailbox_address: opts.mailbox || SALES_INBOX,
     assigned_by: opts.senderId,
     assigned_at: new Date().toISOString(),
     message_count: 0,
@@ -988,6 +1010,8 @@ export async function createAndSendEnquiryEmail(opts: {
     senderName: opts.senderName,
     senderRole: opts.senderRole,
     senderEmail: opts.senderEmail,
+    mailbox: opts.mailbox,
+    signatureHtml: opts.signatureHtml,
     body: opts.body,
     bodyHtml: opts.bodyHtml,
     cc: opts.cc,
@@ -999,18 +1023,10 @@ export async function createAndSendEnquiryEmail(opts: {
 }
 
 /** Fresh, short-lived download URLs for a received email's attachments. */
-export async function getAttachmentDownloadUrl(emailId: string, attachmentId: string): Promise<{ url?: string; error?: string }> {
-  if (/^https?:\/\//i.test(attachmentId)) return { url: attachmentId };
-  try {
-    const res = await resendRequest<{ download_url?: string; data?: { download_url?: string } }>(
-      "GET",
-      `/emails/receiving/${emailId}/attachments/${attachmentId}`,
-    );
-    const url = res.download_url ?? res.data?.download_url;
-    return url ? { url } : { error: "No download URL returned" };
-  } catch (e: any) {
-    return { error: String(e?.message ?? e) };
-  }
+export async function getAttachmentDownloadUrl(_emailId: string, attachmentId: string): Promise<{ url?: string; error?: string }> {
+  // The website owns inbound binaries. Never attempt a different mail provider.
+  if (/^https:\/\//i.test(attachmentId)) return { url: attachmentId };
+  return { error: "The IMT website supplied a private attachment reference, but not a download link. Its email gateway must provide a signed HTTPS download_url or include the file content in the inbound webhook." };
 }
 
 export async function getStoredAttachmentDownloadUrl(storagePath: string): Promise<{ url?: string; error?: string }> {
