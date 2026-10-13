@@ -59,7 +59,7 @@ function TicketDetail() {
 
   const reply = useMutation({
     mutationFn: () => postFn({ data: { ticket_id: id, body, is_internal: internal } }),
-    onSuccess: () => { setBody(""); refresh(); toast.success(internal ? "Internal note added" : "Reply posted and emailed to the customer"); },
+    onSuccess: (m: any) => { setBody(""); refresh(); toast.success(internal ? "Internal note added" : m?.recipient ? `Reply sent to ${m.recipient}` : "Reply saved — no customer email on file"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -104,7 +104,7 @@ function TicketDetail() {
             {messages.map((m: any) => (
               <div key={m.id} className={`p-4 rounded-lg border ${m.is_internal ? "bg-warning/10 border-warning/30" : "bg-background border-border"}`}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold">{m.is_internal ? "Internal note" : "Reply"}</p>
+                  <p className="text-xs font-semibold">{m.is_internal ? "Internal note" : "Reply sent to customer"}</p>
                   <p className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleString()}</p>
                 </div>
                 <p className="text-sm whitespace-pre-wrap">{m.body}</p>
@@ -114,7 +114,7 @@ function TicketDetail() {
               <Textarea rows={4} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Type a reply (emailed to the customer) or an internal note…" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2"><Switch checked={internal} onCheckedChange={setInternal} id="internal" /><Label htmlFor="internal">Internal note</Label></div>
-                <Button type="submit" disabled={reply.isPending || !body.trim()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>{reply.isPending ? "Posting…" : "Post"}</Button>
+                <Button type="submit" disabled={reply.isPending || !body.trim()} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>{reply.isPending ? "Sending…" : internal ? "Add note" : "Send reply"}</Button>
               </div>
             </form>
           </CardContent>
