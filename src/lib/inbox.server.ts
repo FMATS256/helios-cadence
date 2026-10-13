@@ -206,6 +206,41 @@ function textToHtml(s: string): string {
     .replace(/\r?\n/g, "<br/>");
 }
 
+const ALLOWED_TAGS = new Set(["p","br","b","strong","i","em","u","s","ul","ol","li","a","blockquote","h2","h3","h4","div","span","table","thead","tbody","tr","td","th","hr"]);
+
+/** Allow-list sanitizer for composer HTML (no scripts, styles, handlers or js: links). */
+export function sanitizeEmailHtml(input: string): string {
+  let html = String(input ?? "")
+    .replace(/<(script|style|iframe|object|embed|svg|math|form|textarea|select)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  html = html.replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (full, tagRaw: string, attrs: string) => {
+    const tag = tagRaw.toLowerCase();
+    if (!ALLOWED_TAGS.has(tag)) return "";
+    if (full.startsWith("</")) return `</${tag}>`;
+    if (tag === "a") {
+      const m = attrs.match(/href\s*=\s*("([^"]*)"|'([^']*)')/i);
+      const href = (m?.[2] ?? m?.[3] ?? "").trim();
+      if (/^(https?:|mailto:|tel:)/i.test(href)) return `<a href="${escapeHtml(href)}" style="color:#1f6be0">`;
+      return "<a>";
+    }
+    return tag === "br" || tag === "hr" ? `<${tag}/>` : `<${tag}>`;
+  });
+  return html;
+}
+
+export function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<\/(p|div|li|h[1-6]|tr|blockquote)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export type ComposerFile = { filename: string; contentType?: string; base64: string };
+
 /** Shared IMT footer used on every inbox email. */
 function brandFooter(): string {
   return `
@@ -257,6 +292,7 @@ function replyHtml(opts: {
   amEmail: string;
   reference: string;
   replyText: string;
+  replyHtml?: string | null;
   quotes: { from: string; at: string; text: string | null; direction: string }[];
 }): string {
   const quotesHtml = opts.quotes
@@ -268,7 +304,7 @@ function replyHtml(opts: {
     )
     .join("");
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:14px;line-height:1.7">
-  <div>${textToHtml(opts.replyText)}</div>
+  <div>${opts.replyHtml ? sanitizeEmailHtml(opts.replyHtml) : textToHtml(opts.replyText)}</div>
   <p style="margin-top:20px">Kind regards,<br/><strong>${escapeHtml(opts.amName)}</strong><br/>
   <span style="color:#6b7280;font-size:12px">${escapeHtml(opts.amRole)} &middot; IMT Solutions<br/>${escapeHtml(opts.amEmail)} &middot; ${AM_PHONE}</span></p>
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
@@ -281,6 +317,7 @@ export async function sendInboxEmail(opts: {
   from: string;
   to: string;
   cc?: string[];
+  bcc?: string[];
   subject: string;
   html: string;
   text: string;
@@ -303,6 +340,7 @@ export async function sendInboxEmail(opts: {
       text: opts.text,
     };
     if (opts.cc?.length) payload.cc = opts.cc;
+    if (opts.bcc?.length) payload.bcc = opts.bcc;
     if (opts.replyTo) payload.reply_to = opts.replyTo;
     if (opts.headers) payload.headers = opts.headers;
     if (opts.attachments?.length) {
@@ -712,8 +750,11 @@ export async function sendEnquiryReply(opts: {
   senderRole: string;
   senderEmail: string | null;
   body: string;
+  bodyHtml?: string | null;
   cc?: string[];
+  bcc?: string[];
   quoteId?: string | null;
+  files?: ComposerFile[];
 }): Promise<{ ok: true; messageId: string } | { ok: false; error: string }> {
   const admin = adminClient();
   const { data: enquiry } = await admin.from("email_enquiries").select("*").eq("id", opts.enquiryId).maybeSingle();
@@ -759,6 +800,7 @@ export async function sendEnquiryReply(opts: {
     amEmail: fromAddress,
     reference: enquiry.reference,
     replyText: opts.body,
+    replyHtml: opts.bodyHtml,
     quotes,
   });
   const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}\nEnquiry reference: ${enquiry.reference}`;
@@ -814,6 +856,21 @@ export async function sendEnquiryReply(opts: {
     .single();
   if (error || !message) return { ok: false, error: error?.message ?? "Could not save outgoing message; no email was sent" };
 
+  const fileAttachments: Array<{ filename: string; content: Uint8Array; contentType: string }> = [];
+  for (const file of opts.files ?? []) {
+    const filename = (file.filename || "attachment").replace(/[^\w.() -]+/g, "-").slice(0, 120);
+    const content = new Uint8Array(Buffer.from(file.base64, "base64"));
+    const contentType = file.contentType || "application/octet-stream";
+    const storagePath = `${enquiry.id}/${message.id}/${randomUUID().slice(0, 8)}-${filename}`;
+    const { error: upErr } = await admin.storage.from("email-attachments").upload(storagePath, content, { contentType, upsert: false });
+    if (upErr) return { ok: false, error: `Could not retain attachment ${filename}; no email was sent: ${upErr.message}` };
+    const { error: rowErr } = await admin.from("email_message_attachments").insert({
+      message_id: message.id, filename, content_type: contentType, size_bytes: content.byteLength, attachment_id: null, storage_path: storagePath,
+    });
+    if (rowErr) return { ok: false, error: `Could not save attachment ${filename}; no email was sent: ${rowErr.message}` };
+    fileAttachments.push({ filename, content, contentType });
+  }
+
   if (quoteAttachment) {
     const storagePath = `${enquiry.id}/${message.id}/${quoteAttachment.filename}`;
     const { error: uploadError } = await admin.storage
@@ -836,12 +893,15 @@ export async function sendEnquiryReply(opts: {
     from: fromLine,
     to: enquiry.contact_email,
     cc: opts.cc?.filter(Boolean),
+    bcc: opts.bcc?.filter(Boolean),
     subject: taggedSubject,
     html,
     text,
     headers,
     replyTo: fromAddress,
-    attachments: quoteAttachment ? [quoteAttachment] : undefined,
+    attachments: [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments].length
+      ? [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments]
+      : undefined,
   });
   const { error: deliveryError } = await admin.from("email_messages").update({
     resend_email_id: result.ok && result.id ? result.id : null,
@@ -894,9 +954,12 @@ export async function createAndSendEnquiryEmail(opts: {
   to: string;
   subject: string;
   body: string;
+  bodyHtml?: string | null;
   cc?: string[];
+  bcc?: string[];
   customerId?: string | null;
   quoteId?: string | null;
+  files?: ComposerFile[];
 }): Promise<{ ok: true; enquiryId: string; messageId: string } | { ok: false; error: string }> {
   const admin = adminClient();
   const contactEmail = extractEmail(opts.to);
@@ -926,8 +989,11 @@ export async function createAndSendEnquiryEmail(opts: {
     senderRole: opts.senderRole,
     senderEmail: opts.senderEmail,
     body: opts.body,
+    bodyHtml: opts.bodyHtml,
     cc: opts.cc,
+    bcc: opts.bcc,
     quoteId: opts.quoteId,
+    files: opts.files,
   });
   return sent.ok ? { ok: true, enquiryId: enquiry.id, messageId: sent.messageId } : sent;
 }

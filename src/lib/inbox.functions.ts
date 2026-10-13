@@ -151,9 +151,26 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
     } satisfies EnquiryThread;
   });
 
+type ComposerFileInput = { filename: string; contentType?: string; base64: string };
+const MAX_ATTACH_BYTES = 15 * 1024 * 1024;
+function checkFiles(files?: ComposerFileInput[]) {
+  if (!files?.length) return undefined;
+  if (files.length > 10) throw new Error("You can attach up to 10 files");
+  const total = files.reduce((sum, f) => sum + Math.floor((f.base64?.length ?? 0) * 0.75), 0);
+  if (total > MAX_ATTACH_BYTES) throw new Error("Attachments are larger than 15 MB in total");
+  return files;
+}
+const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
+function checkAddresses(list: string[] | undefined, label: string) {
+  const clean = (list ?? []).map((a) => a.trim()).filter(Boolean);
+  const bad = clean.find((a) => !EMAIL_RE.test(a));
+  if (bad) throw new Error(`${label}: "${bad}" is not a valid email address`);
+  return clean.length ? clean : undefined;
+}
+
 export const replyToEnquiry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { enquiryId: string; body: string; cc?: string[]; quoteId?: string | null }) => input)
+  .inputValidator((input: { enquiryId: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; quoteId?: string | null; files?: ComposerFileInput[] }) => input)
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     const { data: visible } = await context.supabase.from("email_enquiries").select("id").eq("id", data.enquiryId).maybeSingle();
@@ -173,8 +190,11 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       senderRole: roleLabel,
       senderEmail: profile?.email ?? null,
       body: data.body,
-      cc: data.cc,
+      bodyHtml: data.bodyHtml,
+      cc: checkAddresses(data.cc, "Cc"),
+      bcc: checkAddresses(data.bcc, "Bcc"),
       quoteId: data.quoteId,
+      files: checkFiles(data.files),
     });
     if (!result.ok) throw new Error(result.error);
     return result;
@@ -199,7 +219,7 @@ export const retryFailedMessage = createServerFn({ method: "POST" })
 
 export const composeEnquiryEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { to: string; subject: string; body: string; cc?: string[]; customerId?: string | null; quoteId?: string | null }) => input)
+  .inputValidator((input: { to: string; subject: string; body: string; bodyHtml?: string | null; cc?: string[]; bcc?: string[]; customerId?: string | null; quoteId?: string | null; files?: ComposerFileInput[] }) => input)
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     if (!data.subject?.trim()) throw new Error("Subject is required");
@@ -214,9 +234,12 @@ export const composeEnquiryEmail = createServerFn({ method: "POST" })
       to: data.to,
       subject: data.subject,
       body: data.body,
-      cc: data.cc,
+      bodyHtml: data.bodyHtml,
+      cc: checkAddresses(data.cc, "Cc"),
+      bcc: checkAddresses(data.bcc, "Bcc"),
       customerId: data.customerId,
       quoteId: data.quoteId,
+      files: checkFiles(data.files),
     });
     if (!result.ok) throw new Error(result.error);
     return result;
