@@ -2,7 +2,7 @@
 // Inbound ingest (Resend Receiving), outbound replies (Resend sending),
 // enquiry threading, dedupe, AM assignment and auto-acknowledgements.
 import sanitizeHtml from "sanitize-html";
-import { imtSignature } from "./email-signature.shared";
+import { imtSignature, IMT_WHATSAPP } from "./email-signature.shared";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { listAccountManagerRecords } from "./account-managers.server";
@@ -254,7 +254,7 @@ function brandFooter(): string {
           <div style="font-size:19px;line-height:23px;font-weight:700;color:#0b1220">IMT Solutions</div>
           <div style="font-size:13px;line-height:19px;font-weight:600;color:#1f6be0;margin:2px 0 8px">Sales Team · IMT Solutions</div>
           <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">w:</b> <a href="https://imtsolutions.co.zw" style="color:#1f6be0;text-decoration:none">imtsolutions.co.zw</a> &nbsp;·&nbsp; <b style="color:#1f6be0">e:</b> <a href="mailto:${SALES_INBOX}" style="color:#1f6be0;text-decoration:none">${SALES_INBOX}</a></div>
-          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">m:</b> ${AM_PHONE}</div>
+          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">m:</b> ${AM_PHONE} &nbsp;·&nbsp; <b style="color:#1f6be0">whatsapp:</b> <a href="https://wa.me/${IMT_WHATSAPP.replace(/[^\d]/g, "")}" style="color:#25D366;text-decoration:none">${IMT_WHATSAPP}</a></div>
           <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">a:</b> IMT Solutions, Harare, Zimbabwe</div>
         </td>
       </tr>
