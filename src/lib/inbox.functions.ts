@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { signatureTitle } from "./email-signature.shared";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   getAttachmentDownloadUrl,
@@ -205,7 +206,7 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       enquiryId: data.enquiryId,
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
-      senderRole: roleLabel,
+      senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
       senderEmail: profile?.email ?? null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),
@@ -249,7 +250,7 @@ export const composeEnquiryEmail = createServerFn({ method: "POST" })
     const result = await createAndSendEnquiryEmail({
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
-      senderRole: roleLabel,
+      senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
       senderEmail: profile?.email ?? null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),

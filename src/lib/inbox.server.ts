@@ -2,6 +2,7 @@
 // Inbound ingest (Resend Receiving), outbound replies (Resend sending),
 // enquiry threading, dedupe, AM assignment and auto-acknowledgements.
 import sanitizeHtml from "sanitize-html";
+import { imtSignature } from "./email-signature.shared";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { listAccountManagerRecords } from "./account-managers.server";
@@ -302,10 +303,8 @@ function replyHtml(opts: {
     .join("");
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:14px;line-height:1.7">
   <div>${opts.replyHtml ? sanitizeEmailHtml(opts.replyHtml) : textToHtml(opts.replyText)}</div>
-  <p style="margin-top:20px">Kind regards,<br/><strong>${escapeHtml(opts.amName)}</strong><br/>
-  <span style="color:#6b7280;font-size:12px">${escapeHtml(opts.amRole)} &middot; IMT Solutions<br/>${escapeHtml(opts.amEmail)} &middot; ${AM_PHONE}</span></p>
+  <div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div>
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
-  ${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : brandFooter()}
 </div>`;
 }
 
