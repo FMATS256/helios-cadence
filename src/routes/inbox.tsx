@@ -642,7 +642,7 @@ function InboxPage() {
             <ChevronDown className="h-3 w-3" /> Folders
           </div>
           <div className="space-y-0.5">
-            {([{ key: "enquiries", label: "Enquiries", icon: Inbox }, { key: "drafts", label: "Drafts", icon: FileText }, { key: "flagged", label: "Follow up", icon: Flag }, { key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
+            {([{ key: "enquiries", label: "Enquiries", icon: InboxIcon }, { key: "drafts", label: "Drafts", icon: FileText }, { key: "flagged", label: "Follow up", icon: Flag }, { key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
               <Button
                 key={item.key}
                 variant="ghost"
