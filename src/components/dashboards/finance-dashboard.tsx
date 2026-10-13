@@ -88,15 +88,15 @@ export function FinanceDashboard({ displayName }: { displayName: string }) {
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <KpiCard label="MRR" value={money(s?.mrr ?? 0)} icon={TrendingUp} tone="success" to="/subscriptions" />
         <KpiCard label="ARR" value={money(s?.arr ?? 0)} icon={TrendingUp} tone="success" />
-        <KpiCard label="Unpaid AR" value={money(s?.unpaidTotal ?? 0)} icon={FileText} tone="warning" to="/finance" search={{ tab: "invoices" } as any} hint={`${s?.unpaidCount ?? 0} invoices`} />
-        <KpiCard label="Overdue" value={money(s?.overdueTotal ?? 0)} icon={AlertTriangle} tone="danger" to="/finance" search={{ tab: "invoices" } as any} hint={`${s?.overdueCount ?? 0} past due`} />
+        <KpiCard label="Unpaid AR" value={money(s?.unpaidTotal ?? 0)} icon={FileText} tone="warning" to="/billing" hint={`${s?.unpaidCount ?? 0} invoices`} />
+        <KpiCard label="Overdue" value={money(s?.overdueTotal ?? 0)} icon={AlertTriangle} tone="danger" to="/billing" hint={`${s?.overdueCount ?? 0} past due`} />
         <KpiCard label="Collected MTD" value={money(s?.mtdCollected ?? 0)} icon={Receipt} tone="info" to="/payments" />
         <KpiCard label="Renewals ≤ 30d" value={s?.renewalsSoon?.length ?? 0} icon={Repeat} tone="solar" to="/subscriptions" />
       </div>
 
       <SectionCard title="Finance workflows">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction icon={FileText} label="Draft Invoice" to="/finance" search={{ tab: "invoices" } as any} tone="warning" />
+          <QuickAction icon={FileText} label="Draft Invoice" to="/billing" tone="warning" />
           <QuickAction icon={DollarSign} label="Record Payment" to="/payments" tone="success" />
           <QuickAction icon={Repeat} label="New Subscription" to="/subscriptions" tone="solar" />
           <QuickAction icon={Receipt} label="Send Quote" to="/quotes" tone="info" />
