@@ -332,14 +332,15 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
       .eq("message_id", data.messageId)
       .maybeSingle();
     if (!att) throw new Error("Attachment not found or not visible to you");
+    const { data: visibleMessage } = await context.supabase.from("email_messages").select("id").eq("id", data.messageId).maybeSingle();
+    if (!visibleMessage) throw new Error("Message not found or not visible to you");
     if (att?.storage_path) return getStoredAttachmentDownloadUrl(att.storage_path);
     const { data: message } = await context.supabase
       .from("email_messages")
       .select("resend_email_id")
       .eq("id", data.messageId)
       .maybeSingle();
-    if (!message?.resend_email_id) throw new Error("Attachment source email not found");
-    return getAttachmentDownloadUrl(message.resend_email_id, att?.attachment_id ?? data.attachmentId);
+    return getAttachmentDownloadUrl(message?.resend_email_id ?? "", att?.attachment_id ?? data.attachmentId);
   });
 
 async function authorizedMailbox(context: any, requested?: string) {

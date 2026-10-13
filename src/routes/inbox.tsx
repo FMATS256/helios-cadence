@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EmailHtmlView } from "@/components/email-html-view";
+import { EmailAttachment } from "@/components/email-attachment";
 import { EmailComposer, type ComposerFile, type ComposerHandle } from "@/components/email-composer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -247,17 +248,7 @@ function MessagePanel({
           <div className="mt-4">{message.body_html ? <EmailHtmlView html={message.body_html} title={`Email from ${sender}`} /> : <div className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{body || "(empty message)"}</div>}</div>
           {message.attachments?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              {message.attachments.map((attachment) => (
-                <Button
-                  key={attachment.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onOpenAttachment(message, attachment)}
-                  className="h-8 rounded-sm text-xs"
-                >
-                  <Paperclip className="h-3.5 w-3.5" /> {attachment.filename}
-                </Button>
-              ))}
+              {message.attachments.map((attachment) => <EmailAttachment key={attachment.id} messageId={message.id} attachment={attachment} />)}
             </div>
           ) : null}
         </div>
