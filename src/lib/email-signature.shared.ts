@@ -11,7 +11,9 @@ export function signatureTitle(name: string, role: string): string {
 }
 
 /** Email-only fixed brand colors and table layout survive Outlook's mail renderer. */
-export function imtSignature({ name, role, email, phone = "+263 86 12 004321" }: { name: string; role: string; email: string; phone?: string }) {
+export const IMT_WHATSAPP = "+263 776 568 526";
+const whatsappLink = (value: string) => `https://wa.me/${value.replace(/[^\d]/g, "")}`;
+export function imtSignature({ name, role, email, phone = "+263 86 12 004321", whatsapp = IMT_WHATSAPP }: { name: string; role: string; email: string; phone?: string; whatsapp?: string }) {
   const title = signatureTitle(name, role);
   return `<style>@media screen and (min-width:601px){.imt-signature .imt-identity{font-size:12px!important;line-height:14px!important}.imt-signature .imt-contact{font-size:10px!important;line-height:13px!important}.imt-signature .imt-closing{font-size:11px!important;line-height:16px!important}.imt-signature .imt-tagline{font-size:14px!important;line-height:18px!important}.imt-signature .imt-service{font-size:11px!important;line-height:14px!important}}</style>
   <table class="imt-signature" role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;max-width:600px;table-layout:fixed;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;color:#3b4658;-webkit-text-size-adjust:none;text-size-adjust:none">
