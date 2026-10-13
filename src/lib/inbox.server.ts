@@ -254,7 +254,7 @@ function brandFooter(): string {
           <div style="font-size:19px;line-height:23px;font-weight:700;color:#0b1220">IMT Solutions</div>
           <div style="font-size:13px;line-height:19px;font-weight:600;color:#1f6be0;margin:2px 0 8px">Sales Team · IMT Solutions</div>
           <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">w:</b> <a href="https://imtsolutions.co.zw" style="color:#1f6be0;text-decoration:none">imtsolutions.co.zw</a> &nbsp;·&nbsp; <b style="color:#1f6be0">e:</b> <a href="mailto:${SALES_INBOX}" style="color:#1f6be0;text-decoration:none">${SALES_INBOX}</a></div>
-          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">m:</b> ${AM_PHONE} &nbsp;·&nbsp; <b style="color:#1f6be0">whatsapp:</b> <a href="https://wa.me/${IMT_WHATSAPP.replace(/[^\d]/g, "")}" style="color:#25D366;text-decoration:none">${IMT_WHATSAPP}</a></div>
+          <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">m:</b> ${AM_PHONE} &nbsp;·&nbsp; <b style="color:#1f6be0">whatsapp:</b> <a href="https://wa.me/${IMT_WHATSAPP.replace(/[^\d]/g, "")}" style="color:#ffffff;text-decoration:none">${IMT_WHATSAPP}</a></div>
           <div style="font-size:12px;line-height:19px"><b style="color:#1f6be0">a:</b> IMT Solutions, Harare, Zimbabwe</div>
         </td>
       </tr>
@@ -272,7 +272,7 @@ function brandFooter(): string {
 /** Acknowledgement sent automatically for every brand-new enquiry. */
 function ackHtml(reference: string, contactName: string | null, subject: string): string {
   const name = contactName ? escapeHtml(contactName) : "Customer";
-  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:14px;line-height:1.7">
+  return `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:16px;line-height:1.5">
   <p>Dear ${name},</p>
   <p><strong>Your enquiry has been logged with our Sales Team. Your enquiry reference is ${escapeHtml(reference)}.</strong></p>
   <p>Subject received: <em>${escapeHtml(subject)}</em></p>
@@ -301,7 +301,7 @@ function replyHtml(opts: {
     </div>`,
     )
     .join("");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:14px;line-height:1.7">
+  return `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:16px;line-height:1.5">
   <div>${opts.replyHtml ? sanitizeEmailHtml(opts.replyHtml) : textToHtml(opts.replyText)}</div>
   <div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div>
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
