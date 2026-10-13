@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { imtSignature } from '@/lib/email-signature.shared'
 import {
   Body,
   Container,
@@ -325,58 +326,9 @@ export function EmailShell({
             </Link>
           </Section>
           <Section style={styles.content}>{children}</Section>
-          <Hr style={styles.divider} />
           <Section style={styles.footer}>
-            <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.signatureTable}>
-              <tbody>
-                <tr>
-                  <td style={styles.signatureRailCell}>
-                    <div style={styles.railIcon}>●</div>
-                    <div style={styles.railIcon}>@</div>
-                    <div style={styles.railIcon}>☎</div>
-                    <div style={{ ...styles.railIcon, marginBottom: 0 }}>⌖</div>
-                  </td>
-                  <td style={styles.signatureDetailsCell}>
-                    <Text style={styles.footerName}>{signatureName}</Text>
-                    <Text style={styles.footerRole}>{signatureRole} · {BRAND.name}</Text>
-                    <Text style={styles.footerText}>
-                      <span style={styles.footerLabel}>w: </span>
-                      <Link href={BRAND.siteUrl} style={styles.footerLink}>imtsolutions.co.zw</Link>
-                      <span style={{ color: BRAND.faint }}> · </span>
-                      <span style={styles.footerLabel}>e: </span>
-                      <Link href={`mailto:${signatureEmail}`} style={styles.footerLink}>{signatureEmail}</Link>
-                    </Text>
-                    <Text style={styles.footerText}>
-                      <span style={styles.footerLabel}>m: </span>{signaturePhone}
-                    </Text>
-                    <Text style={styles.footerText}>
-                      <span style={styles.footerLabel}>a: </span>{BRAND.address}
-                    </Text>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <Text style={styles.signatureDisclaimer}>
-              CONFIDENTIALITY NOTICE: This email and its attachments are intended solely for the named recipient
-              and may contain confidential, privileged or copyright information. If you received it in error,
-              please notify the sender, delete it, and do not copy, share or act on its contents. Email transmission
-              cannot be guaranteed secure or error-free; please scan attachments before opening them. © {new Date().getFullYear()} {BRAND.name}.
-            </Text>
-            <Text style={styles.footerCta}>Your trusted partner for business technologies</Text>
+            <div dangerouslySetInnerHTML={{ __html: imtSignature({ name: signatureName, role: signatureRole, email: signatureEmail, phone: signaturePhone }) }} />
           </Section>
-          <table role="presentation" cellPadding="0" cellSpacing="0" style={styles.signatureBanner}>
-            <tbody>
-              <tr>
-                <td style={styles.signatureBannerLogoCell}>
-                  <Img src={BRAND.logoUrl} alt={BRAND.name} width="150" height="35" style={styles.footerLogo} />
-                </td>
-                <td style={styles.signatureBannerMessageCell}>
-                  <Text style={styles.bannerCallout}>Connect. Protect. Grow.</Text>
-                  <Text style={styles.bannerSub}>Business technology that keeps you moving.</Text>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </Container>
       </Body>
     </Html>
