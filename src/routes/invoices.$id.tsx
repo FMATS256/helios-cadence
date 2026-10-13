@@ -110,7 +110,7 @@ function InvoiceDetail() {
   return (
     <PageShell>
       <SectionHeader
-        eyebrow={<Link to="/billing" className="text-solar hover:underline">← Invoices</Link>}
+        eyebrow={<Link to="/finance" search={{ tab: "invoices" } as any} className="text-solar hover:underline">← Invoices</Link>}
         title={`Invoice ${invoice.invoice_number}`}
         description={
           <span>
