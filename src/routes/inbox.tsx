@@ -294,6 +294,7 @@ function InboxPage() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
+  const [replyExpanded, setReplyExpanded] = useState(false);
   const [cc, setCc] = useState("");
   const [showCc, setShowCc] = useState(false);
   const [sending, setSending] = useState(false);
@@ -367,7 +368,7 @@ function InboxPage() {
     return () => window.clearTimeout(timer);
   }, [workspace.data, selectedId, thread.data]);
   useEffect(() => {
-    if (!draftsReady || !composeOpen || sendingRef.current) return;
+    if (!draftsReady || !composeOpen || sendingRef.current || (!composeHtml && !compose.to && !compose.subject)) return;
     setDraftState("Saving…");
     const timer = window.setTimeout(async () => {
       try { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: { to: compose.to, cc: compose.cc, bcc: composeBcc, subject: compose.subject, html: composeHtml, quoteId: compose.quoteId, mailbox, files: composeFiles, updatedAt: new Date().toISOString() } } }); setDraftState("Saved"); } catch { setDraftState("Not saved"); }
@@ -375,7 +376,7 @@ function InboxPage() {
     return () => window.clearTimeout(timer);
   }, [compose, composeHtml, composeBcc, composeFiles, mailbox, composeOpen, draftsReady, draftKey, saveWorkspaceFn]);
   useEffect(() => {
-    if (!selectedId || restoredReply.current !== selectedId || sendingRef.current) return;
+    if (!selectedId || restoredReply.current !== selectedId || sendingRef.current || (!replyHtmlDraft && !replyFiles.length && !cc && !bcc && !quoteId)) return;
     const timer = window.setTimeout(async () => {
       try { await saveWorkspaceFn({ data: { field: "drafts", key: `reply:${selectedId}`, value: { html: replyHtmlDraft, cc, bcc, quoteId, files: replyFiles, mailbox, subject: thread.data?.enquiry.subject } } }); } catch { toast.error("Reply draft could not be saved"); }
     }, 900);
@@ -588,15 +589,15 @@ function InboxPage() {
     <div className="flex h-[calc(100dvh-4rem)] min-h-0 min-w-0 flex-col overflow-hidden bg-card">
       <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-solar/10 px-4 py-2">
         <span className="flex items-center gap-2 text-sm font-semibold text-solar"><Mail className="h-4 w-4" /> IMT Mail</span>
-        <span className="flex h-full items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
-        <select aria-label="Department mailbox" value={mailbox} onChange={(e) => { setMailbox(e.target.value); setScope("all"); }} className="ml-auto h-8 max-w-full rounded-sm border border-border bg-card px-2 text-xs">
+        <span className="flex h-8 items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
+        <select aria-label="Department mailbox" value={mailbox} onChange={(e) => { setMailbox(e.target.value); setScope("all"); }} className="ml-auto h-8 min-w-0 max-w-[calc(100%-3rem)] rounded-sm border border-border bg-card px-2 text-xs">
           {(workspace.data?.departments ?? []).map((d) => <optgroup key={d.department} label={d.department}>{d.addresses.map((address) => <option key={address} value={address}>{d.department} · {address}</option>)}</optgroup>)}
         </select>
         <Button variant="ghost" size="icon" title="Email signature" aria-label="Email signature" onClick={() => { setSignatureHtml(workspace.data?.signatureHtml ?? ""); setSignatureOpen(true); }}><Settings2 className="h-4 w-4" /></Button>
       </div>
       <div className="flex min-h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-muted/40 px-3 py-1">
         <Button onClick={() => { setDraftKey("new"); setComposeOpen(true); }} size="sm" className="mr-2 h-8 shrink-0 rounded-sm bg-solar text-solar-foreground hover:bg-solar/90"><MailPlus className="h-4 w-4" /> New mail</Button>
-        <Button variant="ghost" size="sm" disabled={!active || active.status === "closed"} onClick={() => replyInput.current?.focus()} className="shrink-0 rounded-sm"><Reply className="h-4 w-4" /> Reply</Button>
+        <Button variant="ghost" size="sm" disabled={!active || active.status === "closed"} onClick={() => { setReplyExpanded(true); window.setTimeout(() => replyInput.current?.focus(), 50); }} className="shrink-0 rounded-sm"><Reply className="h-4 w-4" /> Reply</Button>
         <Button variant="ghost" size="sm" disabled={!active} onClick={forwardActive} className="shrink-0 rounded-sm"><Forward className="h-4 w-4" /> Forward</Button>
         <span className="mx-2 h-5 w-px shrink-0 bg-border" />
         <Button variant="ghost" size="sm" disabled={!active} onClick={toggleArchive} className="shrink-0 rounded-sm"><Archive className="h-4 w-4" /> {folder === "archive" ? "Move to inbox" : "Archive"}</Button>
@@ -765,7 +766,7 @@ function InboxPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" disabled={active.status === "closed"} onClick={() => replyInput.current?.focus()} className="rounded-sm" title="Reply">
+              <Button variant="ghost" size="sm" disabled={active.status === "closed"} onClick={() => { setReplyExpanded(true); window.setTimeout(() => replyInput.current?.focus(), 50); }} className="rounded-sm" title="Reply">
                 <Reply className="h-4 w-4" /> <span className="hidden sm:inline">Reply</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={forwardActive} className="rounded-sm">
@@ -854,7 +855,8 @@ function InboxPage() {
             </div>
 
             {active.status !== "closed" ? (
-              <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4">
+              <div className={`${replyExpanded ? "block" : "hidden lg:block"} max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4`}>
+                <Button variant="ghost" size="sm" className="mb-1 lg:hidden" onClick={() => setReplyExpanded(false)}>Minimize reply</Button>
                 {error ? <p role="alert" className="mb-2 break-words text-xs text-destructive">{error}</p> : null}
                 {showCc ? (
                   <div className="mb-2 space-y-1 border-b border-border pb-2">

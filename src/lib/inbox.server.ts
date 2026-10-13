@@ -565,6 +565,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (dupe) return { status: "duplicate" };
 
   const attachments = input.attachments ?? [];
+  if (attachments.reduce((sum, a) => sum + Math.floor((a.content?.length ?? 0) * 0.75), 0) > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
   const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
