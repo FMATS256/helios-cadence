@@ -14,6 +14,8 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Complete email HTML display, department mailboxes, reply attribution, drafts, organization, internal notes and attachment handling
+- [ ] Verify remaining email features through the signed-in portal; identify gateway or bank-detail blockers
 - [ ] Complete successful email round-trip: blocked by IMT website send and history endpoints returning HTTP 500 on 10 October 2026; existing inbox messages load correctly
 - [ ] Make cash payment recording explicit and fix Finance workspace overlap across screen sizes
 - [ ] Outlook-style Email Inbox enhancements: compose mail, functional mail actions, quotation PDF sending and retained outbound attachments
