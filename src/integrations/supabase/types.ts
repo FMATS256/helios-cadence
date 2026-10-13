@@ -1923,6 +1923,7 @@ export type Database = {
       email_message_attachments: {
         Row: {
           attachment_id: string | null
+          content_id: string | null
           content_type: string | null
           created_at: string
           filename: string
@@ -1934,6 +1935,7 @@ export type Database = {
         }
         Insert: {
           attachment_id?: string | null
+          content_id?: string | null
           content_type?: string | null
           created_at?: string
           filename: string
@@ -1945,6 +1947,7 @@ export type Database = {
         }
         Update: {
           attachment_id?: string | null
+          content_id?: string | null
           content_type?: string | null
           created_at?: string
           filename?: string
