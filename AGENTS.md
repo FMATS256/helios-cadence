@@ -5,3 +5,4 @@
 - Base44 webhook resolves client ownership from the protected system setting, not incoming customer identifiers, so requester data cannot route tickets to another client.
 - Email HTML renders in a sanitized, script-disabled sandbox; attachments require visible message ownership and use retained storage or gateway-supplied HTTPS links, never another mail provider. Prepare attachment blobs before download clicks so phone sharing and downloads retain user activation; preview only safe image, PDF and text formats.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
+- Default inbox and transactional signatures share one email-safe table template and staff-title resolver so branding and job titles stay consistent across sending paths; custom personal signatures remain explicit overrides.
