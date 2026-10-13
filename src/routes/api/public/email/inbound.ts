@@ -17,6 +17,8 @@ const Attachment = z.object({
   id: z.string().max(500).nullish(),
   url: z.string().max(4000).nullish(),
   download_url: z.string().max(4000).nullish(),
+  content: z.string().max(22_000_000).nullish(),
+  content_id: z.string().max(500).nullish(),
 });
 
 // Exact shape pushed by the IMT Solutions website email gateway.
@@ -77,7 +79,9 @@ function mapAttachments(list: z.infer<typeof Attachment>[] | null | undefined) {
     size_bytes: att.size_bytes ?? att.size ?? null,
     // Gateway attachments are private storage paths; keep the path (or a URL
     // when provided) so the file can be fetched from the gateway later.
-    attachment_id: att.path ?? att.download_url ?? att.url ?? att.id ?? null,
+    attachment_id: att.download_url ?? att.url ?? att.path ?? att.id ?? null,
+    content: att.content ?? null,
+    content_id: att.content_id ?? null,
   }));
 }
 

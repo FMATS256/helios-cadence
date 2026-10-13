@@ -526,7 +526,7 @@ export interface NormalizedInbound {
   inReplyTo?: string | null;
   references?: string | null;
   receivedAt?: string | null;
-  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null }>;
+  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null; content?: string | null; content_id?: string | null }>;
   /** Gateway-supplied enquiry reference / contact name to prefer when creating. */
   referenceHint?: string | null;
   contactNameHint?: string | null;
@@ -644,13 +644,29 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (msgError) return { status: "skipped", error: msgError.message };
 
   if (attachments.length) {
+    const retained = [];
+    let bytesTotal = 0;
+    for (const attachment of attachments) {
+      let storagePath: string | null = null;
+      if (attachment.content) {
+        const bytes = new Uint8Array(Buffer.from(attachment.content, "base64"));
+        bytesTotal += bytes.byteLength;
+        if (bytesTotal > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
+        storagePath = `${enquiry.id}/${message.id}/${randomUUID()}-${(attachment.filename || "attachment").replace(/[^\w.-]/g, "-")}`;
+        const { error } = await admin.storage.from("email-attachments").upload(storagePath, bytes, { contentType: attachment.content_type || "application/octet-stream" });
+        if (error) return { status: "skipped", error: `Could not retain inbound attachment: ${error.message}` };
+      }
+      retained.push({ ...attachment, storage_path: storagePath });
+    }
     await admin.from("email_message_attachments").insert(
-      attachments.map((a) => ({
+      retained.map((a) => ({
         message_id: message.id,
         filename: a.filename || "attachment",
         content_type: a.content_type ?? null,
         size_bytes: a.size_bytes ?? null,
         attachment_id: a.attachment_id ?? null,
+        storage_path: a.storage_path,
+        content_id: a.content_id ?? null,
       })),
     );
   }
