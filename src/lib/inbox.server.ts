@@ -335,6 +335,73 @@ export async function sendInboxEmail(opts: {
   return { ok: false, error: "IMT email gateway is not configured" };
 }
 
+/**
+ * Re-attempt delivery of a stored outbound message that previously failed.
+ * Reuses the stored subject/body/threading headers and re-attaches any
+ * retained files (e.g. quotation PDFs) from private storage.
+ */
+export async function retryFailedMessageSend(
+  messageId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = adminClient();
+  const { data: message } = await admin
+    .from("email_messages")
+    .select("*")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!message) return { ok: false, error: "Message not found" };
+  if (message.direction !== "outbound") return { ok: false, error: "Only outgoing messages can be retried" };
+  if (message.delivery_status !== "failed") return { ok: false, error: "This message was already delivered" };
+
+  const { data: attachmentRows } = await admin
+    .from("email_message_attachments")
+    .select("*")
+    .eq("message_id", message.id);
+  const attachments: Array<{ filename: string; content: Uint8Array; contentType?: string }> = [];
+  for (const row of attachmentRows ?? []) {
+    if (!row.storage_path) continue;
+    const { data: file, error } = await admin.storage.from("email-attachments").download(row.storage_path);
+    if (error || !file) {
+      return { ok: false, error: `Could not load attachment ${row.filename}: ${error?.message ?? "not found"}` };
+    }
+    attachments.push({
+      filename: row.filename,
+      content: new Uint8Array(await file.arrayBuffer()),
+      contentType: row.content_type ?? undefined,
+    });
+  }
+
+  const headers: Record<string, string> = {};
+  if (message.message_id) headers["Message-ID"] = `<${stripMessageId(message.message_id)}>`;
+  if (message.in_reply_to) headers["In-Reply-To"] = `<${stripMessageId(message.in_reply_to)}>`;
+  if (message.references_header) headers["References"] = message.references_header;
+
+  const result = await sendInboxEmail({
+    from: message.from_address,
+    to: message.to_address,
+    cc: message.cc_address
+      ? String(message.cc_address).split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined,
+    subject: message.subject ?? "(no subject)",
+    html: message.body_html ?? "",
+    text: message.body_text ?? "",
+    headers: Object.keys(headers).length ? headers : undefined,
+    replyTo: message.from_address,
+    attachments: attachments.length ? attachments : undefined,
+  });
+
+  await admin
+    .from("email_messages")
+    .update({
+      resend_email_id: result.ok && result.id ? result.id : message.resend_email_id,
+      delivery_status: result.ok ? "sent" : "failed",
+      delivery_error: result.ok ? null : result.error,
+    })
+    .eq("id", message.id);
+
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
 /** Read message history from the IMT website email gateway. */
 export async function listGatewayMessages(q: {
   direction?: "inbound" | "outbound";
