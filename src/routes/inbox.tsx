@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { EmailComposer, type ComposerFile, type ComposerHandle } from "@/components/email-composer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -273,7 +274,26 @@ function InboxPage() {
   const [showCc, setShowCc] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const replyInput = useRef<HTMLTextAreaElement>(null);
+  const replyInput = useRef<ComposerHandle>(null);
+  const composeEditor = useRef<ComposerHandle>(null);
+  const [bcc, setBcc] = useState("");
+  const [replyFiles, setReplyFiles] = useState<ComposerFile[]>([]);
+  const [composeFiles, setComposeFiles] = useState<ComposerFile[]>([]);
+  const [composeBcc, setComposeBcc] = useState("");
+  const [showComposeBcc, setShowComposeBcc] = useState(false);
+  const splitAddrs = (v: string) => (v.trim() ? v.split(/[,;]/).map((a) => a.trim()).filter(Boolean) : undefined);
+  const toFilePayload = (list: ComposerFile[]) => (list.length ? list.map(({ filename, contentType, base64 }) => ({ filename, contentType, base64 })) : undefined);
+  useEffect(() => {
+    if (!composeOpen) return;
+    const seed = compose.body;
+    const t = window.setTimeout(() => {
+      if (!seed) return;
+      const esc = seed.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);
+      composeEditor.current?.setHtml(esc.split(/\n/).map((l) => (l ? `<p>${l}</p>` : "<p><br/></p>")).join(""));
+    }, 0);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composeOpen]);
 
   const listEnquiriesFn = useServerFn(listEnquiries);
   const threadFn = useServerFn(getEnquiryThread);
@@ -320,7 +340,9 @@ function InboxPage() {
 
   async function sendCompose() {
     setComposeError(null);
-    if (!compose.to.trim() || !compose.subject.trim() || !compose.body.trim()) {
+    const bodyText = composeEditor.current?.getText() ?? "";
+    const bodyHtml = composeEditor.current?.getHtml() ?? "";
+    if (!compose.to.trim() || !compose.subject.trim() || !bodyText) {
       setComposeError("To, subject and message are required");
       toast.error("To, subject and message are required");
       return;
@@ -331,14 +353,20 @@ function InboxPage() {
         data: {
           to: compose.to.trim(),
           subject: compose.subject.trim(),
-          body: compose.body.trim(),
-          cc: compose.cc.trim() ? compose.cc.split(",").map((a) => a.trim()) : undefined,
+          body: bodyText,
+          bodyHtml,
+          cc: splitAddrs(compose.cc),
+          bcc: splitAddrs(composeBcc),
           quoteId: compose.quoteId || null,
+          files: toFilePayload(composeFiles),
         },
       });
       toast.success(compose.quoteId ? "Email sent with quotation attached" : "Email sent");
       setComposeOpen(false);
       setCompose({ to: "", cc: "", subject: "", body: "", quoteId: "" });
+      setComposeBcc("");
+      setShowComposeBcc(false);
+      setComposeFiles([]);
       void queryClient.invalidateQueries({ queryKey: ["inbox"] });
       if (res.enquiryId) void navigate({ to: "/inbox", search: { enquiry: res.enquiryId, quote: undefined } });
     } catch (caught) {
@@ -392,20 +420,28 @@ function InboxPage() {
   }
 
   async function sendReply() {
-    if (!selectedId || !reply.trim()) return;
+    const bodyText = replyInput.current?.getText() ?? "";
+    const bodyHtml = replyInput.current?.getHtml() ?? "";
+    if (!selectedId || !bodyText) return;
     setSending(true);
     setError(null);
     try {
       await replyFn({
         data: {
           enquiryId: selectedId,
-          body: reply.trim(),
-          cc: cc.trim() ? cc.split(",").map((address) => address.trim()) : undefined,
+          body: bodyText,
+          bodyHtml,
+          cc: splitAddrs(cc),
+          bcc: splitAddrs(bcc),
           quoteId: quoteId || null,
+          files: toFilePayload(replyFiles),
         },
       });
       toast.success(quoteId ? "Reply sent with quotation attached" : "Reply sent");
       setReply("");
+      replyInput.current?.clear();
+      setReplyFiles([]);
+      setBcc("");
       setQuoteId("");
       setCc("");
       setShowCc(false);
@@ -716,32 +752,32 @@ function InboxPage() {
               <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-3 sm:p-4">
                 {error ? <p role="alert" className="mb-2 break-words text-xs text-destructive">{error}</p> : null}
                 {showCc ? (
-                  <div className="mb-2 flex items-center gap-2 border-b border-border pb-2">
-                    <span className="text-xs text-muted-foreground">Cc</span>
-                    <Input
-                      aria-label="CC recipients"
-                      value={cc}
-                      onChange={(event) => setCc(event.target.value)}
-                      placeholder="Email addresses, separated by commas"
-                      className="h-7 flex-1 border-0 px-0 text-xs shadow-none focus-visible:ring-0"
-                    />
+                  <div className="mb-2 space-y-1 border-b border-border pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 text-xs text-muted-foreground">Cc</span>
+                      <Input aria-label="CC recipients" value={cc} onChange={(event) => setCc(event.target.value)} placeholder="Email addresses, separated by commas" className="h-7 flex-1 border-0 px-0 text-xs shadow-none focus-visible:ring-0" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 text-xs text-muted-foreground">Bcc</span>
+                      <Input aria-label="BCC recipients" value={bcc} onChange={(event) => setBcc(event.target.value)} placeholder="Hidden recipients, separated by commas" className="h-7 flex-1 border-0 px-0 text-xs shadow-none focus-visible:ring-0" />
+                    </div>
                   </div>
                 ) : null}
-                <Textarea
+                <EmailComposer
                   ref={replyInput}
-                  aria-label="Reply to customer"
-                  rows={3}
                   placeholder={`Reply to ${active.contact_name || active.contact_email}`}
-                  value={reply}
-                  onChange={(event) => setReply(event.target.value)}
-                  className="min-h-20 resize-none rounded-sm border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                  minHeight={90}
+                  vars={{ customer_name: active.contact_name, reference: active.reference, sender_name: user?.user_metadata?.full_name as string | undefined }}
+                  files={replyFiles}
+                  onFilesChange={setReplyFiles}
+                  onChange={setReply}
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-border pt-2">
                   <Button onClick={sendReply} disabled={sending || !reply.trim()} className="h-8 rounded-sm bg-solar px-4 text-solar-foreground hover:bg-solar/90">
                     <Send className="h-3.5 w-3.5" /> {sending ? "Sending…" : "Send"}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setShowCc((visible) => !visible)} className="h-8 rounded-sm text-xs">
-                    Cc
+                    Cc / Bcc
                   </Button>
                   <div className="flex min-w-0 items-center gap-1">
                     <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -771,9 +807,20 @@ function InboxPage() {
           <div className="space-y-2">
             {composeError ? <div role="alert" className="text-sm text-destructive"><p>{composeError.startsWith("Gateway 500") ? "The IMT email service returned error 500. Your email was not accepted; your message is still here." : composeError}</p><details className="mt-1 text-xs"><summary className="cursor-pointer">Error details</summary><pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{composeError}</pre></details></div> : null}
             <Input aria-label="To" placeholder="To (client email)" value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} />
-            <Input aria-label="Cc" placeholder="Cc (optional, comma separated)" value={compose.cc} onChange={(e) => setCompose({ ...compose, cc: e.target.value })} />
+            <div className="flex items-center gap-2">
+              <Input aria-label="Cc" placeholder="Cc (optional, comma separated)" value={compose.cc} onChange={(e) => setCompose({ ...compose, cc: e.target.value })} />
+              {!showComposeBcc ? <Button type="button" variant="ghost" size="sm" onClick={() => setShowComposeBcc(true)}>Bcc</Button> : null}
+            </div>
+            {showComposeBcc ? <Input aria-label="Bcc" placeholder="Bcc (hidden recipients, comma separated)" value={composeBcc} onChange={(e) => setComposeBcc(e.target.value)} /> : null}
             <Input aria-label="Subject" placeholder="Subject" value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} />
-            <Textarea aria-label="Message" rows={8} placeholder="Write your message…" value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} />
+            <EmailComposer
+              ref={composeEditor}
+              placeholder="Write your message…"
+              minHeight={200}
+              vars={{ sender_name: user?.user_metadata?.full_name as string | undefined }}
+              files={composeFiles}
+              onFilesChange={setComposeFiles}
+            />
             <div className="flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-muted-foreground" />
               <select
