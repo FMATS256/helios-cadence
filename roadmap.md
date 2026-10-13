@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Matched compact mobile signature proportions (7px identity, 6px contacts); Microsoft 365 / Explore More banner replaces network promotion; desktop/mobile rendering checked without overflow
 - Reference-style IMT signature with compact Arial typography, generated network imagery and staff titles; test accepted for fmats256@gmail.com
 - Added separate View and Download actions with prepared files, image/PDF/text previews and phone file sharing; existing retained text attachment preview and nonempty download verified in the signed-in inbox
 - Department mailboxes with role checks: sales for AMs, accounts/billing for Finance, support/helpdesk for Technical
