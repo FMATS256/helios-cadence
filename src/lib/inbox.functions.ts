@@ -118,6 +118,8 @@ export const listEnquiries = createServerFn({ method: "POST" })
       } else if (staffIds.length) {
         q = q.not("id", "in", `(${staffIds.join(",")})`);
       }
+      // Enquiries awaiting our reply disappear once we answer them (status flips to awaiting_customer).
+      if (data.folder === "enquiries") q = q.eq("status", "open");
     }
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     if (data.search?.trim()) {
@@ -172,6 +174,8 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
     const conversation = (messages ?? []).filter((m: any) => !(m.direction === "outbound" && !m.created_by));
     const renderedMessages = await Promise.all(conversation.map(async (message: any) => {
       let html = message.body_html ?? null;
+      // Staff don't need to see their own IMT signature on outbound messages; clients' signatures stay.
+      if (message.direction === "outbound" && html) html = html.replace(/<!--imt-sig-->[\s\S]*?<!--\/imt-sig-->/g, "");
       for (const attachment of message.attachments ?? []) {
         if (!html || !attachment.content_id) continue;
         const link = attachment.storage_path ? await getStoredAttachmentDownloadUrl(attachment.storage_path) : await getAttachmentDownloadUrl(message.resend_email_id ?? "", attachment.attachment_id ?? "");

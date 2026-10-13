@@ -303,7 +303,7 @@ function replyHtml(opts: {
     .join("");
   return `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:16px;line-height:1.5">
   <div>${opts.replyHtml ? sanitizeEmailHtml(opts.replyHtml) : textToHtml(opts.replyText)}</div>
-  <div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div>
+  <!--imt-sig--><div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div><!--/imt-sig-->
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
 </div>`;
 }
