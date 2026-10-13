@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { latestRateMap, toBase } from "@/lib/currency.shared";
+import { businessDay, businessMonth, fetchAllRows } from "@/lib/finance-dates.shared";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,14 +118,20 @@ async function loadFinanceOverview() {
   const [invoices, payments, subs, quotes, customers, catalog, assets, inventory, allocations] = await Promise.all([
     (supabase.from as any)("invoices").select("id,invoice_number,total,currency,status,due_date,issue_date,paid_at,account_number,customer_id,created_at").is("archived_at", null).order("created_at", { ascending: false }).limit(400),
     (supabase.from as any)("payments").select("id,amount,currency,method,status,paid_at,receipt_number,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(400),
-    (supabase.from as any)("subscriptions").select("id,plan_name,amount,status,billing_cycle,next_renewal,account_number,customer_id,created_at"),
+    (supabase.from as any)("subscriptions").select("id,plan_name,amount,currency,status,billing_cycle,next_renewal,account_number,customer_id,created_at"),
     (supabase.from as any)("quotes").select("id,quote_number,amount,currency,status,valid_until,account_number,customer_id,created_at").order("created_at", { ascending: false }).limit(50),
     supabase.from("customers").select("id,company_name,account_number,status,created_at").is("archived_at", null),
     (supabase.from as any)("service_catalog").select("id,name,category,unit_price,billing_cycle"),
     (supabase.from as any)("assets").select("id,cost,status,asset_type").is("archived_at", null),
     (supabase.from as any)("inventory_items").select("id,quantity,unit_cost,category").is("archived_at", null),
-    (supabase.from as any)("payment_allocations").select("invoice_id,amount"),
+    fetchAllRows((f, t) => (supabase.from as any)("payment_allocations").select("invoice_id,amount").range(f, t)).then((data) => ({ data })),
   ]);
+  const [ratesRes, posRes] = await Promise.all([
+    (supabase.from as any)("exchange_rates").select("currency,rate,effective_date"),
+    (supabase.from as any)("purchase_orders").select("total,currency,status,expected_date").not("status", "in", "(received,cancelled,closed,paid)"),
+  ]);
+  const rates = latestRateMap((ratesRes.data ?? []) as any[]);
+  const usd = (n: any, cur: any) => toBase(n, cur, rates);
 
 
   const inv = (invoices.data ?? []) as any[];
@@ -146,12 +154,10 @@ async function loadFinanceOverview() {
     i.balance = Math.max(0, Math.round((Number(i.total || 0) - i.allocated) * 100) / 100);
   }
 
-  const amt = (r: any) => Number(r.total ?? 0);
-  const bal = (r: any) => Number(r.balance ?? r.total ?? 0);
+  const amt = (r: any) => usd(r.total ?? 0, r.currency);
+  const bal = (r: any) => usd(r.balance ?? r.total ?? 0, r.currency);
   const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const yearStart = new Date(today.getFullYear(), 0, 1);
+  const todayKey = businessDay(today);
   const in30 = new Date(); in30.setDate(in30.getDate() + 30);
 
   const paidInvoices = inv.filter((x) => x.status === "paid");
@@ -159,7 +165,7 @@ async function loadFinanceOverview() {
   const unpaid = inv.filter((x) => x.status !== "paid" && x.status !== "void");
   const overdue = unpaid.filter((x) => x.due_date && new Date(x.due_date) < today);
   const activeSubs = s.filter((x) => x.status === "active");
-  const mrr = activeSubs.reduce((a, x) => a + monthlyOf(x), 0);
+  const mrr = activeSubs.reduce((a, x) => a + usd(monthlyOf(x), x.currency), 0);
 
   const currentUnpaid = unpaid
     .filter((x) => !x.due_date || new Date(x.due_date) >= today)
@@ -167,8 +173,13 @@ async function loadFinanceOverview() {
   const overdueUnpaid = overdue.reduce((a, x) => a + bal(x), 0);
 
 
-  const revenue = (from: Date) =>
-    pay.filter((p) => p.paid_at && new Date(p.paid_at) >= from).reduce((a, x) => a + Number(x.amount || 0), 0);
+  const revenue = (period: "day" | "month" | "year") => {
+    const len = period === "day" ? 10 : period === "month" ? 7 : 4;
+    const key = todayKey.slice(0, len);
+    return pay
+      .filter((p) => p.paid_at && businessDay(p.paid_at).slice(0, len) === key)
+      .reduce((a, x) => a + usd(x.amount, x.currency), 0);
+  };
 
   // 12-month cash-flow series (payments received). Expense proxy pulled from asset purchases + inventory value amortised.
   const months: { label: string; monthKey: string; income: number; expense: number }[] = [];
@@ -182,13 +193,12 @@ async function loadFinanceOverview() {
   }
   const bucket = (date: string | null | undefined) => {
     if (!date) return null;
-    const d = new Date(date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const key = businessMonth(date);
     return months.find((m) => m.monthKey === key) ?? null;
   };
   for (const p of pay) {
     const b = bucket(p.paid_at);
-    if (b) b.income += Number(p.amount || 0);
+    if (b) b.income += usd(p.amount, p.currency);
   }
   // Expenses: sum of unpaid invoices you'd have to service + operating costs proxy from asset depreciation (simple 24-month straight-line)
   for (const a of ast) {
@@ -218,16 +228,19 @@ async function loadFinanceOverview() {
   // Total payables proxy: pending vendor obligations = 40% of inventory value + upcoming subscription costs
   const inventoryValue = invn.reduce((a, x) => a + Number(x.quantity || 0) * Number(x.unit_cost || 0), 0);
   const payablesCurrent = inventoryValue * 0.4;
-  const payablesOverdue = 0;
+  const todayStr = businessDay(today);
+  const payablesOverdue = ((posRes.data ?? []) as any[])
+    .filter((po) => po.expected_date && String(po.expected_date).slice(0, 10) < todayStr)
+    .reduce((a, po) => a + usd(po.total, po.currency), 0);
 
   return {
     invoices: inv, payments: pay, subs: s, quotes: q, customers: cust, catalog: cat,
     cashFlow: months.map((m) => ({ label: m.label, income: Math.round(m.income), expense: Math.round(m.expense), net: Math.round(m.income - m.expense) })),
     topExpenses,
     kpi: {
-      todayRevenue: revenue(todayStart),
-      mtdRevenue: revenue(monthStart),
-      ytdRevenue: revenue(yearStart),
+      todayRevenue: revenue("day"),
+      mtdRevenue: revenue("month"),
+      ytdRevenue: revenue("year"),
       mrr,
       arr: mrr * 12,
       ar: unpaid.reduce((a, x) => a + bal(x), 0),
@@ -338,7 +351,7 @@ function FinanceWorkspace() {
             ))}
           </div>
           <Button asChild size="sm" className="text-solar-foreground border-0 hidden sm:inline-flex" style={{ background: "var(--gradient-solar)" }}>
-            <Link to="/billing"><Plus className="h-4 w-4 mr-1" />New</Link>
+            <Link to="/finance" search={{ tab: "invoices" } as any}><Plus className="h-4 w-4 mr-1" />New</Link>
           </Button>
         </div>
         <div className="flex items-center justify-between px-4 md:px-6 min-h-11 bg-muted/30 border-b border-border">

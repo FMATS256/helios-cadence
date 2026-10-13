@@ -56,7 +56,10 @@ export async function postJournalEntry(
 
     const totalDebit = r2(lines.reduce((s, l) => s + Number(l.debit || 0), 0));
     const totalCredit = r2(lines.reduce((s, l) => s + Number(l.credit || 0), 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.009) return null;
+    if (Math.abs(totalDebit - totalCredit) > 0.009) {
+      await logLedgerFailure(db, draft, `Unbalanced entry: debit ${totalDebit} vs credit ${totalCredit}`, userId);
+      return null;
+    }
 
     const { data: accounts } = await db.from("chart_of_accounts").select("id, code");
     const idByCode = new Map((accounts ?? []).map((a: any) => [a.code, a.id]));
@@ -78,7 +81,10 @@ export async function postJournalEntry(
       } as any)
       .select("id")
       .single();
-    if (error || !entry?.id) return null;
+    if (error || !entry?.id) {
+      await logLedgerFailure(db, draft, error?.message ?? "Journal entry insert failed", userId);
+      return null;
+    }
 
     const { error: lineErr } = await db.from("journal_lines").insert(
       lines.map((l) => ({
@@ -94,10 +100,28 @@ export async function postJournalEntry(
     );
     if (lineErr) {
       await db.from("journal_entries").delete().eq("id", entry.id);
+      await logLedgerFailure(db, draft, lineErr.message, userId);
       return null;
     }
     return entry.id as string;
-  } catch {
+  } catch (e: any) {
+    await logLedgerFailure(db, draft, e?.message ?? String(e), userId);
     return null;
+  }
+}
+
+/** Record an unposted ledger entry in the audit log so Finance can see and retry it. */
+async function logLedgerFailure(db: any, draft: JournalDraft, reason: string, userId?: string | null) {
+  try {
+    console.error("[ledger] post failed", draft.source_type, draft.source_id, reason);
+    await db.from("audit_log").insert({
+      actor_id: userId ?? null,
+      action: "ledger_post_failed",
+      entity_type: draft.source_type,
+      entity_id: draft.source_id,
+      new_value: { reason: reason.slice(0, 500), draft },
+    });
+  } catch {
+    /* never throw from failure logging */
   }
 }

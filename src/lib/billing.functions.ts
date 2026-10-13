@@ -88,7 +88,11 @@ export const getBillingWorkspace = createServerFn({ method: "POST" })
         .is("archived_at", null)
         .order("issue_date", { ascending: false })
         .limit(limit),
-      supabaseAdmin.from("payment_allocations").select("invoice_id, amount"),
+      (async () => {
+        const { fetchAllRows } = await import("./finance-dates.shared");
+        const data = await fetchAllRows((f, t) => supabaseAdmin.from("payment_allocations").select("invoice_id, amount").range(f, t) as any);
+        return { data, error: null };
+      })(),
       supabaseAdmin
         .from("invoice_requests")
         .select("*, customers:customer_id(company_name, primary_email)")
@@ -253,7 +257,11 @@ export const createInvoice = createServerFn({ method: "POST" })
     const { error: liErr } = await supabaseAdmin
       .from("invoice_line_items")
       .insert(lines.map((l) => ({ ...l, invoice_id: invoice.id })) as any);
-    if (liErr) throw new Error(liErr.message);
+    if (liErr) {
+      // Roll back so no invoice exists without its line items.
+      await supabaseAdmin.from("invoices").delete().eq("id", invoice.id);
+      throw new Error(liErr.message);
+    }
 
     if (data.request_id) {
       await supabaseAdmin
