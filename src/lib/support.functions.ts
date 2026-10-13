@@ -240,7 +240,11 @@ export const postTicketMessage = createServerFn({ method: "POST" })
 
     if (!data.is_internal) {
       const customer = await loadCustomerBrief(db, ticket.customer_id);
-      const to = await customerEmail(db, customer);
+      // Base44 tickets: reply to the person who raised it (stored in the description).
+      const desc = String(ticket.description || "");
+      const reqLine = desc.match(/Requested by:([^\n]*)/i)?.[1] ?? "";
+      const requesterEmail = reqLine.match(/[^\s·<>]+@[^\s·<>]+\.[^\s·<>]+/)?.[0] ?? null;
+      const to = requesterEmail || (await customerEmail(db, customer));
       const agent = await staffProfile(db, context.userId);
       await Promise.allSettled([
         emailTicketUpdate({
@@ -249,7 +253,7 @@ export const postTicketMessage = createServerFn({ method: "POST" })
           ticket,
           updateNote: data.body.trim(),
           agentName: agent?.full_name || agent?.email || null,
-        agentEmail: agent?.email || null,
+          agentEmail: agent?.email || null,
           idempotencySuffix: `msg-${msg.id}`,
         }),
         db.from("communications").insert({
@@ -264,7 +268,13 @@ export const postTicketMessage = createServerFn({ method: "POST" })
           status: to ? "sent" : "skipped",
           created_by: context.userId,
         } as any),
+        logTicketEvent(db, ticket, { userId: context.userId, email: agent?.email }, {
+          event_type: "ticket_reply",
+          title: `Reply sent on ${ticket.ticket_number ?? "ticket"}`,
+          description: `${to ? `To ${to}: ` : "No recipient email: "}${data.body.trim().slice(0, 300)}`,
+        }),
       ]);
+      return { ...msg, recipient: to };
     }
 
     if (ticket.assigned_to && ticket.assigned_to !== context.userId) {
