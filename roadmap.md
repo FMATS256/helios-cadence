@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Matched WhatsApp color to other signature contacts; sent two valid test PDFs via the signed-in composer and confirmed both application attachment cards and gateway attachment metadata
 - Matched compact mobile signature proportions (7px identity, 6px contacts); Microsoft 365 / Explore More banner replaces network promotion; desktop/mobile rendering checked without overflow
 - Reference-style IMT signature with compact Arial typography, generated network imagery and staff titles; test accepted for fmats256@gmail.com
 - Added separate View and Download actions with prepared files, image/PDF/text previews and phone file sharing; existing retained text attachment preview and nonempty download verified in the signed-in inbox
@@ -21,7 +22,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Correct missing test PDFs and verify two retained PDF attachments in a new email test
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied
