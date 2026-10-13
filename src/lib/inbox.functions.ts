@@ -82,7 +82,7 @@ export type InboxScope = "mine" | "unassigned" | "all";
 
 export const listEnquiries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string; folder?: "inbox" | "sent" | "archive"; mailbox?: string }) => input ?? {})
+  .inputValidator((input: { scope?: InboxScope; status?: string; search?: string; folder?: "inbox" | "enquiries" | "sent" | "archive"; mailbox?: string }) => input ?? {})
   .handler(async ({ data, context }) => {
     const role = await amOrAdmin(context);
     let q = context.supabase
@@ -104,6 +104,20 @@ export const listEnquiries = createServerFn({ method: "POST" })
       const ids = [...new Set((sent ?? []).map((row: any) => row.enquiry_id))];
       if (!ids.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
       q = q.in("id", ids);
+    }
+    if (data.folder === "inbox" || data.folder === "enquiries") {
+      // Inbox = real conversations (staff wrote and the client replied); Enquiries = untouched new enquiries.
+      const { data: staffSent } = await context.supabase.from("email_messages").select("enquiry_id").eq("direction", "outbound").not("created_by", "is", null).limit(5000);
+      const staffIds = [...new Set((staffSent ?? []).map((row: any) => row.enquiry_id))];
+      if (data.folder === "inbox") {
+        if (!staffIds.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
+        const { data: inbound } = await context.supabase.from("email_messages").select("enquiry_id, created_at").eq("direction", "inbound").in("enquiry_id", staffIds).limit(5000);
+        const ids = [...new Set((inbound ?? []).map((row: any) => row.enquiry_id))];
+        if (!ids.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
+        q = q.in("id", ids);
+      } else if (staffIds.length) {
+        q = q.not("id", "in", `(${staffIds.join(",")})`);
+      }
     }
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     if (data.search?.trim()) {
@@ -154,7 +168,9 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
       .eq("enquiry_id", data.enquiryId)
       .order("created_at", { ascending: true });
     const [decorated] = await decorate([enquiry]);
-    const renderedMessages = await Promise.all((messages ?? []).map(async (message: any) => {
+    // Automatic acknowledgements are system messages, not conversation.
+    const conversation = (messages ?? []).filter((m: any) => !(m.direction === "outbound" && !m.created_by));
+    const renderedMessages = await Promise.all(conversation.map(async (message: any) => {
       let html = message.body_html ?? null;
       for (const attachment of message.attachments ?? []) {
         if (!html || !attachment.content_id) continue;

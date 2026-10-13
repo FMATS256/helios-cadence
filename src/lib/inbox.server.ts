@@ -308,6 +308,18 @@ function replyHtml(opts: {
 </div>`;
 }
 
+/** Staff member's personal mailbox, e.g. farai.matare@imtsolutions.co.zw. */
+export function personalAddress(name: string, email?: string | null): string | null {
+  if (email && email.toLowerCase().endsWith(`@${MAIL_DOMAIN}`)) return email.toLowerCase();
+  const parts = (name || "").toLowerCase().normalize("NFKD").replace(/[^a-z\s-]/g, "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2 || name === "IMT Solutions") return null;
+  return `${parts[0]}.${parts[parts.length - 1]}@${MAIL_DOMAIN}`;
+}
+function displayName(from: string): string | null {
+  const m = from.match(/^\s*"?([^"<]+?)"?\s*<[^>]+>\s*$/);
+  return m ? m[1].trim() : null;
+}
+
 /** Send an email through Resend from an @imtsolutions.co.zw address. */
 export async function sendInboxEmail(opts: {
   from: string;
@@ -330,6 +342,7 @@ export async function sendInboxEmail(opts: {
     const payload: Record<string, unknown> = {
       // Gateway validates `from` as a bare email address (no display name).
       from: fromAddr,
+      from_name: displayName(opts.from) ?? undefined,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
@@ -778,8 +791,9 @@ export async function sendEnquiryReply(opts: {
   if (!enquiry) return { ok: false, error: "Enquiry not found" };
   if (!opts.body?.trim()) return { ok: false, error: "Reply message is empty" };
 
-  // Their own verified @imtsolutions.co.zw address.
-  const fromAddress = opts.mailbox || SALES_INBOX;
+  // Sent from the staff member's own @imtsolutions.co.zw address; replies route back to the department mailbox.
+  const departmentMailbox = opts.mailbox || SALES_INBOX;
+  const fromAddress = personalAddress(opts.senderName, opts.senderEmail) ?? departmentMailbox;
   const fromLine = `"${opts.senderName.replace(/["\\<>]/g, "")}" <${fromAddress}>`;
 
   const history = await admin
@@ -916,7 +930,7 @@ export async function sendEnquiryReply(opts: {
     html,
     text,
     headers,
-    replyTo: fromAddress,
+    replyTo: departmentMailbox,
     attachments: [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments].length
       ? [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments]
       : undefined,

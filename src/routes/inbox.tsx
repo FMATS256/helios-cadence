@@ -262,7 +262,7 @@ function InboxPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { enquiry: selectedId, quote: quoteParam } = Route.useSearch();
-  const [folder, setFolder] = useState<"inbox" | "sent" | "archive" | "drafts" | "flagged">("inbox");
+  const [folder, setFolder] = useState<"inbox" | "enquiries" | "sent" | "archive" | "drafts" | "flagged">("inbox");
   const [mailbox, setMailbox] = useState("");
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [signatureHtml, setSignatureHtml] = useState("");
@@ -642,7 +642,7 @@ function InboxPage() {
             <ChevronDown className="h-3 w-3" /> Folders
           </div>
           <div className="space-y-0.5">
-            {([{ key: "drafts", label: "Drafts", icon: FileText }, { key: "flagged", label: "Follow up", icon: Flag }, { key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
+            {([{ key: "enquiries", label: "Enquiries", icon: Inbox }, { key: "drafts", label: "Drafts", icon: FileText }, { key: "flagged", label: "Follow up", icon: Flag }, { key: "sent", label: "Sent", icon: Send }, { key: "archive", label: "Archive", icon: Archive }] as const).map((item) => (
               <Button
                 key={item.key}
                 variant="ghost"
@@ -663,7 +663,7 @@ function InboxPage() {
         <div className="border-b border-border px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : folder === "drafts" ? "Drafts" : folder === "flagged" ? "Follow up" : "Inbox"}</h1>
+              <h1 className="font-display text-xl font-semibold">{folder === "sent" ? "Sent" : folder === "archive" ? "Archive" : folder === "drafts" ? "Drafts" : folder === "flagged" ? "Follow up" : folder === "enquiries" ? "Enquiries" : "Inbox"}</h1>
               <p className="text-xs text-muted-foreground">{enquiries.length} conversations</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => list.refetch()} title="Refresh inbox">
@@ -681,7 +681,7 @@ function InboxPage() {
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <select aria-label="Mailbox folder" value={folder} onChange={(event) => { const next = event.target.value; if (next === "inbox" || next === "sent" || next === "archive" || next === "drafts" || next === "flagged") { setFolder(next); setStatus("all"); if (next !== "inbox") setScope("all"); } }} className="h-7 max-w-full border border-border bg-background px-2 text-xs xl:hidden"><option value="inbox">Inbox</option><option value="sent">Sent</option><option value="archive">Archive</option><option value="drafts">Drafts</option><option value="flagged">Follow up</option></select>
+            <select aria-label="Mailbox folder" value={folder} onChange={(event) => { const next = event.target.value; if (next === "inbox" || next === "enquiries" || next === "sent" || next === "archive" || next === "drafts" || next === "flagged") { setFolder(next); setStatus("all"); if (next !== "inbox") setScope("all"); } }} className="h-7 max-w-full border border-border bg-background px-2 text-xs xl:hidden"><option value="inbox">Inbox</option><option value="enquiries">Enquiries</option><option value="sent">Sent</option><option value="archive">Archive</option><option value="drafts">Drafts</option><option value="flagged">Follow up</option></select>
             <div className="flex flex-wrap gap-1 xl:hidden">
               {SCOPES.map((item) => (
                 <Button
