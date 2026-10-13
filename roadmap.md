@@ -10,6 +10,7 @@
 - Payment submission → billing approval → ledger/account posting (verified end to end; test data removed)
 - Customer Accounts tab under Finance (per-customer financial statement)
 - Firecrawl reconnected in the new workspace
+- Firecrawl re-linked again after the 13 October 2026 workspace move (gateway-backed, verified with a live read)
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
