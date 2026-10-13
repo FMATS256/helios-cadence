@@ -930,7 +930,8 @@ export async function sendEnquiryReply(opts: {
     html,
     text,
     headers,
-    replyTo: departmentMailbox,
+    // Replies to mail sent from a personal staff address go back to that person; only department-sent mail replies to the shared inbox.
+    replyTo: fromAddress !== departmentMailbox ? fromAddress : departmentMailbox,
     attachments: [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments].length
       ? [...(quoteAttachment ? [quoteAttachment] : []), ...fileAttachments]
       : undefined,
