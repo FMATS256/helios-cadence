@@ -345,7 +345,7 @@ function InboxPage() {
   const workspace = useQuery({ queryKey: ["email-workspace", user?.id], queryFn: () => workspaceFn(), enabled: !!user });
   const notes = useQuery({ queryKey: ["email-notes", selectedId], queryFn: () => { if (!selectedId) throw new Error("No enquiry"); return notesFn({ data: { enquiryId: selectedId } }); }, enabled: !!selectedId && showNotes });
   const organization = workspace.data?.organization ?? {};
-  useEffect(() => { if (workspace.data && !mailbox) setMailbox(workspace.data.departments[0]?.addresses[0] ?? ""); }, [workspace.data, mailbox]);
+  useEffect(() => { if (workspace.data && !mailbox) { const address = workspace.data.departments[0]?.addresses[0] ?? ""; setMailbox(address); if (address && address !== "sales@imtsolutions.co.zw") setScope("all"); } }, [workspace.data, mailbox]);
   useEffect(() => {
     if (!workspace.data || composeRestored.current) return;
     composeRestored.current = true;

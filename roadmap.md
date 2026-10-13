@@ -1,6 +1,10 @@
 # Roadmap
 
 ## Done
+- Department mailboxes with role checks: sales for AMs, accounts/billing for Finance, support/helpdesk for Technical
+- Sanitized HTML email, inline images/signatures, colored reply attribution, personal drafts, flags/pins/categories and shared internal notes
+- Rich-text/Cc/Bcc/Quick Parts composer, quote PDFs and retained outgoing attachments; removed unverified bank-details template
+- Gateway accepted an HTML/attachment test; retained attachment opened and draft restoration verified in the signed-in portal
 - Created the Base44 client account and reassigned existing Base44 tickets; webhook ownership is fixed by protected configuration rather than requester details
 - Client-app API for Base44: portal endpoints for account, invoices/statement, tickets, jobs (+ existing payments); integration brief saved to Files
 - Fixed inbox.tsx build error (missing MoreHorizontal import)
@@ -14,12 +18,10 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Complete email HTML display, department mailboxes, reply attribution, drafts, organization, internal notes and attachment handling
-- [ ] Verify remaining email features through the signed-in portal; identify gateway or bank-detail blockers
-- [ ] Complete successful email round-trip: blocked by IMT website send and history endpoints returning HTTP 500 on 10 October 2026; existing inbox messages load correctly
+- [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
+- [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
+- [ ] Add verified bank details to Quick Parts once supplied
 - [ ] Make cash payment recording explicit and fix Finance workspace overlap across screen sizes
-- [ ] Outlook-style Email Inbox enhancements: compose mail, functional mail actions, quotation PDF sending and retained outbound attachments
-- [ ] Verify current IMT website gateway sending, received messages and retained email history; no direct Resend connection required
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
