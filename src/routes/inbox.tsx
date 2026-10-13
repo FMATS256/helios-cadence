@@ -333,6 +333,14 @@ function InboxPage() {
   const workspaceFn = useServerFn(getEmailWorkspace);
   const saveWorkspaceFn = useServerFn(saveEmailWorkspace);
   const notesFn = useServerFn(emailInternalNotes);
+  const thread = useQuery({
+    queryKey: ["inbox-thread", selectedId, user?.id],
+    queryFn: () => {
+      if (!selectedId) throw new Error("No enquiry selected");
+      return threadFn({ data: { enquiryId: selectedId } });
+    },
+    enabled: !!user && !!selectedId,
+  });
   const workspace = useQuery({ queryKey: ["email-workspace", user?.id], queryFn: () => workspaceFn(), enabled: !!user });
   const notes = useQuery({ queryKey: ["email-notes", selectedId], queryFn: () => { if (!selectedId) throw new Error("No enquiry"); return notesFn({ data: { enquiryId: selectedId } }); }, enabled: !!selectedId && showNotes });
   const organization = workspace.data?.organization ?? {};
@@ -393,14 +401,6 @@ function InboxPage() {
     queryFn: () => listEnquiriesFn({ data: { scope, status, search, folder: folder === "drafts" || folder === "flagged" ? "inbox" : folder, mailbox: mailbox || undefined } }),
     enabled: !!user,
     refetchInterval: 30000,
-  });
-  const thread = useQuery({
-    queryKey: ["inbox-thread", selectedId, user?.id],
-    queryFn: () => {
-      if (!selectedId) throw new Error("No enquiry selected");
-      return threadFn({ data: { enquiryId: selectedId } });
-    },
-    enabled: !!user && !!selectedId,
   });
   const managers = useQuery({
     queryKey: ["inbox-managers", user?.id],
