@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Done
-- Added separate View and Download actions with prepared files, image/PDF/text previews and phone file sharing
+- Added separate View and Download actions with prepared files, image/PDF/text previews and phone file sharing; existing retained text attachment preview and nonempty download verified in the signed-in inbox
 - Department mailboxes with role checks: sales for AMs, accounts/billing for Finance, support/helpdesk for Technical
 - Sanitized HTML email, inline images/signatures, colored reply attribution, personal drafts, flags/pins/categories and shared internal notes
 - Rich-text/Cc/Bcc/Quick Parts composer, quote PDFs and retained outgoing attachments; removed unverified bank-details template
