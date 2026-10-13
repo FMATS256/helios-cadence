@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Matched compact mobile signature proportions (7px identity, 6px contacts); Microsoft 365 / Explore More banner replaces network promotion; desktop/mobile rendering checked without overflow
 - Reference-style IMT signature with compact Arial typography, generated network imagery and staff titles; test accepted for fmats256@gmail.com
 - Added separate View and Download actions with prepared files, image/PDF/text previews and phone file sharing; existing retained text attachment preview and nonempty download verified in the signed-in inbox
 - Department mailboxes with role checks: sales for AMs, accounts/billing for Finance, support/helpdesk for Technical
@@ -20,7 +21,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Match reference mobile signature sizing and replace network promotion with IMT Solutions Microsoft 365 / Explore More
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied
