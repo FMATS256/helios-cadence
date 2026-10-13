@@ -149,13 +149,23 @@ export const getEnquiryThread = createServerFn({ method: "POST" })
     if (!enquiry) throw new Error("Enquiry not found or not visible to you");
     const { data: messages } = await context.supabase
       .from("email_messages")
-      .select("*, attachments:email_message_attachments(id, filename, content_type, size_bytes)")
+      .select("*, attachments:email_message_attachments(id, filename, content_type, size_bytes, content_id, storage_path, attachment_id)")
       .eq("enquiry_id", data.enquiryId)
       .order("created_at", { ascending: true });
     const [decorated] = await decorate([enquiry]);
+    const renderedMessages = await Promise.all((messages ?? []).map(async (message: any) => {
+      let html = message.body_html ?? null;
+      for (const attachment of message.attachments ?? []) {
+        if (!html || !attachment.content_id) continue;
+        const link = attachment.storage_path ? await getStoredAttachmentDownloadUrl(attachment.storage_path) : await getAttachmentDownloadUrl(message.resend_email_id ?? "", attachment.attachment_id ?? "");
+        if (link.url?.startsWith("https://")) html = html.split(`cid:${String(attachment.content_id).replace(/^<|>$/g, "")}`).join(link.url.replace(/&/g, "&amp;"));
+      }
+      const { bcc_address: _privateBcc, ...safe } = message;
+      return { ...safe, body_html: html, attachments: (message.attachments ?? []).map((a: any) => ({ id: a.id, filename: a.filename, content_type: a.content_type, size_bytes: a.size_bytes })) };
+    }));
     return {
       enquiry: { ...decorated, created_at: enquiry.created_at, assigned_at: enquiry.assigned_at },
-      messages: (messages ?? []) as unknown as InboxMessage[],
+      messages: renderedMessages as unknown as InboxMessage[],
     } satisfies EnquiryThread;
   });
 
