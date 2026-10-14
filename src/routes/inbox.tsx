@@ -415,6 +415,8 @@ function InboxPage() {
     .sort((a, b) => Number(!!organization[b.id]?.pinned) - Number(!!organization[a.id]?.pinned) || (newestFirst ? 1 : -1) * (new Date(b.last_message_at ?? 0).getTime() - new Date(a.last_message_at ?? 0).getTime()));
   const conversationMessages = useMemo(() => [...(thread.data?.messages ?? [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || b.id.localeCompare(a.id)), [thread.data?.messages]);
   const latestMessageId = conversationMessages[0]?.id;
+  const latestClientReplyId = conversationMessages.find((message) => message.direction === "inbound")?.id;
+  const isMessageExpanded = (id: string) => messageOverrides[id] ?? (id === latestMessageId || id === latestClientReplyId);
   function focusReply() {
     setReplyExpanded(true);
     window.setTimeout(() => replyInput.current?.focus(), 50);
@@ -768,12 +770,15 @@ function InboxPage() {
 
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-1.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><ChevronUp className="h-3 w-3" /> Newest message on top</span>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { const allExpanded = conversationMessages.every((m) => messageOverrides[m.id] ?? m.id === latestMessageId); setMessageOverrides(Object.fromEntries(conversationMessages.map((m) => [m.id, !allExpanded]))); }}>{conversationMessages.every((m) => messageOverrides[m.id] ?? m.id === latestMessageId) ? "Collapse all" : "Expand all"}</Button>
+              <div className="flex items-center gap-1">
+                {latestClientReplyId ? <Button variant="ghost" size="sm" className="h-7 text-xs text-solar" onClick={() => { setMessageOverrides((current) => ({ ...current, [latestClientReplyId]: true })); window.setTimeout(() => document.querySelector(`[data-message-id="${latestClientReplyId}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 50); }}>Latest client reply</Button> : null}
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { const allExpanded = conversationMessages.every((m) => isMessageExpanded(m.id)); setMessageOverrides(Object.fromEntries(conversationMessages.map((m) => [m.id, !allExpanded]))); }}>{conversationMessages.every((m) => isMessageExpanded(m.id)) ? "Collapse all" : "Expand all"}</Button>
+              </div>
             </div>
             <div key={selectedId} className="min-h-0 flex-1 overflow-y-auto" aria-label="Conversation messages">
               {showNotes ? <section className="border-b border-border bg-warning/10 p-4"><h3 className="mb-2 text-xs font-semibold">Internal notes · Not sent to the customer</h3>{(notes.data ?? []).map((n: any) => <div key={n.id} className="mb-2 text-xs"><span className="font-semibold">{n.author}</span><p className="whitespace-pre-wrap break-words">{n.body}</p></div>)}<div className="flex gap-2"><Input aria-label="Internal note" value={note} onChange={(e) => setNote(e.target.value)} /><Button variant="outline" size="sm" disabled={!note.trim()} onClick={addNote}>Add note</Button></div></section> : null}
               {conversationMessages.map((message) => (
-                <EmailConversationMessage key={message.id} message={message} expanded={messageOverrides[message.id] ?? message.id === latestMessageId} onToggle={() => setMessageOverrides((current) => ({ ...current, [message.id]: !(current[message.id] ?? message.id === latestMessageId) }))} onReply={active.status !== "closed" ? focusReply : undefined} onRetry={(id) => void retryMessage(id)} />
+                <EmailConversationMessage key={message.id} message={message} expanded={isMessageExpanded(message.id)} onToggle={() => setMessageOverrides((current) => ({ ...current, [message.id]: !isMessageExpanded(message.id) }))} onReply={active.status !== "closed" ? focusReply : undefined} onRetry={(id) => void retryMessage(id)} />
               ))}
             </div>
 
