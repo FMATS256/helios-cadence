@@ -177,6 +177,11 @@
 }
 
 /* Keep the mail workspace's compact desktop typography local to mail. */
+main:has(> main > .imt-mail),
+main:has(> .imt-mail) {
+  min-width: 0;
+}
+
 .imt-mail,
 .imt-mail h1,
 .imt-mail h2,
