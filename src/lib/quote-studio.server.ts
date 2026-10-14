@@ -153,6 +153,8 @@ async function requestBinary(
 export type StudioItem = {
   id?: string;
   name: string;
+  code?: string;
+  sku?: string;
   description?: string | null;
   quantity: number;
   unitPrice: number;
