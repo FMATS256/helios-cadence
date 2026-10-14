@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Outlook-style compact mail panes, latest-message-first collapsed threads, quick reply, foreground refresh, conversation prefetching and docked compose verified with real signed-in conversations on desktop and phone
 - Recipient confirmed both test PDFs arrived; signature banner now shows Microsoft Word and links to the Microsoft 365 page, with a blue disclaimer View more link
 - Matched WhatsApp color to other signature contacts; sent two valid test PDFs via the signed-in composer and confirmed both application attachment cards and gateway attachment metadata
 - Matched compact mobile signature proportions (7px identity, 6px contacts); Microsoft 365 / Explore More banner replaces network promotion; desktop/mobile rendering checked without overflow
