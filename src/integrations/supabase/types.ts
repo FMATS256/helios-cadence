@@ -4688,6 +4688,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          item_code: string | null
           line_total: number | null
           position: number
           quantity: number
@@ -4699,6 +4700,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          item_code?: string | null
           line_total?: number | null
           position?: number
           quantity?: number
@@ -4710,6 +4712,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          item_code?: string | null
           line_total?: number | null
           position?: number
           quantity?: number
