@@ -364,7 +364,7 @@ function QuoteManageDialog({ quote, onClose, onDone, onEdit }: { quote: any; onC
               <div className="divide-y">
                 {lines.map((l: any) => (
                   <div key={l.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                    <span className="truncate">{l.description}</span>
+                    <span className="truncate">{l.item_code && <span className="mr-2 font-mono text-xs text-muted-foreground">{l.item_code}</span>}{l.description}</span>
                     <span className="font-mono">{l.quantity} × {money(l.unit_price, row.currency)}</span>
                   </div>
                 ))}

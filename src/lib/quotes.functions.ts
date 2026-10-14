@@ -691,6 +691,8 @@ export const saveQuote = createServerFn({ method: "POST" })
         .update({ ...base, ...(quoteNumber ? { quote_number: quoteNumber } : {}) })
         .eq("id", quoteId);
       if (error) throw new Error(error.message);
+      const { data: prev } = await db.from("quote_line_items").select("item_code, position").eq("quote_id", quoteId).order("position");
+      (prev ?? []).forEach((p: any, i: number) => { if (lines[i] && p.item_code) (lines[i] as any).item_code = p.item_code; });
       await db.from("quote_line_items").delete().eq("quote_id", quoteId);
     } else {
       const { data: created, error } = await db
