@@ -176,3 +176,12 @@
   border-radius: 0 !important;
 }
 
+/* Keep the mail workspace's compact desktop typography local to mail. */
+.imt-mail,
+.imt-mail h1,
+.imt-mail h2,
+.imt-mail h3 {
+  font-family: "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0;
+}
+
