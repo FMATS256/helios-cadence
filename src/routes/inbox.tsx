@@ -771,7 +771,7 @@ function InboxPage() {
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-1.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><ChevronUp className="h-3 w-3" /> Newest message on top</span>
               <div className="flex items-center gap-1">
-                {latestClientReplyId ? <Button variant="ghost" size="sm" className="h-7 text-xs text-solar" onClick={() => { setMessageOverrides((current) => ({ ...current, [latestClientReplyId]: true })); window.setTimeout(() => document.querySelector(`[data-message-id="${latestClientReplyId}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 50); }}>Latest client reply</Button> : null}
+                {latestClientReplyId ? <Button variant="ghost" size="sm" className="h-7 text-xs text-solar" onClick={() => { setMessageOverrides(Object.fromEntries(conversationMessages.map((message) => [message.id, message.id === latestClientReplyId]))); window.setTimeout(() => document.querySelector(`[data-message-id="${latestClientReplyId}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 100); }}>Latest client reply</Button> : null}
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { const allExpanded = conversationMessages.every((m) => isMessageExpanded(m.id)); setMessageOverrides(Object.fromEntries(conversationMessages.map((m) => [m.id, !allExpanded]))); }}>{conversationMessages.every((m) => isMessageExpanded(m.id)) ? "Collapse all" : "Expand all"}</Button>
               </div>
             </div>
