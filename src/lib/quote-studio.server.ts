@@ -234,6 +234,8 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     return {
       id: String(l.id ?? i + 1),
       name: str(l.description, "Item"),
+      code: l.item_code ?? undefined,
+      sku: l.item_code ?? undefined,
       description: str(l.description, "Item"),
       quantity,
       qty: quantity,
