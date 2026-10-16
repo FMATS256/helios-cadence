@@ -7,3 +7,4 @@
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
 - Default inbox and transactional signatures share one email-safe table template and staff-title resolver; compact inline mobile typography disables text autosizing, with desktop media overrides and a single linked promotional image to preserve proportions across mail clients. Custom personal signatures remain explicit overrides.
 - Inbox conversation rendering uses a dedicated collapsible message view with the latest message expanded first, authorized thread prefetching and foreground refresh, so older HTML signatures do not delay access to new replies.
+- Compose restoration and outbound conversation display remove identifiable staff signature blocks without changing stored messages; delivery appends signatures separately so clients still receive them.
