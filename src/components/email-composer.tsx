@@ -3,6 +3,7 @@ import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Eraser, Paper
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { withoutStaffSignature } from "@/lib/email-compose.shared";
+import { EmailHtmlView } from "@/components/email-html-view";
 
 export type ComposerFile = { filename: string; contentType: string; base64: string; size: number };
 
@@ -77,10 +78,11 @@ type Props = {
   onFilesChange: (files: ComposerFile[]) => void;
   onChange?: (text: string, html: string) => void;
   extraToolbar?: React.ReactNode;
+  clientMessage?: { html: string; sender: string };
 };
 
 export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailComposer(
-  { placeholder, minHeight = 160, vars = {}, files, onFilesChange, onChange, extraToolbar },
+  { placeholder, minHeight = 160, vars = {}, files, onFilesChange, onChange, extraToolbar, clientMessage },
   ref,
 ) {
   const editor = useRef<HTMLDivElement>(null);
@@ -88,6 +90,9 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
   const imageInput = useRef<HTMLInputElement>(null);
   const [empty, setEmpty] = useState(true);
   const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
+  const processing = useRef(false);
+  const [addingFiles, setAddingFiles] = useState(false);
 
   const sync = () => {
     const text = editor.current?.innerText.trim() ?? "";
@@ -140,6 +145,10 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
   };
 
   async function addFiles(list: FileList | File[]) {
+    if (processing.current) { toast.info("Please wait for your attachments to finish loading"); return; }
+    processing.current = true;
+    setAddingFiles(true);
+    try {
     const incoming = Array.from(list);
     let total = files.reduce((s, f) => s + f.size, 0);
     const next = [...files];
@@ -151,6 +160,8 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
       total += file.size;
     }
     onFilesChange(next);
+    } catch { toast.error("Could not read the attachment. Please try again."); }
+    finally { processing.current = false; setAddingFiles(false); }
   }
 
   async function insertImage(file: File) {
@@ -163,11 +174,13 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
 
   return (
     <div
-      className={`flex flex-col rounded-sm border bg-background ${dragging ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files?.length) void addFiles(e.dataTransfer.files); }}
+      className="relative flex w-full min-w-0 flex-col bg-background"
+      onDragEnter={(e) => { if (!e.dataTransfer.types.includes("Files")) return; e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
+      onDragOver={(e) => { if (!e.dataTransfer.types.includes("Files")) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+      onDragLeave={() => { dragDepth.current = Math.max(0, dragDepth.current - 1); if (!dragDepth.current) setDragging(false); }}
+      onDrop={(e) => { if (!e.dataTransfer.files?.length) return; e.preventDefault(); dragDepth.current = 0; setDragging(false); void addFiles(e.dataTransfer.files); }}
     >
+      {dragging ? <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-2 border-2 border-dashed border-primary bg-background/95 text-sm font-medium text-primary" role="status"><Paperclip className="h-5 w-5" /> Drop files to attach</div> : null}
       <div className="order-2 flex flex-wrap items-center gap-0.5 border-t border-border px-1.5 py-1">
         <Button variant="ghost" type="button" aria-label="Bold" title="Bold" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}><Bold className="h-3.5 w-3.5" /></Button>
         <Button variant="ghost" type="button" aria-label="Italic" title="Italic" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}><Italic className="h-3.5 w-3.5" /></Button>
@@ -198,7 +211,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
         {extraToolbar}
       </div>
 
-      <div className="relative order-1">
+      <div className="relative order-1 w-full min-w-0">
         {empty ? <div className="pointer-events-none absolute left-3 top-2 text-sm text-muted-foreground">{placeholder}</div> : null}
         <div
           ref={editor}
@@ -217,9 +230,11 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
             }
           }}
           style={{ minHeight }}
-          className="[&_img]:max-w-full [&_img]:h-auto max-h-[50vh] overflow-y-auto px-3 py-2 text-sm leading-relaxed outline-none [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:pl-6"
+          className="w-full min-w-0 break-words [&_img]:max-w-full [&_img]:h-auto max-h-[50vh] overflow-y-auto px-3 py-3 text-base leading-relaxed outline-none [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:pl-6"
         />
       </div>
+      {clientMessage?.html ? <details className="order-1 min-w-0 border-t border-border" open><summary className="cursor-pointer px-3 py-2 text-xs text-muted-foreground">Client’s message & signature · {clientMessage.sender}</summary><div className="max-h-48 overflow-y-auto" aria-label="Client signature preview"><EmailHtmlView html={clientMessage.html} title={`Client signature preview from ${clientMessage.sender}`} /></div></details> : null}
+      {addingFiles ? <div role="status" className="order-3 px-3 py-2 text-xs text-muted-foreground">Adding attachments…</div> : null}
 
       {files.length ? (
         <div className="order-3 flex flex-wrap gap-1.5 border-t border-border px-2 py-2">
@@ -228,7 +243,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
               <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="max-w-[160px] truncate">{f.filename}</span>
               <span className="text-muted-foreground">{formatSize(f.size)}</span>
-              <Button variant="ghost" type="button" aria-label={`Remove ${f.filename}`} className="text-muted-foreground hover:text-destructive" onClick={() => onFilesChange(files.filter((_, j) => j !== i))}>
+              <Button variant="ghost" type="button" disabled={addingFiles} aria-label={`Remove ${f.filename}`} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => onFilesChange(files.filter((_, j) => j !== i))}>
                 <X className="h-3 w-3" />
               </Button>
             </span>

@@ -785,7 +785,7 @@ function InboxPage() {
             {active.status !== "closed" ? (
               <div className="shrink-0 border-t border-border bg-card">
                 {!replyExpanded ? <div className="flex items-center gap-2 px-4 py-3"><Button variant="outline" size="sm" onClick={focusReply}><Reply className="h-4 w-4" /> Reply</Button><Button variant="ghost" size="sm" onClick={forwardActive}><Forward className="h-4 w-4" /> Forward</Button>{replyHtmlDraft ? <span className="ml-auto text-xs text-muted-foreground">Draft saved</span> : null}</div> : null}
-                <div className={`${replyExpanded ? "block" : "hidden"} max-h-[45dvh] overflow-y-auto p-3 sm:p-4`}>
+                <div className={`${replyExpanded ? "block" : "hidden"} max-h-[60dvh] overflow-y-auto`}>
                 <div className="mb-2 flex items-center justify-between gap-2"><span className="min-w-0 truncate text-xs text-muted-foreground">To: {active.contact_email}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setReplyExpanded(false)} aria-label="Minimize reply" title="Minimize reply"><X className="h-3 w-3" /></Button></div>
                 {error ? <p role="alert" className="mb-2 break-words text-xs text-destructive">{error}</p> : null}
                 {showCc ? (
@@ -803,7 +803,8 @@ function InboxPage() {
                 <EmailComposer
                   ref={replyInput}
                   placeholder={`Reply to ${active.contact_name || active.contact_email}`}
-                  minHeight={90}
+                  minHeight={180}
+                  clientMessage={(() => { const message = conversationMessages.find((item) => item.direction === "inbound" && item.body_html); return message?.body_html ? { html: message.body_html, sender: message.sender_name || message.from_address } : undefined; })()}
                   vars={{ customer_name: active.contact_name, reference: active.reference, sender_name: user?.user_metadata?.full_name as string | undefined }}
                   files={replyFiles}
                   onFilesChange={setReplyFiles}
