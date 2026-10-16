@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { Bold, Italic, Underline, List, ListOrdered, Link2, Quote, Eraser, Paperclip, X, FileText, Sparkles, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { withoutStaffSignature } from "@/lib/email-compose.shared";
 
 export type ComposerFile = { filename: string; contentType: string; base64: string; size: number };
 
@@ -98,7 +99,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
     getHtml: () => editor.current?.innerHTML ?? "",
     getText: () => editor.current?.innerText.trim() ?? "",
     setHtml: (html: string) => {
-      if (editor.current) editor.current.innerHTML = html;
+      if (editor.current) editor.current.innerHTML = withoutStaffSignature(html);
       sync();
     },
     focus: () => editor.current?.focus(),
@@ -162,12 +163,12 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
 
   return (
     <div
-      className={`rounded-sm border bg-background ${dragging ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+      className={`flex flex-col rounded-sm border bg-background ${dragging ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files?.length) void addFiles(e.dataTransfer.files); }}
     >
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-border px-1.5 py-1">
+      <div className="order-2 flex flex-wrap items-center gap-0.5 border-t border-border px-1.5 py-1">
         <Button variant="ghost" type="button" aria-label="Bold" title="Bold" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}><Bold className="h-3.5 w-3.5" /></Button>
         <Button variant="ghost" type="button" aria-label="Italic" title="Italic" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}><Italic className="h-3.5 w-3.5" /></Button>
         <Button variant="ghost" type="button" aria-label="Underline" title="Underline" className={btn} onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")}><Underline className="h-3.5 w-3.5" /></Button>
@@ -197,7 +198,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
         {extraToolbar}
       </div>
 
-      <div className="relative">
+      <div className="relative order-1">
         {empty ? <div className="pointer-events-none absolute left-3 top-2 text-sm text-muted-foreground">{placeholder}</div> : null}
         <div
           ref={editor}
@@ -209,6 +210,11 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
           onInput={sync}
           onPaste={(e) => {
             if (e.clipboardData.files?.length) { e.preventDefault(); void addFiles(e.clipboardData.files); }
+            else {
+              const html = e.clipboardData.getData("text/html");
+              const clean = withoutStaffSignature(html);
+              if (html && clean !== html) { e.preventDefault(); exec("insertHTML", clean); }
+            }
           }}
           style={{ minHeight }}
           className="[&_img]:max-w-full [&_img]:h-auto max-h-[50vh] overflow-y-auto px-3 py-2 text-sm leading-relaxed outline-none [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:pl-6"
@@ -216,7 +222,7 @@ export const EmailComposer = forwardRef<ComposerHandle, Props>(function EmailCom
       </div>
 
       {files.length ? (
-        <div className="flex flex-wrap gap-1.5 border-t border-border px-2 py-2">
+        <div className="order-3 flex flex-wrap gap-1.5 border-t border-border px-2 py-2">
           {files.map((f, i) => (
             <span key={`${f.filename}-${i}`} className="inline-flex max-w-full items-center gap-1.5 rounded-sm border border-border bg-muted/50 px-2 py-1 text-xs">
               <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />

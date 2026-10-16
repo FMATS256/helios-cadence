@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { EmailHtmlView } from "@/components/email-html-view";
 import { EmailAttachment } from "@/components/email-attachment";
 import type { InboxMessage } from "@/lib/inbox.shared";
+import { withoutStaffSignature } from "@/lib/email-compose.shared";
 import { ChevronDown, ChevronRight, Paperclip, RefreshCw, Reply } from "lucide-react";
 
 export function EmailConversationMessage({ message, expanded, onToggle, onReply, onRetry }: {
@@ -13,6 +14,7 @@ export function EmailConversationMessage({ message, expanded, onToggle, onReply,
   onRetry: (id: string) => void;
 }) {
   const sender = message.sender_name || message.from_address;
+  const html = message.direction === "outbound" ? withoutStaffSignature(message.body_html ?? "") : message.body_html;
   const preview = (message.body_text || message.body_html?.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ") || "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
   const initials = sender.split(/[\s.@_-]+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   return (
@@ -34,7 +36,7 @@ export function EmailConversationMessage({ message, expanded, onToggle, onReply,
         {message.direction === "outbound" && message.sender_name && message.delivery_status === "sent" ? <span className="mb-2 inline-block rounded-sm bg-teal/15 px-2 py-0.5 text-[10px] font-medium text-teal">Replied by {message.sender_name}</span> : null}
         {message.delivery_status === "failed" ? <div role="alert" className="mb-3 text-xs text-destructive"><span>Send failed</span><Button variant="outline" size="sm" className="ml-2 h-7" onClick={() => onRetry(message.id)}><RefreshCw className="h-3 w-3" /> Retry</Button>{message.delivery_error ? <details className="mt-2"><summary>Delivery details</summary><p className="whitespace-pre-wrap break-all">{message.delivery_error}</p></details> : null}</div> : null}
         {message.attachments.length ? <div className="mb-3 flex flex-wrap gap-2">{message.attachments.map((attachment) => <EmailAttachment key={attachment.id} messageId={message.id} attachment={attachment} />)}</div> : null}
-        {message.body_html ? <EmailHtmlView html={message.body_html} title={`Email from ${sender}`} /> : <div className="whitespace-pre-wrap break-words text-sm leading-6">{message.body_text || "(empty message)"}</div>}
+        {html ? <EmailHtmlView html={html} title={`Email from ${sender}`} /> : <div className="whitespace-pre-wrap break-words text-sm leading-6">{message.body_text || "(empty message)"}</div>}
       </div> : null}
     </article>
   );
