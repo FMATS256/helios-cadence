@@ -373,8 +373,15 @@ export async function sendInboxEmail(opts: {
         return { ok: false, error: `Gateway ${res.status}: ${bodyText.slice(0, 400)}` };
       }
       let parsed: any = {};
-      try { parsed = JSON.parse(bodyText); } catch { /* non-JSON ok */ }
-      return { ok: true, id: String(parsed.id ?? parsed.provider_id ?? parsed.data?.id ?? "") };
+      try { parsed = JSON.parse(bodyText); } catch { /* handled below */ }
+      const id = String(parsed.id ?? parsed.provider_id ?? parsed.data?.id ?? "");
+      // Never treat a response as sent without a gateway confirmation ID —
+      // an HTTP 200 with an empty/malformed body must surface as a failure.
+      if (!id) {
+        console.error(`[inbox] gateway send returned no confirmation id: ${bodyText.slice(0, 400)}`);
+        return { ok: false, error: "The email gateway did not confirm delivery (no message id returned). Please retry." };
+      }
+      return { ok: true, id };
     } catch (e: any) {
       return { ok: false, error: `Gateway unreachable: ${String(e?.message ?? e)}` };
     }
