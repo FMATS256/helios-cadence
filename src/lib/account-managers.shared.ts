@@ -21,9 +21,12 @@ export const AM_PHONE = "+263 86 12 004321";
 
 /** Preferred role order when auto-assigning by account type. */
 export function preferredRolesFor(accountType?: string | null): AmRole[] {
-  return accountType === "personal"
-    ? ["customer_account_manager", "account_manager", "corporate_account_manager", "key_account_manager"]
-    : ["corporate_account_manager", "key_account_manager", "account_manager", "customer_account_manager"];
+  switch (accountType) {
+    case "personal": return ["customer_account_manager", "account_manager", "corporate_account_manager", "key_account_manager"];
+    case "company": return ["account_manager", "corporate_account_manager", "key_account_manager", "customer_account_manager"];
+    case "key_account": return ["key_account_manager", "corporate_account_manager", "account_manager", "customer_account_manager"];
+    default: return ["corporate_account_manager", "key_account_manager", "account_manager", "customer_account_manager"];
+  }
 }
 
 /** Short role prefix used inside the account-manager code. */
