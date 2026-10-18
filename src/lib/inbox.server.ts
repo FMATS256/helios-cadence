@@ -821,6 +821,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
 
 export async function sendEnquiryReply(opts: {
   enquiryId: string;
+  originalSubject?: boolean;
   senderId: string;
   senderName: string;
   senderRole: string;
@@ -881,9 +882,9 @@ export async function sendEnquiryReply(opts: {
     signatureHtml: opts.signatureHtml,
     quotes,
   });
-  const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}\nEnquiry reference: ${enquiry.reference}`;
+  const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}${opts.originalSubject ? "" : `\nEnquiry reference: ${enquiry.reference}`}`;
   const baseSubject = enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`;
-  const taggedSubject = new RegExp(enquiry.reference, "i").test(baseSubject)
+  const taggedSubject = opts.originalSubject ? enquiry.subject : new RegExp(enquiry.reference, "i").test(baseSubject)
     ? baseSubject
     : `${baseSubject} [${enquiry.reference}]`;
 
@@ -1032,6 +1033,7 @@ export async function sendEnquiryReply(opts: {
 }
 
 export async function createAndSendEnquiryEmail(opts: {
+  originalSubject?: boolean;
   senderId: string;
   senderName: string;
   senderRole: string;
@@ -1072,6 +1074,7 @@ export async function createAndSendEnquiryEmail(opts: {
   if (error || !enquiry) return { ok: false, error: error?.message ?? "Could not create conversation" };
   const sent = await sendEnquiryReply({
     enquiryId: enquiry.id,
+    originalSubject: opts.originalSubject,
     senderId: opts.senderId,
     senderName: opts.senderName,
     senderRole: opts.senderRole,

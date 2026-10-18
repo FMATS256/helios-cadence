@@ -31,7 +31,12 @@ if (error) {
   console.error("Website account opening failed", error.code, error.message);
   return reply({ ok: false, error: "Account could not be opened; retry with the same application ID" }, 500);
 }
-const result = data as { replayed?: boolean } | null;
+const result = data as { replayed?: boolean; account_number: string } | null;
 if (!result) return reply({ ok: false, error: "Account opening was not confirmed" }, 500);
+const { data: customer } = await supabaseAdmin.from("customers").select("id").eq("account_number", result.account_number).maybeSingle();
+if (customer) {
+  const { sendCustomerWelcome } = await import("./customer-welcome.server");
+  await sendCustomerWelcome(supabaseAdmin, customer.id);
+}
 return reply({ ok: true, ...result }, result.replayed ? 200 : 201);
 }
