@@ -333,6 +333,11 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
       }
     }
 
+    // Attach the same current branded document shown in the quotation preview.
+    const { brandedQuotationPdf } = await import("./quotation-document.server");
+    const representative = await salesRepOf(db, quote, context);
+    pdfBytes = await brandedQuotationPdf(quote, lines, representative.name ?? undefined);
+
     const items = (lines ?? []).map((l: any) => ({
       description: l.description,
       quantity: Number(l.quantity ?? 1),
