@@ -123,7 +123,8 @@ export const getQuoteDetail = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { quote, lines } = await loadQuote(context.supabase, data.id);
     const { studioConfig } = await import("./quote-studio.server");
-    return { quote, lines, studio: { configured: studioConfig().configured } };
+    const representative = await salesRepOf(context.supabase, quote, context);
+    return { quote, lines, representative, studio: { configured: studioConfig().configured } };
   });
 
 /** Sellable things a quotation line can be built from: catalog packages/services + hardware in stock. */
@@ -552,20 +553,10 @@ export const getQuotePdf = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     const { quote, lines } = await loadQuote(context.supabase, data.id);
-    const { quoteStudio, buildDocumentPayload } = await import("./quote-studio.server");
-    const actor = actorOf(context);
-
-    // Prefer the stored document; fall back to a stateless render.
-    const res = quote.studio_document_id
-      ? await quoteStudio.documentPdf(quote.studio_document_id, actor)
-      : await quoteStudio.renderPdf(
-          buildDocumentPayload(quote, lines, await salesRepOf(context.supabase, quote, context)),
-          actor,
-        );
-    if (!res.ok) throw new Error(res.error);
-
+    const { brandedQuotationPdf } = await import("./quotation-document.server");
+    const rep = await salesRepOf(context.supabase, quote, context);
     let binary = "";
-    const bytes = res.data.bytes;
+    const bytes = await brandedQuotationPdf(quote, lines, rep.name ?? undefined);
     for (let i = 0; i < bytes.length; i += 0x8000) {
       binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     }
