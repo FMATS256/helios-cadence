@@ -33,7 +33,7 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
   function box(x: number, top: number, width: number, height: number, title: string) {
     page.drawRectangle({ x, y: 841.89 - top - height, width, height, borderColor: rule, borderWidth: 0.6 });
     page.drawRectangle({ x: x + 0.3, y: 841.89 - top - 22, width: width - 0.6, height: 21.7, color: pale });
-    text(title, x + 10, top + 6, 9, true);
+    text(title, x + (width - bold.widthOfTextAtSize(title, 9)) / 2, top + 6, 9, true);
   }
   function block(value: string, x: number, top: number, width: number, size = 9) {
     const rows = wrap(value, width, size); rows.forEach((row, i) => text(row, x, top + i * (size + 4), size));
@@ -64,10 +64,11 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
   let y = 213 + customerHeight + 14;
   [["Account No", data.customer.account, 32, 100], ["Quote Date", quotationDate(data.date), 140, 88], ["Representative", data.representative, 236, 185], ["Quote Number", data.reference, 433, 130]].forEach(([label, value, x, width]) => { text(String(label), Number(x), y, 8, true); block(String(value), Number(x), y + 15, Number(width), 8); });
   y += 51; tableHeader(y); y += 23;
-  for (const item of data.items) {
+  for (const [index, item] of data.items.entries()) {
     const desc = wrap(item.description, 247, 8), code = wrap(item.code, 59, 7);
     const height = Math.max(24, Math.max(desc.length, code.length) * 12 + 12);
     if (y + height > 735) { page = doc.addPage([595.28, 841.89]); header(true); y = 116; tableHeader(y); y += 23; }
+    if (index % 2 === 1) page.drawRectangle({ x: 32, y: 841.89 - y - height, width: 531, height, color: pale });
     code.forEach((row, i) => text(row, 38, y + 8 + i * 12, 7));
     desc.forEach((row, i) => text(row, 104, y + 8 + i * 12, 8));
     [String(item.quantity), quotationMoney(item.price), `${item.taxRate}%`, quotationMoney(item.total)].forEach((value, i) => {

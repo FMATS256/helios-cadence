@@ -203,8 +203,8 @@ main:has(> .imt-mail) {
 .quotation-heading h2 { font-size:24px; color:var(--quotation-blue); font-weight:700; }
 .quotation-title { font-size:14px; font-weight:700; margin:24px 0 16px; }
 .quotation-panels { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-.quotation-sheet section { border:1px solid var(--quotation-rule); border-radius:4px; overflow:hidden; }
-.quotation-sheet h4 { padding:6px 12px; background:var(--quotation-soft); font-weight:700; border-bottom:1px solid var(--quotation-rule); }
+.quotation-sheet section { border:1px solid var(--quotation-rule); border-radius:0; overflow:hidden; }
+.quotation-sheet h4 { padding:6px 12px; background:var(--quotation-soft); font-weight:700; border-bottom:1px solid var(--quotation-rule); text-align:center; }
 .quotation-panels section { min-height:126px; }
 .quotation-panels section>div,.quotation-panels dl { padding:12px; overflow-wrap:anywhere; }
 .quotation-panels dl { display:grid; grid-template-columns:1fr 1.3fr; gap:8px; }
@@ -220,9 +220,11 @@ main:has(> .imt-mail) {
 .quotation-items th:nth-child(4) { width:13%; }
 .quotation-items th:nth-child(5) { width:10%; }
 .quotation-items th:nth-child(6) { width:15%; }
-.quotation-items td { padding:10px 6px; vertical-align:top; border-bottom:1px solid var(--quotation-soft); text-align:right; overflow-wrap:anywhere; }
+.quotation-items tbody tr:nth-child(odd) { background:var(--quotation-paper); }
+.quotation-items tbody tr:nth-child(even) { background:var(--quotation-soft); }
+.quotation-items td { padding:8px 6px; vertical-align:top; border-bottom:1px solid var(--quotation-soft); text-align:right; overflow-wrap:anywhere; }
 .quotation-items td:nth-child(-n+2) { text-align:left; }
-.quotation-summary { display:grid; grid-template-columns:1.4fr .4fr 1fr; gap:8px; margin-top:52px; }
+.quotation-summary { display:grid; grid-template-columns:1.4fr .4fr 1fr; gap:8px; margin-top:28px; }
 .quotation-summary section>div,.quotation-summary dl { padding:12px; }
 .quotation-summary p { white-space:pre-wrap; overflow-wrap:anywhere; }
 .quotation-summary dl>div { display:flex; justify-content:space-between; gap:12px; margin-bottom:5px; }
