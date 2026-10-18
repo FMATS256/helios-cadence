@@ -1629,6 +1629,10 @@ export type Database = {
           title: string | null
           updated_at: string
           website: string | null
+          welcome_email_attempted_at: string | null
+          welcome_email_error: string | null
+          welcome_email_message_id: string | null
+          welcome_email_status: string
         }
         Insert: {
           account_manager_id?: string | null
@@ -1650,6 +1654,10 @@ export type Database = {
           title?: string | null
           updated_at?: string
           website?: string | null
+          welcome_email_attempted_at?: string | null
+          welcome_email_error?: string | null
+          welcome_email_message_id?: string | null
+          welcome_email_status?: string
         }
         Update: {
           account_manager_id?: string | null
@@ -1671,6 +1679,10 @@ export type Database = {
           title?: string | null
           updated_at?: string
           website?: string | null
+          welcome_email_attempted_at?: string | null
+          welcome_email_error?: string | null
+          welcome_email_message_id?: string | null
+          welcome_email_status?: string
         }
         Relationships: []
       }
@@ -6863,6 +6875,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_customer_welcome: {
+        Args: { p_customer_id: string }
+        Returns: boolean
+      }
       gen_customer_account_number: { Args: never; Returns: string }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
