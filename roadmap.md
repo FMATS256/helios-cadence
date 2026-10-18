@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Email API account-opening address shares the signed action; atomic assigned-manager in-app alerts cover all account inserts; API replay, exactly one alert and Customer 360 readback verified (six tests); temporary records removed
 - IMT website account-opening endpoint uses the existing signed connection; category routing, atomic account/contact saving and safe replay verified; temporary account read back in Customer 360 and removed
 - Reference-style IMT quotation preview and PDF with existing logo, saved prices and terms; authenticated download and phone overflow checked
 - Outlook-style compact mail panes, latest-message-first collapsed threads, quick reply, foreground refresh, conversation prefetching and docked compose verified with real signed-in conversations on desktop and phone
@@ -26,7 +27,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Expose account opening under the email API and add automatic assigned-manager alerts for all newly created accounts
 - [ ] Connect the separate IMT website account form to the new account-opening endpoint after publishing; website source is outside this project
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
