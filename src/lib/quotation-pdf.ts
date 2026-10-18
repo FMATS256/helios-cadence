@@ -9,7 +9,7 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const logo = logoBytes ? await doc.embedPng(logoBytes) : null;
   let page = doc.addPage([595.28, 841.89]);
-  const safe = (s: string) => s.replace(/[—–]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7e\xa0-\xff]/g, "?");
+  const safe = (s: string) => s.replace(/[—–]/g, "-").replace(/•/g, "·").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7e\xa0-\xff]/g, "?");
   function text(value: string, x: number, top: number, size = 9, strong = false) {
     page.drawText(safe(value), { x, y: 841.89 - top - size, size, font: strong ? bold : regular, color: ink });
   }
@@ -66,7 +66,7 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
   y += 51; tableHeader(y); y += 23;
   for (const item of data.items) {
     const desc = wrap(item.description, 247, 8), code = wrap(item.code, 59, 7);
-    const height = Math.max(27, Math.max(desc.length, code.length) * 12 + 12);
+    const height = Math.max(24, Math.max(desc.length, code.length) * 12 + 12);
     if (y + height > 735) { page = doc.addPage([595.28, 841.89]); header(true); y = 116; tableHeader(y); y += 23; }
     code.forEach((row, i) => text(row, 38, y + 8 + i * 12, 7));
     desc.forEach((row, i) => text(row, 104, y + 8 + i * 12, 8));
