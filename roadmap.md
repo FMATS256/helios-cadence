@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Published management platform; public email account-opening endpoint verified responding 401 to an unsigned request instead of 404
 - Automatic welcome emails across staff creation, lead conversion and website opening use the assigned manager's address, account details and personalized Microsoft signature; clean live send, saved inbox readback and no duplicate on application replay verified
 - Email API account-opening address shares the signed action; atomic assigned-manager in-app alerts cover all account inserts; API replay, exactly one alert and Customer 360 readback verified (six tests); temporary records removed
 - IMT website account-opening endpoint uses the existing signed connection; category routing, atomic account/contact saving and safe replay verified; temporary account read back in Customer 360 and removed
@@ -28,8 +29,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Publish management platform and verify the public account-opening receiving address responds
-- [ ] Connect the separate IMT website account form to the new account-opening endpoint after publishing; website source is outside this project
+- [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied
