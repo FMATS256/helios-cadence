@@ -2,7 +2,7 @@
 
 ## Connection contract
 
-POST `https://management.imtsolutions.co.zw/api/public/accounts/open` from the website server, not the browser. Reuse the existing IMT email gateway shared key; do not expose it to applicants.
+POST `https://management.imtsolutions.co.zw/api/public/email/accounts/open` from the website server, not the browser. Reuse the existing IMT email gateway shared key; do not expose it to applicants. The original `/api/public/accounts/open` address remains supported and uses the same account-opening action.
 
 Set `Content-Type: application/json` and `X-IMT-Signature: sha256=<hex HMAC-SHA256 of the exact raw request body using the existing shared key>`.
 
@@ -29,4 +29,6 @@ Assignment selects the least-loaded active, non-archived manager within the pref
 
 The website must allocate and retain `external_id` before submission. Repeat identical submissions return 200 with `replayed: true` and the same account. Reusing that ID with different validated details returns 409. New accounts return 201 with `account_number`, `name`, `category`, and `account_manager` (name/email/role). Accounts and primary contacts are saved atomically; legacy personal/corporate account types remain compatible with Customer 360. Website applicants cannot submit a manager, account number, status, roles, invoices or payment terms.
 
-The management side is implemented and locally verified. The separate website must submit its account-opening form to this endpoint, and the management changes must be published before the public URL serves it. This endpoint does not create a login or send welcome emails.
+Every new account with an assigned manager creates an in-app alert for that manager, linking directly to Customer 360. This applies to website, staff-created and converted-lead accounts; replayed website applications do not duplicate alerts. Alerts are saved in the same transaction as the account.
+
+The management side is implemented and locally verified. The separate website must submit its account-opening form to this endpoint, and the management changes must be published before the public URL serves it. This endpoint does not create a login or send welcome emails; manager alerts appear in the app's notifications.
