@@ -28,6 +28,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Publish management platform and verify the public account-opening receiving address responds
 - [ ] Connect the separate IMT website account form to the new account-opening endpoint after publishing; website source is outside this project
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
