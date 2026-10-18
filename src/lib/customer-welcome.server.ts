@@ -1,5 +1,5 @@
 import { welcomeDetails } from "./customer-welcome.shared";
-import { AM_PHONE, AM_ROLES } from "./account-managers.shared";
+import { AM_ROLES } from "./account-managers.shared";
 
 /** Awaited after account creation; durable atomic claim prevents repeated welcomes. */
 export async function sendCustomerWelcome(db: any, customerId: string) {
@@ -29,7 +29,7 @@ export async function sendCustomerWelcome(db: any, customerId: string) {
       senderId: manager.id, senderName: details.name, senderEmail: details.from,
       senderRole: roles[0].role, signatureHtml: preferences?.signature_html || undefined,
       to: customer.primary_email, subject: details.subject, body: details.body,
-      customerId, mailbox: "sales@imtsolutions.co.zw",
+      customerId, mailbox: "sales@imtsolutions.co.zw", originalSubject: true,
     });
     const { error: stateError } = await db.from("customers").update({
       welcome_email_status: result.ok ? "sent" : "failed",
