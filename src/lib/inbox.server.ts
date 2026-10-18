@@ -269,6 +269,43 @@ function brandFooter(): string {
   </div>`;
 }
 
+/**
+ * Remove the automated acknowledgement boilerplate from HTML before sending.
+ * The website gateway runs an anti-loop rule (ack_sent_by_website) that skips
+ * any message whose body quotes the auto-acknowledgement text, so quoted
+ * history must not carry those sentences.
+ */
+function stripAutoAckFromHtml(html: string): string {
+  let out = String(html ?? "");
+  // Drop whole paragraphs/blocks containing the acknowledgement sentences.
+  const patterns = [
+    /Your enquiry has been logged with our Sales Team\.?/gi,
+    /Your enquiry reference is/gi,
+    /An Account Manager will respond to you shortly\.?/gi,
+    /Please quote the reference above in any follow-up[^<]*/gi,
+    /Subject received:/gi,
+  ];
+  for (const p of patterns) {
+    out = out.replace(new RegExp(`<p[^>]*>[^<]*(?:${p.source})[^<]*</p>`, "gi"), "");
+  }
+  for (const p of patterns) out = out.replace(p, "");
+  return out;
+}
+
+/** Plain-text variant of the acknowledgement strip. */
+function stripAutoAckFromText(text: string): string {
+  let out = String(text ?? "");
+  const patterns = [
+    /Your enquiry has been logged with our Sales Team\.?[^\n]*/gi,
+    /Your enquiry reference is[^\n]*/gi,
+    /An Account Manager will respond to you shortly\.?[^\n]*/gi,
+    /Please quote the reference above in any follow-up[^\n]*/gi,
+    /Subject received:[^\n]*/gi,
+  ];
+  for (const p of patterns) out = out.replace(p, "");
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /** Acknowledgement sent automatically for every brand-new enquiry. */
 function ackHtml(reference: string, contactName: string | null, subject: string): string {
   const name = contactName ? escapeHtml(contactName) : "Customer";
@@ -361,6 +398,10 @@ export async function sendInboxEmail(opts: {
         content_type: attachment.contentType ?? "application/octet-stream",
       }));
     }
+    // Strip automated acknowledgement boilerplate from quoted history: the
+    // gateway refuses messages containing it (ack_sent_by_website anti-loop rule).
+    payload.html = stripAutoAckFromHtml(String(payload.html ?? ""));
+    payload.text = stripAutoAckFromText(String(payload.text ?? ""));
     try {
       const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/send`, {
         method: "POST",
