@@ -64,6 +64,11 @@
 }
 
 :root {
+  --quotation-paper: #ffffff;
+  --quotation-ink: #242b36;
+  --quotation-blue: #1f61ad;
+  --quotation-rule: #737d89;
+  --quotation-soft: #eff4f9;
   --radius: 0.5rem;
 
 
