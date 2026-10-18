@@ -1615,6 +1615,7 @@ export type Database = {
           account_type: string
           archived_at: string | null
           billing_address: string | null
+          client_category: string | null
           company_name: string
           created_at: string
           created_by: string | null
@@ -1635,6 +1636,7 @@ export type Database = {
           account_type?: string
           archived_at?: string | null
           billing_address?: string | null
+          client_category?: string | null
           company_name: string
           created_at?: string
           created_by?: string | null
@@ -1655,6 +1657,7 @@ export type Database = {
           account_type?: string
           archived_at?: string | null
           billing_address?: string | null
+          client_category?: string | null
           company_name?: string
           created_at?: string
           created_by?: string | null
@@ -6557,6 +6560,35 @@ export type Database = {
           },
         ]
       }
+      website_account_applications: {
+        Row: {
+          created_at: string
+          customer_id: string
+          external_id: string
+          fingerprint: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          external_id: string
+          fingerprint: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          external_id?: string
+          fingerprint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_account_applications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whm_servers: {
         Row: {
           active: boolean
@@ -6855,6 +6887,14 @@ export type Database = {
         Returns: boolean
       }
       next_enquiry_reference: { Args: never; Returns: string }
+      open_website_account: {
+        Args: {
+          p_application: Json
+          p_fingerprint: string
+          p_preferred_roles: string[]
+        }
+        Returns: Json
+      }
       portal_customer_id: { Args: { _user_id: string }; Returns: string }
       recompute_invoice_status: {
         Args: { _invoice_id: string }

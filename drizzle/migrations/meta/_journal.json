@@ -92,6 +92,13 @@
       "when": 1791951397435,
       "tag": "0012_quote_item_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792330819670,
+      "tag": "0013_website_account_opening",
+      "breakpoints": true
     }
   ]
 }

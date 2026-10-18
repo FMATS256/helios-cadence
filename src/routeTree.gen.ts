@@ -70,6 +70,7 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as ApiPublicTestEmailsRouteImport } from './routes/api/public/test-emails'
 import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspaceKey'
 import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
+import { Route as ApiPublicAccountsOpenRouteImport } from './routes/api/public/accounts/open'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
 import { Route as ApiPublicEmailInboundRouteImport } from './routes/api/public/email/inbound'
 import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
@@ -408,6 +409,11 @@ const TechopsJobsIdRoute = TechopsJobsIdRouteImport.update({
   path: '/techops/jobs/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAccountsOpenRoute = ApiPublicAccountsOpenRouteImport.update({
+  id: '/api/public/accounts/open',
+  path: '/api/public/accounts/open',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
   id: '/api/public/agent/provision',
   path: '/api/public/agent/provision',
@@ -634,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
+  '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
@@ -725,6 +732,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
+  '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
@@ -818,6 +826,7 @@ export interface FileRoutesById {
   '/api/public/test-emails': typeof ApiPublicTestEmailsRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyRouteWithChildren
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
+  '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
@@ -912,6 +921,7 @@ export interface FileRouteTypes {
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
     | '/techops/jobs/$id'
+    | '/api/public/accounts/open'
     | '/api/public/agent/provision'
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
@@ -1003,6 +1013,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/test-emails'
     | '/techops/jobs/$id'
+    | '/api/public/accounts/open'
     | '/api/public/agent/provision'
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
@@ -1095,6 +1106,7 @@ export interface FileRouteTypes {
     | '/api/public/test-emails'
     | '/c/$slug/$workspaceKey'
     | '/techops/jobs/$id'
+    | '/api/public/accounts/open'
     | '/api/public/agent/provision'
     | '/api/public/email/inbound'
     | '/api/public/hooks/automation-tick'
@@ -1188,6 +1200,7 @@ export interface RootRouteChildren {
   ApiPublicTestEmailsRoute: typeof ApiPublicTestEmailsRoute
   CSlugWorkspaceKeyRoute: typeof CSlugWorkspaceKeyRouteWithChildren
   TechopsJobsIdRoute: typeof TechopsJobsIdRoute
+  ApiPublicAccountsOpenRoute: typeof ApiPublicAccountsOpenRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
   ApiPublicEmailInboundRoute: typeof ApiPublicEmailInboundRoute
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
@@ -1640,6 +1653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TechopsJobsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/accounts/open': {
+      id: '/api/public/accounts/open'
+      path: '/api/public/accounts/open'
+      fullPath: '/api/public/accounts/open'
+      preLoaderRoute: typeof ApiPublicAccountsOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agent/provision': {
       id: '/api/public/agent/provision'
       path: '/api/public/agent/provision'
@@ -1960,6 +1980,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTestEmailsRoute: ApiPublicTestEmailsRoute,
   CSlugWorkspaceKeyRoute: CSlugWorkspaceKeyRouteWithChildren,
   TechopsJobsIdRoute: TechopsJobsIdRoute,
+  ApiPublicAccountsOpenRoute: ApiPublicAccountsOpenRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
   ApiPublicEmailInboundRoute: ApiPublicEmailInboundRoute,
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
