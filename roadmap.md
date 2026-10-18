@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Reference-style IMT quotation preview and PDF with existing logo, saved prices and terms; authenticated download and phone overflow checked
 - Outlook-style compact mail panes, latest-message-first collapsed threads, quick reply, foreground refresh, conversation prefetching and docked compose verified with real signed-in conversations on desktop and phone
 - Recipient confirmed both test PDFs arrived; signature banner now shows Microsoft Word and links to the Microsoft 365 page, with a blue disclaimer View more link
 - Matched WhatsApp color to other signature contacts; sent two valid test PDFs via the signed-in composer and confirmed both application attachment cards and gateway attachment metadata
@@ -24,7 +25,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Build reference-style IMT quotation layout with existing logo, prices and terms; verify preview and PDF
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied

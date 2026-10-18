@@ -2,7 +2,7 @@ import logo from "@/assets/imt-solutions-logo.png.asset.json";
 
 export const quotationBrand = {
   name: "IMT Solutions", website: "imtsolutions.co.zw", email: "sales@imtsolutions.co.zw",
-  phone: "+263 86 12 004321", logoUrl: `https://management.imtsolutions.co.zw${logo.url}`,
+  phone: "+263 86 12 004321", logoUrl: `https://management.imtsolutions.co.zw${logo.url}`, previewLogoUrl: logo.url,
 };
 export type QuotationDocument = {
   reference: string; title: string; date: string; validUntil: string; currency: string;

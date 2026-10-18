@@ -2,7 +2,7 @@ import { quotationBrand, quotationDate, quotationMoney, type QuotationDocument }
 
 export function QuotationPreview({ document: d }: { document: QuotationDocument }) {
   return <div className="quotation-preview-scroll"><article className="quotation-sheet" aria-label="IMT quotation design">
-    <header className="quotation-heading"><img src={quotationBrand.logoUrl} alt="IMT Solutions" /><div><h2>QUOTATION</h2><strong>{d.reference}</strong></div></header>
+    <header className="quotation-heading"><img src={quotationBrand.previewLogoUrl} alt="IMT Solutions" /><div><h2>QUOTATION</h2><strong>{d.reference}</strong></div></header>
     <h3 className="quotation-title">{d.title}</h3>
     <div className="quotation-panels">
       <section><h4>Quote From</h4><div><strong>{quotationBrand.name}</strong><p>{quotationBrand.website}</p><p>{quotationBrand.email}</p><p>{quotationBrand.phone}</p></div></section>
