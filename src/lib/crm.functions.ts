@@ -169,5 +169,7 @@ export const convertLeadToCustomer = createServerFn({ method: "POST" })
       actor_email: context.claims?.email ?? null,
     });
 
+    const { sendCustomerWelcome } = await import("./customer-welcome.server");
+    await sendCustomerWelcome(supabaseAdmin, customer.id);
     return { ok: true, customer };
   });
