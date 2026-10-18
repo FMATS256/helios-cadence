@@ -26,7 +26,7 @@ import { toast } from "sonner";
 const STATUSES = ["draft", "sent", "accepted", "rejected", "expired"];
 
 export const Route = createFileRoute("/quotes")({
-  head: () => ({ meta: [{ title: "Quotes — IMT Operations" }] }),
+  head: () => ({ meta: [{ title: "Quotations — IMT Solutions" }, { name: "description", content: "Prepare and manage branded IMT Solutions customer quotations." }, { property: "og:title", content: "Quotations — IMT Solutions" }, { property: "og:description", content: "Prepare and manage branded IMT Solutions customer quotations." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: QuotesPage,
 });
 

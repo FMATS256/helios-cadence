@@ -891,20 +891,24 @@ export async function sendEnquiryReply(opts: {
   if (opts.quoteId) {
     const { data: quote } = await admin
       .from("quotes")
-      .select("id, quote_number, title, customer_id, studio_document_id")
+      .select("*, customers(company_name,primary_email,primary_phone,billing_address,account_manager_id)")
       .eq("id", opts.quoteId)
       .maybeSingle();
     if (!quote) return { ok: false, error: "Quotation not found" };
     if (enquiry.customer_id && quote.customer_id !== enquiry.customer_id) {
       return { ok: false, error: "This quotation belongs to a different customer" };
     }
-    const { quoteStudio } = await import("./quote-studio.server");
-    if (!quote.studio_document_id) return { ok: false, error: "Generate the quotation document before attaching it" };
-    const pdf = await quoteStudio.documentPdf(quote.studio_document_id, { userId: opts.senderId, userName: opts.senderName });
-    if (!pdf.ok) return { ok: false, error: pdf.error };
+    const { brandedQuotationPdf } = await import("./quotation-document.server");
+    const { data: quoteLines, error: quoteLinesError } = await admin.from("quote_line_items").select("*").eq("quote_id", quote.id).order("position");
+    if (quoteLinesError) return { ok: false, error: quoteLinesError.message };
+    const repId = quote.customers?.account_manager_id || quote.created_by || opts.senderId;
+    const { data: rep } = await admin.from("profiles").select("full_name").eq("id", repId).maybeSingle();
+    let bytes: Uint8Array;
+    try { bytes = await brandedQuotationPdf(quote, quoteLines ?? [], rep?.full_name || opts.senderName); }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Could not prepare quotation PDF" }; }
     quoteAttachment = {
       filename: `${quote.quote_number || quote.title || "quotation"}.pdf`.replace(/[^\w.-]+/g, "-"),
-      content: pdf.data.bytes,
+      content: bytes,
       contentType: "application/pdf",
       quoteId: quote.id,
     };

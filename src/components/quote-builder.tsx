@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus, PackageSearch, Search } from "lucide-react";
 import { toast } from "sonner";
+import { QuotationPreview } from "./quotation-preview";
+import { quotationDocument } from "@/lib/quotation-document.shared";
 
 export interface QuoteLineDraft {
   description: string;
@@ -96,7 +98,7 @@ export function QuoteBuilderDialog({
   // Load an existing quotation for editing.
   const { data: existing } = useQuery({
     queryKey: ["quote-builder", quoteId],
-    queryFn: () => detailFn({ data: { id: quoteId! } }),
+    queryFn: () => { if (!quoteId) throw new Error("Quotation not selected"); return detailFn({ data: { id: quoteId } }); },
     enabled: !!quoteId && open,
   });
 
@@ -439,6 +441,7 @@ export function QuoteBuilderDialog({
           </TabsContent>
 
           <TabsContent value="preview" className="pt-4">
+            <QuotationPreview document={quotationDocument({ ...form, amount: totals.total, created_at: existing?.quote?.created_at ?? new Date().toISOString(), customers: walkIn ? undefined : customer, account_number: walkIn ? null : customer?.account_number }, lines, existing?.representative?.name ?? "IMT Solutions")} />
             {previewUrl ? (
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
@@ -447,16 +450,14 @@ export function QuoteBuilderDialog({
                       <Download className="h-4 w-4 mr-1.5" />Download PDF
                     </a>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => window.open(previewUrl!, "_blank")}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => { if (previewUrl) window.open(previewUrl, "_blank"); }}>
                     <Eye className="h-4 w-4 mr-1.5" />Open in new tab
                   </Button>
                 </div>
-                <iframe title="Quotation preview" src={previewUrl} className="h-[60vh] w-full rounded-xl border" />
+                <iframe title="Quotation PDF" src={previewUrl} className="h-[60vh] w-full rounded-sm border" />
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-                Save and generate the document to preview the quotation PDF.
-              </div>
+              null
             )}
           </TabsContent>
         </Tabs>
