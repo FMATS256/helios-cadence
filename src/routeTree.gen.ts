@@ -98,6 +98,7 @@ import { Route as CSlugWorkspaceKeyTeamRouteImport } from './routes/c.$slug.$wor
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as ApiPublicEmailAccountsOpenRouteImport } from './routes/api/public/email/accounts/open'
 import { Route as ApiPublicPortalPaymentsExternalIdRouteImport } from './routes/api/public/portal/payments.$externalId'
 import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c.$slug.$workspaceKey.servers.$serverId'
 
@@ -565,6 +566,12 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEmailAccountsOpenRoute =
+  ApiPublicEmailAccountsOpenRouteImport.update({
+    id: '/api/public/email/accounts/open',
+    path: '/api/public/email/accounts/open',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPortalPaymentsExternalIdRoute =
   ApiPublicPortalPaymentsExternalIdRouteImport.update({
     id: '/$externalId',
@@ -668,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/email/accounts/open': typeof ApiPublicEmailAccountsOpenRoute
   '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -760,6 +768,7 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/email/accounts/open': typeof ApiPublicEmailAccountsOpenRoute
   '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -854,6 +863,7 @@ export interface FileRoutesById {
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/c/$slug/$workspaceKey/': typeof CSlugWorkspaceKeyIndexRoute
+  '/api/public/email/accounts/open': typeof ApiPublicEmailAccountsOpenRoute
   '/api/public/portal/payments/$externalId': typeof ApiPublicPortalPaymentsExternalIdRoute
   '/c/$slug/$workspaceKey/servers/$serverId': typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -949,6 +959,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey/'
+    | '/api/public/email/accounts/open'
     | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesByTo: FileRoutesByTo
@@ -1041,6 +1052,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey'
+    | '/api/public/email/accounts/open'
     | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   id:
@@ -1134,6 +1146,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
     | '/c/$slug/$workspaceKey/'
+    | '/api/public/email/accounts/open'
     | '/api/public/portal/payments/$externalId'
     | '/c/$slug/$workspaceKey/servers/$serverId'
   fileRoutesById: FileRoutesById
@@ -1222,6 +1235,7 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  ApiPublicEmailAccountsOpenRoute: typeof ApiPublicEmailAccountsOpenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1849,6 +1863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/email/accounts/open': {
+      id: '/api/public/email/accounts/open'
+      path: '/api/public/email/accounts/open'
+      fullPath: '/api/public/email/accounts/open'
+      preLoaderRoute: typeof ApiPublicEmailAccountsOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/portal/payments/$externalId': {
       id: '/api/public/portal/payments/$externalId'
       path: '/$externalId'
@@ -2002,6 +2023,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  ApiPublicEmailAccountsOpenRoute: ApiPublicEmailAccountsOpenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
