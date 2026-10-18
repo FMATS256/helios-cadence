@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,11 @@ function NotificationsPage() {
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm">{n.title}</p>
               {n.body && <p className="text-sm text-muted-foreground mt-0.5">{n.body}</p>}
+              {n.kind === "account_assigned" && /^\/customers\/M\d+$/.test(n.link ?? "") && (
+                <Button size="sm" variant="link" asChild>
+                  <Link to="/customers/$accountNumber" params={{ accountNumber: n.link.split("/").pop() ?? "" }}>Open account</Link>
+                </Button>
+              )}
               <p className="text-xs text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</p>
             </div>
             <StatusPill tone="neutral">{n.kind}</StatusPill>
