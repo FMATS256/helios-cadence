@@ -26,6 +26,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Expose account opening under the email API and add automatic assigned-manager alerts for all newly created accounts
 - [ ] Connect the separate IMT website account form to the new account-opening endpoint after publishing; website source is outside this project
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
