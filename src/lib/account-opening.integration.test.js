@@ -23,3 +23,17 @@ test.skipIf(!process.env.RUN_ACCOUNT_OPENING_INTEGRATION)("email API opens an ac
   const unsigned = await fetch("http://localhost:8080/api/public/email/accounts/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: raw });
   expect(unsigned.status).toBe(401);
 }, 30000);
+
+test.skipIf(!process.env.WELCOME_VERIFICATION_ACCOUNT)("welcome is saved once with the assigned sender, account and personalized signature", () => {
+  const account = process.env.WELCOME_VERIFICATION_ACCOUNT;
+  if (!account || !/^M\d+$/.test(account)) throw new Error("A verified account number is required");
+  const rows = JSON.parse(execFileSync("lovable", ["supabase", "query", `select c.welcome_email_status,m.from_address=p.email as correct_sender,m.subject='Welcome to IMT Solutions — Account '||c.account_number as correct_subject,position(c.account_number in m.body_text)>0 as has_account,position(p.full_name in split_part(m.body_html,'<!--imt-sig-->',2))>0 as has_manager_signature,position('microsoft-365' in m.body_html)>0 as has_banner,(select count(*)::int from email_messages x join email_enquiries e on e.id=x.enquiry_id where e.customer_id=c.id and x.direction='outbound') as sent_count from customers c join profiles p on p.id=c.account_manager_id join email_messages m on m.id=c.welcome_email_message_id where c.account_number='${account}'`], { encoding: "utf8" }));
+  expect(rows).toHaveLength(1);
+  expect(rows[0].welcome_email_status).toBe("sent");
+  expect(rows[0].correct_sender).toBe(true);
+  expect(rows[0].correct_subject).toBe(true);
+  expect(rows[0].has_account).toBe(true);
+  expect(rows[0].has_manager_signature).toBe(true);
+  expect(rows[0].has_banner).toBe(true);
+  expect(rows[0].sent_count).toBe(1);
+});
