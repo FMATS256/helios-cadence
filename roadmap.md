@@ -24,6 +24,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Build reference-style IMT quotation layout with existing logo, prices and terms; verify preview and PDF
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied
