@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Bell, Check } from "lucide-react";
 
 export const Route = createFileRoute("/notifications")({
-  head: () => ({ meta: [{ title: "Notifications — IMT Operations" }] }),
+  head: () => ({ meta: [
+    { title: "Notifications — IMT Operations" },
+    { name: "description", content: "Your IMT account assignments and operational alerts." },
+    { property: "og:title", content: "Notifications — IMT Operations" },
+    { property: "og:description", content: "Your IMT account assignments and operational alerts." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: NotificationsPage,
 });
 

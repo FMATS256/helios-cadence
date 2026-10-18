@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { createHmac } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 // Explicit opt-in: creates a temporary account for live API/notification checks.
 test.skipIf(!process.env.RUN_ACCOUNT_OPENING_INTEGRATION)("email API opens an account and original API replays without another account", async () => {
@@ -17,6 +18,8 @@ test.skipIf(!process.env.RUN_ACCOUNT_OPENING_INTEGRATION)("email API opens an ac
   const replayed = await retry.json();
   expect(replayed.replayed).toBe(true);
   expect(replayed.account_number).toBe(opened.account_number);
+  const alerts = JSON.parse(execFileSync("lovable", ["supabase", "query", `select count(*)::int as alerts from notifications n join customers c on n.user_id=c.account_manager_id and n.link='/customers/'||c.account_number where n.kind='account_assigned' and c.account_number='${opened.account_number}'`], { encoding: "utf8" }));
+  expect(alerts[0].alerts).toBe(1);
   const unsigned = await fetch("http://localhost:8080/api/public/email/accounts/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: raw });
   expect(unsigned.status).toBe(401);
 }, 30000);
