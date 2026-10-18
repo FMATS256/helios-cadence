@@ -361,6 +361,10 @@ export async function sendInboxEmail(opts: {
         content_type: attachment.contentType ?? "application/octet-stream",
       }));
     }
+    // Strip automated acknowledgement boilerplate from quoted history: the
+    // gateway refuses messages containing it (ack_sent_by_website anti-loop rule).
+    payload.html = stripAutoAckFromHtml(String(payload.html ?? ""));
+    payload.text = stripAutoAckFromText(String(payload.text ?? ""));
     try {
       const res = await fetch(`${gatewayUrl.replace(/\/$/, "")}/api/public/email/send`, {
         method: "POST",
