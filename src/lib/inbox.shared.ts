@@ -7,6 +7,11 @@ export const DEPARTMENT_MAILBOXES = [
   { department: "Accounting", addresses: [`accounts@${MAIL_DOMAIN}`, `billing@${MAIL_DOMAIN}`], roles: ["finance"] },
   { department: "Technical", addresses: [`support@${MAIL_DOMAIN}`, `helpdesk@${MAIL_DOMAIN}`], roles: ["technical_support", "cloud_engineer", "cyber_security", "noc"] },
 ];
+/** True for shared department mailboxes (sales@, accounts@...); false for a staff member's own inbox. */
+export function isDepartmentMailbox(address?: string | null) {
+  const a = String(address ?? SALES_INBOX).toLowerCase();
+  return DEPARTMENT_MAILBOXES.some((d) => d.addresses.includes(a));
+}
 export function mailboxesForRoles(roles: string[]) {
   return DEPARTMENT_MAILBOXES.filter((d) => roles.some((r) => d.roles.includes(r)) || roles.some((r) => ["master_admin", "operations_manager"].includes(r)));
 }

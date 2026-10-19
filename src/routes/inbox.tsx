@@ -22,6 +22,7 @@ import {
   type InboxScope,
 } from "@/lib/inbox.functions";
 import type { EmailDraft, EmailOrganization, EnquiryListItem } from "@/lib/inbox.shared";
+import { isDepartmentMailbox } from "@/lib/inbox.shared";
 import {
   AlertCircle,
   Archive,
@@ -158,7 +159,7 @@ function EnquiryRow({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs font-normal text-muted-foreground">
-            {enquiry.reference} · {enquiry.customer_account_number ?? "Walk-in enquiry"}
+            {isDepartmentMailbox(enquiry.mailbox_address) ? `${enquiry.reference} · ` : ""}{enquiry.customer_account_number ?? "Walk-in enquiry"}
           </span>
           <span className={`shrink-0 px-1.5 py-0.5 text-[10px] font-semibold ${statusClass(enquiry.status)}`}>
             {statusLabel(enquiry.status)}
@@ -717,7 +718,7 @@ function InboxPage() {
             <header className="shrink-0 border-b border-border bg-card px-4 py-3 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="mb-1 text-xs font-semibold text-solar">{active.reference}</div>
+                  {isDepartmentMailbox(active.mailbox_address) ? <div className="mb-1 text-xs font-semibold text-solar">{active.reference}</div> : null}
                   <h2 className="break-words font-display text-lg font-semibold text-foreground">{active.subject}</h2>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                     <span className="break-all">{active.contact_name || active.contact_email}</span>
