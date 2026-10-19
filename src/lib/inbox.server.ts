@@ -891,9 +891,10 @@ export async function sendEnquiryReply(opts: {
     signatureHtml: opts.signatureHtml,
     quotes,
   });
-  const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}${opts.originalSubject ? "" : `\nEnquiry reference: ${enquiry.reference}`}`;
+  const hideReference = opts.originalSubject || !isDepartmentMailbox(enquiry.mailbox_address);
+  const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}${hideReference ? "" : `\nEnquiry reference: ${enquiry.reference}`}`;
   const baseSubject = enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`;
-  const taggedSubject = opts.originalSubject ? enquiry.subject : new RegExp(enquiry.reference, "i").test(baseSubject)
+  const taggedSubject = opts.originalSubject ? enquiry.subject : hideReference ? baseSubject : new RegExp(enquiry.reference, "i").test(baseSubject)
     ? baseSubject
     : `${baseSubject} [${enquiry.reference}]`;
 
