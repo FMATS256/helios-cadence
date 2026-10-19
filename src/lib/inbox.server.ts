@@ -667,7 +667,12 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
         customer_id: customer?.id ?? null,
         contact_email: fromEmail,
         contact_name: contactName,
-        mailbox_address: (input.to ?? []).map(extractEmail).find((address) => DEPARTMENT_MAILBOXES.some((d) => d.addresses.includes(address))) || SALES_INBOX,
+        mailbox_address: (() => {
+          const recipients = (input.to ?? []).map(extractEmail);
+          return recipients.find((address) => DEPARTMENT_MAILBOXES.some((d) => d.addresses.includes(address)))
+            || recipients.find((address) => address.endsWith(`@${MAIL_DOMAIN}`))
+            || SALES_INBOX;
+        })(),
         subject,
         status: "open",
         assigned_am_id: am?.id ?? null,
@@ -770,15 +775,19 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   }
 
   const isNew = enquiry.message_count === 0;
+  // Only mail actually addressed to sales@ is acknowledged; direct staff mail never is.
+  const deliveredTo = [...(input.to ?? []), ...(input.cc ?? [])].map(extractEmail);
+  const sentToSales = deliveredTo.includes(SALES_INBOX);
 
-  // Auto-acknowledge brand-new enquiries from the sales inbox.
-  if (isNew) {
-    const ackText = `Dear ${contactName ?? "Customer"},\n\nYour enquiry has been logged with our Sales Team. Your enquiry reference is ${enquiry.reference}.\n\nAn Account Manager will respond shortly. Please quote ${enquiry.reference} in any follow-up.\n\nKind regards,\nIMT Solutions Sales Team`;
+  // Auto-acknowledge brand-new sales enquiries with plain text only (no signature).
+  if (isNew && sentToSales) {
+    const ackText = `Dear ${contactName ?? "Customer"},\n\nThank you for contacting IMT Solutions. We have received your email and your reference number is ${enquiry.reference}.\n\nAn Account Manager will respond shortly. Please quote ${enquiry.reference} in any follow-up.\n\nIMT Solutions Sales`;
+    const ackPlainHtml = `<div style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px">${ackText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`;
     const result = await sendInboxEmail({
       from: `IMT Solutions Sales <${SALES_INBOX}>`,
       to: fromEmail,
       subject: `Re: ${subject} [${enquiry.reference}]`,
-      html: ackHtml(enquiry.reference, contactName, subject),
+      html: ackPlainHtml,
       text: ackText,
       headers: rawMessageId
         ? {
@@ -794,7 +803,7 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
       from_address: SALES_INBOX,
       to_address: fromEmail,
       subject: `Re: ${subject}`,
-      body_html: ackHtml(enquiry.reference, contactName, subject),
+      body_html: null,
       body_text: ackText,
       resend_email_id: result.ok ? result.id : null,
       delivery_status: result.ok ? "sent" : "failed",
