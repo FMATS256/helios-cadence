@@ -8,7 +8,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { listAccountManagerRecords } from "./account-managers.server";
 import { AM_PHONE } from "./account-managers.shared";
 import { recordCustomerEvent } from "./customer-events.server";
-import { MAIL_DOMAIN, SALES_INBOX, type EnquiryStatus, DEPARTMENT_MAILBOXES } from "./inbox.shared";
+import { MAIL_DOMAIN, SALES_INBOX, type EnquiryStatus, DEPARTMENT_MAILBOXES, isDepartmentMailbox } from "./inbox.shared";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/resend";
 
