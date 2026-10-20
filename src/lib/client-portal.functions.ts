@@ -3,6 +3,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { clientPaymentSchema, clientTicketSchema, invoiceBalances, ownedProofPath } from "./client-portal.shared";
 
+export const getStaffAccess = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data, error } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
+  if (error) throw new Error("Unable to verify access");
+  return Boolean(data);
+});
+
 export const getClientAccount = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { data: cid, error } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
   if (error) throw new Error("Unable to check account access");

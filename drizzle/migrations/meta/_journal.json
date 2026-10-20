@@ -127,6 +127,13 @@
       "when": 1792515585051,
       "tag": "0017_harden_client_profile_link_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792515846599,
+      "tag": "0018_enforce_client_access_boundaries",
+      "breakpoints": true
     }
   ]
 }

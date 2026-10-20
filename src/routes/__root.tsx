@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getClientAccount } from "@/lib/client-portal.functions";
+import { getStaffAccess } from "@/lib/client-portal.functions";
 
 function NotFoundComponent() {
   return (
@@ -100,12 +100,12 @@ function AuthGate() {
   const isConsent = pathname === "/.lovable/oauth/consent";
   const isClient = pathname === "/client" || pathname.startsWith("/client/");
   const isPublic = pathname === "/auth" || isConsent || isClient;
-  const accountFn = useServerFn(getClientAccount);
-  const account = useQuery({ queryKey: ["client-account", user?.id], queryFn: () => accountFn(), enabled: !!user, retry: false });
+  const accessFn = useServerFn(getStaffAccess);
+  const access = useQuery({ queryKey: ["staff-access", user?.id], queryFn: () => accessFn(), enabled: !!user && !isPublic, retry: false });
 
   useEffect(() => {
-    if (!isPublic && account.data) navigate({ to: "/client", replace: true });
-  }, [isPublic, account.data, navigate]);
+    if (!isPublic && access.data === false) navigate({ to: "/client", replace: true });
+  }, [isPublic, access.data, navigate]);
 
   useEffect(() => {
     if (isPublic || loading || user) return;
@@ -118,7 +118,7 @@ function AuthGate() {
 
   if (isPublic) return <Outlet />;
 
-  if (loading || !user || account.isPending || account.data) {
+  if (loading || !user || access.isPending || access.error || access.data === false) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Checking your session…</p>
