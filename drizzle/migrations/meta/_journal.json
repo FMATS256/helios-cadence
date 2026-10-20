@@ -120,6 +120,13 @@
       "when": 1792515512382,
       "tag": "0016_client_account_portal_access",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792515585051,
+      "tag": "0017_harden_client_profile_link_guard",
+      "breakpoints": true
     }
   ]
 }
