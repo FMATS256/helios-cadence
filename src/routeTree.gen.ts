@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as ClientRouteImport } from './routes/client'
 import { Route as CloudRouteImport } from './routes/cloud'
 import { Route as CloudStorageRouteImport } from './routes/cloud-storage'
 import { Route as CommunicationsRouteImport } from './routes/communications'
@@ -52,6 +53,12 @@ import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
+import { Route as ClientIndexRouteImport } from './routes/client.index'
+import { Route as ClientAccessRouteImport } from './routes/client.access'
+import { Route as ClientInvoicesRouteImport } from './routes/client.invoices'
+import { Route as ClientPaymentsRouteImport } from './routes/client.payments'
+import { Route as ClientServicesRouteImport } from './routes/client.services'
+import { Route as ClientSupportRouteImport } from './routes/client.support'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
 import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
@@ -135,6 +142,11 @@ const BillingRoute = BillingRouteImport.update({
 const CatalogRoute = CatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientRoute = ClientRouteImport.update({
+  id: '/client',
+  path: '/client',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudRoute = CloudRouteImport.update({
@@ -318,6 +330,36 @@ const AssetsIdRoute = AssetsIdRouteImport.update({
   id: '/assets_/$id',
   path: '/assets/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ClientIndexRoute = ClientIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAccessRoute = ClientAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientInvoicesRoute = ClientInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientPaymentsRoute = ClientPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientServicesRoute = ClientServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientSupportRoute = ClientSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => ClientRoute,
 } as any)
 const CloudOpsIndexRoute = CloudOpsIndexRouteImport.update({
   id: '/cloud-ops/',
@@ -593,6 +635,7 @@ export interface FileRoutesByFullPath {
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
   '/catalog': typeof CatalogRoute
+  '/client': typeof ClientRouteWithChildren
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -629,6 +672,11 @@ export interface FileRoutesByFullPath {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
+  '/client/access': typeof ClientAccessRoute
+  '/client/invoices': typeof ClientInvoicesRoute
+  '/client/payments': typeof ClientPaymentsRoute
+  '/client/services': typeof ClientServicesRoute
+  '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -640,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/client/': typeof ClientIndexRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -723,6 +772,11 @@ export interface FileRoutesByTo {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
+  '/client/access': typeof ClientAccessRoute
+  '/client/invoices': typeof ClientInvoicesRoute
+  '/client/payments': typeof ClientPaymentsRoute
+  '/client/services': typeof ClientServicesRoute
+  '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -734,6 +788,7 @@ export interface FileRoutesByTo {
   '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets/$id': typeof TicketsIdRoute
+  '/client': typeof ClientIndexRoute
   '/cloud-ops': typeof CloudOpsIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -781,6 +836,7 @@ export interface FileRoutesById {
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
   '/catalog': typeof CatalogRoute
+  '/client': typeof ClientRouteWithChildren
   '/cloud': typeof CloudRoute
   '/cloud-storage': typeof CloudStorageRoute
   '/communications': typeof CommunicationsRoute
@@ -817,6 +873,11 @@ export interface FileRoutesById {
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets_/$id': typeof AssetsIdRoute
+  '/client/access': typeof ClientAccessRoute
+  '/client/invoices': typeof ClientInvoicesRoute
+  '/client/payments': typeof ClientPaymentsRoute
+  '/client/services': typeof ClientServicesRoute
+  '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
@@ -828,6 +889,7 @@ export interface FileRoutesById {
   '/techops/soc': typeof TechopsSocRoute
   '/techops/vault': typeof TechopsVaultRoute
   '/tickets_/$id': typeof TicketsIdRoute
+  '/client/': typeof ClientIndexRoute
   '/cloud-ops/': typeof CloudOpsIndexRoute
   '/customers/': typeof CustomersIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -877,6 +939,7 @@ export interface FileRouteTypes {
     | '/automation'
     | '/billing'
     | '/catalog'
+    | '/client'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -913,6 +976,11 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
+    | '/client/access'
+    | '/client/invoices'
+    | '/client/payments'
+    | '/client/services'
+    | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
@@ -924,6 +992,7 @@ export interface FileRouteTypes {
     | '/techops/soc'
     | '/techops/vault'
     | '/tickets/$id'
+    | '/client/'
     | '/cloud-ops/'
     | '/customers/'
     | '/.lovable/oauth/consent'
@@ -1007,6 +1076,11 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
+    | '/client/access'
+    | '/client/invoices'
+    | '/client/payments'
+    | '/client/services'
+    | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
@@ -1018,6 +1092,7 @@ export interface FileRouteTypes {
     | '/techops/soc'
     | '/techops/vault'
     | '/tickets/$id'
+    | '/client'
     | '/cloud-ops'
     | '/customers'
     | '/.lovable/oauth/consent'
@@ -1064,6 +1139,7 @@ export interface FileRouteTypes {
     | '/automation'
     | '/billing'
     | '/catalog'
+    | '/client'
     | '/cloud'
     | '/cloud-storage'
     | '/communications'
@@ -1100,6 +1176,11 @@ export interface FileRouteTypes {
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets_/$id'
+    | '/client/access'
+    | '/client/invoices'
+    | '/client/payments'
+    | '/client/services'
+    | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
@@ -1111,6 +1192,7 @@ export interface FileRouteTypes {
     | '/techops/soc'
     | '/techops/vault'
     | '/tickets_/$id'
+    | '/client/'
     | '/cloud-ops/'
     | '/customers/'
     | '/.lovable/oauth/consent'
@@ -1159,6 +1241,7 @@ export interface RootRouteChildren {
   AutomationRoute: typeof AutomationRoute
   BillingRoute: typeof BillingRoute
   CatalogRoute: typeof CatalogRoute
+  ClientRoute: typeof ClientRouteWithChildren
   CloudRoute: typeof CloudRoute
   CloudStorageRoute: typeof CloudStorageRoute
   CommunicationsRoute: typeof CommunicationsRoute
@@ -1287,6 +1370,13 @@ declare module '@tanstack/react-router' {
       path: '/catalog'
       fullPath: '/catalog'
       preLoaderRoute: typeof CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client': {
+      id: '/client'
+      path: '/client'
+      fullPath: '/client'
+      preLoaderRoute: typeof ClientRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cloud': {
@@ -1540,6 +1630,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/assets/$id'
       preLoaderRoute: typeof AssetsIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/client/': {
+      id: '/client/'
+      path: '/'
+      fullPath: '/client/'
+      preLoaderRoute: typeof ClientIndexRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/access': {
+      id: '/client/access'
+      path: '/access'
+      fullPath: '/client/access'
+      preLoaderRoute: typeof ClientAccessRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/invoices': {
+      id: '/client/invoices'
+      path: '/invoices'
+      fullPath: '/client/invoices'
+      preLoaderRoute: typeof ClientInvoicesRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/payments': {
+      id: '/client/payments'
+      path: '/payments'
+      fullPath: '/client/payments'
+      preLoaderRoute: typeof ClientPaymentsRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/services': {
+      id: '/client/services'
+      path: '/services'
+      fullPath: '/client/services'
+      preLoaderRoute: typeof ClientServicesRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/support': {
+      id: '/client/support'
+      path: '/support'
+      fullPath: '/client/support'
+      preLoaderRoute: typeof ClientSupportRouteImport
+      parentRoute: typeof ClientRoute
     }
     '/cloud-ops/': {
       id: '/cloud-ops/'
@@ -1887,6 +2019,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ClientRouteChildren {
+  ClientAccessRoute: typeof ClientAccessRoute
+  ClientInvoicesRoute: typeof ClientInvoicesRoute
+  ClientPaymentsRoute: typeof ClientPaymentsRoute
+  ClientServicesRoute: typeof ClientServicesRoute
+  ClientSupportRoute: typeof ClientSupportRoute
+  ClientIndexRoute: typeof ClientIndexRoute
+}
+
+const ClientRouteChildren: ClientRouteChildren = {
+  ClientAccessRoute: ClientAccessRoute,
+  ClientInvoicesRoute: ClientInvoicesRoute,
+  ClientPaymentsRoute: ClientPaymentsRoute,
+  ClientServicesRoute: ClientServicesRoute,
+  ClientSupportRoute: ClientSupportRoute,
+  ClientIndexRoute: ClientIndexRoute,
+}
+
+const ClientRouteWithChildren =
+  ClientRoute._addFileChildren(ClientRouteChildren)
+
 interface CSlugWorkspaceKeyServersRouteChildren {
   CSlugWorkspaceKeyServersServerIdRoute: typeof CSlugWorkspaceKeyServersServerIdRoute
 }
@@ -1946,6 +2099,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationRoute: AutomationRoute,
   BillingRoute: BillingRoute,
   CatalogRoute: CatalogRoute,
+  ClientRoute: ClientRouteWithChildren,
   CloudRoute: CloudRoute,
   CloudStorageRoute: CloudStorageRoute,
   CommunicationsRoute: CommunicationsRoute,
