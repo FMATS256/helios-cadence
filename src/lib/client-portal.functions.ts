@@ -39,7 +39,8 @@ export const submitClientPayment = createServerFn({ method: "POST" }).middleware
   const { data: cid } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
   if (!cid || !ownedProofPath(data.proof.path, cid, context.userId)) throw new Error("Payment proof does not belong to your account");
   const { data: id, error } = await context.supabase.rpc("submit_client_payment", {
-    p_request_id: data.request_id, ...(data.invoice_id ? { p_invoice_id: data.invoice_id } : {}), p_amount: data.amount, p_currency: data.currency,
+    // Generated RPC types omit SQL argument nullability; PostgreSQL accepts NULL for account payments.
+    p_request_id: data.request_id, p_invoice_id: data.invoice_id as unknown as string, p_amount: data.amount, p_currency: data.currency,
     p_method: data.method, p_payment_date: data.payment_date, p_reference: data.reference,
     p_path: data.proof.path, p_name: data.proof.name, p_type: data.proof.type, p_size: data.proof.size,
   });
