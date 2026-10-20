@@ -113,6 +113,13 @@
       "when": 1792331743679,
       "tag": "0015_customer_welcome_email_state",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792515512382,
+      "tag": "0016_client_account_portal_access",
+      "breakpoints": true
     }
   ]
 }

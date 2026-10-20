@@ -3924,6 +3924,7 @@ export type Database = {
           account_number: string | null
           amount: number
           cash_account_id: string | null
+          client_request_id: string | null
           created_at: string
           currency: string
           customer_id: string
@@ -3954,6 +3955,7 @@ export type Database = {
           account_number?: string | null
           amount: number
           cash_account_id?: string | null
+          client_request_id?: string | null
           created_at?: string
           currency?: string
           customer_id: string
@@ -3984,6 +3986,7 @@ export type Database = {
           account_number?: string | null
           amount?: number
           cash_account_id?: string | null
+          client_request_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string
@@ -6923,6 +6926,22 @@ export type Database = {
       save_email_workspace_value: {
         Args: { p_field: string; p_key: string; p_value: Json }
         Returns: undefined
+      }
+      submit_client_payment: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_invoice_id: string
+          p_method: string
+          p_name: string
+          p_path: string
+          p_payment_date: string
+          p_reference: string
+          p_request_id: string
+          p_size: number
+          p_type: string
+        }
+        Returns: string
       }
       workspace_role_of: {
         Args: { _user: string; _workspace: string }
