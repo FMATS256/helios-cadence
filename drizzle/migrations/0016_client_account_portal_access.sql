@@ -1,0 +1,33 @@
+CREATE OR REPLACE FUNCTION public.guard_profile_customer_link() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$ BEGIN IF (TG_OP = 'INSERT' AND NEW.customer_id IS NOT NULL) OR (TG_OP = 'UPDATE' AND NEW.customer_id IS DISTINCT FROM OLD.customer_id) THEN IF current_user NOT IN ('postgres','supabase_admin') AND coalesce(auth.role(),'') <> 'service_role' AND NOT coalesce(public.is_master_admin(auth.uid()),false) THEN RAISE EXCEPTION 'Only administrators can link client accounts'; END IF; END IF; RETURN NEW; END $$;
+CREATE TRIGGER guard_profile_customer_link BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_profile_customer_link();
+GRANT SELECT ON public.subscriptions, public.payment_allocations, public.payment_submissions, public.ticket_messages TO authenticated;
+CREATE POLICY "Client reads own subscriptions" ON public.subscriptions FOR SELECT TO authenticated USING (customer_id = public.portal_customer_id(auth.uid()));
+CREATE POLICY "Client reads own allocations" ON public.payment_allocations FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_id AND i.customer_id = public.portal_customer_id(auth.uid())));
+CREATE POLICY "Client reads own submissions" ON public.payment_submissions FOR SELECT TO authenticated USING (customer_id = public.portal_customer_id(auth.uid()));
+CREATE POLICY "Client reads public ticket replies" ON public.ticket_messages FOR SELECT TO authenticated USING (NOT is_internal AND EXISTS (SELECT 1 FROM public.tickets t WHERE t.id = ticket_id AND t.customer_id = public.portal_customer_id(auth.uid())));
+CREATE POLICY "Client adds public ticket replies" ON public.ticket_messages FOR INSERT TO authenticated WITH CHECK (author_id = auth.uid() AND NOT is_internal AND EXISTS (SELECT 1 FROM public.tickets t WHERE t.id = ticket_id AND t.customer_id = public.portal_customer_id(auth.uid()) AND t.archived_at IS NULL));
+GRANT INSERT ON public.ticket_messages TO authenticated;
+CREATE POLICY "Client uploads own payment proof" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'customer-documents' AND (storage.foldername(name))[1] = public.portal_customer_id(auth.uid())::text AND (storage.foldername(name))[2] = 'portal' AND (storage.foldername(name))[3] = auth.uid()::text);
+CREATE POLICY "Client reads own payment proof" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'customer-documents' AND (storage.foldername(name))[1] = public.portal_customer_id(auth.uid())::text AND (storage.foldername(name))[2] = 'portal' AND (storage.foldername(name))[3] = auth.uid()::text);
+ALTER TABLE public.payment_submissions ADD COLUMN client_request_id uuid;
+CREATE UNIQUE INDEX payment_submissions_client_request ON public.payment_submissions (submitted_by, client_request_id) WHERE client_request_id IS NOT NULL;
+CREATE OR REPLACE FUNCTION public.submit_client_payment(p_request_id uuid,p_invoice_id uuid,p_amount numeric,p_currency text,p_method text,p_payment_date date,p_reference text,p_path text,p_name text,p_type text,p_size integer) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE cid uuid; acct text; sid uuid; did uuid;
+BEGIN
+cid := public.portal_customer_id(auth.uid());
+IF cid IS NULL THEN RAISE EXCEPTION 'Client account not linked'; END IF;
+SELECT account_number INTO acct FROM public.customers WHERE id=cid AND archived_at IS NULL;
+IF acct IS NULL THEN RAISE EXCEPTION 'Client account unavailable'; END IF;
+PERFORM pg_advisory_xact_lock(hashtextextended(auth.uid()::text || p_request_id::text,0));
+SELECT id INTO sid FROM public.payment_submissions WHERE submitted_by=auth.uid() AND client_request_id=p_request_id;
+IF sid IS NOT NULL THEN RETURN sid; END IF;
+IF p_amount IS NULL OR p_amount <= 0 OR p_amount > 10000000 OR p_currency NOT IN ('USD','ZWG','ZAR') OR p_method NOT IN ('bank_transfer','ecocash','cash','card') OR coalesce(length(trim(p_reference)),0)=0 THEN RAISE EXCEPTION 'Invalid payment details'; END IF;
+IF p_invoice_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.invoices WHERE id=p_invoice_id AND customer_id=cid AND archived_at IS NULL AND status NOT IN ('draft','void','cancelled') AND currency=p_currency) THEN RAISE EXCEPTION 'Invoice unavailable'; END IF;
+IF p_path NOT LIKE cid::text || '/portal/' || auth.uid()::text || '/%' OR p_path LIKE '%..%' OR p_type NOT IN ('application/pdf','image/jpeg','image/png') OR p_size <= 0 OR p_size > 10485760 OR NOT EXISTS(SELECT 1 FROM storage.objects WHERE bucket_id='customer-documents' AND name=p_path AND owner_id=auth.uid()::text) THEN RAISE EXCEPTION 'Payment proof unavailable'; END IF;
+INSERT INTO public.customer_documents(customer_id,account_number,doc_key,doc_label,category,file_path,file_name,mime_type,file_size,uploaded_by) VALUES(cid,acct,'proof_of_payment','Proof of payment','billing',p_path,p_name,p_type,p_size,auth.uid()) RETURNING id INTO did;
+INSERT INTO public.payment_submissions(customer_id,account_number,invoice_id,amount,currency,method,payment_date,reference,proof_document_id,status,submitted_by,client_request_id) VALUES(cid,acct,p_invoice_id,p_amount,p_currency,p_method,p_payment_date,trim(p_reference),did,'pending',auth.uid(),p_request_id) RETURNING id INTO sid;
+INSERT INTO public.notifications(user_id,kind,title,body,link) SELECT DISTINCT user_id,'portal_payment','Client payment awaiting verification',acct || ' submitted ' || p_currency || ' ' || p_amount::text,'/payments?tab=submissions' FROM public.user_roles WHERE role IN ('finance','operations_manager','master_admin');
+RETURN sid;
+END $$;
+REVOKE ALL ON FUNCTION public.submit_client_payment(uuid,uuid,numeric,text,text,date,text,text,text,text,integer) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.submit_client_payment(uuid,uuid,numeric,text,text,date,text,text,text,text,integer) TO authenticated;

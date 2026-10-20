@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Built client portal at /client with administrator-managed account links, invoice balances, payments/proof, services and support; linked-account upload/pending-payment readback and support replies verified on desktop/mobile; temporary records removed
 - Published management platform; public email account-opening endpoint verified responding 401 to an unsigned request instead of 404
 - Automatic welcome emails across staff creation, lead conversion and website opening use the assigned manager's address, account details and personalized Microsoft signature; clean live send, saved inbox readback and no duplicate on application replay verified
 - Email API account-opening address shares the signed action; atomic assigned-manager in-app alerts cover all account inserts; API replay, exactly one alert and Customer 360 readback verified (six tests); temporary records removed
@@ -29,6 +30,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Verify client-only session isolation (needs a designated sign-in without staff roles); linked-account flow has been tested with the requesting administrator
 - [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery

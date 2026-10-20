@@ -34,6 +34,7 @@ type NavNode = NavLeaf & { children?: NavLeaf[] };
 
 const siteNav: NavNode[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Client Portal", url: "/client/access", icon: ShieldCheck, masterOnly: true },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Packages", url: "/catalog", icon: Package },
   {
