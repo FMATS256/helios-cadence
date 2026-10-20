@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Client portal published to the custom domain at https://management.imtsolutions.co.zw/client; anonymous visitors see the client sign-in only, staff navigation is absent, pages carry noindex, and the requesting administrator's own sign-in correctly reports "not linked" instead of client data
 - Built client portal at /client with administrator-managed account links, invoice balances, payments/proof, services and support; linked-account upload/pending-payment readback and support replies verified on desktop/mobile; temporary records removed
 - Published management platform; public email account-opening endpoint verified responding 401 to an unsigned request instead of 404
 - Automatic welcome emails across staff creation, lead conversion and website opening use the assigned manager's address, account details and personalized Microsoft signature; clean live send, saved inbox readback and no duplicate on application replay verified
