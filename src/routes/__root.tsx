@@ -10,6 +10,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getClientAccount } from "@/lib/client-portal.functions";
 
 function NotFoundComponent() {
   return (
@@ -56,8 +59,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Dashboard — IMT Operations Platform" },
       { name: "twitter:description", content: "Role-tailored command center: finance, account management, and support." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/201e49e8-4fab-4ba0-b417-55b65e6dd3c7" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/201e49e8-4fab-4ba0-b417-55b65e6dd3c7" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -97,7 +98,14 @@ function AuthGate() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const isConsent = pathname === "/.lovable/oauth/consent";
-  const isPublic = pathname === "/auth" || isConsent;
+  const isClient = pathname === "/client" || pathname.startsWith("/client/");
+  const isPublic = pathname === "/auth" || isConsent || isClient;
+  const accountFn = useServerFn(getClientAccount);
+  const account = useQuery({ queryKey: ["client-account", user?.id], queryFn: () => accountFn(), enabled: !!user, retry: false });
+
+  useEffect(() => {
+    if (!isPublic && account.data) navigate({ to: "/client", replace: true });
+  }, [isPublic, account.data, navigate]);
 
   useEffect(() => {
     if (isPublic || loading || user) return;
@@ -110,7 +118,7 @@ function AuthGate() {
 
   if (isPublic) return <Outlet />;
 
-  if (loading || !user) {
+  if (loading || !user || account.isPending || account.data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Checking your session…</p>
