@@ -29,6 +29,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Build secure client account portal with invoices, payments/proof, services and support; verify linked-client access and isolation
 - [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
