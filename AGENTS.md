@@ -1,4 +1,5 @@
 # Architecture decisions
+- The client account portal resolves ownership from administrator-linked profiles, uses authenticated RLS reads and atomic pending payment submissions, and never exposes the staff shell or permits client approval; profile ownership changes are protected by a database trigger.
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
