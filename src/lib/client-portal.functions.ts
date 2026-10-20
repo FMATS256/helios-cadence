@@ -24,7 +24,11 @@ export const getClientPortalData = createServerFn({ method: "GET" }).middleware(
     db.from("tickets").select("id,ticket_number,subject,description,status,priority,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
   ]);
   if (results.some((r) => r.error)) throw new Error("Your account information could not be loaded. Please retry.");
-  const [invoices, payments, submissions, services, tickets] = results.map((r) => r.data ?? []);
+  const invoices = results[0].data ?? [];
+  const payments = results[1].data ?? [];
+  const submissions = results[2].data ?? [];
+  const services = results[3].data ?? [];
+  const tickets = results[4].data ?? [];
   const ids = invoices.map((i: any) => i.id);
   const allocations = ids.length ? await db.from("payment_allocations").select("invoice_id,amount").in("invoice_id", ids) : { data: [], error: null };
   if (allocations.error) throw new Error("Unable to load invoice balances");
@@ -35,7 +39,7 @@ export const submitClientPayment = createServerFn({ method: "POST" }).middleware
   const { data: cid } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
   if (!cid || !ownedProofPath(data.proof.path, cid, context.userId)) throw new Error("Payment proof does not belong to your account");
   const { data: id, error } = await context.supabase.rpc("submit_client_payment", {
-    p_request_id: data.request_id, p_invoice_id: data.invoice_id, p_amount: data.amount, p_currency: data.currency,
+    p_request_id: data.request_id, ...(data.invoice_id ? { p_invoice_id: data.invoice_id } : {}), p_amount: data.amount, p_currency: data.currency,
     p_method: data.method, p_payment_date: data.payment_date, p_reference: data.reference,
     p_path: data.proof.path, p_name: data.proof.name, p_type: data.proof.type, p_size: data.proof.size,
   });
@@ -46,7 +50,9 @@ export const submitClientPayment = createServerFn({ method: "POST" }).middleware
 export const createClientTicket = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v) => clientTicketSchema.parse(v)).handler(async ({ data, context }) => {
   const { data: cid } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
   if (!cid) throw new Error("Client account not linked");
-  const { data: row, error } = await context.supabase.from("tickets").insert({ ...data, customer_id: cid, created_by: context.userId, status: "open" }).select("id,ticket_number").single();
+  const { data: customer } = await context.supabase.from("customers").select("account_number").eq("id", cid).is("archived_at", null).maybeSingle();
+  if (!customer) throw new Error("Client account unavailable");
+  const { data: row, error } = await context.supabase.from("tickets").insert({ ...data, customer_id: cid, account_number: customer.account_number, created_by: context.userId, status: "open" }).select("id,ticket_number").single();
   if (error) throw new Error("Support request could not be submitted");
   return row;
 });

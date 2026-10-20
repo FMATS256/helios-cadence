@@ -17,7 +17,7 @@ export const clientTicketSchema = z.object({
   priority: z.enum(["normal", "high", "urgent"]),
 }).strict();
 
-export function invoiceBalances(invoices: Array<Record<string, any>>, allocations: Array<{ invoice_id: string; amount: number }>) {
+export function invoiceBalances<T extends { id: string; total: number; status: string }>(invoices: T[], allocations: Array<{ invoice_id: string; amount: number }>) {
   const paid = new Map<string, number>();
   for (const row of allocations) paid.set(row.invoice_id, (paid.get(row.invoice_id) ?? 0) + Number(row.amount));
   return invoices.filter((row) => !["draft", "void", "cancelled"].includes(row.status)).map((row) => ({
