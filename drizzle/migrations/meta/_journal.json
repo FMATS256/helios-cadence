@@ -148,6 +148,13 @@
       "when": 1792784135713,
       "tag": "0020_portal_service_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792784960689,
+      "tag": "0021_client_payment_intents",
+      "breakpoints": true
     }
   ]
 }
