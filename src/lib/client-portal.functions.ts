@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { serviceRequestSchema, missingRequired, describeRequest } from "./client-service-requests.shared";
 import { clientPaymentSchema, clientTicketSchema, invoiceBalances, ownedProofPath } from "./client-portal.shared";
 
 export const getStaffAccess = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
@@ -109,4 +110,28 @@ export const linkClientLogin = createServerFn({ method: "POST" }).middleware([re
   const { error } = await context.supabase.from("profiles").update({ customer_id: data.customer_id }).eq("id", data.user_id);
   if (error) throw new Error("Client login could not be linked");
   return { ok: true };
+});
+export const getClientCatalog = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data, error } = await context.supabase.from("service_catalog").select("id,code,name,category,description,unit_price,currency,billing_cycle").eq("is_active", true).order("category").order("unit_price");
+  if (error) throw new Error("Our service catalogue could not be loaded");
+  return data ?? [];
+});
+
+export const submitServiceRequest = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v) => serviceRequestSchema.parse(v)).handler(async ({ data, context }) => {
+  const { data: cid } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
+  if (!cid) throw new Error("Client account not linked");
+  const { data: customer } = await context.supabase.from("customers").select("account_number").eq("id", cid).is("archived_at", null).maybeSingle();
+  if (!customer) throw new Error("Client account unavailable");
+  let item = null;
+  if (data.catalog_id) {
+    const { data: row } = await context.supabase.from("service_catalog").select("name,code,category,unit_price,currency,billing_cycle").eq("id", data.catalog_id).eq("is_active", true).maybeSingle();
+    if (!row) throw new Error("That service is no longer available");
+    const missing = missingRequired(row.category, data.details);
+    if (missing.length) throw new Error(`Please fill in: ${missing.join(", ")}`);
+    item = row;
+  } else if (data.type !== "quote") throw new Error("Choose a service");
+  const { subject, description } = describeRequest(data, item);
+  const { data: row, error } = await context.supabase.from("tickets").insert({ subject, description, priority: "normal", customer_id: cid, account_number: customer.account_number, created_by: context.userId, status: "open" }).select("id,ticket_number").single();
+  if (error) throw new Error("Request could not be submitted");
+  return row;
 });
