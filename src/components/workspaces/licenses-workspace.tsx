@@ -25,12 +25,12 @@ export function LicensesPage() {
       emptyLabel="No licenses tracked yet."
       createTitle="Add license"
       createLabel="Add license"
-      emptyForm={{ product: "", vendor: "", category: "networking", license_key: "", seats: 1, purchase_date: "", expiry_date: "", cost: 0, auto_renew: false, notes: "" }}
+      emptyForm={{ product: "", vendor: "", category: "networking", license_key: "", seats: 1, assigned_seats: "", purchase_date: "", expiry_date: "", cost: 0, auto_renew: false, notes: "" }}
       validateForm={(f) => (!f.product ? "Product required" : null)}
-      transformInsert={(f) => ({ ...f, seats: Number(f.seats) || 1, cost: Number(f.cost) || 0, auto_renew: !!f.auto_renew, purchase_date: f.purchase_date || null, expiry_date: f.expiry_date || null })}
+      transformInsert={(f) => ({ ...f, seats: Number(f.seats) || 1, assigned_seats: f.assigned_seats === "" ? null : Number(f.assigned_seats), cost: Number(f.cost) || 0, auto_renew: !!f.auto_renew, purchase_date: f.purchase_date || null, expiry_date: f.expiry_date || null })}
       columns={[
         { header: "Product", cell: (r: any) => <div><div className="font-semibold">{r.product}</div><div className="text-xs text-muted-foreground">{r.vendor || "—"} · {r.category || "—"}</div></div> },
-        { header: "Seats", cell: (r: any) => <span className="font-mono">{r.seats}</span> },
+        { header: "Seats", cell: (r: any) => <span className="font-mono">{r.assigned_seats != null ? `${r.assigned_seats}/` : ""}{r.seats}</span> },
         { header: "Cost", cell: (r: any) => <span className="font-mono">${Number(r.cost).toFixed(2)}</span> },
         { header: "Expiry", cell: (r: any) => {
           const d = daysUntil(r.expiry_date);
@@ -52,6 +52,7 @@ export function LicensesPage() {
             </select>
           </div>
           <div className="space-y-2"><Label>Seats</Label><Input type="number" min="1" value={form.seats} onChange={(e) => setForm({ ...form, seats: e.target.value })} /></div>
+          <div className="space-y-2"><Label>Seats assigned</Label><Input type="number" min="0" value={form.assigned_seats ?? ""} onChange={(e) => setForm({ ...form, assigned_seats: e.target.value })} /></div>
           <div className="space-y-2"><Label>License key</Label><Input value={form.license_key} onChange={(e) => setForm({ ...form, license_key: e.target.value })} /></div>
           <div className="space-y-2"><Label>Purchase date</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} /></div>
           <div className="space-y-2"><Label>Expiry date</Label><Input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} /></div>
