@@ -530,6 +530,76 @@ export type Database = {
         }
         Relationships: []
       }
+      client_payment_intents: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          invoice_id: string | null
+          items: Json
+          method: string
+          reference: string
+          status: string
+          submission_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          invoice_id?: string | null
+          items?: Json
+          method: string
+          reference: string
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          invoice_id?: string | null
+          items?: Json
+          method?: string
+          reference?: string
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_payment_intents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_payment_intents_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_payment_intents_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "payment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cloud_activity: {
         Row: {
           action: string
