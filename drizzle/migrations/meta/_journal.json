@@ -141,6 +141,13 @@
       "when": 1792783932242,
       "tag": "0019_client_visible_installed_systems",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792784135713,
+      "tag": "0020_portal_service_visibility",
+      "breakpoints": true
     }
   ]
 }
