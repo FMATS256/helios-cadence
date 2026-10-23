@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientAccount, getClientPortalData, submitClientPayment, createClientTicket, getClientTicket, replyClientTicket, clientAccessDirectory, linkClientLogin } from "@/lib/client-portal.functions";
 import { toast } from "sonner";
+import { startClientPayment, checkClientPayment } from "@/lib/client-pay.functions";
 import imtLogo from "@/assets/imt-logo.png.asset.json";
 
 const sections = [
@@ -79,7 +80,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   const fn = useServerFn(getClientPortalData);
   const query = useQuery({ queryKey: ["client-portal-data", user?.id], queryFn: () => fn(), enabled: !!account.data, retry: false });
   const [payment, setPayment] = useState(false); const [newTicket, setNewTicket] = useState(false); const [ticket, setTicket] = useState<any>(null);
-  const [search, setSearch] = useState(""); const [preset, setPreset] = useState<string | undefined>();
+  const [search, setSearch] = useState(""); const [payNow, setPayNow] = useState(false); const [preset, setPreset] = useState<string | undefined>();
   if (query.isPending) return <p className="py-12 text-muted-foreground">Loading account activity…</p>;
   if (query.error || !query.data) return <div className="py-12 space-y-3"><p role="alert">{query.error?.message ?? "Account unavailable"}</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div>;
   const data = query.data;
@@ -89,7 +90,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   const openTickets = data.tickets.filter((t) => !["closed", "resolved"].includes(t.status));
   const title = { overview: "Account overview", invoices: "Your invoices", payments: "Payments & receipts", services: "Your services", support: "Support requests" }[section];
   return <div className="min-h-[520px] space-y-8">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><Button onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Submit payment proof"}</Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Submit payment proof"}</Button></div></div>
     {section === "overview" && <>
       <ManagerCard manager={data.manager} account={data.profile} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{[["Starlink kits", data.starlink.length], ["Microsoft 365 seats", data.licenses.reduce((t: number, l: any) => t + (Number(l.seats) || 0), 0)], ["Hosting", data.hosting.length], ["Installed systems", data.assets.length]].map(([k, v]) => <Link key={k as string} to="/client/services" className="border border-border rounded-lg p-4 bg-card hover:border-teal"><p className="text-xs text-muted-foreground">{k}</p><p className="text-2xl font-bold mt-1">{v}</p></Link>)}</div>
@@ -109,6 +110,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
     {section === "support" && <ManagerCard manager={data.manager} account={data.profile} showProfile />}
     {section === "support" && (data.tickets.length ? <div>{data.tickets.map((t: any) => <Button key={t.id} variant="ghost" onClick={() => setTicket(t)} className="h-auto w-full justify-between rounded-none border-b border-border py-5 px-0 text-left whitespace-normal"><div className="min-w-0"><p className="text-xs text-muted-foreground mb-1">{t.ticket_number} · {date(t.created_at)}</p><p className="font-semibold break-words">{t.subject}</p></div><div className="flex items-center gap-3 ml-3"><Status value={t.status} /><ChevronRight className="h-4 w-4 shrink-0" /></div></Button>)}</div> : <Empty text="No support requests yet." />)}
     <PaymentDialog open={payment} onOpenChange={setPayment} invoices={data.invoices} />
+    <PayNowDialog open={payNow} onOpenChange={setPayNow} data={data} />
     <NewTicketDialog open={newTicket} onOpenChange={(v) => { setNewTicket(v); if (!v) setPreset(undefined); }} preset={preset} />
     <TicketDialog ticket={ticket} onClose={() => setTicket(null)} />
   </div>;
@@ -194,4 +196,48 @@ function ServiceIdentity({ data, onRequest }: { data: any; onRequest: (subject: 
       {data.storage.map((c: any) => <Card key={c.id} kind="Cloud storage" title={c.name} status={c.status} rows={[["Provider", c.provider], ["Capacity", c.storage_tb ? `${c.used_tb ?? 0} of ${c.storage_tb} TB used` : null], ["Renews", date(c.renewal_date)]]} actions={[["Add storage", `Storage expansion: ${c.name}`]]} />)}
     </div>}
   </section>;
+}
+
+function PayNowDialog({ open, onOpenChange, data }: { open: boolean; onOpenChange: (v: boolean) => void; data: any }) {
+  const start = useServerFn(startClientPayment); const check = useServerFn(checkClientPayment); const cache = useQueryClient();
+  const services: Array<{ key: string; label: string; amount: number }> = [
+    ...data.services.filter((s: any) => s.status === "active").map((s: any) => ({ key: `sub-${s.id}`, label: `${s.plan_name} renewal`, amount: Number(s.amount) || 0 })),
+    ...data.starlink.map((s: any) => ({ key: `sl-${s.id}`, label: `Starlink ${s.plan_type ?? ""} · kit ${s.kit_serial ?? ""}`.trim(), amount: Number(s.monthly_price) || 0 })),
+    ...data.licenses.map((l: any) => ({ key: `li-${l.id}`, label: `${l.product} renewal`, amount: 0 })),
+    ...data.hosting.map((h: any) => ({ key: `wh-${h.id}`, label: `Hosting ${h.domain} renewal`, amount: 0 })),
+  ];
+  const [invoice, setInvoice] = useState("none"); const [picked, setPicked] = useState<string[]>([]);
+  const [amount, setAmount] = useState(""); const [currency, setCurrency] = useState<"USD" | "ZWG">("USD");
+  const [method, setMethod] = useState<"ECOCASH" | "OMARI" | "INNBUCKS">("ECOCASH"); const [phone, setPhone] = useState("");
+  const [state, setState] = useState<{ ref: string; status: string } | null>(null); const [busy, setBusy] = useState(false);
+  const toggle = (k: string) => { const next = picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k]; setPicked(next); const sum = services.filter((s) => next.includes(s.key)).reduce((t, s) => t + s.amount, 0); if (invoice === "none" && sum > 0) setAmount(sum.toFixed(2)); };
+  const poll = async (ref: string) => {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 4000));
+      try { const r = await check({ data: { reference: ref } }); setState({ ref, status: r.status }); if (["SUCCESS", "FAILED", "CANCELLED"].includes(r.status)) { if (r.status === "SUCCESS") { toast.success("Payment received — Finance will confirm it shortly"); cache.invalidateQueries({ queryKey: ["client-portal-data"] }); } return; } } catch { /* keep polling */ }
+    }
+  };
+  const close = (v: boolean) => { if (!v) { setState(null); setPicked([]); setAmount(""); setInvoice("none"); } onOpenChange(v); };
+  return <Dialog open={open} onOpenChange={close}><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Pay now</DialogTitle></DialogHeader>
+    {state ? <div className="space-y-4 py-2"><p className="text-sm text-muted-foreground">Reference <span className="font-mono">{state.ref}</span></p>
+      {state.status === "SUCCESS" ? <p className="font-semibold text-teal">Payment successful. Finance will approve it and your receipt will appear under Payments.</p> : ["FAILED", "CANCELLED"].includes(state.status) ? <p className="font-semibold text-destructive">Payment {state.status.toLowerCase()}. No money was taken.</p> : <p className="font-semibold">{method === "INNBUCKS" ? "Complete the payment in your InnBucks app." : "Approve the payment prompt on your phone…"}</p>}
+      <Button variant="outline" className="w-full" onClick={() => close(false)}>Close</Button></div>
+    : <form className="space-y-4" onSubmit={async (e) => {
+      e.preventDefault(); const value = Number(amount); if (!(value > 0)) return toast.error("Enter the amount to pay");
+      const inv = data.invoices.find((i: any) => i.id === invoice);
+      const items = [...(inv ? [`Invoice ${inv.invoice_number}`] : []), ...services.filter((s) => picked.includes(s.key)).map((s) => s.label)];
+      if (!items.length) return toast.error("Choose an invoice or the services you are paying for");
+      setBusy(true);
+      try { const r = await start({ data: { amount: value, currency, method, phone: method === "INNBUCKS" ? undefined : phone.replace(/\s/g, ""), invoice_id: inv ? inv.id : null, items } }); setState({ ref: r.reference, status: r.status }); void poll(r.reference); }
+      catch (err) { toast.error(err instanceof Error ? err.message : "Payment could not be started"); } finally { setBusy(false); }
+    }}>
+      <div className="space-y-2"><Label>Invoice</Label><Select value={invoice} onValueChange={(v) => { setInvoice(v); const i = data.invoices.find((x: any) => x.id === v); if (i) { setAmount(String(i.balance)); if (i.currency === "USD" || i.currency === "ZWG") setCurrency(i.currency); } }}><SelectTrigger aria-label="Invoice"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No invoice — pay for services</SelectItem>{data.invoices.filter((i: any) => i.balance > 0).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.invoice_number} · {money(i.balance, i.currency)}</SelectItem>)}</SelectContent></Select></div>
+      {services.length > 0 && <fieldset className="space-y-2"><legend className="text-sm font-medium mb-1">Services paid for / renewed</legend>{services.map((s) => <label key={s.key} className="flex items-center justify-between gap-3 text-sm border border-border rounded-md px-3 py-2"><span className="flex items-center gap-2"><input type="checkbox" checked={picked.includes(s.key)} onChange={() => toggle(s.key)} />{s.label}</span>{s.amount > 0 && <span className="text-muted-foreground">{money(s.amount)}</span>}</label>)}</fieldset>}
+      <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label htmlFor="pay-amount">Amount</Label><Input id="pay-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div><div className="space-y-2"><Label>Currency</Label><Select value={currency} onValueChange={(v) => setCurrency(v as "USD" | "ZWG")}><SelectTrigger aria-label="Currency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="ZWG">ZWG</SelectItem></SelectContent></Select></div></div>
+      <div className="space-y-2"><Label>Pay with</Label><div className="grid grid-cols-3 gap-2">{(["ECOCASH", "OMARI", "INNBUCKS"] as const).map((m) => <Button key={m} type="button" variant={method === m ? "default" : "outline"} onClick={() => setMethod(m)}>{m === "ECOCASH" ? "EcoCash" : m === "OMARI" ? "O'mari" : "InnBucks"}</Button>)}</div></div>
+      {method !== "INNBUCKS" && <div className="space-y-2"><Label htmlFor="pay-phone">Phone number</Label><Input id="pay-phone" inputMode="tel" placeholder="0771234567" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>}
+      <p className="text-xs text-muted-foreground">Card payments are not available here yet. For bank transfers, use Submit payment proof.</p>
+      <Button type="submit" disabled={busy} className="w-full">{busy ? "Starting…" : "Pay"}</Button>
+    </form>}
+  </DialogContent></Dialog>;
 }
