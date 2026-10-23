@@ -5,6 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand-ecocash-blue: oklch(0.47 0.17 258);
+  --color-brand-ecocash-red: oklch(0.58 0.22 27);
+  --color-brand-omari: oklch(0.62 0.17 150);
+  --color-brand-innbucks-yellow: oklch(0.8 0.16 80);
+  --color-brand-innbucks-purple: oklch(0.52 0.16 305);
+  --color-brand-innbucks-green: oklch(0.68 0.14 165);
+  --color-brand-innbucks-red: oklch(0.58 0.23 25);
+  --color-brand-visa: oklch(0.33 0.14 268);
+  --color-brand-mc-red: oklch(0.6 0.24 27);
+  --color-brand-mc-orange: oklch(0.76 0.17 62);
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', sans-serif;
 
