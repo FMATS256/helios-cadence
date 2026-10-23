@@ -107,18 +107,26 @@ export type Database = {
           asset_tag: string | null
           asset_type: string
           assigned_to: string | null
+          camera_count: number | null
+          channel_capacity: number | null
+          client_visible: boolean
           cost: number | null
           created_at: string
           created_by: string | null
           customer_id: string | null
           id: string
+          installed_on: string | null
           location: string | null
           make: string | null
           model: string | null
+          next_maintenance: string | null
           notes: string | null
           purchase_date: string | null
           serial_number: string | null
+          site_name: string | null
           status: string
+          storage_capacity: string | null
+          subscription_id: string | null
           updated_at: string
           warranty_expires: string | null
         }
@@ -128,18 +136,26 @@ export type Database = {
           asset_tag?: string | null
           asset_type: string
           assigned_to?: string | null
+          camera_count?: number | null
+          channel_capacity?: number | null
+          client_visible?: boolean
           cost?: number | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
           id?: string
+          installed_on?: string | null
           location?: string | null
           make?: string | null
           model?: string | null
+          next_maintenance?: string | null
           notes?: string | null
           purchase_date?: string | null
           serial_number?: string | null
+          site_name?: string | null
           status?: string
+          storage_capacity?: string | null
+          subscription_id?: string | null
           updated_at?: string
           warranty_expires?: string | null
         }
@@ -149,18 +165,26 @@ export type Database = {
           asset_tag?: string | null
           asset_type?: string
           assigned_to?: string | null
+          camera_count?: number | null
+          channel_capacity?: number | null
+          client_visible?: boolean
           cost?: number | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
           id?: string
+          installed_on?: string | null
           location?: string | null
           make?: string | null
           model?: string | null
+          next_maintenance?: string | null
           notes?: string | null
           purchase_date?: string | null
           serial_number?: string | null
+          site_name?: string | null
           status?: string
+          storage_capacity?: string | null
+          subscription_id?: string | null
           updated_at?: string
           warranty_expires?: string | null
         }
@@ -170,6 +194,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
