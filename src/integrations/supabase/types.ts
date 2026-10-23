@@ -3239,6 +3239,7 @@ export type Database = {
         Row: {
           account_number: string | null
           archived_at: string | null
+          assigned_seats: number | null
           auto_renew: boolean | null
           category: string | null
           cost: number | null
@@ -3260,6 +3261,7 @@ export type Database = {
         Insert: {
           account_number?: string | null
           archived_at?: string | null
+          assigned_seats?: number | null
           auto_renew?: boolean | null
           category?: string | null
           cost?: number | null
@@ -3281,6 +3283,7 @@ export type Database = {
         Update: {
           account_number?: string | null
           archived_at?: string | null
+          assigned_seats?: number | null
           auto_renew?: boolean | null
           category?: string | null
           cost?: number | null
@@ -6944,6 +6947,14 @@ export type Database = {
           p_preferred_roles: string[]
         }
         Returns: Json
+      }
+      portal_account_manager: {
+        Args: { _user_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          phone: string
+        }[]
       }
       portal_customer_id: { Args: { _user_id: string }; Returns: string }
       recompute_invoice_status: {
