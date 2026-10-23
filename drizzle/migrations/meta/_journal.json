@@ -155,6 +155,13 @@
       "when": 1792784960689,
       "tag": "0021_client_payment_intents",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792788674661,
+      "tag": "0022_client_catalog_read",
+      "breakpoints": true
     }
   ]
 }
