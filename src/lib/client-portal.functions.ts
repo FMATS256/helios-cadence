@@ -29,7 +29,13 @@ export const getClientPortalData = createServerFn({ method: "GET" }).middleware(
     db.from("subscriptions").select("id,plan_name,description,amount,currency,billing_cycle,status,next_renewal").eq("customer_id", cid).order("created_at", { ascending: false }),
     db.from("tickets").select("id,ticket_number,subject,description,status,priority,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
     db.from("assets").select("id,asset_type,make,model,serial_number,site_name,location,status,camera_count,channel_capacity,storage_capacity,installed_on,warranty_expires,next_maintenance").eq("customer_id", cid).eq("client_visible", true).is("archived_at", null).order("created_at", { ascending: false }),
+    db.from("starlink_accounts").select("id,kit_serial,starlink_account_number,service_address,plan_type,monthly_price,status").eq("customer_id", cid).is("archived_at", null),
+    db.from("licenses").select("id,product,vendor,category,seats,assigned_seats,expiry_date,status,auto_renew").eq("customer_id", cid).is("archived_at", null),
+    db.from("web_hosting_accounts").select("id,domain,plan,disk_quota_gb,email_accounts,status,renewal_date").eq("customer_id", cid).is("archived_at", null),
+    db.from("cloud_storage_accounts").select("id,name,provider,storage_tb,used_tb,status,renewal_date").eq("customer_id", cid).is("archived_at", null),
+    db.from("customers").select("company_name,account_number,primary_email,primary_phone,billing_address").eq("id", cid).maybeSingle(),
   ]);
+  const manager = await db.rpc("portal_account_manager", { _user_id: context.userId });
   if (results.some((r) => r.error)) throw new Error("Your account information could not be loaded. Please retry.");
   const invoices = results[0].data ?? [];
   const payments = results[1].data ?? [];
@@ -40,7 +46,7 @@ export const getClientPortalData = createServerFn({ method: "GET" }).middleware(
   const ids = invoices.map((i: any) => i.id);
   const allocations = ids.length ? await db.from("payment_allocations").select("invoice_id,amount").in("invoice_id", ids) : { data: [], error: null };
   if (allocations.error) throw new Error("Unable to load invoice balances");
-  return { invoices: invoiceBalances(invoices, allocations.data ?? []), payments, submissions, services, tickets, assets };
+  return { invoices: invoiceBalances(invoices, allocations.data ?? []), payments, submissions, services, tickets, assets, starlink: results[6].data ?? [], licenses: results[7].data ?? [], hosting: results[8].data ?? [], storage: results[9].data ?? [], profile: results[10].data, manager: (manager.data as any[] | null)?.[0] ?? null };
 });
 
 export const submitClientPayment = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v) => clientPaymentSchema.parse(v)).handler(async ({ data, context }) => {
