@@ -28,6 +28,7 @@ export const getClientPortalData = createServerFn({ method: "GET" }).middleware(
     db.from("payment_submissions").select("id,amount,currency,reference,status,payment_date,review_notes,rejection_reason,receipt_number").eq("customer_id", cid).order("created_at", { ascending: false }),
     db.from("subscriptions").select("id,plan_name,description,amount,currency,billing_cycle,status,next_renewal").eq("customer_id", cid).order("created_at", { ascending: false }),
     db.from("tickets").select("id,ticket_number,subject,description,status,priority,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }),
+    db.from("assets").select("id,asset_type,make,model,serial_number,site_name,location,status,camera_count,channel_capacity,storage_capacity,installed_on,warranty_expires,next_maintenance").eq("customer_id", cid).eq("client_visible", true).is("archived_at", null).order("created_at", { ascending: false }),
   ]);
   if (results.some((r) => r.error)) throw new Error("Your account information could not be loaded. Please retry.");
   const invoices = results[0].data ?? [];
@@ -35,10 +36,11 @@ export const getClientPortalData = createServerFn({ method: "GET" }).middleware(
   const submissions = results[2].data ?? [];
   const services = results[3].data ?? [];
   const tickets = results[4].data ?? [];
+  const assets = results[5].data ?? [];
   const ids = invoices.map((i: any) => i.id);
   const allocations = ids.length ? await db.from("payment_allocations").select("invoice_id,amount").in("invoice_id", ids) : { data: [], error: null };
   if (allocations.error) throw new Error("Unable to load invoice balances");
-  return { invoices: invoiceBalances(invoices, allocations.data ?? []), payments, submissions, services, tickets };
+  return { invoices: invoiceBalances(invoices, allocations.data ?? []), payments, submissions, services, tickets, assets };
 });
 
 export const submitClientPayment = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v) => clientPaymentSchema.parse(v)).handler(async ({ data, context }) => {
