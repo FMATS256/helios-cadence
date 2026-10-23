@@ -1,10 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useRef } from "react";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusPill } from "@/components/page";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { createMaintenanceContract } from "@/lib/maintenance-contracts.functions";
 
 const ASSET_TYPES = ["CCTV System", "NVR / DVR", "IP Camera", "Access Control", "Alarm System", "Starlink Kit", "Server", "Laptop", "Desktop", "Router", "Switch", "Firewall", "Access Point", "NAS", "Printer", "Phone", "Monitor", "Other"];
 const STATUSES = ["in_service", "spare", "in_repair", "retired", "lost"];
@@ -13,6 +17,8 @@ const STATUSES = ["in_service", "spare", "in_repair", "retired", "lost"];
 export function AssetsPage() {
   const navigate = useNavigate();
   const { data: customers = [] } = useCustomersLite();
+  const createContract = useServerFn(createMaintenanceContract);
+  const lastForm = useRef<any>(null);
   return (
     <ModulePage
       eyebrow="Services"
@@ -24,10 +30,17 @@ export function AssetsPage() {
       emptyLabel="No assets registered yet."
       createTitle="Register asset"
       createLabel="New asset"
-      emptyForm={{ customer_id: "", asset_tag: "", asset_type: "Server", make: "", model: "", serial_number: "", location: "", assigned_to: "", status: "in_service", purchase_date: "", warranty_expires: "", cost: 0, notes: "", site_name: "", camera_count: "", channel_capacity: "", storage_capacity: "", installed_on: "", next_maintenance: "", client_visible: true }}
-      validateForm={(f) => (!f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
-      transformInsert={(f) => ({ ...f, customer_id: f.customer_id || null, purchase_date: f.purchase_date || null, warranty_expires: f.warranty_expires || null, cost: Number(f.cost) || null, camera_count: f.camera_count === "" ? null : Number(f.camera_count), channel_capacity: f.channel_capacity === "" ? null : Number(f.channel_capacity), installed_on: f.installed_on || null, next_maintenance: f.next_maintenance || null, site_name: f.site_name || null, storage_capacity: f.storage_capacity || null })}
-      onCreated={(asset: any) => {
+      emptyForm={{ customer_id: "", asset_tag: "", asset_type: "Server", make: "", model: "", serial_number: "", location: "", assigned_to: "", status: "in_service", purchase_date: "", warranty_expires: "", cost: 0, notes: "", site_name: "", camera_count: "", channel_capacity: "", storage_capacity: "", installed_on: "", next_maintenance: "", client_visible: true, maintenance_fee: "", maintenance_cycle: "quarterly", maintenance_start: "" }}
+      validateForm={(f) => (lastForm.current = f, !f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
+      transformInsert={({ maintenance_fee, maintenance_cycle, maintenance_start, ...f }: any) => ({ ...f, customer_id: f.customer_id || null, purchase_date: f.purchase_date || null, warranty_expires: f.warranty_expires || null, cost: Number(f.cost) || null, camera_count: f.camera_count === "" ? null : Number(f.camera_count), channel_capacity: f.channel_capacity === "" ? null : Number(f.channel_capacity), installed_on: f.installed_on || null, next_maintenance: f.next_maintenance || null, site_name: f.site_name || null, storage_capacity: f.storage_capacity || null })}
+      onCreated={async (asset: any) => {
+        const submitted = lastForm.current;
+        if (asset?.id && Number(submitted?.maintenance_fee) > 0) {
+          try {
+            await createContract({ data: { asset_id: asset.id, amount: Number(submitted.maintenance_fee), currency: "USD", billing_cycle: submitted.maintenance_cycle, start_on: submitted.maintenance_start || new Date().toISOString().slice(0, 10) } });
+            toast.success("Maintenance contract added to recurring billing");
+          } catch (e: any) { toast.error(e.message); }
+        }
         if (asset?.id) navigate({ to: "/assets/$id", params: { id: asset.id } });
       }}
       columns={[
@@ -75,6 +88,15 @@ export function AssetsPage() {
           <div className="space-y-2"><Label>Channel capacity</Label><Input type="number" min="0" value={form.channel_capacity} onChange={(e) => setForm({ ...form, channel_capacity: e.target.value })} /></div>
           <div className="space-y-2"><Label>Installed on</Label><Input type="date" value={form.installed_on} onChange={(e) => setForm({ ...form, installed_on: e.target.value })} /></div>
           <div className="space-y-2"><Label>Next maintenance</Label><Input type="date" value={form.next_maintenance} onChange={(e) => setForm({ ...form, next_maintenance: e.target.value })} /></div>
+          <div className="col-span-2 border-t border-border pt-3 text-sm font-semibold">Maintenance contract (optional — billed by Finance's recurring run)</div>
+          <div className="space-y-2"><Label>Fee (USD)</Label><Input type="number" step="0.01" min="0" value={form.maintenance_fee} onChange={(e) => setForm({ ...form, maintenance_fee: e.target.value })} placeholder="0 = no contract" /></div>
+          <div className="space-y-2"><Label>Billed every</Label>
+            <Select value={form.maintenance_cycle} onValueChange={(v) => setForm({ ...form, maintenance_cycle: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{["monthly", "quarterly", "annual"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label>First invoice on</Label><Input type="date" value={form.maintenance_start} onChange={(e) => setForm({ ...form, maintenance_start: e.target.value })} /></div>
           <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.client_visible} onChange={(e) => setForm({ ...form, client_visible: e.target.checked })} />Show this equipment in the client portal</label>
           <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
