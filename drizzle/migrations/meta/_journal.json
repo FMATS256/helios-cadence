@@ -134,6 +134,13 @@
       "when": 1792515846599,
       "tag": "0018_enforce_client_access_boundaries",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792783932242,
+      "tag": "0019_client_visible_installed_systems",
+      "breakpoints": true
     }
   ]
 }
