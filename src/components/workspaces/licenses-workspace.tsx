@@ -1,10 +1,10 @@
-import { ModulePage } from "@/components/module-page";
+import { ModulePage, useCustomersLite } from "@/components/module-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusPill } from "@/components/page";
 
-const CATEGORIES = ["networking", "cybersecurity", "software", "other"] as const;
+const CATEGORIES = ["microsoft365", "networking", "cybersecurity", "software", "other"] as const;
 
 function daysUntil(d?: string | null) {
   if (!d) return null;
@@ -14,6 +14,7 @@ function daysUntil(d?: string | null) {
 
 
 export function LicensesPage() {
+  const { data: customers = [] } = useCustomersLite();
   return (
     <ModulePage
       eyebrow="Business"
@@ -25,9 +26,9 @@ export function LicensesPage() {
       emptyLabel="No licenses tracked yet."
       createTitle="Add license"
       createLabel="Add license"
-      emptyForm={{ product: "", vendor: "", category: "networking", license_key: "", seats: 1, assigned_seats: "", purchase_date: "", expiry_date: "", cost: 0, auto_renew: false, notes: "" }}
+      emptyForm={{ customer_id: "", product: "", vendor: "", category: "networking", license_key: "", seats: 1, assigned_seats: "", purchase_date: "", expiry_date: "", cost: 0, auto_renew: false, notes: "" }}
       validateForm={(f) => (!f.product ? "Product required" : null)}
-      transformInsert={(f) => ({ ...f, seats: Number(f.seats) || 1, assigned_seats: f.assigned_seats === "" ? null : Number(f.assigned_seats), cost: Number(f.cost) || 0, auto_renew: !!f.auto_renew, purchase_date: f.purchase_date || null, expiry_date: f.expiry_date || null })}
+      transformInsert={(f) => ({ ...f, customer_id: f.customer_id || null, seats: Number(f.seats) || 1, assigned_seats: f.assigned_seats === "" ? null : Number(f.assigned_seats), cost: Number(f.cost) || 0, auto_renew: !!f.auto_renew, purchase_date: f.purchase_date || null, expiry_date: f.expiry_date || null })}
       columns={[
         { header: "Product", cell: (r: any) => <div><div className="font-semibold">{r.product}</div><div className="text-xs text-muted-foreground">{r.vendor || "—"} · {r.category || "—"}</div></div> },
         { header: "Seats", cell: (r: any) => <span className="font-mono">{r.assigned_seats != null ? `${r.assigned_seats}/` : ""}{r.seats}</span> },
@@ -44,6 +45,12 @@ export function LicensesPage() {
       ]}
       renderForm={(form, setForm) => (
         <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 space-y-2"><Label>Client</Label>
+            <select className="w-full h-10 rounded-md border bg-background px-3 text-sm" value={form.customer_id ?? ""} onChange={(e) => setForm({ ...form, customer_id: e.target.value })}>
+              <option value="">Internal / none</option>
+              {customers.map((c: any) => <option key={c.id} value={c.id}>{c.account_number} · {c.company_name}</option>)}
+            </select>
+          </div>
           <div className="col-span-2 space-y-2"><Label>Product *</Label><Input required value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="Fortinet FortiGate 60F" /></div>
           <div className="space-y-2"><Label>Vendor</Label><Input value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} /></div>
           <div className="space-y-2"><Label>Category</Label>
