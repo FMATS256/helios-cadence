@@ -31,6 +31,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Grant UK2AFRICA M10460 portal login to matarefarai833@gmail.com and assign clearly labelled, non-billing demo services
 - [ ] Verify client-only session isolation (needs a designated sign-in without staff roles); linked-account flow has been tested with the requesting administrator
 - [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
