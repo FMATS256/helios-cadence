@@ -756,9 +756,12 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
           .single();
         if (error) throw new Error(error.message);
 
+        // Maintenance contracts list the covered equipment on the invoice.
+        const { data: covered } = await supabaseAdmin.from("assets").select("asset_type,make,model,serial_number,site_name").eq("subscription_id", s.id).is("archived_at", null);
+        const coverage = (covered ?? []).map((a: any) => [a.asset_type, [a.make, a.model].filter(Boolean).join(" "), a.serial_number && `S/N ${a.serial_number}`].filter(Boolean).join(" ")).join("; ");
         const line = {
           invoice_id: invoice.id,
-          description: `${s.plan_name}${s.description ? ` — ${s.description}` : ""} (${s.billing_cycle})`,
+          description: `${s.plan_name}${s.description ? ` — ${s.description}` : ""} (${s.billing_cycle})${coverage ? ` · Covers: ${coverage}` : ""}`,
           quantity: 1,
           unit_price: subtotal,
           tax_rate: 0,

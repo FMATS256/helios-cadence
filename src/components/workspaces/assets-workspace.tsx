@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useRef } from "react";
 import { ModulePage, useCustomersLite } from "@/components/module-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ export function AssetsPage() {
   const navigate = useNavigate();
   const { data: customers = [] } = useCustomersLite();
   const createContract = useServerFn(createMaintenanceContract);
+  const lastForm = useRef<any>(null);
   return (
     <ModulePage
       eyebrow="Services"
@@ -29,9 +31,10 @@ export function AssetsPage() {
       createTitle="Register asset"
       createLabel="New asset"
       emptyForm={{ customer_id: "", asset_tag: "", asset_type: "Server", make: "", model: "", serial_number: "", location: "", assigned_to: "", status: "in_service", purchase_date: "", warranty_expires: "", cost: 0, notes: "", site_name: "", camera_count: "", channel_capacity: "", storage_capacity: "", installed_on: "", next_maintenance: "", client_visible: true, maintenance_fee: "", maintenance_cycle: "quarterly", maintenance_start: "" }}
-      validateForm={(f) => (!f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
+      validateForm={(f) => (lastForm.current = f, !f.asset_type ? "Type required" : !f.make ? "Make required" : null)}
       transformInsert={({ maintenance_fee, maintenance_cycle, maintenance_start, ...f }: any) => ({ ...f, customer_id: f.customer_id || null, purchase_date: f.purchase_date || null, warranty_expires: f.warranty_expires || null, cost: Number(f.cost) || null, camera_count: f.camera_count === "" ? null : Number(f.camera_count), channel_capacity: f.channel_capacity === "" ? null : Number(f.channel_capacity), installed_on: f.installed_on || null, next_maintenance: f.next_maintenance || null, site_name: f.site_name || null, storage_capacity: f.storage_capacity || null })}
-      onCreated={async (asset: any, submitted: any) => {
+      onCreated={async (asset: any) => {
+        const submitted = lastForm.current;
         if (asset?.id && Number(submitted?.maintenance_fee) > 0) {
           try {
             await createContract({ data: { asset_id: asset.id, amount: Number(submitted.maintenance_fee), currency: "USD", billing_cycle: submitted.maintenance_cycle, start_on: submitted.maintenance_start || new Date().toISOString().slice(0, 10) } });
