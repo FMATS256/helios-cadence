@@ -234,10 +234,36 @@ function PayNowDialog({ open, onOpenChange, data }: { open: boolean; onOpenChang
       <div className="space-y-2"><Label>Invoice</Label><Select value={invoice} onValueChange={(v) => { setInvoice(v); const i = data.invoices.find((x: any) => x.id === v); if (i) { setAmount(String(i.balance)); if (i.currency === "USD" || i.currency === "ZWG") setCurrency(i.currency); } }}><SelectTrigger aria-label="Invoice"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No invoice — pay for services</SelectItem>{data.invoices.filter((i: any) => i.balance > 0).map((i: any) => <SelectItem key={i.id} value={i.id}>{i.invoice_number} · {money(i.balance, i.currency)}</SelectItem>)}</SelectContent></Select></div>
       {services.length > 0 && <fieldset className="space-y-2"><legend className="text-sm font-medium mb-1">Services paid for / renewed</legend>{services.map((s) => <label key={s.key} className="flex items-center justify-between gap-3 text-sm border border-border rounded-md px-3 py-2"><span className="flex items-center gap-2"><input type="checkbox" checked={picked.includes(s.key)} onChange={() => toggle(s.key)} />{s.label}</span>{s.amount > 0 && <span className="text-muted-foreground">{money(s.amount)}</span>}</label>)}</fieldset>}
       <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label htmlFor="pay-amount">Amount</Label><Input id="pay-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div><div className="space-y-2"><Label>Currency</Label><Select value={currency} onValueChange={(v) => setCurrency(v as "USD" | "ZWG")}><SelectTrigger aria-label="Currency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="ZWG">ZWG</SelectItem></SelectContent></Select></div></div>
-      <div className="space-y-2"><Label>Pay with</Label><div className="grid grid-cols-3 gap-2">{(["ECOCASH", "OMARI", "INNBUCKS"] as const).map((m) => <Button key={m} type="button" variant={method === m ? "default" : "outline"} onClick={() => setMethod(m)}>{m === "ECOCASH" ? "EcoCash" : m === "OMARI" ? "O'mari" : "InnBucks"}</Button>)}</div></div>
-      {method !== "INNBUCKS" && <div className="space-y-2"><Label htmlFor="pay-phone">Phone number</Label><Input id="pay-phone" inputMode="tel" placeholder="0771234567" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>}
-      <p className="text-xs text-muted-foreground">Card payments are not available here yet. For bank transfers, use Submit payment proof.</p>
+      <MethodPicker value={method} onChange={setMethod} />
+      {method !== "INNBUCKS" && <div className="space-y-2"><Label htmlFor="pay-phone">{method === "ECOCASH" ? "EcoCash" : "O'mari"} Phone Number</Label><Input id="pay-phone" className="h-12 text-base" inputMode="tel" placeholder="Type your number, e.g. 0771234567" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>}
+      <p className="text-xs text-muted-foreground">For bank transfers, use Submit payment proof.</p>
       <Button type="submit" disabled={busy} className="w-full">{busy ? "Starting…" : "Pay"}</Button>
     </form>}
   </DialogContent></Dialog>;
+}
+
+const METHODS = [
+  { id: "ECOCASH", name: "EcoCash", hint: "PIN prompt on your phone — no redirect" },
+  { id: "OMARI", name: "O'mari", hint: "Approve in your O'mari wallet — no redirect" },
+  { id: "INNBUCKS", name: "InnBucks", hint: "Pay with the InnBucks app code" },
+  { id: "CARD", name: "Visa / Mastercard", hint: "Secure Pesepay checkout page — coming soon" },
+] as const;
+
+function MethodLogo({ id }: { id: string }) {
+  if (id === "ECOCASH") return <span className="font-display text-2xl font-bold tracking-tight"><span className="text-brand-ecocash-blue">Eco</span><span className="text-brand-ecocash-red">Cash</span></span>;
+  if (id === "OMARI") return <span className="font-display text-3xl font-bold tracking-tight text-brand-omari">omari</span>;
+  if (id === "INNBUCKS") return <span className="grid grid-cols-2 gap-1" aria-hidden>{["bg-brand-innbucks-yellow", "bg-brand-innbucks-purple", "bg-brand-innbucks-green", "bg-brand-innbucks-red"].map((c) => <span key={c} className={`h-6 w-6 rounded-full ${c}`} />)}</span>;
+  return <span className="flex items-center gap-2"><span className="font-display text-xl font-black italic text-brand-visa">VISA</span><span className="relative flex" aria-hidden><span className="h-7 w-7 rounded-full bg-brand-mc-red" /><span className="-ml-3 h-7 w-7 rounded-full bg-brand-mc-orange mix-blend-multiply" /></span></span>;
+}
+
+function MethodPicker({ value, onChange }: { value: string; onChange: (v: "ECOCASH" | "OMARI" | "INNBUCKS") => void }) {
+  return <fieldset className="space-y-3"><legend className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-3">Choose how to pay</legend>
+    {METHODS.map((m) => { const active = value === m.id; const disabled = m.id === "CARD";
+      return <button key={m.id} type="button" role="radio" aria-checked={active} disabled={disabled} onClick={() => !disabled && onChange(m.id as "ECOCASH" | "OMARI" | "INNBUCKS")}
+        className={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"} ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}>
+        <span className="w-24 shrink-0 flex justify-center"><MethodLogo id={m.id} /></span>
+        <span className="flex-1 min-w-0"><span className="block font-semibold">{m.name}</span><span className="block text-sm text-muted-foreground">{m.hint}</span></span>
+        <span className={`h-7 w-7 shrink-0 rounded-full border-2 flex items-center justify-center ${active ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{active && <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3.5 8.5l3 3 6-7" /></svg>}</span>
+      </button>; })}
+  </fieldset>;
 }
