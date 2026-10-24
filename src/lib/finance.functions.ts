@@ -400,6 +400,23 @@ export const reconcilePayment = createServerFn({ method: "POST" })
 
 /* ---------- Email an invoice to the customer ---------- */
 
+export const getStaffInvoicePdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { invoice_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { data: invoice, error } = await context.supabase.from("invoices").select("*, customers:customer_id(company_name,primary_email,billing_address,primary_phone,account_number)").eq("id", data.invoice_id).is("archived_at", null).maybeSingle();
+    if (error || !invoice) throw new Error("Invoice not found");
+    const [lines, allocations] = await Promise.all([
+      context.supabase.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),
+      context.supabase.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
+    ]);
+    if (lines.error || allocations.error) throw new Error("Invoice details could not be loaded");
+    const { officialInvoicePdf, invoicePdfResponse } = await import("./invoice-document.server");
+    const { bytes } = await officialInvoicePdf(invoice, lines.data ?? [], invoice.customers, allocations.data ?? [], { userId: context.userId });
+    return invoicePdfResponse(bytes, invoice.invoice_number);
+  });
+
 const SITE = "https://management.imtsolutions.co.zw";
 
 /**

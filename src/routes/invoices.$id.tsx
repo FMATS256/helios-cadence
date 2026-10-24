@@ -13,13 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { emailInvoice } from "@/lib/finance.functions";
+import { emailInvoice, getStaffInvoicePdf } from "@/lib/finance.functions";
 import { useRoles } from "@/hooks/use-roles";
 import { can } from "@/lib/rbac";
 import { Plus, Trash2, Printer, Receipt, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/invoices/$id")({
-  head: () => ({ meta: [{ title: "Invoice — IMT Operations" }] }),
+  head: () => ({ meta: [{ title: "Invoice — IMT Operations" }, { name: "description", content: "View IMT invoice services, payments and download the official invoice." }, { property: "og:title", content: "Invoice — IMT Operations" }, { property: "og:description", content: "IMT invoice details, payment allocations and official document." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: InvoiceDetail,
 });
 
@@ -57,6 +57,17 @@ function InvoiceDetail() {
   })();
 
   const sendInvoiceFn = useServerFn(emailInvoice);
+  const invoicePdfFn = useServerFn(getStaffInvoicePdf);
+  const downloadPdf = useMutation({
+    mutationFn: () => invoicePdfFn({ data: { invoice_id: id } }),
+    onSuccess: (result) => {
+      const bytes = Uint8Array.from(atob(result.base64), c => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const anchor = document.createElement("a"); anchor.href = url; anchor.download = result.filename; anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
   const sendEmail = useMutation({
     mutationFn: async () => await sendInvoiceFn({ data: { invoice_id: id } }),
     onSuccess: (r: any) => {
@@ -133,8 +144,8 @@ function InvoiceDetail() {
               <Mail className="h-4 w-4 mr-1.5" />
               {sendEmail.isPending ? "Sending…" : "Email invoice"}
             </Button>
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer className="h-4 w-4 mr-1.5" />Print / PDF
+            <Button variant="outline" onClick={() => downloadPdf.mutate()} disabled={downloadPdf.isPending}>
+              <Printer className="h-4 w-4 mr-1.5" />{downloadPdf.isPending ? "Preparing…" : "Download PDF"}
             </Button>
           </div>
         }

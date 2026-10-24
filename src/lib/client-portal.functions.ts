@@ -144,18 +144,16 @@ export const submitServiceRequest = createServerFn({ method: "POST" }).middlewar
 export const getClientInvoicePdf = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((v) => z.object({ id: z.string().uuid() }).parse(v)).handler(async ({ data, context }) => {
   const { data: cid } = await context.supabase.rpc("portal_customer_id", { _user_id: context.userId });
   if (!cid) throw new Error("Client account not linked");
-  const { data: inv } = await context.supabase.from("invoices").select("id,invoice_number,total,currency,issue_date,due_date").eq("id", data.id).eq("customer_id", cid).is("archived_at", null).maybeSingle();
+  const { data: inv } = await context.supabase.from("invoices").select("id,invoice_number,total,subtotal,tax,status,currency,issue_date,due_date").eq("id", data.id).eq("customer_id", cid).is("archived_at", null).maybeSingle();
   if (!inv) throw new Error("Invoice not found on your account");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const [{ data: lines }, { data: customer }] = await Promise.all([
+  const [lineResult, customerResult, allocationResult] = await Promise.all([
     supabaseAdmin.from("invoice_line_items").select("description,quantity,unit_price,tax_rate,line_total").eq("invoice_id", inv.id).order("position"),
     context.supabase.from("customers").select("company_name,billing_address,primary_email,primary_phone,account_number").eq("id", cid).maybeSingle(),
+    context.supabase.from("payment_allocations").select("amount").eq("invoice_id", inv.id),
   ]);
-  const { quotationDocument, quotationBrand } = await import("./quotation-document.shared");
-  const { renderQuotationPdf } = await import("./quotation-pdf");
-  const doc = quotationDocument({ quote_number: inv.invoice_number, title: `Invoice ${inv.invoice_number}`, created_at: inv.issue_date, valid_until: inv.due_date, currency: inv.currency, amount: inv.total, account_number: customer?.account_number, customers: customer, notes: "Thank you for your business. Pay online from your IMT client portal." }, (lines ?? []).map((l: any) => ({ ...l, item_code: "—" })));
-  const logo = await fetch(quotationBrand.logoUrl).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
-  const bytes = await renderQuotationPdf(doc, logo ? new Uint8Array(logo) : undefined, "invoice");
-  let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return { filename: `${inv.invoice_number}.pdf`, base64: btoa(bin) };
+  if (lineResult.error || customerResult.error || allocationResult.error) throw new Error("Invoice details could not be loaded");
+  const { officialInvoicePdf, invoicePdfResponse } = await import("./invoice-document.server");
+  const { bytes } = await officialInvoicePdf(inv, lineResult.data ?? [], customerResult.data, allocationResult.data ?? [], { userId: context.userId });
+  return invoicePdfResponse(bytes, inv.invoice_number);
 });
