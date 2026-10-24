@@ -41,14 +41,12 @@ type Line = { description: string; item_code: string; quantity: string; unit_pri
 const blankLine = (): Line => ({ description: "", item_code: "", quantity: "1", unit_price: "0" });
 
 function totalsOf(lines: Line[]) {
-  let subtotal = 0, tax = 0;
-  for (const l of lines) {
-    const lt = (Number(l.quantity) || 0) * (Number(l.unit_price) || 0);
-    subtotal += lt;
-    tax += (lt * (Number(l.tax_rate) || 0)) / 100;
-  }
   const r2 = (n: number) => Math.round(n * 100) / 100;
-  return { subtotal: r2(subtotal), tax: r2(tax), total: r2(subtotal + tax) };
+  let subtotal = 0;
+  for (const l of lines) {
+    subtotal += (Number(l.quantity) || 0) * (Number(l.unit_price) || 0);
+  }
+  return { subtotal: r2(subtotal), tax: 0, total: r2(subtotal) };
 }
 
 export function BillingPage() {
@@ -550,7 +548,7 @@ function InvoiceEditorDialog({
                   <Select value="" onValueChange={(id) => {
                     const c: any = (catalog as any[]).find((x: any) => x.id === id);
                     if (!c) return;
-                    const line = { description: `${c.name}${c.billing_cycle ? ` (${c.billing_cycle})` : ""}`, quantity: "1", unit_price: String(c.unit_price ?? 0), tax_rate: "0" };
+                    const line = { description: `${c.name}${c.billing_cycle ? ` (${c.billing_cycle})` : ""}`, item_code: String(c.code ?? ""), quantity: "1", unit_price: String(c.unit_price ?? 0) };
                     const empty = lines.findIndex((x) => !x.description.trim());
                     setLines(empty >= 0 ? lines.map((x, j) => j === empty ? line : x) : [...lines, line]);
                   }}>
