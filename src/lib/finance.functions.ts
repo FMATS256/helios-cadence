@@ -433,7 +433,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
 
     const { data: invoice, error } = await supabaseAdmin
       .from("invoices")
-      .select("*, customers:customer_id(id, company_name, primary_email, account_number)")
+      .select("*, customers:customer_id(id, company_name, primary_email, account_number, billing_address, account_manager_id)")
       .eq("id", data.invoice_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
