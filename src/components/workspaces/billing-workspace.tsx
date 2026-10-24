@@ -500,7 +500,7 @@ function InvoiceEditorDialog({
           <DialogDescription>
             {locked
               ? "Payments have been applied — only dates, currency and notes can change."
-              : "Add line items; totals and tax are calculated for you."}
+              : "Add line items; totals are calculated for you."}
           </DialogDescription>
         </DialogHeader>
 

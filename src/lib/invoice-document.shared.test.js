@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { invoiceSettlement, invoiceStudioPayload } from "./invoice-document.shared";
+import { IMT_ADDRESS, INVOICE_TERMS, initialsOf, invoiceSettlement, invoiceStudioPayload } from "./invoice-document.shared";
 
 describe("invoice payment classification", () => {
   test("unpaid $200 invoice remains an invoice", () => {
