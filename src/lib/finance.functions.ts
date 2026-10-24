@@ -433,7 +433,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
 
     const { data: invoice, error } = await supabaseAdmin
       .from("invoices")
-      .select("*, customers:customer_id(id, company_name, primary_email, account_number)")
+      .select("*, customers:customer_id(id, company_name, primary_email, account_number, billing_address, account_manager_id)")
       .eq("id", data.invoice_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -454,11 +454,13 @@ export const emailInvoice = createServerFn({ method: "POST" })
     const recipient = (data.to || cust?.primary_email || "").trim();
     if (!recipient || !/@/.test(recipient)) throw new Error("This customer has no email address on file.");
 
-    const [itemsR, profileR] = await Promise.all([
+    const [itemsR, allocR, profileR] = await Promise.all([
       supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),
+      supabaseAdmin.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
       supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
     ]);
-    const items = rows(itemsR as any).map((i: any) => ({
+    const lineRows = rows(itemsR as any) as any[];
+    const items = lineRows.map((i: any) => ({
       description: i.description,
       quantity: Number(i.quantity) || 0,
       unit_price: Number(i.unit_price) || 0,
@@ -466,60 +468,68 @@ export const emailInvoice = createServerFn({ method: "POST" })
         Number(i.line_total ?? (Number(i.quantity) || 0) * (Number(i.unit_price) || 0)) || 0,
     }));
 
+    // The email goes out from the customer's account manager — their name,
+    // their mailbox as reply-to, their signature. Fallback: the acting staffer.
+    const { accountManagerContact } = await import("./account-managers.server");
+    const am = await accountManagerContact(supabaseAdmin, cust?.account_manager_id).catch(() => null);
     const profile = (profileR as any)?.data ?? null;
-    const senderEmail = (profile?.email || (context.claims?.email as string) || "").trim();
-    const senderName = profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
+    const senderEmail = (am?.email || profile?.email || (context.claims?.email as string) || "").trim();
+    const senderName = am?.name || profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
     const invoiceUrl = `${SITE}/invoices/${invoice.id}`;
 
-    const { sendTemplateEmail } = await import("./email-templates/send-email");
-    const res = await sendTemplateEmail("invoice", recipient, {
-      templateData: {
-        companyName: cust?.company_name,
-        invoiceNumber: (invoice as any).invoice_number,
-        issueDate: invoice.issue_date,
-        dueDate: invoice.due_date,
-        currency: invoice.currency || "USD",
-        subtotal: Number(invoice.subtotal ?? 0),
-        tax: Number(invoice.tax ?? 0),
-        total: Number((invoice as any).total ?? 0),
-        items,
-        invoiceUrl,
-      },
-      idempotencyKey: `invoice-${invoice.id}-${Date.now()}`,
-      fromName: `${senderName} (IMT Solutions)`,
-      ...(senderEmail ? { fromLocal: senderEmail, replyTo: senderEmail } : {}),
+    // Attach the official Quote Studio PDF — the same document the client downloads.
+    const { officialInvoicePdf } = await import("./invoice-document.server");
+    const pdf = await officialInvoicePdf(invoice, lineRows, cust, rows(allocR as any) as any[], { userId: context.userId, userName: senderName });
+    const attachment = {
+      filename: `${String((invoice as any).invoice_number).replace(/[^\w.-]+/g, "-")}.pdf`,
+      content: pdf.bytes,
+      contentType: "application/pdf",
+    };
+    const { imtSignature } = await import("./email-signature.shared");
+    const signatureHtml = imtSignature({ name: senderName, role: "account_manager", email: senderEmail || "sales@imtsolutions.co.zw" });
+    const fromHeader = `"${senderName} (IMT Solutions)" <${senderEmail}>`;
+
+    const templateData = {
+      companyName: cust?.company_name,
+      invoiceNumber: (invoice as any).invoice_number,
+      issueDate: invoice.issue_date,
+      dueDate: invoice.due_date,
+      currency: invoice.currency || "USD",
+      subtotal: Number(invoice.subtotal ?? 0),
+      tax: Number(invoice.tax ?? 0),
+      total: Number((invoice as any).total ?? 0),
+      items,
+      invoiceUrl,
+    };
+
+    const { sendResendEmail } = await import("./email-templates/send-resend");
+    const res = await sendResendEmail({
+      templateName: "invoice",
+      to: recipient,
+      templateData,
+      replyTo: senderEmail || undefined,
+      from: senderEmail ? fromHeader : undefined,
+      signatureHtml,
+      attachments: [attachment],
     });
 
-    if (!res.sent) throw new Error("This recipient is suppressed and cannot receive email.");
+    if (!res.sent) throw new Error("Invoice email could not be sent — please try again.");
 
-    // Land a copy in the sender's real IMT inbox so staff have the exact
-    // invoice email in their own mailbox.
+    // Land a copy in the account manager's real IMT inbox so they have the
+    // exact invoice email in their own mailbox.
     let copySent = false;
     if (senderEmail && senderEmail.toLowerCase() !== recipient.toLowerCase()) {
-      const copy = await sendTemplateEmail("invoice", senderEmail, {
-        templateData: {
-          companyName: cust?.company_name,
-          invoiceNumber: (invoice as any).invoice_number,
-          issueDate: invoice.issue_date,
-          dueDate: invoice.due_date,
-          currency: invoice.currency || "USD",
-          subtotal: Number(invoice.subtotal ?? 0),
-          tax: Number(invoice.tax ?? 0),
-          total: Number((invoice as any).total ?? 0),
-          items,
-          invoiceUrl,
-          recipientTitle: undefined,
-        },
-        idempotencyKey: `invoice-copy-${invoice.id}-${Date.now()}`,
-        fromName: `${senderName} (IMT Solutions)`,
-        fromLocal: senderEmail,
+      const copy = await sendResendEmail({
+        templateName: "invoice",
+        to: senderEmail,
+        templateData: { ...templateData, recipientTitle: undefined },
         replyTo: recipient,
+        from: senderEmail ? fromHeader : undefined,
+        signatureHtml,
+        attachments: [attachment],
       }).catch(() => null);
       copySent = !!copy?.sent;
     }
-
-    const { senderFrom } = await import("./email-templates/send-email");
-    const fromHeader = senderFrom(`${senderName} (IMT Solutions)`, senderEmail);
 
     // Mark it as sent so the pipeline reflects reality.
     if (invoice.status === "draft") {

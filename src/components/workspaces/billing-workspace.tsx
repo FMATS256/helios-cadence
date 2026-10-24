@@ -37,18 +37,16 @@ const STATUSES = ["draft", "sent", "partial", "paid", "overdue", "void"];
 const money = (n: number, cur = "USD") =>
   `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Line = { description: string; quantity: string; unit_price: string; tax_rate: string };
-const blankLine = (): Line => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
+type Line = { description: string; item_code: string; quantity: string; unit_price: string };
+const blankLine = (): Line => ({ description: "", item_code: "", quantity: "1", unit_price: "0" });
 
 function totalsOf(lines: Line[]) {
-  let subtotal = 0, tax = 0;
-  for (const l of lines) {
-    const lt = (Number(l.quantity) || 0) * (Number(l.unit_price) || 0);
-    subtotal += lt;
-    tax += (lt * (Number(l.tax_rate) || 0)) / 100;
-  }
   const r2 = (n: number) => Math.round(n * 100) / 100;
-  return { subtotal: r2(subtotal), tax: r2(tax), total: r2(subtotal + tax) };
+  let subtotal = 0;
+  for (const l of lines) {
+    subtotal += (Number(l.quantity) || 0) * (Number(l.unit_price) || 0);
+  }
+  return { subtotal: r2(subtotal), tax: 0, total: r2(subtotal) };
 }
 
 export function BillingPage() {
@@ -411,9 +409,9 @@ function InvoiceEditorDialog({
     return items.length
       ? items.map((i) => ({
           description: String(i.description ?? ""),
+          item_code: String(i.item_code ?? ""),
           quantity: String(i.quantity ?? 1),
           unit_price: String(i.unit_price ?? 0),
-          tax_rate: "0",
         }))
       : [blankLine()];
   });
@@ -433,9 +431,9 @@ function InvoiceEditorDialog({
     setLines(its.length
       ? its.map((i) => ({
           description: i.description,
+          item_code: String(i.item_code ?? ""),
           quantity: String(i.quantity),
           unit_price: String(i.unit_price),
-          tax_rate: String(i.tax_rate ?? 0),
         }))
       : [blankLine()]);
   }
@@ -447,9 +445,9 @@ function InvoiceEditorDialog({
       .filter((l) => l.description.trim())
       .map((l) => ({
         description: l.description.trim(),
+        item_code: l.item_code.trim() || undefined,
         quantity: Number(l.quantity) || 0,
         unit_price: Number(l.unit_price) || 0,
-        tax_rate: Number(l.tax_rate) || 0,
       })),
   });
 
@@ -502,7 +500,7 @@ function InvoiceEditorDialog({
           <DialogDescription>
             {locked
               ? "Payments have been applied — only dates, currency and notes can change."
-              : "Add line items; totals and tax are calculated for you."}
+              : "Add line items; totals are calculated for you."}
           </DialogDescription>
         </DialogHeader>
 
@@ -550,7 +548,7 @@ function InvoiceEditorDialog({
                   <Select value="" onValueChange={(id) => {
                     const c: any = (catalog as any[]).find((x: any) => x.id === id);
                     if (!c) return;
-                    const line = { description: `${c.name}${c.billing_cycle ? ` (${c.billing_cycle})` : ""}`, quantity: "1", unit_price: String(c.unit_price ?? 0), tax_rate: "0" };
+                    const line = { description: `${c.name}${c.billing_cycle ? ` (${c.billing_cycle})` : ""}`, item_code: String(c.code ?? ""), quantity: "1", unit_price: String(c.unit_price ?? 0) };
                     const empty = lines.findIndex((x) => !x.description.trim());
                     setLines(empty >= 0 ? lines.map((x, j) => j === empty ? line : x) : [...lines, line]);
                   }}>
@@ -573,7 +571,11 @@ function InvoiceEditorDialog({
                   return (
                     <div key={i} className="grid grid-cols-2 items-center gap-2 sm:grid-cols-12">
                       <Input
-                        className="col-span-2 sm:col-span-5" placeholder="Description" value={l.description} disabled={locked}
+                        className="col-span-1 sm:col-span-2" placeholder="Code" value={l.item_code} disabled={locked}
+                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, item_code: e.target.value } : x))}
+                      />
+                      <Input
+                        className="col-span-1 sm:col-span-4" placeholder="Description" value={l.description} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
                       />
                       <Input
@@ -583,10 +585,6 @@ function InvoiceEditorDialog({
                       <Input
                         className="col-span-1 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: e.target.value } : x))}
-                      />
-                      <Input
-                        className="col-span-1 sm:col-span-1" type="number" min="0" step="0.1" placeholder="Tax %" value={l.tax_rate} disabled={locked}
-                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, tax_rate: e.target.value } : x))}
                       />
                       <div className="col-span-1 text-right font-mono text-xs">{lt.toFixed(2)}</div>
                       <div className="col-span-2 text-right sm:col-span-1">
@@ -605,7 +603,6 @@ function InvoiceEditorDialog({
 
             <div className="rounded-lg border p-4 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-mono">{money(totals.subtotal, form.currency)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span className="font-mono">{money(totals.tax, form.currency)}</span></div>
               <div className="mt-2 flex justify-between border-t pt-2 font-semibold"><span>Total</span><span className="font-mono">{money(totals.total, form.currency)}</span></div>
             </div>
           </div>

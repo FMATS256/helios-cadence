@@ -25,7 +25,7 @@ export async function admin() {
 export async function loadCustomer(db: any, customerId: string) {
   const { data, error } = await db
     .from("customers")
-    .select("id, account_number, company_name, primary_email, primary_phone, status, account_type, billing_address, created_at")
+    .select("id, account_number, company_name, primary_email, primary_phone, status, account_type, billing_address, account_manager_id, created_at")
     .eq("id", customerId)
     .maybeSingle();
   if (error || !data) throw new Error(error?.message ?? "Customer not found");
