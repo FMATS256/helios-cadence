@@ -411,9 +411,9 @@ function InvoiceEditorDialog({
     return items.length
       ? items.map((i) => ({
           description: String(i.description ?? ""),
+          item_code: String(i.item_code ?? ""),
           quantity: String(i.quantity ?? 1),
           unit_price: String(i.unit_price ?? 0),
-          tax_rate: "0",
         }))
       : [blankLine()];
   });
@@ -433,9 +433,9 @@ function InvoiceEditorDialog({
     setLines(its.length
       ? its.map((i) => ({
           description: i.description,
+          item_code: String(i.item_code ?? ""),
           quantity: String(i.quantity),
           unit_price: String(i.unit_price),
-          tax_rate: String(i.tax_rate ?? 0),
         }))
       : [blankLine()]);
   }
