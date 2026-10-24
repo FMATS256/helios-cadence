@@ -98,10 +98,10 @@ function CatalogRequestDialog({ mode, onClose }: { mode: ServiceRequestMode; onC
   </DialogContent></Dialog>;
 }
 
-export function ServiceDetailDialog({ detail, onClose, onUpgrade, onSupport }: { detail: { kind: string; title: string; status: string; rows: Array<[string, any]>; category?: string } | null; onClose: () => void; onUpgrade: () => void; onSupport: () => void }) {
+export function ServiceDetailDialog({ detail, onClose, onUpgrade, onSupport, onAddon }: { detail: { kind: string; title: string; status: string; rows: Array<[string, any]>; category?: string } | null; onClose: () => void; onUpgrade: () => void; onSupport: () => void; onAddon?: () => void }) {
   return <Dialog open={!!detail} onOpenChange={(v) => !v && onClose()}><DialogContent>
     {detail && <><DialogHeader><DialogTitle>{detail.title}</DialogTitle><DialogDescription>{detail.kind} · {detail.status}</DialogDescription></DialogHeader>
       <dl className="divide-y divide-border text-sm">{detail.rows.filter(([, v]) => v != null && v !== "").map(([k, v]) => <div key={k} className="flex justify-between gap-4 py-2"><dt className="text-muted-foreground">{k}</dt><dd className="font-semibold text-right break-words">{v}</dd></div>)}</dl>
-      <div className="flex flex-wrap gap-2">{detail.category && <Button onClick={onUpgrade}><ArrowUpCircle className="h-4 w-4 mr-2" />Upgrade plan</Button>}<Button variant="outline" onClick={onSupport}>Get support</Button></div></>}
+      <div className="flex flex-wrap gap-2">{detail.category && <Button onClick={onUpgrade}><ArrowUpCircle className="h-4 w-4 mr-2" />Upgrade plan</Button>}{detail.category && onAddon && <Button variant="secondary" onClick={onAddon}>{addonActionFor(detail.category)}</Button>}<Button variant="outline" onClick={onSupport}>Get support</Button></div></>}
   </DialogContent></Dialog>;
 }
