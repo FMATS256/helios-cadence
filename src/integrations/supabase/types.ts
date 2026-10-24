@@ -4252,6 +4252,45 @@ export type Database = {
           },
         ]
       }
+      portal_announcements: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          link_label: string | null
+          link_url: string | null
+          message: string
+          starts_at: string | null
+          tone: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          message: string
+          starts_at?: string | null
+          tone?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          message?: string
+          starts_at?: string | null
+          tone?: string
+        }
+        Relationships: []
+      }
       pos_closeouts: {
         Row: {
           account_id: string | null
@@ -4514,6 +4553,7 @@ export type Database = {
           phone: string | null
           status: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -4526,6 +4566,7 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -4538,6 +4579,7 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: [
           {
