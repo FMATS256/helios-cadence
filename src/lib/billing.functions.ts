@@ -401,14 +401,38 @@ export const updateInvoice = createServerFn({ method: "POST" })
 
 /* ============================ ISSUE / VOID ============================ */
 
+/**
+ * Invoice emails come from the customer's account manager — their name on the
+ * From line, their mailbox as reply-to, their signature, and the official
+ * Quote Studio PDF attached. Falls back to the acting staff member when the
+ * account has no manager assigned.
+ */
 async function sendInvoiceEmail(db: any, context: Ctx, invoice: any, cust: any, lines: any[]) {
   const recipient = String(cust?.primary_email ?? "").trim();
   if (!recipient || !/@/.test(recipient)) return false;
-  const { data: profile } = await db.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
-  const senderEmail = (profile?.email || (context.claims?.email as string) || "").trim();
-  const senderName = profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
-  const { sendTemplateEmail } = await import("./email-templates/send-email");
-  const res = await sendTemplateEmail("invoice", recipient, {
+
+  const { accountManagerContact } = await import("./account-managers.server");
+  const am = await accountManagerContact(db, cust?.account_manager_id).catch(() => null);
+  let senderName = am?.name || "";
+  let senderEmail = (am?.email || "").trim();
+  if (!senderEmail) {
+    const { data: profile } = await db.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    senderEmail = (profile?.email || (context.claims?.email as string) || "").trim();
+    senderName = senderName || profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
+  }
+
+  // Attach the official PDF — the same document the client can download.
+  const [{ data: allocations }, { officialInvoicePdf }] = await Promise.all([
+    db.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
+    import("./invoice-document.server"),
+  ]);
+  const pdf = await officialInvoicePdf(invoice, lines, cust, (allocations ?? []) as any[], { userId: context.userId, userName: senderName });
+
+  const { imtSignature } = await import("./email-signature.shared");
+  const { sendResendEmail } = await import("./email-templates/send-resend");
+  const res = await sendResendEmail({
+    templateName: "invoice",
+    to: recipient,
     templateData: {
       companyName: cust?.company_name,
       invoiceNumber: invoice.invoice_number,
@@ -426,11 +450,12 @@ async function sendInvoiceEmail(db: any, context: Ctx, invoice: any, cust: any, 
       })),
       invoiceUrl: `${SITE}/invoices/${invoice.id}`,
     },
-    idempotencyKey: `invoice-${invoice.id}-${Date.now()}`,
-    fromName: `${senderName} (IMT Solutions)`,
-    ...(senderEmail ? { fromLocal: senderEmail, replyTo: senderEmail } : {}),
+    replyTo: senderEmail || undefined,
+    from: senderEmail ? `"${senderName} (IMT Solutions)" <${senderEmail}>` : undefined,
+    signatureHtml: imtSignature({ name: senderName, role: "account_manager", email: senderEmail || "sales@imtsolutions.co.zw" }),
+    attachments: [{ filename: `${String(invoice.invoice_number).replace(/[^\w.-]+/g, "-")}.pdf`, content: pdf.bytes, contentType: "application/pdf" }],
   });
-  return !!res?.sent;
+  return res.sent;
 }
 
 export const issueInvoice = createServerFn({ method: "POST" })
