@@ -81,6 +81,12 @@
   --quotation-soft: #eff4f9;
   --radius: 0.5rem;
 
+  /* Client portal palette (Fortinet poster): royal blue + golden amber. */
+  --gold: oklch(0.82 0.16 84);
+  --portal-blue-bright: #005fac;
+  --portal-blue-mid: #03448c;
+  --portal-blue-deep: #08255d;
+
 
 
 
