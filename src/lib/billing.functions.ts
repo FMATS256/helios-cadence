@@ -256,7 +256,7 @@ export const createInvoice = createServerFn({ method: "POST" })
 
     const { error: liErr } = await supabaseAdmin
       .from("invoice_line_items")
-      .insert(lines.map((l) => ({ ...l, invoice_id: invoice.id })) as any);
+      .insert(lines.map(({ line_total: _lt, ...l }) => ({ ...l, invoice_id: invoice.id })) as any);
     if (liErr) {
       // Roll back so no invoice exists without its line items.
       await supabaseAdmin.from("invoices").delete().eq("id", invoice.id);
@@ -355,7 +355,7 @@ export const updateInvoice = createServerFn({ method: "POST" })
       await supabaseAdmin.from("invoice_line_items").delete().eq("invoice_id", invoice.id);
       const { error: liErr } = await supabaseAdmin
         .from("invoice_line_items")
-        .insert(lines.map((l) => ({ ...l, invoice_id: invoice.id })) as any);
+        .insert(lines.map(({ line_total: _lt, ...l }) => ({ ...l, invoice_id: invoice.id })) as any);
       if (liErr) throw new Error(liErr.message);
       Object.assign(patch, { subtotal, tax, total });
       repriced = { subtotal, tax, total };
@@ -765,7 +765,6 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
           quantity: 1,
           unit_price: subtotal,
           tax_rate: 0,
-          line_total: subtotal,
           position: 0,
         };
         await supabaseAdmin.from("invoice_line_items").insert(line as any);

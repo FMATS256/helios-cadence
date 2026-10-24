@@ -219,7 +219,6 @@ export const createPosSale = createServerFn({ method: "POST" })
             quantity: l.quantity,
             unit_price: l.unit_price,
             tax_rate: 0,
-            line_total: l.line_total,
             position: i,
           })),
         );

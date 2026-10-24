@@ -525,7 +525,6 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
         quantity: Number(l.quantity ?? 1),
         unit_price: Number(l.unit_price ?? 0),
         tax_rate: Number(l.tax_rate ?? 0),
-        line_total: Number(l.line_total ?? 0),
         position: l.position ?? i,
       })),
     );
