@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Exact Quote Studio PDFs used for client and staff invoice downloads; unpaid/part-paid Invoice and fully allocated Sales Invoice tested; actual UK2AFRICA INV-01024 USD 200 download verified through staff UI
 - UK2AFRICA M10460 client invitation accepted for matarefarai833@gmail.com; profile linked without staff roles; Starlink, Microsoft 365 (five demo seats, three assigned), and CCTV maintenance demo services read back in a client-only session; staff administration redirects to /client
 - Client portal published to the custom domain at https://management.imtsolutions.co.zw/client; anonymous visitors see the client sign-in only, staff navigation is absent, pages carry noindex, and the requesting administrator's own sign-in correctly reports "not linked" instead of client data
 - Built client portal at /client with administrator-managed account links, invoice balances, payments/proof, services and support; linked-account upload/pending-payment readback and support replies verified on desktop/mobile; temporary records removed
@@ -32,7 +33,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Use exact Quote Studio invoice PDFs across client and staff downloads and invoice emails, with Invoice / Sales Invoice based on verified full payment
 - [ ] Verify UK2AFRICA invitation receipt and initial password setup with the client; invitation accepted, but mailbox delivery and first-time password setup remain unverified
 - [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
