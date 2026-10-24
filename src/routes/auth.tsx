@@ -13,7 +13,7 @@ import { KeyRound, LifeBuoy, Server, ShieldCheck } from "lucide-react";
 
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — IMT Operations Platform" }] }),
+  head: () => ({ meta: [{ title: "Sign in — IMT Operations Platform" }, { name: "description", content: "Sign in securely to your IMT account." }, { property: "og:title", content: "Sign in — IMT Operations Platform" }, { property: "og:description", content: "Secure access to IMT Solutions." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
     const next = typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined;
     return next ? { next } : {};
@@ -53,7 +53,7 @@ function AuthPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setBusy(false);
     if (error) return toast.error(error.message);

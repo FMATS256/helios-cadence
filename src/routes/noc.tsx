@@ -17,6 +17,7 @@ import { Activity, ShieldCheck, Siren, NotebookPen, RefreshCw, LifeBuoy } from "
 import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } from "@/lib/noc.functions";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
 import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
+import { AccountPortfolio } from "@/components/account-portfolio";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
@@ -131,6 +132,7 @@ function NocPage() {
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
           <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
           <TabsTrigger value="remote">Remote Actions</TabsTrigger>
+          <TabsTrigger value="accounts">Client accounts & access</TabsTrigger>
           {tickets.length > 0 && <TabsTrigger value="tickets">Open Tickets</TabsTrigger>}
           {servers.length > 0 && <TabsTrigger value="servers">Servers</TabsTrigger>}
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
@@ -190,6 +192,7 @@ function NocPage() {
         <TabsContent value="remote" className="mt-4">
           <RemoteActionsPanel />
         </TabsContent>
+        <TabsContent value="accounts" className="mt-4"><AccountPortfolio noc /></TabsContent>
 
         {tickets.length > 0 && (
           <TabsContent value="tickets" className="mt-4">

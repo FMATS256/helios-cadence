@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { AccountPortfolio } from "@/components/account-portfolio";
+import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,7 +29,7 @@ import { TITLES } from "@/lib/titles";
 export const Route = createFileRoute("/leads")({
   head: () => ({
     meta: [
-      { title: "Leads — IMT CRM" },
+      { title: "Leads & Accounts Workspace — IMT CRM" },
       { name: "description", content: "Track prospects through the IMT sales pipeline and convert won leads into customer accounts." },
       { property: "og:title", content: "Leads — IMT CRM" },
       { property: "og:description", content: "Pipeline of prospects, follow-ups and conversions for IMT Solutions." },
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/leads")({
     ],
   }),
   component: LeadsPage,
+  validateSearch: (s: Record<string, unknown>): { view?: string } => typeof s.view === "string" ? { view: s.view } : {},
 });
 
 const SOURCES = ["manual", "referral", "website", "call", "email", "walk_in", "campaign", "partner"];
@@ -50,6 +53,8 @@ const emptyForm = {
 function LeadsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { view: workspace = "leads" } = Route.useSearch();
   const listFn = useServerFn(listLeads);
   const saveFn = useServerFn(upsertLead);
   const statusFn = useServerFn(setLeadStatus);
@@ -63,6 +68,7 @@ function LeadsPage() {
 
   const [tab, setTab] = useState("open");
   const [search, setSearch] = useState("");
+  const [mine, setMine] = useState(true);
   const [form, setForm] = useState<typeof emptyForm | null>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["leads"] });
@@ -70,10 +76,10 @@ function LeadsPage() {
   const save = useMutation({
     mutationFn: async () => saveFn({
       data: {
-        ...form!,
-        estimated_value: Number(form!.estimated_value) || 0,
-        assigned_to: form!.assigned_to || null,
-        next_follow_up: form!.next_follow_up || null,
+        ...(form ?? emptyForm),
+        estimated_value: Number(form?.estimated_value) || 0,
+        assigned_to: form?.assigned_to || null,
+        next_follow_up: form?.next_follow_up || null,
       },
     }),
     onSuccess: () => { toast.success("Lead saved"); refresh(); setForm(null); },
@@ -105,6 +111,7 @@ function LeadsPage() {
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
     return leads.filter((l) => {
+      if (mine && l.assigned_to !== user?.id && !(l.created_by === user?.id && !l.assigned_to)) return false;
       if (tab === "open" && ["won", "lost"].includes(l.status)) return false;
       if (tab === "won" && l.status !== "won") return false;
       if (tab === "lost" && l.status !== "lost") return false;
@@ -113,7 +120,7 @@ function LeadsPage() {
       return [l.company_name, l.contact_name, l.email, l.phone, l.interest, l.status]
         .some((f) => String(f ?? "").toLowerCase().includes(s));
     });
-  }, [leads, tab, search]);
+  }, [leads, tab, search, mine, user?.id]);
 
   const chips = [
     { label: "OPEN LEADS", value: String(stats?.open ?? 0), color: "#2563eb" },
@@ -182,15 +189,16 @@ function LeadsPage() {
   return (
     <PageShell>
       <SectionHeader
-        title="Leads"
-        description="Prospect pipeline — qualify, follow up and convert into customer accounts."
-        actions={<Button onClick={() => setForm({ ...emptyForm })}><Plus className="h-4 w-4 mr-1.5" />New Lead</Button>}
+        eyebrow="Account Management"
+        title="Leads & Accounts"
+        actions={<><Button asChild variant="outline"><Link to="/customers/new"><UserPlus className="h-4 w-4 mr-1.5" />New account</Link></Button><Button onClick={() => setForm({ ...emptyForm, assigned_to: user?.id ?? "" })}><Plus className="h-4 w-4 mr-1.5" />New Lead</Button></>}
       />
-
+      <Tabs value={workspace} onValueChange={(view) => navigate({ to: "/leads", search: { view }, resetScroll: false, replace: true })}>
+        <TabsList className="h-auto flex-wrap gap-1"><TabsTrigger value="leads">Lead pipeline</TabsTrigger><TabsTrigger value="accounts">Accounts & portal</TabsTrigger></TabsList>
+      </Tabs>
+      {workspace === "accounts" ? <AccountPortfolio /> : <>
       <StatChipRow chips={chips} cols={3} />
-
-      <Card>
-        <CardContent className="p-4 space-y-4">
+      <div className="space-y-4 min-h-96">
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList>
@@ -205,6 +213,7 @@ function LeadsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input className="pl-8" placeholder="Search leads…" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
+            <Select value={mine ? "mine" : "team"} onValueChange={(v) => setMine(v === "mine")}><SelectTrigger className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mine">My leads</SelectItem><SelectItem value="team">Team pipeline</SelectItem></SelectContent></Select>
           </div>
 
           {!isLoading && filtered.length === 0 ? (
@@ -212,8 +221,8 @@ function LeadsPage() {
           ) : (
             <DataGrid rows={filtered} columns={columns} loading={isLoading} />
           )}
-        </CardContent>
-      </Card>
+      </div>
+      </>}
 
       {form && (
         <Dialog open onOpenChange={(o) => !o && setForm(null)}>

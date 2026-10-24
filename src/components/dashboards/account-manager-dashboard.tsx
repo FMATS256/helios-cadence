@@ -72,7 +72,7 @@ export function AccountManagerDashboard({ displayName }: { displayName: string }
         actions={
           <>
             <Button asChild variant="outline" className="bg-white/10 text-navy-foreground border-white/20 hover:bg-white/20 hover:text-navy-foreground">
-              <Link to="/customers">All accounts</Link>
+              <Link to="/leads" search={{ view: "accounts" }}>Account workspace</Link>
             </Button>
             <Button asChild className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
               <Link to="/quotes"><Plus className="h-4 w-4 mr-1.5" />New Quote</Link>
@@ -92,7 +92,7 @@ export function AccountManagerDashboard({ displayName }: { displayName: string }
 
       <SectionCard title="Account manager workflows">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction icon={Plus} label="Add Customer" to="/customers" />
+          <QuickAction icon={Users} label="Leads & Accounts" to="/leads" />
           <QuickAction icon={FileText} label="Draft Quote" to="/quotes" tone="warning" />
           <QuickAction icon={Briefcase} label="Start Project" to="/projects" tone="info" />
           <QuickAction icon={Repeat} label="Renew Subscription" to="/subscriptions" tone="success" />

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { ComposeEmailDialog } from "@/components/compose-email-dialog";
+import { AccountAccessPanel } from "@/components/account-access-panel";
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -53,7 +54,7 @@ import { AssignTechDialog, CustomerTasksCard } from "@/components/assign-tech-di
 import { Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
-  head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — Customer 360` }] }),
+  head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — IMT Customer 360` }, { name: "description", content: "Connected client services, portal access, finance and support in IMT Customer 360." }, { property: "og:title", content: `${params.accountNumber} — IMT Customer 360` }, { property: "og:description", content: "Client account, services, finance and support workspace." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   validateSearch: (s: Record<string, unknown>): { tab?: string } =>
     (typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
   component: Customer360,
@@ -181,7 +182,7 @@ function tabList(show: Record<string, boolean>) {
     packages: "Packages", subscriptions: "Subscriptions", transactions: "Transactions",
     invoices: "Invoices", payments: "Payments", quotes: "Quotes", assets: "Assets",
     tickets: "Tickets", renewals: "Renewals", contacts: "Contacts",
-    credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes",
+    credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes", access: "Portal & Support",
   };
   return Object.keys(labels)
     .filter((k) => show[k])
@@ -641,7 +642,7 @@ function Customer360() {
             quotes: quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
             renewals: renewalsAll.length > 0, contacts: (contacts.length + branches.length) > 0,
             credentials: credentials.length > 0, comms: communications.length > 0,
-            timeline: timeline.length > 0, notes: true,
+            timeline: timeline.length > 0, notes: true, access: true,
           }).map((t) => (
             <TabsTrigger key={t.value} value={t.value} className={TAB_STYLES[t.value] ?? TAB_STYLES.overview}>
               {t.label}
@@ -652,6 +653,14 @@ function Customer360() {
         {/* Reserve the current viewing depth so switching to a shorter tab
             cannot shrink the page and yank the tab strip out of place. */}
         <div ref={tabBodyRef}>
+        <TabsContent value="access" className="mt-4 space-y-6">
+          <AccountAccessPanel customerId={customer.id} />
+          <div className="border-t border-border pt-4 flex flex-wrap gap-2">
+            <Button asChild variant="outline"><Link to="/leads" search={{ view: "accounts" }}><UsersIcon />Account workspace</Link></Button>
+            <Button asChild variant="outline"><Link to="/noc"><Activity className="h-4 w-4 mr-2" />NOC support</Link></Button>
+            <Button asChild variant="outline"><Link to="/customers/$accountNumber" params={{ accountNumber }} search={{ tab: "tickets" }} resetScroll={false}><LifeBuoy className="h-4 w-4 mr-2" />Account tickets</Link></Button>
+          </div>
+        </TabsContent>
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
