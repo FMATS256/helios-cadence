@@ -19,10 +19,10 @@ import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { ServiceRequestDialog, ServiceDetailDialog, type ServiceRequestMode } from "@/components/client-service-request";
 
 const sections = [
-  { title: "Overview", to: "/client", icon: LayoutDashboard },
-  { title: "Invoices", to: "/client/invoices", icon: FileText },
-  { title: "Payments", to: "/client/payments", icon: CreditCard },
-  { title: "Services", to: "/client/services", icon: Server },
+  { title: "Dashboard", to: "/client", icon: LayoutDashboard },
+  { title: "My Invoices", to: "/client/invoices", icon: FileText },
+  { title: "My Payments", to: "/client/payments", icon: CreditCard },
+  { title: "My Services", to: "/client/services", icon: Server },
   { title: "Support", to: "/client/support", icon: LifeBuoy },
 ] as const;
 
@@ -49,16 +49,19 @@ export function ClientPortalLayout() {
     await supabase.auth.signOut();
     navigate({ to: "/client", replace: true });
   };
-  return <div className="min-h-screen bg-background">
-    <header className="border-b border-border bg-card">
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-3">
-        <Link to="/client" className="flex items-center gap-3 min-w-0"><img src={imtLogo.url} alt="IMT Solutions" className="h-11 w-11 object-contain" /><div><div className="font-display text-lg font-bold">IMT Solutions</div><div className="text-xs text-muted-foreground">Client portal</div></div></Link>
-        {user ? <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4 mr-2" />Sign out</Button> : <ShieldCheck className="h-5 w-5 text-teal" />}
+  return <div className="min-h-screen bg-muted/40 flex flex-col">
+    <header className="bg-portal-gradient text-navy-foreground shadow-elegant">
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-3 flex items-center justify-between gap-3 text-xs">
+        <span className="bg-solar-glow/30 px-2 py-0.5 rounded-sm font-semibold">IMT Solutions</span>
+        {user && account.data ? <span className="text-right leading-tight"><span className="block text-sm font-semibold">{account.data.company_name}</span><span className="opacity-75 font-mono">{account.data.account_number}</span></span> : <ShieldCheck className="h-5 w-5" />}
+      </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 flex flex-col md:flex-row md:items-end md:justify-between gap-2 pb-0">
+        <Link to="/client" className="flex items-center gap-3 py-3 min-w-0"><img src={imtLogo.url} alt="IMT Solutions" className="h-10 w-10 object-contain bg-background rounded-md p-1" /><div><div className="font-display text-lg font-bold">My IMT</div><div className="text-xs opacity-80">Client portal</div></div></Link>
+        {user && !loading && <nav className="flex gap-1 overflow-x-auto -mb-px">{sections.map((s) => { const on = pathname === s.to; return <Link key={s.to} to={s.to} resetScroll={false} className={`shrink-0 flex items-center gap-2 px-4 py-3 text-sm border-b-4 transition-colors ${on ? "border-solar-glow font-semibold" : "border-transparent opacity-80 hover:opacity-100"}`}><s.icon className="h-4 w-4" />{s.title}</Link>; })}<button type="button" onClick={signOut} className="shrink-0 flex items-center gap-2 px-4 py-3 text-sm opacity-80 hover:opacity-100 border-b-4 border-transparent"><LogOut className="h-4 w-4" />Sign out</button></nav>}
       </div>
     </header>
     {loading ? <p className="p-12 text-center text-muted-foreground">Checking your session…</p> : !user ? <ClientSignIn /> : <>
-      <nav className="bg-card border-b border-border"><div className="max-w-6xl mx-auto px-4 sm:px-8 flex gap-1 overflow-x-auto py-2">{sections.map((s) => <Button key={s.to} asChild variant={pathname === s.to ? "secondary" : "ghost"} className={pathname === s.to ? "text-solar shrink-0" : "text-muted-foreground shrink-0"}><Link to={s.to} resetScroll={false}><s.icon className="h-4 w-4 mr-2" />{s.title}</Link></Button>)}</div></nav>
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-7 sm:py-10 min-w-0">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-7 sm:py-10 min-w-0 w-full">
         {account.isPending ? <p>Loading your account…</p> : account.error ? <div className="space-y-3"><p role="alert">{account.error.message}</p><Button onClick={() => account.refetch()}>Retry</Button></div> : !account.data ? <div className="border-l-4 border-solar pl-5 py-3 space-y-3"><h1 className="text-2xl font-bold">Your client account</h1><p className="text-muted-foreground">Your sign-in is not linked to an IMT account yet. Contact your account manager to arrange access.</p><Button variant="outline" asChild><Link to="/client/access"><ShieldCheck className="h-4 w-4 mr-2" />Client access</Link></Button>{pathname === "/client/access" && <Outlet />}</div> : <><div className="flex flex-wrap items-center gap-2 mb-7 text-sm"><span className="font-medium">{account.data.company_name}</span><span className="text-muted-foreground">/</span><span className="font-mono text-muted-foreground">{account.data.account_number}</span><Badge variant="outline" className="ml-auto capitalize text-teal border-teal/30">{account.data.status}</Badge></div><Outlet /></>}
       </main>
     </>}
@@ -107,7 +110,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
     {section === "invoices" && <><Input aria-label="Search invoices" placeholder="Search invoice number" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" /><InvoiceList rows={invoices} /></>}
     {section === "payments" && <><section><h2 className="font-bold text-lg mb-4">Submitted payment proof</h2>{!data.submissions.length ? <Empty text="No payment proof submitted yet." /> : data.submissions.map((p: any) => <div key={p.id} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 py-5 border-b border-border"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1">{date(p.payment_date)}</p></div><div className="text-sm break-all">{p.reference}{(p.review_notes || p.rejection_reason) && <p className="text-muted-foreground mt-1">{p.rejection_reason || p.review_notes}</p>}</div><div><Status value={p.status} /></div></div>)}</section><section><h2 className="font-bold text-lg mb-4">Recorded payments</h2>{!data.payments.length ? <Empty text="No recorded payments yet." /> : data.payments.map((p: any) => <div key={p.id} className="flex flex-wrap gap-4 justify-between py-4 border-b border-border"><div><p className="font-semibold">{p.receipt_number || "Payment"}</p><p className="text-sm text-muted-foreground">{date(p.paid_at)} · {p.method.replaceAll("_", " ")}</p></div><p className="font-semibold">{money(p.amount, p.currency)}</p></div>)}</section></>}
     {section === "services" && <ServiceIdentity data={data} onOpen={setDetail} onMode={setMode} />}
-    <ServiceDetailDialog detail={detail} onClose={() => setDetail(null)} onUpgrade={() => { const d = detail!; setDetail(null); setMode({ type: "upgrade", category: d.category, current: d.title }); }} onSupport={() => { const d = detail!; setDetail(null); setPreset(`Support: ${d.kind} — ${d.title}`); setNewTicket(true); }} />
+    <ServiceDetailDialog detail={detail} onClose={() => setDetail(null)} onUpgrade={() => { const d = detail!; setDetail(null); setMode({ type: "upgrade", category: d.category, current: d.title }); }} onAddon={() => { const d = detail!; setDetail(null); setMode({ type: "addon", category: d.category, current: d.title }); }} onSupport={() => { const d = detail!; setDetail(null); setPreset(`Support: ${d.kind} — ${d.title}`); setNewTicket(true); }} />
     <ServiceRequestDialog mode={mode} onClose={() => setMode(null)} />
     {section === "services" && <InstalledSystems rows={data.assets ?? []} onRequest={(subject) => { setPreset(subject); setNewTicket(true); }} />}
     {section === "services" && (data.services.length ? <div className="grid md:grid-cols-2 gap-4">{data.services.map((s: any) => <article key={s.id} className="border border-border bg-card rounded-lg p-6"><div className="flex items-start justify-between gap-3"><Server className="h-7 w-7 text-teal" /><Status value={s.status} /></div><h2 className="font-bold text-lg mt-5">{s.plan_name}</h2>{s.description && <p className="text-sm text-muted-foreground mt-2">{s.description}</p>}<div className="mt-6 flex justify-between gap-3 text-sm border-t border-border pt-4"><span>{money(s.amount, s.currency)} / {s.billing_cycle}</span><span className="text-muted-foreground">Renews {date(s.next_renewal)}</span></div></article>)}</div> : <Empty text="No subscribed services on this account yet." />)}

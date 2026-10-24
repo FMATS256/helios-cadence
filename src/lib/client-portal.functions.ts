@@ -123,10 +123,14 @@ export const submitServiceRequest = createServerFn({ method: "POST" }).middlewar
   const { data: customer } = await context.supabase.from("customers").select("account_number").eq("id", cid).is("archived_at", null).maybeSingle();
   if (!customer) throw new Error("Client account unavailable");
   let item = null;
-  if (data.catalog_id) {
+  if (data.type === "addon") {
+    if (!data.category) throw new Error("Choose the service to change");
+    const missing = missingRequired(data.category, data.details, "addon");
+    if (missing.length) throw new Error(`Please fill in: ${missing.join(", ")}`);
+  } else if (data.catalog_id) {
     const { data: row } = await context.supabase.from("service_catalog").select("name,code,category,unit_price,currency,billing_cycle").eq("id", data.catalog_id).eq("is_active", true).maybeSingle();
     if (!row) throw new Error("That service is no longer available");
-    const missing = missingRequired(row.category, data.details);
+    const missing = missingRequired(row.category, data.details, data.type);
     if (missing.length) throw new Error(`Please fill in: ${missing.join(", ")}`);
     item = row;
   } else if (data.type !== "quote") throw new Error("Choose a service");
