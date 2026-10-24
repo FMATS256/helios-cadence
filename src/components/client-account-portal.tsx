@@ -1,7 +1,7 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, FileText, CreditCard, Server, LifeBuoy, LogOut, ArrowUpRight, Plus, Upload, ShieldCheck, Send, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { getClientAccount, getClientPortalData, submitClientPayment, createClientTicket, getClientTicket, replyClientTicket, clientAccessDirectory, linkClientLogin } from "@/lib/client-portal.functions";
+import { getClientAccount, getClientPortalData, submitClientPayment, createClientTicket, getClientTicket, replyClientTicket, clientAccessDirectory, linkClientLogin, getClientInvoicePdf } from "@/lib/client-portal.functions";
 import { toast } from "sonner";
 import { startClientPayment, checkClientPayment } from "@/lib/client-pay.functions";
 import imtLogo from "@/assets/imt-logo.png.asset.json";
@@ -84,7 +84,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   const fn = useServerFn(getClientPortalData);
   const query = useQuery({ queryKey: ["client-portal-data", user?.id], queryFn: () => fn(), enabled: !!account.data, retry: false });
   const [payment, setPayment] = useState(false); const [newTicket, setNewTicket] = useState(false); const [ticket, setTicket] = useState<any>(null);
-  const [search, setSearch] = useState(""); const [payNow, setPayNow] = useState(false); const [preset, setPreset] = useState<string | undefined>();
+  const [search, setSearch] = useState(""); const [payNow, setPayNow] = useState(false); const [payInvoice, setPayInvoice] = useState<string | undefined>(); const [preset, setPreset] = useState<string | undefined>();
   const [detail, setDetail] = useState<Detail | null>(null); const [mode, setMode] = useState<ServiceRequestMode>(null);
   if (query.isPending) return <p className="py-12 text-muted-foreground">Loading account activity…</p>;
   if (query.error || !query.data) return <div className="py-12 space-y-3"><p role="alert">{query.error?.message ?? "Account unavailable"}</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div>;
@@ -104,10 +104,10 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
         <div className="py-6 sm:px-6"><div className="text-sm text-muted-foreground mb-3">Active services</div><div className="text-3xl font-bold">{data.services.filter((s) => s.status === "active").length}</div><Button variant="link" className="px-0 text-teal mt-2" asChild><Link to="/client/services">View services<ChevronRight className="h-4 w-4 ml-1" /></Link></Button></div>
         <div className="py-6 sm:pl-6"><div className="text-sm text-muted-foreground mb-3">Open support requests</div><div className="text-3xl font-bold">{openTickets.length}</div><Button variant="link" className="px-0 text-amber mt-2" asChild><Link to="/client/support">View requests<ChevronRight className="h-4 w-4 ml-1" /></Link></Button></div>
       </div>
-      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-10"><section><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold">Recent invoices</h2><Button asChild variant="ghost" size="sm"><Link to="/client/invoices">View all<ArrowUpRight className="h-4 w-4 ml-2" /></Link></Button></div><InvoiceList rows={data.invoices.slice(0, 4)} /></section><section><h2 className="text-lg font-bold mb-4">Payment verification</h2>{data.submissions.length ? data.submissions.slice(0, 4).map((p: any) => <div key={p.id} className="py-4 border-b border-border flex items-center justify-between gap-3"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1 break-all">{p.reference}</p></div><Status value={p.status} /></div>) : <Empty text="No payments awaiting verification." />}</section></div>
+      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-10"><section><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold">Recent invoices</h2><Button asChild variant="ghost" size="sm"><Link to="/client/invoices">View all<ArrowUpRight className="h-4 w-4 ml-2" /></Link></Button></div><InvoiceList rows={data.invoices.slice(0, 4)} onPay={(id) => { setPayInvoice(id); setPayNow(true); }} /></section><section><h2 className="text-lg font-bold mb-4">Payment verification</h2>{data.submissions.length ? data.submissions.slice(0, 4).map((p: any) => <div key={p.id} className="py-4 border-b border-border flex items-center justify-between gap-3"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1 break-all">{p.reference}</p></div><Status value={p.status} /></div>) : <Empty text="No payments awaiting verification." />}</section></div>
       <div className="bg-teal/5 border-l-4 border-teal px-5 py-5 flex items-center justify-between gap-4"><div><h2 className="font-semibold">Need assistance?</h2><p className="text-sm text-muted-foreground mt-1">Contact the IMT support team.</p></div><Button asChild variant="outline"><Link to="/client/support"><LifeBuoy className="h-4 w-4 mr-2" />Support</Link></Button></div>
     </>}
-    {section === "invoices" && <><Input aria-label="Search invoices" placeholder="Search invoice number" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" /><InvoiceList rows={invoices} /></>}
+    {section === "invoices" && <><Input aria-label="Search invoices" placeholder="Search invoice number" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" /><InvoiceList rows={invoices} onPay={(id) => { setPayInvoice(id); setPayNow(true); }} /></>}
     {section === "payments" && <><section><h2 className="font-bold text-lg mb-4">Submitted payment proof</h2>{!data.submissions.length ? <Empty text="No payment proof submitted yet." /> : data.submissions.map((p: any) => <div key={p.id} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 py-5 border-b border-border"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1">{date(p.payment_date)}</p></div><div className="text-sm break-all">{p.reference}{(p.review_notes || p.rejection_reason) && <p className="text-muted-foreground mt-1">{p.rejection_reason || p.review_notes}</p>}</div><div><Status value={p.status} /></div></div>)}</section><section><h2 className="font-bold text-lg mb-4">Recorded payments</h2>{!data.payments.length ? <Empty text="No recorded payments yet." /> : data.payments.map((p: any) => <div key={p.id} className="flex flex-wrap gap-4 justify-between py-4 border-b border-border"><div><p className="font-semibold">{p.receipt_number || "Payment"}</p><p className="text-sm text-muted-foreground">{date(p.paid_at)} · {p.method.replaceAll("_", " ")}</p></div><p className="font-semibold">{money(p.amount, p.currency)}</p></div>)}</section></>}
     {section === "services" && <ServiceIdentity data={data} onOpen={setDetail} onMode={setMode} />}
     <ServiceDetailDialog detail={detail} onClose={() => setDetail(null)} onUpgrade={() => { const d = detail!; setDetail(null); setMode({ type: "upgrade", category: d.category, current: d.title }); }} onAddon={() => { const d = detail!; setDetail(null); setMode({ type: "addon", category: d.category, current: d.title }); }} onSupport={() => { const d = detail!; setDetail(null); setPreset(`Support: ${d.kind} — ${d.title}`); setNewTicket(true); }} />
@@ -117,15 +117,28 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
     {section === "support" && <ManagerCard manager={data.manager} account={data.profile} showProfile />}
     {section === "support" && (data.tickets.length ? <div>{data.tickets.map((t: any) => <Button key={t.id} variant="ghost" onClick={() => setTicket(t)} className="h-auto w-full justify-between rounded-none border-b border-border py-5 px-0 text-left whitespace-normal"><div className="min-w-0"><p className="text-xs text-muted-foreground mb-1">{t.ticket_number} · {date(t.created_at)}</p><p className="font-semibold break-words">{t.subject}</p></div><div className="flex items-center gap-3 ml-3"><Status value={t.status} /><ChevronRight className="h-4 w-4 shrink-0" /></div></Button>)}</div> : <Empty text="No support requests yet." />)}
     <PaymentDialog open={payment} onOpenChange={setPayment} invoices={data.invoices} />
-    <PayNowDialog open={payNow} onOpenChange={setPayNow} data={data} />
+    <PayNowDialog open={payNow} onOpenChange={(v) => { setPayNow(v); if (!v) setPayInvoice(undefined); }} data={data} presetInvoice={payInvoice} />
     <NewTicketDialog open={newTicket} onOpenChange={(v) => { setNewTicket(v); if (!v) setPreset(undefined); }} preset={preset} />
     <TicketDialog ticket={ticket} onClose={() => setTicket(null)} />
   </div>;
 }
 
-function InvoiceList({ rows }: { rows: any[] }) {
-  const [selected, setSelected] = useState<any>(null);
-  return <>{!rows.length ? <Empty text="No invoices on this account." /> : rows.map((i) => <Button key={i.id} variant="ghost" onClick={() => setSelected(i)} className="w-full h-auto rounded-none border-b border-border py-5 px-0 justify-between gap-3 text-left whitespace-normal"><div><p className="font-semibold">{i.invoice_number}</p><p className="text-xs text-muted-foreground mt-1">Due {date(i.due_date)}</p></div><div className="text-right"><p className="font-semibold">{money(i.balance, i.currency)}</p><p className="text-xs text-muted-foreground mt-1">{i.balance > 0 ? "Outstanding" : "Paid"}</p></div></Button>)}<Dialog open={!!selected} onOpenChange={() => setSelected(null)}><DialogContent><DialogHeader><DialogTitle>{selected?.invoice_number}</DialogTitle></DialogHeader>{selected && <dl className="space-y-4">{[["Issued", date(selected.issue_date)], ["Due", date(selected.due_date)], ["Invoice total", money(selected.total, selected.currency)], ["Paid", money(selected.paid, selected.currency)], ["Outstanding", money(selected.balance, selected.currency)]].map(([label, value]) => <div key={label} className="flex justify-between gap-3 border-b border-border pb-3"><dt className="text-muted-foreground">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl>}</DialogContent></Dialog></>;
+function InvoiceList({ rows, onPay }: { rows: any[]; onPay?: (id: string) => void }) {
+  const pdf = useServerFn(getClientInvoicePdf); const [busy, setBusy] = useState<string | null>(null);
+  const download = async (i: any) => {
+    setBusy(i.id);
+    try { const r = await pdf({ data: { id: i.id } }); const bytes = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0)); const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })); const a = document.createElement("a"); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Invoice could not be downloaded"); } finally { setBusy(null); }
+  };
+  if (!rows.length) return <Empty text="No invoices on this account." />;
+  return <div className="space-y-3">{rows.map((i) => <article key={i.id} className="bg-card border border-border rounded-sm overflow-hidden">
+    <div className="flex items-start justify-between gap-3 p-4">
+      <div className="flex items-start gap-3 min-w-0"><span className="h-9 w-9 shrink-0 rounded-full bg-solar text-solar-foreground flex items-center justify-center"><FileText className="h-4 w-4" /></span>
+        <div className="min-w-0"><button type="button" onClick={() => download(i)} disabled={busy === i.id} className="font-semibold text-lg underline underline-offset-4 hover:text-solar break-all text-left">{busy === i.id ? "Downloading…" : i.invoice_number}</button><p className="text-xs text-muted-foreground mt-1">Bill date: {date(i.issue_date)}</p></div></div>
+      <div className="text-right shrink-0"><p className="font-semibold text-lg">{money(i.total, i.currency)}</p>{i.balance > 0 ? <p className="text-xs text-muted-foreground mt-1">Due: {money(i.balance, i.currency)} by {date(i.due_date)}</p> : <p className="text-xs text-teal mt-1">Paid</p>}</div>
+    </div>
+    {i.balance > 0 && onPay && <div className="bg-muted px-4 py-3 flex justify-end"><Button className="bg-solar text-solar-foreground hover:bg-solar/90" onClick={() => onPay(i.id)}>Make a payment</Button></div>}
+  </article>)}</div>;
 }
 
 function PaymentDialog({ open, onOpenChange, invoices }: { open: boolean; onOpenChange: (v: boolean) => void; invoices: any[] }) {
@@ -206,7 +219,7 @@ function ServiceIdentity({ data, onOpen, onMode }: { data: any; onOpen: (d: Deta
   </section>;
 }
 
-function PayNowDialog({ open, onOpenChange, data }: { open: boolean; onOpenChange: (v: boolean) => void; data: any }) {
+function PayNowDialog({ open, onOpenChange, data, presetInvoice }: { open: boolean; onOpenChange: (v: boolean) => void; data: any; presetInvoice?: string }) {
   const start = useServerFn(startClientPayment); const check = useServerFn(checkClientPayment); const cache = useQueryClient();
   const services: Array<{ key: string; label: string; amount: number }> = [
     ...data.services.filter((s: any) => s.status === "active").map((s: any) => ({ key: `sub-${s.id}`, label: `${s.plan_name} renewal`, amount: Number(s.amount) || 0 })),
@@ -220,6 +233,7 @@ function PayNowDialog({ open, onOpenChange, data }: { open: boolean; onOpenChang
   const [state, setState] = useState<{ ref: string; status: string } | null>(null); const [busy, setBusy] = useState(false);
   const totalFor = (inv: string, keys: string[]) => (Number(data.invoices.find((i: any) => i.id === inv)?.balance) || 0) + services.filter((s) => keys.includes(s.key)).reduce((t, s) => t + s.amount, 0);
   const recalc = (inv: string, keys: string[]) => { const t = totalFor(inv, keys); setAmount(t > 0 ? t.toFixed(2) : ""); };
+  useEffect(() => { if (open && presetInvoice) { setInvoice(presetInvoice); recalc(presetInvoice, []); setPicked([]); const i = data.invoices.find((x: any) => x.id === presetInvoice); if (i && (i.currency === "USD" || i.currency === "ZWG")) setCurrency(i.currency); } }, [open, presetInvoice]);
   const locked = totalFor(invoice, picked) > 0;
   const toggle = (k: string) => { const next = picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k]; setPicked(next); recalc(invoice, next); };
   const poll = async (ref: string) => {
