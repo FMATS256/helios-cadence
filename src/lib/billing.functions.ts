@@ -407,11 +407,12 @@ async function sendInvoiceEmail(db: any, context: Ctx, invoice: any, cust: any, 
   }
 
   // Attach the official PDF — the same document the client can download.
-  const [{ data: allocations }, { officialInvoicePdf }] = await Promise.all([
-    db.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
+  const [allocationResult, { officialInvoicePdf }] = await Promise.all([
+    db.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", invoice.id),
     import("./invoice-document.server"),
   ]);
-  const pdf = await officialInvoicePdf(invoice, lines, cust, (allocations ?? []) as any[], { userId: context.userId, userName: senderName });
+  if (allocationResult.error) throw new Error("Invoice payments could not be loaded");
+  const pdf = await officialInvoicePdf(invoice, lines, cust, (allocationResult.data ?? []) as any[], { userId: context.userId, userName: senderName });
 
   const { imtSignature } = await import("./email-signature.shared");
   const { sendResendEmail } = await import("./email-templates/send-resend");

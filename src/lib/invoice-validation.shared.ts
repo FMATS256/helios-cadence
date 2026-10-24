@@ -1,4 +1,4 @@
-export type InvoiceLineInput = { description: string; item_code?: string; quantity: unknown; unit_price: unknown; tax_rate?: unknown; billing_period_start?: string | null; billing_period_end?: string | null };
+export type InvoiceLineInput = { description: string; item_code?: string | null; quantity: unknown; unit_price: unknown; tax_rate?: unknown; billing_period_start?: string | null; billing_period_end?: string | null };
 export const roundInvoiceMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export function validateInvoiceDates(issue: string, due?: string | null) {

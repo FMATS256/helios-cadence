@@ -82,20 +82,10 @@ function InvoiceDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const syncTotals = useMutation({
-    mutationFn: async () => {
-      await supabase.from("invoices").update({
-        subtotal: Math.round(totals.subtotal * 100) / 100,
-        tax: Math.round(totals.tax * 100) / 100,
-        total: Math.round(totals.total * 100) / 100,
-      }).eq("id", id);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoice", id] }),
-  });
-
   const removeItem = useMutation({
-    mutationFn: async (itemId: string) => { await supabase.from("invoice_line_items").delete().eq("id", itemId); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoice-items", id] }); setTimeout(() => syncTotals.mutate(), 100); },
+    mutationFn: async (itemId: string) => { const result = await supabase.from("invoice_line_items").delete().eq("id", itemId); if (result.error) throw result.error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoice-items", id] }); qc.invalidateQueries({ queryKey: ["invoice", id] }); },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   if (isLoading || !invoice) {
@@ -176,8 +166,7 @@ function InvoiceDetail() {
         action={
           canManage ? (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => syncTotals.mutate()}>Sync totals</Button>
-              <AddLineItem invoiceId={id} onDone={() => qc.invalidateQueries({ queryKey: ["invoice-items", id] })} />
+              <AddLineItem invoiceId={id} onDone={() => { qc.invalidateQueries({ queryKey: ["invoice-items", id] }); qc.invalidateQueries({ queryKey: ["invoice", id] }); }} />
             </div>
           ) : undefined
         }

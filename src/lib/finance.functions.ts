@@ -459,9 +459,10 @@ export const emailInvoice = createServerFn({ method: "POST" })
 
     const [itemsR, allocR, profileR] = await Promise.all([
       supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),
-      supabaseAdmin.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
+      supabaseAdmin.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", invoice.id),
       supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
     ]);
+    if (itemsR.error || allocR.error) throw new Error("Invoice items or payment records could not be loaded");
     const lineRows = rows(itemsR as any) as any[];
     const items = lineRows.map((i: any) => ({
       description: i.description,
