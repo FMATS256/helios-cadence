@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Preserved Quote Studio invoice design; mandatory persisted item codes, billing-period fields, no-VAT/date/price validation, saved-line totals and received-allocation payment status synchronization; 25 tests and rolled-back partial/full/failed-payment database checks passed; actual INV-01024 PDF rendered and inspected
 - Exact Quote Studio PDFs used for client and staff invoice downloads; unpaid/part-paid Invoice and fully allocated Sales Invoice tested; actual UK2AFRICA INV-01024 USD 200 download verified through staff UI
 - UK2AFRICA M10460 client invitation accepted for matarefarai833@gmail.com; profile linked without staff roles; Starlink, Microsoft 365 (five demo seats, three assigned), and CCTV maintenance demo services read back in a client-only session; staff administration redirects to /client
 - Client portal published to the custom domain at https://management.imtsolutions.co.zw/client; anonymous visitors see the client sign-in only, staff navigation is absent, pages carry noindex, and the requesting administrator's own sign-in correctly reports "not linked" instead of client data
@@ -33,7 +34,8 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Preserve invoice design while enforcing SKU/product-period details, validating dates/tax/totals and showing accounting-derived invoice payment figures; generate and verify updated PDF
+- [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
+- [ ] Verify general-ledger posting/reversal coverage for legacy/POS receipts and authenticated invoice download; requesting user has no matching staff login, so the actual PDF was verified directly instead
 - [ ] Verify UK2AFRICA invitation receipt and initial password setup with the client; invitation accepted, but mailbox delivery and first-time password setup remain unverified
 - [ ] Connect the separate IMT website account form: its current forwarding sends an event envelope instead of the required account fields; edits must be made from the website project because cross-project access here is read-only
 - [ ] Gateway must supply signed download URLs or base64 file content for private inbound attachments; opaque paths alone cannot be downloaded
