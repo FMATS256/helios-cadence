@@ -1,6 +1,7 @@
 import { PDFDocument, PDFRawStream, PDFRef, decodePDFRawStream, StandardFonts, rgb } from "pdf-lib";
 import { quoteStudio, type StudioActor } from "./quote-studio.server";
 import { IMT_ADDRESS, INVOICE_TERMS, initialsOf, invoiceSettlement, invoiceStudioPayload } from "./invoice-document.shared";
+import { validateInvoiceDates } from "./invoice-validation.shared";
 
 /** Who the invoice is sold by — always the customer's account manager. */
 export type InvoiceRep = { name: string; code?: string };
@@ -10,6 +11,7 @@ export type InvoiceRep = { name: string; code?: string };
  * operators for the local payment label and saved amounts, never repaint the page.
  */
 export async function officialInvoicePdf(invoice: any, lines: any[], customer: any, allocations: Array<{ amount: unknown; payments?: { status?: string } | null }>, actor?: StudioActor, rep?: InvoiceRep) {
+  validateInvoiceDates(invoice.issue_date, invoice.due_date);
   if (lines.some(line => !String(line.item_code ?? "").trim())) throw new Error("Invoice contains an item without an Item Code/SKU; ask Finance to complete it");
   if (Number(invoice.tax ?? 0) !== 0 || lines.some(line => Number(line.tax_rate ?? 0) !== 0)) throw new Error("Invoice tax requires Finance review before a no-VAT PDF can be generated");
   const subtotal = Math.round(lines.reduce((sum, line) => sum + Math.round(Number(line.quantity) * Number(line.unit_price) * 100) / 100, 0) * 100) / 100;
@@ -51,7 +53,8 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
         const x = Number(matrix[1]), y = Number(matrix[2]), size = Number(font[2]);
         let replacement: string | undefined;
         let newX = x;
-        if (text === "SALES INVOICE") {
+        if (rep?.name && x >= 245 && x < 370 && Math.abs(y - 483.7) < 0.5) replacement = "";
+        else if (text === "SALES INVOICE") {
           headings++;
           if (!settlement.settled) { replacement = "INVOICE"; newX = x + (bold.widthOfTextAtSize(text, size) - bold.widthOfTextAtSize(replacement, size)) / 2; }
         } else if (text.startsWith("Account Balance:")) {
