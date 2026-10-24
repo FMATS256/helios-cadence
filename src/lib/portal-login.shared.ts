@@ -16,9 +16,9 @@ export function usernameBase(companyName: string, accountNumber: string) {
 }
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-/** 14-character temporary password with upper, lower, digit and symbol. */
+/** 17-character temporary password with upper, lower, digit and symbol. */
 export function temporaryPassword(random: (n: number) => Uint8Array = (n) => crypto.getRandomValues(new Uint8Array(n))) {
   const bytes = random(12);
   const body = Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
-  return `${body.slice(0, 6)}-${body.slice(6)}#7Ka`.slice(0, 14);
+  return `${body.slice(0, 6)}-${body.slice(6)}#Ka7`;
 }
