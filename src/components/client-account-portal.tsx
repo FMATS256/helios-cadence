@@ -93,9 +93,9 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   const outstanding = new Map<string, number>();
   for (const i of data.invoices) outstanding.set(i.currency, (outstanding.get(i.currency) ?? 0) + i.balance);
   const openTickets = data.tickets.filter((t) => !["closed", "resolved"].includes(t.status));
-  const title = { overview: "Account overview", invoices: "Your invoices", payments: "Payments & receipts", services: "Your services", support: "Support requests" }[section];
+  const title = { overview: "Account overview", invoices: "My Invoices", payments: "My Payments", services: "Your services", support: "Support requests" }[section];
   return <div className="min-h-[520px] space-y-8">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Submit payment proof"}</Button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Send proof of payment"}</Button></div></div>
     {section === "overview" && <>
       <ClientDashboard data={data} onPay={() => setPayNow(true)} onProof={() => setPayment(true)} onMode={setMode} onOpen={setDetail} />
 
