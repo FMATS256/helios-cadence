@@ -571,7 +571,11 @@ function InvoiceEditorDialog({
                   return (
                     <div key={i} className="grid grid-cols-2 items-center gap-2 sm:grid-cols-12">
                       <Input
-                        className="col-span-2 sm:col-span-5" placeholder="Description" value={l.description} disabled={locked}
+                        className="col-span-1 sm:col-span-2" placeholder="Code" value={l.item_code} disabled={locked}
+                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, item_code: e.target.value } : x))}
+                      />
+                      <Input
+                        className="col-span-1 sm:col-span-4" placeholder="Description" value={l.description} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
                       />
                       <Input
@@ -581,10 +585,6 @@ function InvoiceEditorDialog({
                       <Input
                         className="col-span-1 sm:col-span-2" type="number" min="0" step="0.01" placeholder="Unit price" value={l.unit_price} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: e.target.value } : x))}
-                      />
-                      <Input
-                        className="col-span-1 sm:col-span-1" type="number" min="0" step="0.1" placeholder="Tax %" value={l.tax_rate} disabled={locked}
-                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, tax_rate: e.target.value } : x))}
                       />
                       <div className="col-span-1 text-right font-mono text-xs">{lt.toFixed(2)}</div>
                       <div className="col-span-2 text-right sm:col-span-1">
@@ -603,7 +603,6 @@ function InvoiceEditorDialog({
 
             <div className="rounded-lg border p-4 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-mono">{money(totals.subtotal, form.currency)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span className="font-mono">{money(totals.tax, form.currency)}</span></div>
               <div className="mt-2 flex justify-between border-t pt-2 font-semibold"><span>Total</span><span className="font-mono">{money(totals.total, form.currency)}</span></div>
             </div>
           </div>
