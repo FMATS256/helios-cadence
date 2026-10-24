@@ -7,6 +7,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { priceInvoiceItems, validateInvoiceDates } from "./invoice-validation.shared";
 
 const rows = <T,>(r: { data: T[] | null }) => (r.data ?? []) as T[];
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -31,31 +32,13 @@ export type InvoiceItemInput = {
   unit_price: number;
   /** Product/service code from the catalogue — printed in the Item column. */
   item_code?: string;
+  billing_period_start?: string | null;
+  billing_period_end?: string | null;
   tax_rate?: number;
 };
 
 function priceItems(items: InvoiceItemInput[]) {
-  const clean = items
-    .map((i) => ({
-      description: String(i.description ?? "").trim(),
-      item_code: String(i.item_code ?? "").trim().slice(0, 40),
-      quantity: Number(i.quantity) || 0,
-      unit_price: Number(i.unit_price) || 0,
-      tax_rate: Number(i.tax_rate) || 0,
-    }))
-    .filter((i) => i.description && i.quantity > 0);
-  if (!clean.length) throw new Error("Add at least one line item with a description and quantity");
-  let subtotal = 0;
-  let tax = 0;
-  const lines = clean.map((i, idx) => {
-    const line_total = r2(i.quantity * i.unit_price);
-    subtotal += line_total;
-    tax += r2((line_total * i.tax_rate) / 100);
-    return { ...i, line_total, position: idx };
-  });
-  subtotal = r2(subtotal);
-  tax = r2(tax);
-  return { lines, subtotal, tax, total: r2(subtotal + tax) };
+  return priceInvoiceItems(items);
 }
 
 async function notifyUsers(db: any, userIds: string[], n: { kind: string; title: string; body: string; link: string }) {
@@ -105,7 +88,7 @@ export const getBillingWorkspace = createServerFn({ method: "POST" })
         .from("subscriptions")
         .select("*, customers:customer_id(company_name, primary_email)")
         .order("next_renewal", { ascending: true }),
-      supabaseAdmin.from("service_catalog").select("id, code, name, category, base_price, currency, billing_cycle").limit(500),
+      supabaseAdmin.from("service_catalog").select("id, code, name, category, unit_price, currency, billing_cycle").limit(500),
       supabaseAdmin.from("profiles").select("id, full_name, email"),
     ]);
 
@@ -239,6 +222,7 @@ export const createInvoice = createServerFn({ method: "POST" })
       due = d.toISOString().slice(0, 10);
     }
     const status = data.status === "sent" ? "sent" : "draft";
+    validateInvoiceDates(issue, due);
 
     const { data: invoice, error } = await supabaseAdmin
       .from("invoices")
@@ -350,6 +334,7 @@ export const updateInvoice = createServerFn({ method: "POST" })
     if (data.due_date !== undefined) patch.due_date = data.due_date || null;
     if (data.notes !== undefined) patch.notes = data.notes || null;
     if (data.currency) patch.currency = data.currency.toUpperCase().slice(0, 3);
+    validateInvoiceDates(patch.issue_date || invoice.issue_date, patch.due_date === undefined ? invoice.due_date : patch.due_date);
 
     let repriced: { subtotal: number; tax: number; total: number } | null = null;
     if (data.items) {
@@ -422,11 +407,12 @@ async function sendInvoiceEmail(db: any, context: Ctx, invoice: any, cust: any, 
   }
 
   // Attach the official PDF — the same document the client can download.
-  const [{ data: allocations }, { officialInvoicePdf }] = await Promise.all([
-    db.from("payment_allocations").select("amount").eq("invoice_id", invoice.id),
+  const [allocationResult, { officialInvoicePdf }] = await Promise.all([
+    db.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", invoice.id),
     import("./invoice-document.server"),
   ]);
-  const pdf = await officialInvoicePdf(invoice, lines, cust, (allocations ?? []) as any[], { userId: context.userId, userName: senderName });
+  if (allocationResult.error) throw new Error("Invoice payments could not be loaded");
+  const pdf = await officialInvoicePdf(invoice, lines, cust, (allocationResult.data ?? []) as any[], { userId: context.userId, userName: senderName });
 
   const { imtSignature } = await import("./email-signature.shared");
   const { sendResendEmail } = await import("./email-templates/send-resend");
@@ -477,8 +463,11 @@ export const issueInvoice = createServerFn({ method: "POST" })
     if (invoice.status === "paid") throw new Error("This invoice is already settled");
     if (Number(invoice.total || 0) <= 0) throw new Error("Add priced line items before issuing this invoice");
 
-    const { data: items } = await supabaseAdmin
+    const { data: items, error: itemError } = await supabaseAdmin
       .from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position");
+    if (itemError) throw new Error(itemError.message);
+    priceInvoiceItems(items ?? []);
+    validateInvoiceDates(invoice.issue_date, invoice.due_date);
 
     if (invoice.status === "draft") {
       await supabaseAdmin.from("invoices").update({ status: "sent" } as any).eq("id", invoice.id);

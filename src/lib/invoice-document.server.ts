@@ -1,6 +1,7 @@
 import { PDFDocument, PDFRawStream, PDFRef, decodePDFRawStream, StandardFonts, rgb } from "pdf-lib";
 import { quoteStudio, type StudioActor } from "./quote-studio.server";
 import { IMT_ADDRESS, INVOICE_TERMS, initialsOf, invoiceSettlement, invoiceStudioPayload } from "./invoice-document.shared";
+import { validateInvoiceDates } from "./invoice-validation.shared";
 
 /** Who the invoice is sold by — always the customer's account manager. */
 export type InvoiceRep = { name: string; code?: string };
@@ -9,7 +10,12 @@ export type InvoiceRep = { name: string; code?: string };
  * The engine fixes its invoice heading and recalculates taxes; replace only text
  * operators for the local payment label and saved amounts, never repaint the page.
  */
-export async function officialInvoicePdf(invoice: any, lines: any[], customer: any, allocations: Array<{ amount: unknown }>, actor?: StudioActor, rep?: InvoiceRep) {
+export async function officialInvoicePdf(invoice: any, lines: any[], customer: any, allocations: Array<{ amount: unknown; payments?: { status?: string } | null }>, actor?: StudioActor, rep?: InvoiceRep) {
+  validateInvoiceDates(invoice.issue_date, invoice.due_date);
+  if (lines.some(line => !String(line.item_code ?? "").trim())) throw new Error("Invoice contains an item without an Item Code/SKU; ask Finance to complete it");
+  if (Number(invoice.tax ?? 0) !== 0 || lines.some(line => Number(line.tax_rate ?? 0) !== 0)) throw new Error("Invoice tax requires Finance review before a no-VAT PDF can be generated");
+  const subtotal = Math.round(lines.reduce((sum, line) => sum + Math.round(Number(line.quantity) * Number(line.unit_price) * 100) / 100, 0) * 100) / 100;
+  if (Math.abs(subtotal - Number(invoice.total)) > 0.009) throw new Error("Invoice line amounts do not match the saved invoice total; ask Finance to correct it");
   const settlement = invoiceSettlement(invoice, allocations);
   const repName = rep?.name || actor?.userName || "IMT Solutions";
   const result = await quoteStudio.renderPdf(invoiceStudioPayload(invoice, lines, customer, repName), actor);
@@ -47,11 +53,12 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
         const x = Number(matrix[1]), y = Number(matrix[2]), size = Number(font[2]);
         let replacement: string | undefined;
         let newX = x;
-        if (text === "SALES INVOICE") {
+        if (rep?.name && x >= 245 && x < 370 && Math.abs(y - 483.7) < 0.5) replacement = "";
+        else if (text === "SALES INVOICE") {
           headings++;
           if (!settlement.settled) { replacement = "INVOICE"; newX = x + (bold.widthOfTextAtSize(text, size) - bold.widthOfTextAtSize(replacement, size)) / 2; }
         } else if (text.startsWith("Account Balance:")) {
-          replacement = `Account Balance:  ${money(settlement.balance)}`;
+          replacement = `Invoice Balance:  ${money(settlement.balance)}`;
           newX = x + (regular.widthOfTextAtSize(text, size) - regular.widthOfTextAtSize(replacement, size)) / 2;
         }
         // Registered IMT address on the company block.
@@ -60,9 +67,12 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
         else if (text.startsWith("Account No:")) replacement = "";
         else if (text.trim() === "Vat:" || text.trim() === "Vat") replacement = "";
         // VAT removed entirely: no excl-Vat / tax rows, no per-line VAT.
-        else if (text === "Amount Excl Vat" || text === "Tax Total") replacement = "";
-        else if (x > 500 && Math.abs(y - 182) < 0.1) replacement = "";
-        else if (x > 500 && Math.abs(y - 166) < 0.1) replacement = "";
+        else if (text === "Amount Excl Vat") replacement = "Amount Paid";
+        else if (text === "Tax Total") replacement = "Outstanding Balance";
+        else if (text === "Item") replacement = "Item Code / SKU";
+        else if (text === "Sub Total") replacement = "Invoice Total";
+        else if (x > 500 && Math.abs(y - 182) < 0.1) replacement = money(settlement.paid);
+        else if (x > 500 && Math.abs(y - 166) < 0.1) replacement = money(settlement.balance);
         else if (x > 440 && x < 500 && y > 220 && y < 470 && /%$/.test(text)) replacement = "";
         // The unused Tax Reference box becomes the Sales Rep box.
         else if (text === "Tax Reference") replacement = "Sales Rep";
@@ -75,7 +85,7 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
         else if (x > 500 && Math.abs(y - 150) < 0.1) replacement = money(invoice.total);
         else if (x > 500 && y > 220 && y < 470 && /^\d+[,.]\d{2}$/.test(text)) {
           const line = lines[itemIndex++];
-          if (line) replacement = money(Number(line.line_total ?? Number(line.quantity) * Number(line.unit_price)) * (1 + Number(line.tax_rate || 0) / 100));
+          if (line) replacement = money(Number(line.line_total ?? Number(line.quantity) * Number(line.unit_price)));
         }
         if (replacement === undefined) return block;
         if (replacement === "") return block.replace(value[0], BLANK);

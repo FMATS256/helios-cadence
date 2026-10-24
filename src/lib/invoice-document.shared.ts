@@ -1,7 +1,8 @@
-/** Only posted allocations count as payment; proof and gateway success are not approval. */
-export function invoiceSettlement(invoice: { total: unknown; status?: string }, allocations: Array<{ amount: unknown }>) {
+import { invoiceLineDescription } from "./invoice-validation.shared";
+/** Only received, accounting-recorded allocations count; proof/gateway success is not approval. */
+export function invoiceSettlement(invoice: { total: unknown; status?: string }, allocations: Array<{ amount: unknown; payments?: { status?: string } | null }>) {
   const total = Math.round(Number(invoice.total) * 100) / 100;
-  const paid = Math.round(allocations.reduce((sum, a) => sum + Number(a.amount), 0) * 100) / 100;
+  const paid = Math.round(allocations.filter(a => !('payments' in a) || a.payments?.status === 'received').reduce((sum, a) => sum + Number(a.amount), 0) * 100) / 100;
   const balance = Math.max(0, Math.round((total - paid) * 100) / 100);
   const settled = total > 0 && balance === 0 && !["draft", "void", "cancelled"].includes(invoice.status ?? "");
   return { paid, balance, settled, kind: settled ? "sales_invoice" : "invoice" } as const;
@@ -23,7 +24,7 @@ export function initialsOf(name: string | null | undefined): string {
     .trim()
     .split(/\s+/)
     .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase())
+    .map((part) => part.charAt(0).toUpperCase())
     .join("")
     .slice(0, 4);
 }
@@ -41,7 +42,7 @@ export function invoiceStudioPayload(invoice: any, lines: any[], customer: any, 
     salesRep: representative, sales_rep: representative,
     salesCode, sales_code: salesCode,
     items: lines.length ? lines.map((line) => ({
-      code: line.item_code || "", description: line.description, name: line.description,
+      code: line.item_code || "", description: invoiceLineDescription(line), name: invoiceLineDescription(line),
       qty: Number(line.quantity), quantity: Number(line.quantity), price: Number(line.unit_price), unitPrice: Number(line.unit_price), vat: 0,
     })) : [{ code: "", name: invoice.description || "Services", description: invoice.description || "Services", qty: 1, quantity: 1, price: Number(invoice.total), unitPrice: Number(invoice.total), vat: 0 }],
   };
