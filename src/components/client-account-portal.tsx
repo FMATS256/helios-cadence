@@ -49,7 +49,7 @@ export function ClientPortalLayout() {
     await supabase.auth.signOut();
     navigate({ to: "/client", replace: true });
   };
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-muted/40 flex flex-col">
     <header className="bg-portal-gradient text-navy-foreground shadow-elegant">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-3 flex items-center justify-between gap-3 text-xs">
         <span className="bg-solar-glow/30 px-2 py-0.5 rounded-sm font-semibold">IMT Solutions</span>
@@ -61,7 +61,7 @@ export function ClientPortalLayout() {
       </div>
     </header>
     {loading ? <p className="p-12 text-center text-muted-foreground">Checking your session…</p> : !user ? <ClientSignIn /> : <>
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-7 sm:py-10 min-w-0">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-7 sm:py-10 min-w-0 w-full">
         {account.isPending ? <p>Loading your account…</p> : account.error ? <div className="space-y-3"><p role="alert">{account.error.message}</p><Button onClick={() => account.refetch()}>Retry</Button></div> : !account.data ? <div className="border-l-4 border-solar pl-5 py-3 space-y-3"><h1 className="text-2xl font-bold">Your client account</h1><p className="text-muted-foreground">Your sign-in is not linked to an IMT account yet. Contact your account manager to arrange access.</p><Button variant="outline" asChild><Link to="/client/access"><ShieldCheck className="h-4 w-4 mr-2" />Client access</Link></Button>{pathname === "/client/access" && <Outlet />}</div> : <><div className="flex flex-wrap items-center gap-2 mb-7 text-sm"><span className="font-medium">{account.data.company_name}</span><span className="text-muted-foreground">/</span><span className="font-mono text-muted-foreground">{account.data.account_number}</span><Badge variant="outline" className="ml-auto capitalize text-teal border-teal/30">{account.data.status}</Badge></div><Outlet /></>}
       </main>
     </>}
