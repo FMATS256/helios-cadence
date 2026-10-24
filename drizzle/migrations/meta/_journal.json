@@ -162,6 +162,13 @@
       "when": 1792788674661,
       "tag": "0022_client_catalog_read",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792823075301,
+      "tag": "0023_invoice_item_codes_and_payment_sync",
+      "breakpoints": true
     }
   ]
 }

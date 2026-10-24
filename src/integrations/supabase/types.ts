@@ -2589,10 +2589,13 @@ export type Database = {
       }
       invoice_line_items: {
         Row: {
+          billing_period_end: string | null
+          billing_period_start: string | null
           created_at: string
           description: string
           id: string
           invoice_id: string
+          item_code: string | null
           line_total: number | null
           position: number
           quantity: number
@@ -2600,10 +2603,13 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           description: string
           id?: string
           invoice_id: string
+          item_code?: string | null
           line_total?: number | null
           position?: number
           quantity?: number
@@ -2611,10 +2617,13 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           description?: string
           id?: string
           invoice_id?: string
+          item_code?: string | null
           line_total?: number | null
           position?: number
           quantity?: number
@@ -2718,6 +2727,7 @@ export type Database = {
       invoices: {
         Row: {
           account_number: string
+          amount_paid: number
           archived_at: string | null
           created_at: string
           created_by: string | null
@@ -2737,6 +2747,7 @@ export type Database = {
         }
         Insert: {
           account_number: string
+          amount_paid?: number
           archived_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -2756,6 +2767,7 @@ export type Database = {
         }
         Update: {
           account_number?: string
+          amount_paid?: number
           archived_at?: string | null
           created_at?: string
           created_by?: string | null
