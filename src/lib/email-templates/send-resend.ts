@@ -38,6 +38,8 @@ export interface SendResendEmailOptions {
   from?: string
   /** Domain portion only; ignored when `from` is supplied. */
   fromDomain?: string
+  /** Extra HTML (e.g. a staff signature) appended after the template body. */
+  signatureHtml?: string
 }
 
 function serverSupabase() {
