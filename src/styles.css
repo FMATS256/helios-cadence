@@ -81,6 +81,12 @@
   --quotation-soft: #eff4f9;
   --radius: 0.5rem;
 
+  /* Client portal palette (Fortinet poster): royal blue + golden amber. */
+  --gold: oklch(0.82 0.16 84);
+  --portal-blue-bright: #005fac;
+  --portal-blue-mid: #03448c;
+  --portal-blue-deep: #08255d;
+
 
 
 
@@ -242,6 +248,25 @@ main:has(> .imt-mail) {
 .quotation-count { text-align:center; font-size:22px; }
 .quotation-sheet footer { display:flex; justify-content:space-between; gap:12px; margin-top:100px; padding-top:12px; border-top:2px solid var(--quotation-blue); font-size:10px; }
 
+/* Client portal palette — sampled from the Fortinet campaign poster:
+   royal-blue backdrop (#005FAC → #08255D), white surfaces and the
+   golden-amber "Firewalls" accent, blended into the header. */
 @utility bg-portal-gradient {
-  background: linear-gradient(100deg, oklch(0.2 0.09 265) 0%, oklch(0.32 0.12 262) 45%, oklch(0.5 0.14 252) 75%, oklch(0.66 0.13 240) 100%);
+  background:
+    radial-gradient(140% 90% at 88% 115%, var(--gold) 0%, transparent 55%),
+    linear-gradient(160deg, var(--portal-blue-bright) 0%, var(--portal-blue-mid) 45%, var(--portal-blue-deep) 100%);
+}
+
+.client-portal {
+  /* Gold accent throughout the portal: buttons, links, chips and gradients. */
+  --solar: var(--gold);
+  --solar-glow: var(--gold);
+  --solar-foreground: var(--navy);
+  --gradient-solar: linear-gradient(135deg, oklch(0.82 0.16 84), oklch(0.74 0.16 76));
+  /* Darker amber for accent text on white cards, so links stay readable. */
+  --portal-gold-ink: oklch(0.55 0.13 70);
+}
+
+.client-portal .text-solar {
+  color: var(--portal-gold-ink);
 }
