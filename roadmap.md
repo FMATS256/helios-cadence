@@ -34,6 +34,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Build connected lead/account portfolio, Customer 360 account-access controls and NOC client recovery workflows; verify signed-in readback.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
 - [ ] Verify general-ledger posting/reversal coverage for legacy/POS receipts and authenticated invoice download; requesting user has no matching staff login, so the actual PDF was verified directly instead
 - [ ] Verify UK2AFRICA invitation receipt and initial password setup with the client; invitation accepted, but mailbox delivery and first-time password setup remain unverified
