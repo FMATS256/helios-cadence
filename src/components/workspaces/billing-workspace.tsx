@@ -7,6 +7,7 @@ import {
   issueInvoice, voidInvoice, requestInvoice, reviewInvoiceRequest, runRecurringBilling,
 } from "@/lib/billing.functions";
 import { emailInvoice } from "@/lib/finance.functions";
+import { listCatalog } from "@/lib/catalog.functions";
 import { CreditRequestList } from "@/components/workspaces/credit-requests";
 import { useCustomersLite } from "@/components/module-page";
 import {
@@ -388,6 +389,8 @@ function InvoiceEditorDialog({
   const loadOne = useServerFn(getInvoiceForEdit);
   const create = useServerFn(createInvoice);
   const update = useServerFn(updateInvoice);
+  const loadCatalog = useServerFn(listCatalog);
+  const { data: catalog = [] } = useQuery({ queryKey: ["invoice-catalog"], queryFn: () => loadCatalog() });
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["invoice-edit", invoiceId],
@@ -543,9 +546,25 @@ function InvoiceEditorDialog({
               <div className="flex items-center justify-between">
                 <Label>Line items</Label>
                 {!locked && (
+                  <div className="flex items-center gap-2">
+                  <Select value="" onValueChange={(id) => {
+                    const c: any = (catalog as any[]).find((x: any) => x.id === id);
+                    if (!c) return;
+                    const line = { description: `${c.name}${c.billing_cycle ? ` (${c.billing_cycle})` : ""}`, quantity: "1", unit_price: String(c.unit_price ?? 0), tax_rate: "0" };
+                    const empty = lines.findIndex((x) => !x.description.trim());
+                    setLines(empty >= 0 ? lines.map((x, j) => j === empty ? line : x) : [...lines, line]);
+                  }}>
+                    <SelectTrigger className="h-9 w-[170px]"><SelectValue placeholder="Add a service" /></SelectTrigger>
+                    <SelectContent>
+                      {(catalog as any[]).filter((c: any) => c.is_active !== false).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.category ? `${c.category} · ` : ""}{c.name} — {c.currency ?? "USD"} {Number(c.unit_price ?? 0).toFixed(2)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button type="button" variant="outline" size="sm" onClick={() => setLines([...lines, blankLine()])}>
                     <Plus className="h-4 w-4 mr-1.5" />Add line
                   </Button>
+                  </div>
                 )}
               </div>
               <div className="space-y-2">

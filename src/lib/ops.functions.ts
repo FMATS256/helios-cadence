@@ -623,7 +623,6 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
       quantity: 1,
       unit_price: subtotal,
       tax_rate: taxRate,
-      line_total: subtotal,
       position: 0,
     });
 
