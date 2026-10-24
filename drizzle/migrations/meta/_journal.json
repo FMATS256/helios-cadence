@@ -176,6 +176,13 @@
       "when": 1792823285868,
       "tag": "0024_invoice_totals_from_saved_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792843187631,
+      "tag": "0025_portal_usernames_and_announcements",
+      "breakpoints": true
     }
   ]
 }

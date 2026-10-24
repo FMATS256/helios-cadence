@@ -22,7 +22,13 @@ export async function sendCustomerWelcome(db: any, customerId: string) {
       db.from("email_workspace_preferences").select("signature_html").eq("user_id", manager.id).maybeSingle(),
     ]);
     if (subscriptionError || preferencesError) throw new Error(subscriptionError?.message ?? preferencesError?.message);
-    const details = welcomeDetails(customer, manager, (subscriptions ?? []).map((s: any) => s.plan_name));
+    let login = null;
+    try {
+      const { provisionPortalLogin } = await import("./portal-login.server");
+      const creds = await provisionPortalLogin(db, customer);
+      if (creds) login = { ...creds, url: "https://management.imtsolutions.co.zw/client" };
+    } catch (e) { console.error("Portal login provisioning", customer.account_number, e); }
+    const details = welcomeDetails(customer, manager, (subscriptions ?? []).map((s: any) => s.plan_name), login);
     const { createAndSendEnquiryEmail } = await import("./inbox.server");
     // The inbox saves the signed HTML before delivery; failed sends remain visible/retryable.
     const result = await createAndSendEnquiryEmail({
