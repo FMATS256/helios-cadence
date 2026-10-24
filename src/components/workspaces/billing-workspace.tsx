@@ -447,9 +447,9 @@ function InvoiceEditorDialog({
       .filter((l) => l.description.trim())
       .map((l) => ({
         description: l.description.trim(),
+        item_code: l.item_code.trim() || undefined,
         quantity: Number(l.quantity) || 0,
         unit_price: Number(l.unit_price) || 0,
-        tax_rate: Number(l.tax_rate) || 0,
       })),
   });
 
