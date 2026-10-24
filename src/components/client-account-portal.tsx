@@ -49,7 +49,7 @@ export function ClientPortalLayout() {
     await supabase.auth.signOut();
     navigate({ to: "/client", replace: true });
   };
-  return <div className="min-h-screen bg-muted/40 flex flex-col">
+  return <div className="client-portal min-h-screen bg-muted/40 flex flex-col">
     <header className="bg-portal-gradient text-navy-foreground shadow-elegant">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-3 flex items-center justify-between gap-3 text-xs">
         <span className="bg-solar-glow/30 px-2 py-0.5 rounded-sm font-semibold">IMT Solutions</span>
