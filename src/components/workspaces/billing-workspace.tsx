@@ -37,8 +37,8 @@ const STATUSES = ["draft", "sent", "partial", "paid", "overdue", "void"];
 const money = (n: number, cur = "USD") =>
   `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Line = { description: string; quantity: string; unit_price: string; tax_rate: string };
-const blankLine = (): Line => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
+type Line = { description: string; item_code: string; quantity: string; unit_price: string };
+const blankLine = (): Line => ({ description: "", item_code: "", quantity: "1", unit_price: "0" });
 
 function totalsOf(lines: Line[]) {
   let subtotal = 0, tax = 0;
