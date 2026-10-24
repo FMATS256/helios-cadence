@@ -169,9 +169,9 @@ export type StudioItem = {
 
 
 export type StudioDocumentInput = {
-  type: "quotation";
+  type: "quotation" | "invoice";
   /** Native engine document fields. */
-  docType: "quotation";
+  docType: "quotation" | "invoice";
   reference: string;
   externalId?: string | null;
   externalClientId?: string | null;

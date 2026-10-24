@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Exact Quote Studio PDFs used for client and staff invoice downloads; unpaid/part-paid Invoice and fully allocated Sales Invoice tested; actual UK2AFRICA INV-01024 USD 200 download verified through staff UI
 - UK2AFRICA M10460 client invitation accepted for matarefarai833@gmail.com; profile linked without staff roles; Starlink, Microsoft 365 (five demo seats, three assigned), and CCTV maintenance demo services read back in a client-only session; staff administration redirects to /client
 - Client portal published to the custom domain at https://management.imtsolutions.co.zw/client; anonymous visitors see the client sign-in only, staff navigation is absent, pages carry noindex, and the requesting administrator's own sign-in correctly reports "not linked" instead of client data
 - Built client portal at /client with administrator-managed account links, invoice balances, payments/proof, services and support; linked-account upload/pending-payment readback and support replies verified on desktop/mobile; temporary records removed
