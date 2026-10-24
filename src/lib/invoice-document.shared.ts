@@ -18,8 +18,8 @@ export function invoiceStudioPayload(invoice: any, lines: any[], customer: any, 
     customerEmail: customer?.primary_email || "", customerAccount: customer?.account_number || invoice.account_number || "",
     salesRep: representative, sales_rep: representative,
     items: lines.length ? lines.map((line) => ({
-      code: line.item_code || "", description: line.description,
-      qty: Number(line.quantity), price: Number(line.unit_price), vat: Number(line.tax_rate || 0),
-    })) : [{ code: "", description: invoice.description || "Services", qty: 1, price: Number(invoice.total), vat: 0 }],
+      code: line.item_code || "", description: line.description, name: line.description,
+      qty: Number(line.quantity), quantity: Number(line.quantity), price: Number(line.unit_price), unitPrice: Number(line.unit_price), vat: Number(line.tax_rate || 0),
+    })) : [{ code: "", name: invoice.description || "Services", description: invoice.description || "Services", qty: 1, quantity: 1, price: Number(invoice.total), unitPrice: Number(invoice.total), vat: 0 }],
   };
 }

@@ -1,4 +1,4 @@
-import { PDFDocument, PDFRawStream, decodePDFRawStream, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFRawStream, PDFRef, decodePDFRawStream, StandardFonts } from "pdf-lib";
 import { quoteStudio, type StudioActor } from "./quote-studio.server";
 import { invoiceSettlement, invoiceStudioPayload } from "./invoice-document.shared";
 
@@ -26,6 +26,7 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
     if (!contents) throw new Error("Quote Studio invoice layout has no content");
     const refs = "size" in contents ? Array.from({ length: contents.size() }, (_, i) => contents.get(i)) : [contents];
     for (const ref of refs) {
+      if (!(ref instanceof PDFRef)) throw new Error("Quote Studio invoice content reference changed");
       const stream = doc.context.lookup(ref);
       if (!(stream instanceof PDFRawStream)) continue;
       let source = new TextDecoder().decode(decodePDFRawStream(stream).decode());
