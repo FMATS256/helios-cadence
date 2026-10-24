@@ -38,10 +38,7 @@ export const invitePortalUser = createServerFn({ method: "POST" })
       redirectTo: `${new URL(getRequest().url).origin}/client`,
     });
     if (invite.data?.user) userId = invite.data.user.id;
-    else {
-      const { data: users } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
-      userId = users.users.find((u) => u.email === data.email)?.id;
-    }
+    // Existing users were resolved above; never adopt an identity after an ambiguous invitation failure.
     if (!userId) throw new Error(invite.error?.message ?? "Could not resolve user");
     const { data: targetRoles, error: roleError } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
     if (roleError || targetRoles?.some((r) => r.role !== "read_only")) throw new Error("Staff logins cannot be linked as client portal users");
