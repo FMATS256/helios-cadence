@@ -29,6 +29,8 @@ export type InvoiceItemInput = {
   description: string;
   quantity: number;
   unit_price: number;
+  /** Product/service code from the catalogue — printed in the Item column. */
+  item_code?: string;
   tax_rate?: number;
 };
 
@@ -36,6 +38,7 @@ function priceItems(items: InvoiceItemInput[]) {
   const clean = items
     .map((i) => ({
       description: String(i.description ?? "").trim(),
+      item_code: String(i.item_code ?? "").trim().slice(0, 40),
       quantity: Number(i.quantity) || 0,
       unit_price: Number(i.unit_price) || 0,
       tax_rate: Number(i.tax_rate) || 0,
@@ -102,7 +105,7 @@ export const getBillingWorkspace = createServerFn({ method: "POST" })
         .from("subscriptions")
         .select("*, customers:customer_id(company_name, primary_email)")
         .order("next_renewal", { ascending: true }),
-      supabaseAdmin.from("service_catalog").select("id, name, category, base_price, currency, billing_cycle").limit(500),
+      supabaseAdmin.from("service_catalog").select("id, code, name, category, base_price, currency, billing_cycle").limit(500),
       supabaseAdmin.from("profiles").select("id, full_name, email"),
     ]);
 
