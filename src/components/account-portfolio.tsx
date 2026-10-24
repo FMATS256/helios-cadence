@@ -52,6 +52,6 @@ export function AccountPortfolio({ noc = false }: { noc?: boolean }) {
     {selected?.action === "quote" && <CreateQuoteDialog ctx={selected.ctx} onClose={() => setSelected(null)} />}
     {selected?.action === "ticket" && <CreateTicketDialog ctx={selected.ctx} onClose={() => setSelected(null)} />}
     {selected?.action === "comm" && <LogCommDialog ctx={selected.ctx} onClose={() => setSelected(null)} />}
-    {selected?.action === "invoice" && <RequestInvoiceDialog ctx={selected.ctx} onClose={() => setSelected(null)} />}
+    {selected?.action === "invoice" && <RequestInvoiceDialog open customerId={selected.ctx.customerId} companyName={selected.ctx.companyName} onOpenChange={(open) => { if (!open) setSelected(null); }} />}
   </section>;
 }

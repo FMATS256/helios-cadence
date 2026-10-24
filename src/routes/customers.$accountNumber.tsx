@@ -656,7 +656,7 @@ function Customer360() {
         <TabsContent value="access" className="mt-4 space-y-6">
           <AccountAccessPanel customerId={customer.id} />
           <div className="border-t border-border pt-4 flex flex-wrap gap-2">
-            <Button asChild variant="outline"><Link to="/leads" search={{ view: "accounts" }}><UsersIcon />Account workspace</Link></Button>
+            <Button asChild variant="outline"><Link to="/leads" search={{ view: "accounts" }}><Building2 className="h-4 w-4 mr-2" />Account workspace</Link></Button>
             <Button asChild variant="outline"><Link to="/noc"><Activity className="h-4 w-4 mr-2" />NOC support</Link></Button>
             <Button asChild variant="outline"><Link to="/customers/$accountNumber" params={{ accountNumber }} search={{ tab: "tickets" }} resetScroll={false}><LifeBuoy className="h-4 w-4 mr-2" />Account tickets</Link></Button>
           </div>
