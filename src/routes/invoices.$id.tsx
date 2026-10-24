@@ -17,6 +17,8 @@ import { emailInvoice, getStaffInvoicePdf } from "@/lib/finance.functions";
 import { useRoles } from "@/hooks/use-roles";
 import { can } from "@/lib/rbac";
 import { Plus, Trash2, Printer, Receipt, Mail } from "lucide-react";
+import { invoiceSettlement } from "@/lib/invoice-document.shared";
+import { priceInvoiceItems } from "@/lib/invoice-validation.shared";
 
 export const Route = createFileRoute("/invoices/$id")({
   head: () => ({ meta: [{ title: "Invoice — IMT Operations" }, { name: "description", content: "View IMT invoice services, payments and download the official invoice." }, { property: "og:title", content: "Invoice — IMT Operations" }, { property: "og:description", content: "IMT invoice details, payment allocations and official document." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -32,6 +34,7 @@ function InvoiceDetail() {
 
   const { data: invoice, isLoading } = useQuery({
     queryKey: ["invoice", id],
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.from("invoices").select("*, customers:customer_id(company_name, account_number)").eq("id", id).maybeSingle();
       if (error) throw error;
@@ -45,15 +48,16 @@ function InvoiceDetail() {
   });
   const { data: allocs = [] } = useQuery({
     queryKey: ["invoice-allocs", id],
-    queryFn: async () => (await supabase.from("payment_allocations").select("*, payments:payment_id(reference,method,paid_at,currency)").eq("invoice_id", id)).data ?? [],
+    refetchInterval: 15000,
+    queryFn: async () => { const result = await supabase.from("payment_allocations").select("*, payments:payment_id(reference,method,paid_at,currency,status)").eq("invoice_id", id); if (result.error) throw result.error; return result.data ?? []; },
   });
 
   const totals = (() => {
     const subtotal = items.reduce((s: number, i: any) => s + Number(i.quantity) * Number(i.unit_price), 0);
     const tax = items.reduce((s: number, i: any) => s + Number(i.quantity) * Number(i.unit_price) * Number(i.tax_rate) / 100, 0);
-    const total = subtotal + tax;
-    const paid = (allocs as any[]).reduce((s, a) => s + Number(a.amount), 0);
-    return { subtotal, tax, total, paid, balance: total - paid };
+    const total = Number(invoice?.total ?? 0);
+    const { paid, balance } = invoiceSettlement({ total, status: invoice?.status }, allocs as any[]);
+    return { subtotal, tax, total, paid, balance };
   })();
 
   const sendInvoiceFn = useServerFn(emailInvoice);
@@ -101,10 +105,10 @@ function InvoiceDetail() {
   const aging = invoice.due_date ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / 86400000) : 0;
 
   const itemCols: ColumnDef<any>[] = [
+    { header: "Item Code / SKU", cell: (r) => r.item_code },
     { header: "Description", cell: (r) => r.description },
     { header: "Qty", align: "right", cell: (r) => <span className="font-mono">{r.quantity}</span> },
     { header: "Unit", align: "right", cell: (r) => <span className="font-mono">{Number(r.unit_price).toFixed(2)}</span> },
-    { header: "Tax %", align: "right", cell: (r) => <span className="font-mono">{Number(r.tax_rate).toFixed(1)}%</span> },
     { header: "Total", align: "right", cell: (r) => <span className="font-mono font-semibold">{Number(r.line_total).toFixed(2)}</span> },
     ...(canManage ? [{ header: "", align: "right" as const, cell: (r: any) => (
       <Button variant="ghost" size="sm" onClick={() => removeItem.mutate(r.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -157,10 +161,10 @@ function InvoiceDetail() {
           tone={invoice.status === "paid" ? "success" : overdue ? "danger" : "info"}
           value={<StatusBadge tone={toneForStatus(overdue ? "overdue" : invoice.status)}>{overdue ? "overdue" : invoice.status}</StatusBadge>}
         />
-        <SummaryCard label="Total" value={<span className="font-mono">{invoice.currency} {totals.total.toFixed(2)}</span>} />
-        <SummaryCard label="Paid" tone="success" value={<span className="font-mono text-success">{invoice.currency} {totals.paid.toFixed(2)}</span>} />
+        <SummaryCard label="Invoice total" value={<span className="font-mono">{invoice.currency} {totals.total.toFixed(2)}</span>} />
+        <SummaryCard label="Amount paid" tone="success" value={<span className="font-mono text-success">{invoice.currency} {totals.paid.toFixed(2)}</span>} />
         <SummaryCard
-          label={overdue ? `Overdue ${aging}d` : "Balance"}
+          label={overdue ? `Invoice outstanding · ${aging}d overdue` : "Invoice outstanding balance"}
           tone={totals.balance > 0.001 ? (overdue ? "danger" : "warning") : "success"}
           value={<span className={`font-mono font-semibold ${totals.balance > 0.001 ? "text-destructive" : "text-success"}`}>{invoice.currency} {totals.balance.toFixed(2)}</span>}
         />
@@ -202,17 +206,21 @@ function InvoiceDetail() {
 
 function AddLineItem({ invoiceId, onDone }: { invoiceId: string; onDone: () => void }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
+  const empty = { description: "", item_code: "", quantity: "1", unit_price: "0", billing_period_start: "", billing_period_end: "" };
+  const [form, setForm] = useState(empty);
   const create = useMutation({
     mutationFn: async () => {
       if (!form.description.trim()) throw new Error("Description required");
+      const { lines } = priceInvoiceItems([form]);
+      const line = lines[0];
+      if (!line) throw new Error("Line item required");
+      const { line_total: _total, ...savedLine } = line;
       const { error } = await supabase.from("invoice_line_items").insert({
-        invoice_id: invoiceId, description: form.description,
-        quantity: Number(form.quantity), unit_price: Number(form.unit_price), tax_rate: Number(form.tax_rate),
+        invoice_id: invoiceId, ...savedLine,
       });
       if (error) throw error;
     },
-    onSuccess: () => { setOpen(false); setForm({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" }); onDone(); toast.success("Added"); },
+    onSuccess: () => { setOpen(false); setForm(empty); onDone(); toast.success("Added"); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
@@ -221,11 +229,13 @@ function AddLineItem({ invoiceId, onDone }: { invoiceId: string; onDone: () => v
       <DialogContent>
         <DialogHeader><DialogTitle>Add line item</DialogTitle></DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
+          <div className="space-y-2"><Label>Item Code / SKU *</Label><Input required value={form.item_code} onChange={e => setForm({ ...form, item_code: e.target.value })} /></div>
           <div className="space-y-2"><Label>Description *</Label><Input required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2"><Label>Qty</Label><Input type="number" step="0.01" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
             <div className="space-y-2"><Label>Unit price</Label><Input type="number" step="0.01" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Tax %</Label><Input type="number" step="0.1" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Period start</Label><Input type="date" value={form.billing_period_start} onChange={e => setForm({ ...form, billing_period_start: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Period end</Label><Input type="date" value={form.billing_period_end} onChange={e => setForm({ ...form, billing_period_end: e.target.value })} /></div>
           </div>
           <DialogFooter><Button type="submit" disabled={create.isPending}>Add</Button></DialogFooter>
         </form>

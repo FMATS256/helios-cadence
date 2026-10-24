@@ -148,12 +148,15 @@ export const getClientInvoicePdf = createServerFn({ method: "POST" }).middleware
   if (!inv) throw new Error("Invoice not found on your account");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [lineResult, customerResult, allocationResult] = await Promise.all([
-    supabaseAdmin.from("invoice_line_items").select("description,quantity,unit_price,tax_rate,line_total").eq("invoice_id", inv.id).order("position"),
-    context.supabase.from("customers").select("company_name,billing_address,primary_email,primary_phone,account_number").eq("id", cid).maybeSingle(),
-    context.supabase.from("payment_allocations").select("amount").eq("invoice_id", inv.id),
+    supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", inv.id).order("position"),
+    context.supabase.from("customers").select("company_name,billing_address,primary_email,primary_phone,account_number,account_manager_id").eq("id", cid).maybeSingle(),
+    context.supabase.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", inv.id),
   ]);
   if (lineResult.error || customerResult.error || allocationResult.error) throw new Error("Invoice details could not be loaded");
   const { officialInvoicePdf, invoicePdfResponse } = await import("./invoice-document.server");
-  const { bytes } = await officialInvoicePdf(inv, lineResult.data ?? [], customerResult.data, allocationResult.data ?? [], { userId: context.userId });
+  const { accountManagerContact } = await import("./account-managers.server");
+  const manager = await accountManagerContact(supabaseAdmin, customerResult.data?.account_manager_id);
+  if (!manager?.name) throw new Error("Account manager details must be completed before downloading");
+  const { bytes } = await officialInvoicePdf(inv, lineResult.data ?? [], customerResult.data, allocationResult.data ?? [], { userId: context.userId, userName: manager.name });
   return invoicePdfResponse(bytes, inv.invoice_number);
 });

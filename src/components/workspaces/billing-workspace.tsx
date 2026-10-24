@@ -37,8 +37,8 @@ const STATUSES = ["draft", "sent", "partial", "paid", "overdue", "void"];
 const money = (n: number, cur = "USD") =>
   `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-type Line = { description: string; item_code: string; quantity: string; unit_price: string };
-const blankLine = (): Line => ({ description: "", item_code: "", quantity: "1", unit_price: "0" });
+type Line = { description: string; item_code: string; quantity: string; unit_price: string; billing_period_start?: string; billing_period_end?: string };
+const blankLine = (): Line => ({ description: "", item_code: "", quantity: "1", unit_price: "0", billing_period_start: "", billing_period_end: "" });
 
 function totalsOf(lines: Line[]) {
   const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -392,7 +392,7 @@ function InvoiceEditorDialog({
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["invoice-edit", invoiceId],
-    queryFn: () => loadOne({ data: { invoice_id: invoiceId! } }),
+    queryFn: () => { if (!invoiceId) throw new Error("Invoice is required"); return loadOne({ data: { invoice_id: invoiceId } }); },
     enabled: !!invoiceId,
   });
 
@@ -410,6 +410,8 @@ function InvoiceEditorDialog({
       ? items.map((i) => ({
           description: String(i.description ?? ""),
           item_code: String(i.item_code ?? ""),
+          billing_period_start: i.billing_period_start ?? "",
+          billing_period_end: i.billing_period_end ?? "",
           quantity: String(i.quantity ?? 1),
           unit_price: String(i.unit_price ?? 0),
         }))
@@ -432,6 +434,8 @@ function InvoiceEditorDialog({
       ? its.map((i) => ({
           description: i.description,
           item_code: String(i.item_code ?? ""),
+          billing_period_start: i.billing_period_start ?? "",
+          billing_period_end: i.billing_period_end ?? "",
           quantity: String(i.quantity),
           unit_price: String(i.unit_price),
         }))
@@ -446,6 +450,8 @@ function InvoiceEditorDialog({
       .map((l) => ({
         description: l.description.trim(),
         item_code: l.item_code.trim() || undefined,
+        billing_period_start: l.billing_period_start || null,
+        billing_period_end: l.billing_period_end || null,
         quantity: Number(l.quantity) || 0,
         unit_price: Number(l.unit_price) || 0,
       })),
@@ -571,7 +577,7 @@ function InvoiceEditorDialog({
                   return (
                     <div key={i} className="grid grid-cols-2 items-center gap-2 sm:grid-cols-12">
                       <Input
-                        className="col-span-1 sm:col-span-2" placeholder="Code" value={l.item_code} disabled={locked}
+                        className="col-span-1 sm:col-span-2" placeholder="Item Code / SKU *" aria-label={`Item Code / SKU ${i + 1}`} required value={l.item_code} disabled={locked}
                         onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, item_code: e.target.value } : x))}
                       />
                       <Input
@@ -594,6 +600,10 @@ function InvoiceEditorDialog({
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
+                      </div>
+                      <div className="col-span-2 grid grid-cols-2 gap-2 sm:col-span-12">
+                        <div className="space-y-1"><Label>Billing period start</Label><Input type="date" value={l.billing_period_start ?? ""} disabled={locked} onChange={e => setLines(lines.map((x, j) => j === i ? { ...x, billing_period_start: e.target.value } : x))} /></div>
+                        <div className="space-y-1"><Label>Billing period end</Label><Input type="date" value={l.billing_period_end ?? ""} disabled={locked} onChange={e => setLines(lines.map((x, j) => j === i ? { ...x, billing_period_end: e.target.value } : x))} /></div>
                       </div>
                     </div>
                   );
