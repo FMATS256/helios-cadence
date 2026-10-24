@@ -63,7 +63,7 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
   box(300, 213, 263, customerHeight, "Deliver To");
   block([data.customer.name, data.customer.address].filter(Boolean).join("\n"), 310, 246, 240);
   let y = 213 + customerHeight + 14;
-  [["Account No", data.customer.account, 32, 100], ["Quote Date", quotationDate(data.date), 140, 88], ["Representative", data.representative, 236, 185], ["Quote Number", data.reference, 433, 130]].forEach(([label, value, x, width]) => { text(String(label), Number(x), y, 8, true); block(String(value), Number(x), y + 15, Number(width), 8); });
+  [["Account No", data.customer.account, 32, 100], [inv ? "Invoice Date" : "Quote Date", quotationDate(data.date), 140, 88], ["Representative", data.representative, 236, 185], [inv ? "Invoice Number" : "Quote Number", data.reference, 433, 130]].forEach(([label, value, x, width]) => { text(String(label), Number(x), y, 8, true); block(String(value), Number(x), y + 15, Number(width), 8); });
   y += 51; tableHeader(y); y += 23;
   for (const [index, item] of data.items.entries()) {
     const desc = wrap(item.description, 247, 8), code = wrap(item.code, 59, 7);
@@ -78,7 +78,7 @@ export async function renderQuotationPdf(data: QuotationDocument, logoBytes?: Ui
     page.drawLine({ start: { x: 32, y: 841.89 - y - height }, end: { x: 563, y: 841.89 - y - height }, thickness: 0.3, color: rule });
     y += height;
   }
-  const notes = [data.validUntil ? `Valid until ${quotationDate(data.validUntil)}` : "", data.notes].filter(Boolean).join("\n");
+  const notes = [data.validUntil ? `${inv ? "Due by" : "Valid until"} ${quotationDate(data.validUntil)}` : "", data.notes].filter(Boolean).join("\n");
   const noteRows = wrap(notes || "—", 235, 8);
   const summaryHeight = Math.max(110, noteRows.length * 12 + 39);
   if (y + summaryHeight + 28 > 751) { page = doc.addPage([595.28, 841.89]); header(true); y = 116; }
