@@ -149,11 +149,13 @@ export async function sendResendEmail(
     templateData.recipientTitle = await lookupTitle(supabase, recipient)
   }
 
-  const { html, text, subject } = await renderTemplateHtml({
+  const rendered = await renderTemplateHtml({
     templateName: options.templateName,
     sampleDataOverride: templateData,
     supabase,
   })
+  const { text, subject } = rendered
+  const html = options.signatureHtml ? `${rendered.html}${options.signatureHtml}` : rendered.html
 
   const fromDomain =
     options.fromDomain ?? process.env.RESEND_FROM_DOMAIN ?? DEFAULT_FROM_DOMAIN
