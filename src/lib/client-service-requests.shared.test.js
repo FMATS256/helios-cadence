@@ -9,3 +9,8 @@ describe("client service requests", () => {
     expect(r.description).toContain("awaiting account manager confirmation");
   });
 });
+describe("upgrade and add-on forms", () => {
+  it("Starlink upgrade does not ask for installation address", () => { expect(missingRequired("connectivity", {}, "upgrade")).toEqual([]); });
+  it("Microsoft 365 add user requires name and email", () => { expect(missingRequired("m365", {}, "addon")).toEqual(["New user's full name", "Email address wanted"]); });
+  it("VoIP add extension requires the user's name", () => { expect(missingRequired("voip", {}, "addon")).toEqual(["Extension user's name"]); });
+});
