@@ -58,7 +58,7 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
         else if (text === "49 Agtets Avenue, George Silundika") replacement = IMT_ADDRESS;
         // Customer box: no account number, no VAT line.
         else if (text.startsWith("Account No:")) replacement = "";
-        else if (text === "Vat:" || text === "Vat") replacement = "";
+        else if (text.trim() === "Vat:" || text.trim() === "Vat") replacement = "";
         // VAT removed entirely: no excl-Vat / tax rows, no per-line VAT.
         else if (text === "Amount Excl Vat" || text === "Tax Total") replacement = "";
         else if (x > 500 && Math.abs(y - 182) < 0.1) replacement = "";
