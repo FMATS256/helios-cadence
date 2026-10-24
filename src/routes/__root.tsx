@@ -99,7 +99,7 @@ function AuthGate() {
   const { user, loading } = useAuth();
   const isConsent = pathname === "/.lovable/oauth/consent";
   const isClient = pathname === "/client" || pathname.startsWith("/client/");
-  const isPublic = pathname === "/auth" || isConsent || isClient;
+  const isPublic = pathname === "/auth" || pathname === "/reset-password" || isConsent || isClient;
   const accessFn = useServerFn(getStaffAccess);
   const access = useQuery({ queryKey: ["staff-access", user?.id], queryFn: () => accessFn(), enabled: !!user && !isPublic, retry: false });
 

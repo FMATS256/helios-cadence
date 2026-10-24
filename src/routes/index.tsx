@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 
 const EXEC_ROLES = ["master_admin", "operations_manager"];
 const FINANCE_ROLES = ["finance", "procurement"];
-const AM_ROLES = ["account_manager", "sales", "customer_success"];
+const AM_ROLES = ["account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "sales", "customer_success"];
 const SUPPORT_ROLES = ["technical_support", "noc", "cyber_security", "cloud_engineer", "inventory"];
 
 function Dashboard() {

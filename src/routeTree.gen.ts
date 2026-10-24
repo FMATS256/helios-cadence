@@ -42,6 +42,7 @@ import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServiceMapRouteImport } from './routes/service-map'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StarlinkRouteImport } from './routes/starlink'
@@ -272,6 +273,11 @@ const QuotesRoute = QuotesRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiceMapRoute = ServiceMapRouteImport.update({
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
@@ -761,6 +768,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
@@ -862,6 +870,7 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/quotes': typeof QuotesRoute
   '/reports': typeof ReportsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
   '/starlink': typeof StarlinkRoute
@@ -965,6 +974,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/reset-password'
     | '/service-map'
     | '/settings'
     | '/starlink'
@@ -1065,6 +1075,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/reset-password'
     | '/service-map'
     | '/settings'
     | '/starlink'
@@ -1165,6 +1176,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/quotes'
     | '/reports'
+    | '/reset-password'
     | '/service-map'
     | '/settings'
     | '/starlink'
@@ -1267,6 +1279,7 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   QuotesRoute: typeof QuotesRoute
   ReportsRoute: typeof ReportsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ServiceMapRoute: typeof ServiceMapRoute
   SettingsRoute: typeof SettingsRoute
   StarlinkRoute: typeof StarlinkRoute
@@ -1552,6 +1565,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/service-map': {
@@ -2125,6 +2145,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   QuotesRoute: QuotesRoute,
   ReportsRoute: ReportsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ServiceMapRoute: ServiceMapRoute,
   SettingsRoute: SettingsRoute,
   StarlinkRoute: StarlinkRoute,
