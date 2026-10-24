@@ -97,8 +97,8 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   return <div className="min-h-[520px] space-y-8">
     <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Submit payment proof"}</Button></div></div>
     {section === "overview" && <>
-      <ManagerCard manager={data.manager} account={data.profile} />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{[["Starlink kits", data.starlink.length], ["Microsoft 365 seats", data.licenses.reduce((t: number, l: any) => t + (Number(l.seats) || 0), 0)], ["Hosting", data.hosting.length], ["Installed systems", data.assets.length]].map(([k, v]) => <Link key={k as string} to="/client/services" className="border border-border rounded-lg p-4 bg-card hover:border-teal"><p className="text-xs text-muted-foreground">{k}</p><p className="text-2xl font-bold mt-1">{v}</p></Link>)}</div>
+      <ClientDashboard data={data} onPay={() => setPayNow(true)} onProof={() => setPayment(true)} onMode={setMode} onOpen={setDetail} />
+
       <div className="grid sm:grid-cols-3 border-y border-border divide-y sm:divide-y-0 sm:divide-x divide-border">
         <div className="py-6 sm:pr-6"><div className="text-sm text-muted-foreground mb-3">Outstanding balance</div>{outstanding.size ? [...outstanding].map(([currency, value]) => <div key={currency} className="font-display text-2xl font-bold">{money(value, currency)}</div>) : <div className="text-2xl font-bold">{money(0)}</div>}<Button variant="link" className="px-0 text-solar mt-2" asChild><Link to="/client/invoices">View invoices<ChevronRight className="h-4 w-4 ml-1" /></Link></Button></div>
         <div className="py-6 sm:px-6"><div className="text-sm text-muted-foreground mb-3">Active services</div><div className="text-3xl font-bold">{data.services.filter((s) => s.status === "active").length}</div><Button variant="link" className="px-0 text-teal mt-2" asChild><Link to="/client/services">View services<ChevronRight className="h-4 w-4 ml-1" /></Link></Button></div>
@@ -277,4 +277,49 @@ function MethodPicker({ value, onChange }: { value: string; onChange: (v: "ECOCA
         <span className={`h-7 w-7 shrink-0 rounded-full border-2 flex items-center justify-center ${active ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{active && <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3.5 8.5l3 3 6-7" /></svg>}</span>
       </button>; })}
   </fieldset>;
+}
+
+function ClientDashboard({ data, onPay, onProof, onMode, onOpen }: { data: any; onPay: () => void; onProof: () => void; onMode: (m: ServiceRequestMode) => void; onOpen: (d: Detail) => void }) {
+  const list: Detail[] = [
+    ...data.starlink.map((s: any) => ({ kind: "Starlink", category: "connectivity", title: s.plan_type ? `Starlink ${s.plan_type}` : "Starlink service", status: s.status, rows: [["Kit number", s.kit_serial], ["Package", s.plan_type], ["Starlink account", s.starlink_account_number], ["Site", s.service_address]] as Array<[string, any]> })),
+    ...data.licenses.map((l: any) => ({ kind: l.vendor || "Microsoft 365", category: l.category || "m365", title: l.product, status: l.status, rows: [["Package", l.product], ["Users", l.assigned_seats != null ? `${l.assigned_seats} of ${l.seats} assigned` : l.seats], ["Renews", date(l.expiry_date)]] as Array<[string, any]> })),
+    ...data.hosting.map((h: any) => ({ kind: "Web hosting & email", category: "hosting", title: h.domain, status: h.status, rows: [["Plan", h.plan], ["Mailboxes", h.email_accounts], ["Renews", date(h.renewal_date)]] as Array<[string, any]> })),
+    ...data.storage.map((c: any) => ({ kind: "Cloud storage", category: "cloud-storage", title: c.name, status: c.status, rows: [["Provider", c.provider], ["Capacity", c.storage_tb ? `${c.storage_tb} TB` : null]] as Array<[string, any]> })),
+  ];
+  const [idx, setIdx] = useState(0); const [tab, setTab] = useState<"services" | "admin" | "payments">("admin");
+  const cur = list[idx];
+  const p = data.profile; const m = data.manager;
+  const tabs = [["services", "My Services"], ["admin", "My Admin"], ["payments", "My Payments"]] as const;
+  return <>
+    <p className="text-lg">Hi <span className="font-semibold text-solar">{p?.company_name ?? "there"}</span>! Welcome back to your My IMT dashboard.</p>
+    <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <section className="bg-card border border-border rounded-md overflow-hidden shadow-sm">
+        <div className="bg-navy text-navy-foreground px-4 py-3 flex items-center justify-between gap-3"><span className="font-semibold text-sm">Current service</span>
+          {list.length > 1 && <select aria-label="Switch services" value={idx} onChange={(e) => setIdx(Number(e.target.value))} className="bg-background text-foreground text-xs rounded-sm px-2 py-1 max-w-[55%]">{list.map((d, i) => <option key={i} value={i}>{d.title}</option>)}</select>}</div>
+        <div className="p-4 space-y-4">
+          {cur ? <>
+            <p className="text-xs font-semibold">Your current package:</p>
+            <div className="flex items-center gap-4"><div className="h-20 w-20 shrink-0 rounded-md bg-navy text-navy-foreground flex flex-col items-center justify-center"><Server className="h-7 w-7" /><span className="text-[10px] mt-1 capitalize">{cur.status || "active"}</span></div><div className="min-w-0"><p className="font-semibold break-words">{cur.title}</p><p className="text-xs text-muted-foreground">{cur.kind}</p></div></div>
+            <div className="grid grid-cols-3 gap-2"><Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90 text-xs" onClick={() => onMode({ type: "add" })}>Buy other products</Button><Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90 text-xs" onClick={() => onMode({ type: "upgrade", category: cur.category, current: cur.title })}>Upgrade</Button><Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90 text-xs" onClick={onPay}>Pay now</Button></div>
+            <dl className="text-sm divide-y divide-border">{[["Account no", p?.account_number], ["Email address", p?.primary_email], ...cur.rows].filter(([, v]) => v != null && v !== "").map(([k, v]) => <div key={k as string} className="grid grid-cols-[130px_1fr] gap-3 py-2"><dt className="font-semibold text-xs">{k}</dt><dd className="text-muted-foreground break-words">{v}</dd></div>)}</dl>
+            <Button variant="link" className="px-0 h-auto text-solar" onClick={() => onOpen(cur)}>View full details<ChevronRight className="h-4 w-4 ml-1" /></Button>
+          </> : <div className="space-y-3"><p className="text-sm text-muted-foreground">No active services on this account yet.</p><Button className="bg-solar text-solar-foreground" onClick={() => onMode({ type: "add" })}>Buy products</Button></div>}
+        </div>
+      </section>
+      <section className="bg-card border border-border rounded-md overflow-hidden shadow-sm">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-muted">{tabs.map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} className={`py-3 text-sm rounded-sm transition-colors ${tab === k ? "bg-navy text-navy-foreground font-semibold" : "bg-solar/20 text-foreground hover:bg-solar/30"}`}>{l}</button>)}</div>
+        <div className="p-4 text-sm space-y-3">
+          {tab === "admin" && <>
+            <div><p className="text-xs text-muted-foreground">Your contact details</p><p className="font-semibold text-solar">{p?.company_name}</p>{p?.billing_address && <p className="text-muted-foreground">{p.billing_address}</p>}</div>
+            <p>✉ {p?.primary_email || "—"}</p><p>☎ {p?.primary_phone || "—"}</p>
+            <div className="flex flex-wrap gap-2"><Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90" asChild><Link to="/client/support">Edit details</Link></Button><Button size="sm" variant="outline" onClick={onProof}>Send proof of payment</Button></div>
+            <div className="border-t border-border pt-3"><p className="text-xs text-muted-foreground">Your account manager</p>{m ? <><p className="font-semibold">{m.full_name}</p>{m.email && <a className="text-solar underline" href={`mailto:${m.email}`}>{m.email}</a>}{m.phone && <p>{m.phone}</p>}</> : <p className="text-muted-foreground">Being assigned</p>}</div>
+            <Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90" onClick={async () => { const e = (await supabase.auth.getUser()).data.user?.email; if (!e) return; const { error } = await supabase.auth.resetPasswordForEmail(e, { redirectTo: `${window.location.origin}/auth` }); error ? toast.error("Could not send reset email") : toast.success("Password reset link sent to your email"); }}>Change password</Button>
+          </>}
+          {tab === "services" && (list.length ? list.map((d, i) => <button key={i} type="button" onClick={() => setIdx(i)} className={`w-full flex justify-between gap-3 text-left border-b border-border py-2 ${i === idx ? "text-solar font-semibold" : ""}`}><span className="break-words">{d.title}<span className="block text-xs text-muted-foreground font-normal">{d.kind}</span></span><Status value={d.status || "active"} /></button>) : <p className="text-muted-foreground">No services yet.</p>)}
+          {tab === "payments" && <>{data.invoices.filter((i: any) => i.balance > 0).slice(0, 4).map((i: any) => <div key={i.id} className="flex justify-between border-b border-border py-2"><span>{i.invoice_number}<span className="block text-xs text-muted-foreground">Due {date(i.due_date)}</span></span><span className="font-semibold">{money(i.balance, i.currency)}</span></div>)}{!data.invoices.some((i: any) => i.balance > 0) && <p className="text-muted-foreground">Nothing outstanding.</p>}<div className="flex gap-2"><Button size="sm" className="bg-solar text-solar-foreground hover:bg-solar/90" onClick={onPay}>Make a payment</Button><Button size="sm" variant="outline" asChild><Link to="/client/payments">Payment history</Link></Button></div></>}
+        </div>
+      </section>
+    </div>
+  </>;
 }
