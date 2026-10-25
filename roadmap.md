@@ -35,6 +35,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Hide invoice payment actions after successful full gateway payment and block repeat invoice payment without bypassing Finance approval.
 - [ ] Verify new workspace signed-in account readback, client invitation and recovery email round-trip: the requesting user has no matching staff login; needs preview sign-in.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
 - [ ] Verify general-ledger posting/reversal coverage for legacy/POS receipts and authenticated invoice download; requesting user has no matching staff login, so the actual PDF was verified directly instead
