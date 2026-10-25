@@ -199,7 +199,7 @@
   .portal-bills-page .portal-header > div:nth-child(2) { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 8px 20px 16px; align-items: end; }
   .portal-bills-page .bills-menu-toggle { display: flex; font-size: 17px; font-weight: 400; padding: 0 4px; color: inherit; }
   .portal-bills-page .portal-navigation { display: none; grid-column: 1 / -1; }
-  .portal-bills-page .portal-navigation.mobile-menu-open { display: grid; grid-template-columns: 1fr 1fr; margin-top: 10px; }
+  .portal-bills-page .portal-header > div:nth-child(2) { position: relative; }
   .portal-bills-page main { padding: 0 20px 32px; }
   .portal-bills-page main > div:first-child:not(.min-h-\[520px\]) { display: none; }
   .portal-bills-page .bills-desktop-heading, .portal-bills-page .bills-search { display: none; }
@@ -222,7 +222,33 @@
   .portal-bills-page .bill-payment button { height: 44px; font-size: 17px; font-weight: 700; padding: 0 20px; border-radius: 4px; }
   .portal-bills-page .portal-receipts > .bills-mobile-heading { margin-top: 0; }
   .portal-bills-page .receipt-detail h2 { letter-spacing: 0; }
+  .portal-bills-page .service-content { padding: 28px 18px; text-align: center; }
+  .portal-bills-page .service-identity { flex-direction: column; align-items: center; gap: 20px; }
+  .portal-bills-page .service-identity button { text-align: center; font-size: 23px; line-height: 1.35; }
+  .portal-bills-page .service-fields { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .portal-bills-page .service-fields dd { font-size: 16px; overflow-wrap: anywhere; }
+  .portal-bills-page .service-fields dt { font-size: 13px; }
+  .portal-bills-page .portal-welcome { display: block; margin: 0 -20px; }
+  .portal-welcome-heading { background: var(--muted); padding: 28px 20px 30px; text-align: center; }
+  .portal-welcome-avatar { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 16px; border: 2px solid var(--solar); border-radius: 50%; color: var(--solar); }
+  .portal-welcome-avatar svg { width: 42px; height: 42px; stroke-width: 1.5; }
+  .portal-welcome-heading h1 { font-size: 28px; line-height: 1.3; font-weight: 400; letter-spacing: 0; overflow-wrap: anywhere; color: var(--primary); }
+  .portal-welcome-heading > p { font-size: 18px; color: var(--muted-foreground); margin: 10px 0 22px; }
+  .portal-welcome-heading > button { height: 44px; font-size: 17px; }
+  .portal-welcome-account { padding: 30px 20px; text-align: center; background: var(--card); border-bottom: 1px solid var(--border); }
+  .portal-welcome-account .grid > a { display: flex; flex-direction: column; align-items: center; gap: 14px; text-decoration: underline; text-underline-offset: 4px; font-size: 18px; }
+  .portal-welcome-account .grid > a > span { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--solar); color: var(--solar-foreground); }
+  .portal-welcome-balance { background: var(--muted); padding: 18px; font-size: 25px; line-height: 1.4; overflow-wrap: anywhere; border-radius: var(--radius); }
+  .portal-welcome-account > button { min-height: 44px; white-space: normal; }
+  .portal-bills-page .portal-desktop-dashboard { display: none; }
 }
+
+.portal-mobile-menu { width: min(290px, calc(100vw - 40px)); background: var(--navy-muted); color: var(--navy-foreground); border: 0; border-radius: 0; padding: 0 0 10px; }
+.portal-mobile-menu [data-slot], .portal-mobile-menu [role="menuitem"] { letter-spacing: 0; }
+.portal-mobile-menu [role="menuitem"] { padding: 14px 20px; font-size: 16px; line-height: 1.3; border-radius: 0; gap: 12px; }
+.portal-mobile-menu [role="menuitem"][data-highlighted], .portal-mobile-menu [aria-current="page"] { background: var(--solar); color: var(--solar-foreground); }
+.portal-mobile-menu > div:first-child { padding: 16px 20px; font-size: 19px; font-weight: 400; }
+.portal-mobile-menu [role="separator"] { height: 2px; background: var(--solar); margin: 0 0 4px; }
 
 .sharp-corners,
 .sharp-corners * {
