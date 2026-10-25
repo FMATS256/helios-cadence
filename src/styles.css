@@ -186,7 +186,6 @@
   }
 }
 
-.sharp-corners,
 /* The reference bills layout is mobile-only; desktop retains its workspace. */
 @media (max-width: 639px) {
   .portal-bills-page { background: var(--card); }
