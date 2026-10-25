@@ -220,6 +220,8 @@
   .portal-bills-page .bill-amount > p:last-child { font-size: 13px; line-height: 1.5; margin-top: 4px; }
   .portal-bills-page .bill-payment { justify-content: center; padding: 20px 12px; }
   .portal-bills-page .bill-payment button { height: 44px; font-size: 17px; font-weight: 700; padding: 0 20px; border-radius: 4px; }
+  .portal-bills-page .portal-receipts > .bills-mobile-heading { margin-top: 0; }
+  .portal-bills-page .receipt-detail h2 { letter-spacing: 0; }
 }
 
 .sharp-corners,
