@@ -21,6 +21,7 @@ import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { ClientReceipts } from "@/components/client-receipts";
 import { activePortalServices } from "@/lib/client-active-services.shared";
 import { ServiceRequestDialog, ServiceDetailDialog, type ServiceRequestMode } from "@/components/client-service-request";
+import welcomeBg from "@/assets/portal-welcome-bg.jpg";
 
 const sections = [
   { title: "Dashboard", to: "/client", icon: LayoutDashboard },
