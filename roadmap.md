@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Mobile services and receipt cards follow the supplied examples; active-service filter tests pass and receipt View/details checked with a layout fixture. Real client-session verification remains unavailable.
 - Invoice payment buttons and payment choices exclude fully gateway-paid invoices while Finance approval is pending; shared server preflight blocks repeat charges, nine payment-rule tests pass. Signed-in readback awaits a linked client session.
 - Connected Leads & Accounts portfolio, quotes/invoice requests/contact logs, Customer 360 Portal & Support tab and NOC client access; 12 tests passed and signed-out recovery-page desktop/mobile checks passed.
 - Preserved Quote Studio invoice design; mandatory persisted item codes, billing-period fields, no-VAT/date/price validation, saved-line totals and received-allocation payment status synchronization; 25 tests and rolled-back partial/full/failed-payment database checks passed; actual INV-01024 PDF rendered and inspected
@@ -36,7 +37,6 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Match mobile services and receipts to supplied examples, with active services and receipt detail viewing.
 - [ ] Verify new workspace signed-in account readback, client invitation and recovery email round-trip: the requesting user has no matching staff login; needs preview sign-in.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
 - [ ] Verify general-ledger posting/reversal coverage for legacy/POS receipts and authenticated invoice download; requesting user has no matching staff login, so the actual PDF was verified directly instead
