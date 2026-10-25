@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { invoiceBalances, invoicePaymentAvailability } from "./client-portal.shared";
 
 const GATEWAY = "https://payments.imtsolutions.co.zw";
 
@@ -32,8 +33,17 @@ export const startClientPayment = createServerFn({ method: "POST" })
     const { data: customer } = await context.supabase.from("customers").select("account_number").eq("id", cid).maybeSingle();
     if (!customer) throw new Error("Client account unavailable");
     if (data.invoice_id) {
-      const { data: inv } = await context.supabase.from("invoices").select("id").eq("id", data.invoice_id).eq("customer_id", cid).maybeSingle();
+      const { data: inv } = await context.supabase.from("invoices").select("id,total,status,currency").eq("id", data.invoice_id).eq("customer_id", cid).is("archived_at", null).maybeSingle();
       if (!inv) throw new Error("Invoice not found on your account");
+      const [allocations, intents, submissions] = await Promise.all([
+        context.supabase.from("payment_allocations").select("invoice_id,payment_id,amount").eq("invoice_id", inv.id),
+        context.supabase.from("client_payment_intents").select("invoice_id,amount,currency,status,submission_id").eq("customer_id", cid).eq("invoice_id", inv.id).eq("status", "SUCCESS"),
+        context.supabase.from("payment_submissions").select("id,payment_id").eq("customer_id", cid),
+      ]);
+      if (allocations.error || intents.error || submissions.error) throw new Error("Unable to verify invoice payments. Please retry.");
+      const [available] = invoicePaymentAvailability(invoiceBalances([inv], allocations.data ?? []), intents.data ?? [], submissions.data ?? [], allocations.data ?? []);
+      if (!available || available.payable <= 0) throw new Error("This invoice has already been paid or is not available for payment.");
+      if (data.currency !== inv.currency) throw new Error("Choose the invoice currency");
     }
     const result = await gateway("/api/public/v1/payments", { method: "POST", body: JSON.stringify({
       accountNumber: customer.account_number, amount: data.amount, currency: data.currency, method: data.method,
@@ -59,7 +69,8 @@ export const checkClientPayment = createServerFn({ method: "POST" })
     const result = await gateway(`/api/public/v1/payments/${encodeURIComponent(data.reference)}`);
     const status = String(result?.status ?? "PENDING").toUpperCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("client_payment_intents").update({ status, updated_at: new Date().toISOString() } as any).eq("id", intent.id);
+    const { error: saveError } = await supabaseAdmin.from("client_payment_intents").update({ status, updated_at: new Date().toISOString() } as any).eq("id", intent.id);
+    if (saveError) throw new Error("Unable to save payment confirmation. Please check again before paying.");
     if (status !== "SUCCESS" || intent.submission_id) return { status, recorded: !!intent.submission_id };
 
     const { recordGatewaySubmission } = await import("./client-pay.server");

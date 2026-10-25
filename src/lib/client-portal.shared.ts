@@ -29,3 +29,23 @@ export function invoiceBalances<T extends { id: string; total: number; status: s
 export function ownedProofPath(path: string, customerId: string, userId: string) {
   return path.startsWith(`${customerId}/portal/${userId}/`) && !path.includes("..") && !path.includes("\\");
 }
+
+/** Gateway receipts reserve payment capacity without changing ledger balances. */
+export function invoicePaymentAvailability<T extends { id: string; balance: number; currency: string }>(
+  invoices: T[],
+  intents: Array<{ invoice_id: string | null; amount: number; currency: string; status: string; submission_id: string | null }>,
+  submissions: Array<{ id: string; payment_id: string | null }>,
+  allocations: Array<{ invoice_id: string; amount: number; payment_id?: string }>,
+) {
+  return invoices.map((invoice) => {
+    let unallocatedReceived = 0;
+    for (const intent of intents) {
+      if (intent.invoice_id !== invoice.id || intent.currency !== invoice.currency || intent.status.toUpperCase() !== "SUCCESS") continue;
+      const paymentId = submissions.find((s) => s.id === intent.submission_id)?.payment_id;
+      const allocated = paymentId ? allocations.filter((a) => a.invoice_id === invoice.id && a.payment_id === paymentId).reduce((sum, a) => sum + Number(a.amount), 0) : 0;
+      unallocatedReceived += Math.max(0, Number(intent.amount) - allocated);
+    }
+    const payable = Math.max(0, Math.round((invoice.balance - unallocatedReceived) * 100) / 100);
+    return { ...invoice, payable, paymentAwaitingApproval: unallocatedReceived > 0 && invoice.balance > 0 };
+  });
+}

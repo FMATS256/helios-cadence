@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Invoice payment buttons and payment choices exclude fully gateway-paid invoices while Finance approval is pending; shared server preflight blocks repeat charges, nine payment-rule tests pass. Signed-in readback awaits a linked client session.
 - Connected Leads & Accounts portfolio, quotes/invoice requests/contact logs, Customer 360 Portal & Support tab and NOC client access; 12 tests passed and signed-out recovery-page desktop/mobile checks passed.
 - Preserved Quote Studio invoice design; mandatory persisted item codes, billing-period fields, no-VAT/date/price validation, saved-line totals and received-allocation payment status synchronization; 25 tests and rolled-back partial/full/failed-payment database checks passed; actual INV-01024 PDF rendered and inspected
 - Exact Quote Studio PDFs used for client and staff invoice downloads; unpaid/part-paid Invoice and fully allocated Sales Invoice tested; actual UK2AFRICA INV-01024 USD 200 download verified through staff UI
