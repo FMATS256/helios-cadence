@@ -186,6 +186,42 @@
   }
 }
 
+/* The reference bills layout is mobile-only; desktop retains its workspace. */
+@media (max-width: 639px) {
+  .portal-bills-page { background: var(--card); }
+  .portal-bills-page .portal-header > div:first-child {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; padding: 0 20px;
+  }
+  .portal-bills-page .portal-header > div:first-child > span:first-child { background: var(--solar); padding: 7px 12px; border-radius: 0; width: fit-content; font-size: 14px; }
+  .portal-bills-page .portal-header > div:first-child > span:last-child { padding-top: 8px; min-width: 0; }
+  .portal-bills-page .portal-header > div:first-child > span:last-child > span:first-child { font-size: 22px; line-height: 1.25; font-weight: 400; overflow-wrap: anywhere; }
+  .portal-bills-page .portal-header > div:first-child > span:last-child > span:last-child { margin-top: 5px; font-size: 13px; }
+  .portal-bills-page .portal-header > div:nth-child(2) { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 8px 20px 16px; align-items: end; }
+  .portal-bills-page .bills-menu-toggle { display: flex; font-size: 17px; font-weight: 400; padding: 0 4px; color: inherit; }
+  .portal-bills-page .portal-navigation { display: none; grid-column: 1 / -1; }
+  .portal-bills-page .portal-navigation.mobile-menu-open { display: grid; grid-template-columns: 1fr 1fr; margin-top: 10px; }
+  .portal-bills-page main { padding: 0 20px 32px; }
+  .portal-bills-page main > div:first-child:not(.min-h-\[520px\]) { display: none; }
+  .portal-bills-page .bills-desktop-heading, .portal-bills-page .bills-search { display: none; }
+  .portal-bills-page .bills-mobile-heading { display: block; margin: 0 -20px 26px; padding: 30px 20px; text-align: center; background: var(--muted); }
+  .portal-bills-page .bills-mobile-heading h1 { font-size: 32px; font-weight: 400; line-height: 1.25; letter-spacing: 0; }
+  .portal-bills-page .bills-mobile-heading p { font-size: 20px; margin: 8px 0 12px; color: var(--muted-foreground); }
+  .portal-bills-page .bills-mobile-heading button { height: 42px; border-radius: 4px; font-size: 13px; font-weight: 700; }
+  .portal-bills-page .bills-list { margin-top: 0; }
+  .portal-bills-page .bill-card { margin-bottom: 16px; }
+  .portal-bills-page .bill-content { display: grid; grid-template-columns: minmax(0, 1fr); padding: 20px 12px 32px; text-align: center; gap: 28px; }
+  .portal-bills-page .bill-identity { flex-direction: column; align-items: center; gap: 24px; }
+  .portal-bills-page .bill-icon { width: 40px; height: 40px; }
+  .portal-bills-page .bill-icon svg { width: 23px; height: 23px; stroke-width: 1.5; }
+  .portal-bills-page .bill-identity button { font-size: 23px; font-weight: 400; line-height: 1.3; text-align: center; }
+  .portal-bills-page .bill-identity p { margin-top: 8px; font-size: 14px; color: var(--foreground); }
+  .portal-bills-page .bill-amount { text-align: center; min-width: 0; }
+  .portal-bills-page .bill-amount > p:first-child { font-size: 24px; font-weight: 400; overflow-wrap: anywhere; }
+  .portal-bills-page .bill-amount > p:last-child { font-size: 13px; line-height: 1.5; margin-top: 4px; }
+  .portal-bills-page .bill-payment { justify-content: center; padding: 20px 12px; }
+  .portal-bills-page .bill-payment button { height: 44px; font-size: 17px; font-weight: 700; padding: 0 20px; border-radius: 4px; }
+}
+
 .sharp-corners,
 .sharp-corners * {
   --radius: 0rem !important;

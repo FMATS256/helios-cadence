@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, FileText, CreditCard, Server, LifeBuoy, LogOut, ArrowUpRight, Plus, Upload, ShieldCheck, Send, ChevronRight, ArrowLeft, Megaphone } from "lucide-react";
+import { LayoutDashboard, FileText, CreditCard, Server, LifeBuoy, LogOut, ArrowUpRight, Plus, Upload, ShieldCheck, Send, ChevronRight, ArrowLeft, Megaphone, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,8 @@ export function ClientPortalLayout() {
   const { user, loading } = useAuth();
   const account = useAccount();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const billsPage = pathname === "/client/invoices";
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const signOut = async () => {
@@ -50,15 +52,16 @@ export function ClientPortalLayout() {
     await supabase.auth.signOut();
     navigate({ to: "/client", replace: true });
   };
-  return <div className="client-portal min-h-screen bg-muted/40 flex flex-col">
-    <header className="bg-portal-gradient text-navy-foreground shadow-elegant">
+  return <div className={`client-portal min-h-screen bg-muted/40 flex flex-col ${billsPage ? "portal-bills-page" : ""}`}>
+    <header className="portal-header bg-portal-gradient text-navy-foreground shadow-elegant">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-3 flex items-center justify-between gap-3 text-xs">
         <span className="bg-solar-glow/30 px-2 py-0.5 rounded-sm font-semibold">IMT Solutions</span>
         {user && account.data ? <span className="text-right leading-tight"><span className="block text-sm font-semibold">{account.data.company_name}</span><span className="opacity-75 font-mono">{account.data.account_number}</span></span> : <ShieldCheck className="h-5 w-5" />}
       </div>
       <div className="max-w-6xl mx-auto px-4 sm:px-8 flex flex-col md:flex-row md:items-end md:justify-between gap-2 pb-0">
         <Link to="/client" className="flex items-center gap-3 py-3 min-w-0"><img src={imtLogo.url} alt="IMT Solutions" className="h-10 w-10 object-contain bg-background rounded-md p-1" /><div><div className="font-display text-lg font-bold">My IMT</div><div className="text-xs opacity-80">Client portal</div></div></Link>
-        {user && !loading && <nav className="flex gap-1 overflow-x-auto -mb-px">{sections.map((s) => { const on = pathname === s.to; return <Link key={s.to} to={s.to} resetScroll={false} className={`shrink-0 flex items-center gap-2 px-4 py-3 text-sm border-b-4 transition-colors ${on ? "border-solar-glow font-semibold" : "border-transparent opacity-80 hover:opacity-100"}`}><s.icon className="h-4 w-4" />{s.title}</Link>; })}<button type="button" onClick={signOut} className="shrink-0 flex items-center gap-2 px-4 py-3 text-sm opacity-80 hover:opacity-100 border-b-4 border-transparent"><LogOut className="h-4 w-4" />Sign out</button></nav>}
+        {billsPage && user && !loading && <Button variant="ghost" className="bills-menu-toggle hidden" aria-expanded={mobileMenu} aria-controls="portal-navigation" onClick={() => setMobileMenu((v) => !v)}>Menu{mobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>}
+        {user && !loading && <nav id="portal-navigation" className={`portal-navigation flex gap-1 overflow-x-auto -mb-px ${mobileMenu ? "mobile-menu-open" : ""}`}>{sections.map((s) => { const on = pathname === s.to; return <Link key={s.to} to={s.to} resetScroll={false} onClick={() => setMobileMenu(false)} className={`shrink-0 flex items-center gap-2 px-4 py-3 text-sm border-b-4 transition-colors ${on ? "border-solar-glow font-semibold" : "border-transparent opacity-80 hover:opacity-100"}`}><s.icon className="h-4 w-4" />{s.title}</Link>; })}<Button variant="ghost" onClick={signOut} className="shrink-0 flex items-center gap-2 px-4 py-3 text-sm opacity-80 hover:opacity-100 border-b-4 border-transparent"><LogOut className="h-4 w-4" />Sign out</Button></nav>}
       </div>
     </header>
     {user && !loading && <AnnouncementStrip />}
@@ -126,7 +129,8 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   const openTickets = data.tickets.filter((t) => !["closed", "resolved"].includes(t.status));
   const title = { overview: "Account overview", invoices: "My Invoices", payments: "My Payments", services: "Your services", support: "Support requests" }[section];
   return <div className="min-h-[520px] space-y-8">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Send proof of payment"}</Button></div></div>
+    {section === "invoices" && <section className="bills-mobile-heading hidden"><h1>My Bills</h1><p>Showing {invoices.length} {invoices.length === 1 ? "bill" : "bills"}</p><Button className="w-full bg-solar text-solar-foreground hover:bg-solar/90" onClick={() => setPayment(true)}>SEND PROOF OF PAYMENT</Button></section>}
+    <div className={`flex flex-wrap items-center justify-between gap-4 ${section === "invoices" ? "bills-desktop-heading" : ""}`}><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Send proof of payment"}</Button></div></div>
     {section === "overview" && <>
       <ClientDashboard data={data} onPay={() => setPayNow(true)} onProof={() => setPayment(true)} onMode={setMode} onOpen={setDetail} />
 
@@ -138,7 +142,7 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
       <div className="grid lg:grid-cols-[1.5fr_1fr] gap-10"><section><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold">Recent invoices</h2><Button asChild variant="ghost" size="sm"><Link to="/client/invoices">View all<ArrowUpRight className="h-4 w-4 ml-2" /></Link></Button></div><InvoiceList rows={data.invoices.slice(0, 4)} onPay={(id) => { setPayInvoice(id); setPayNow(true); }} /></section><section><h2 className="text-lg font-bold mb-4">Payment verification</h2>{data.submissions.length ? data.submissions.slice(0, 4).map((p: any) => <div key={p.id} className="py-4 border-b border-border flex items-center justify-between gap-3"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1 break-all">{p.reference}</p></div><Status value={p.status} /></div>) : <Empty text="No payments awaiting verification." />}</section></div>
       <div className="bg-teal/5 border-l-4 border-teal px-5 py-5 flex items-center justify-between gap-4"><div><h2 className="font-semibold">Need assistance?</h2><p className="text-sm text-muted-foreground mt-1">Contact the IMT support team.</p></div><Button asChild variant="outline"><Link to="/client/support"><LifeBuoy className="h-4 w-4 mr-2" />Support</Link></Button></div>
     </>}
-    {section === "invoices" && <><Input aria-label="Search invoices" placeholder="Search invoice number" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" /><InvoiceList rows={invoices} onPay={(id) => { setPayInvoice(id); setPayNow(true); }} /></>}
+    {section === "invoices" && <><Input aria-label="Search invoices" placeholder="Search invoice number" value={search} onChange={(e) => setSearch(e.target.value)} className="bills-search max-w-sm" /><InvoiceList rows={invoices} onPay={(id) => { setPayInvoice(id); setPayNow(true); }} /></>}
     {section === "payments" && <><section><h2 className="font-bold text-lg mb-4">Submitted payment proof</h2>{!data.submissions.length ? <Empty text="No payment proof submitted yet." /> : data.submissions.map((p: any) => <div key={p.id} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 py-5 border-b border-border"><div><p className="font-semibold">{money(p.amount, p.currency)}</p><p className="text-xs text-muted-foreground mt-1">{date(p.payment_date)}</p></div><div className="text-sm break-all">{p.reference}{(p.review_notes || p.rejection_reason) && <p className="text-muted-foreground mt-1">{p.rejection_reason || p.review_notes}</p>}</div><div><Status value={p.status} /></div></div>)}</section><section><h2 className="font-bold text-lg mb-4">Recorded payments</h2>{!data.payments.length ? <Empty text="No recorded payments yet." /> : data.payments.map((p: any) => <div key={p.id} className="flex flex-wrap gap-4 justify-between py-4 border-b border-border"><div><p className="font-semibold">{p.receipt_number || "Payment"}</p><p className="text-sm text-muted-foreground">{date(p.paid_at)} · {p.method.replaceAll("_", " ")}</p></div><p className="font-semibold">{money(p.amount, p.currency)}</p></div>)}</section></>}
     {section === "services" && <ServiceIdentity data={data} onOpen={setDetail} onMode={setMode} />}
     <ServiceDetailDialog detail={detail} onClose={() => setDetail(null)} onUpgrade={() => { const d = detail!; setDetail(null); setMode({ type: "upgrade", category: d.category, current: d.title }); }} onAddon={() => { const d = detail!; setDetail(null); setMode({ type: "addon", category: d.category, current: d.title }); }} onSupport={() => { const d = detail!; setDetail(null); setPreset(`Support: ${d.kind} — ${d.title}`); setNewTicket(true); }} />
@@ -162,13 +166,13 @@ function InvoiceList({ rows, onPay }: { rows: any[]; onPay?: (id: string) => voi
     catch (err) { toast.error(err instanceof Error ? err.message : "Invoice could not be downloaded"); } finally { setBusy(null); }
   };
   if (!rows.length) return <Empty text="No invoices on this account." />;
-  return <div className="space-y-3">{rows.map((i) => <article key={i.id} className="bg-card border border-border rounded-sm overflow-hidden">
-    <div className="flex items-start justify-between gap-3 p-4">
-      <div className="flex items-start gap-3 min-w-0"><span className="h-9 w-9 shrink-0 rounded-full bg-solar text-solar-foreground flex items-center justify-center"><FileText className="h-4 w-4" /></span>
+  return <div className="bills-list space-y-3">{rows.map((i) => <article key={i.id} className="bill-card bg-card border border-border rounded-sm overflow-hidden">
+    <div className="bill-content flex items-start justify-between gap-3 p-4">
+      <div className="bill-identity flex items-start gap-3 min-w-0"><span className="bill-icon h-9 w-9 shrink-0 rounded-full bg-solar text-solar-foreground flex items-center justify-center"><FileText className="h-4 w-4" /></span>
         <div className="min-w-0"><button type="button" onClick={() => download(i)} disabled={busy === i.id} className="font-semibold text-lg underline underline-offset-4 hover:text-solar break-all text-left">{busy === i.id ? "Downloading…" : i.invoice_number}</button><p className="text-xs text-muted-foreground mt-1">Bill date: {date(i.issue_date)}</p></div></div>
-      <div className="text-right shrink-0"><p className="font-semibold text-lg">{money(i.total, i.currency)}</p>{i.paymentAwaitingApproval && i.payable === 0 ? <p className="text-xs text-teal mt-1">Payment received · awaiting Finance approval</p> : i.balance > 0 ? <p className="text-xs text-muted-foreground mt-1">Due: {money(i.balance, i.currency)} by {date(i.due_date)}</p> : <p className="text-xs text-teal mt-1">Paid</p>}</div>
+      <div className="bill-amount text-right shrink-0"><p className="font-semibold text-lg">{money(i.total, i.currency)}</p>{i.paymentAwaitingApproval && i.payable === 0 ? <p className="text-xs text-teal mt-1">Payment received · awaiting Finance approval</p> : i.balance > 0 ? <p className="text-xs text-muted-foreground mt-1">Due: {money(i.balance, i.currency)} by {date(i.due_date)}</p> : <p className="text-xs text-teal mt-1">Paid</p>}</div>
     </div>
-    {i.payable > 0 && onPay && <div className="bg-muted px-4 py-3 flex justify-end"><Button className="bg-solar text-solar-foreground hover:bg-solar/90" onClick={() => onPay(i.id)}>Make a payment</Button></div>}
+    {i.payable > 0 && onPay && <div className="bill-payment bg-muted px-4 py-3 flex justify-end"><Button className="bg-solar text-solar-foreground hover:bg-solar/90" onClick={() => onPay(i.id)}>Make a payment</Button></div>}
   </article>)}</div>;
 }
 
