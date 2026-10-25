@@ -228,7 +228,7 @@
   .portal-bills-page .service-fields { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .portal-bills-page .service-fields dd { font-size: 16px; overflow-wrap: anywhere; }
   .portal-bills-page .service-fields dt { font-size: 13px; }
-  .portal-bills-page .portal-welcome { display: block; margin: -32px -20px 0; }
+  .portal-bills-page .portal-welcome { display: block; margin: 0 -20px; }
   .portal-welcome-heading { background: var(--muted); padding: 28px 20px 30px; text-align: center; }
   .portal-welcome-avatar { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 16px; border: 2px solid var(--solar); border-radius: 50%; color: var(--solar); }
   .portal-welcome-avatar svg { width: 42px; height: 42px; stroke-width: 1.5; }
