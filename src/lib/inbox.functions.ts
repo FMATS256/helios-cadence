@@ -202,7 +202,7 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
     if (!visible) throw new Error("Enquiry not found or not visible to you");
     const { data: profile } = await context.supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name, email, work_email")
       .eq("id", context.userId)
       .maybeSingle();
     const roleLabel = String(role)
@@ -213,7 +213,7 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
-      senderEmail: profile?.email ?? null,
+      senderEmail: profile?.work_email || profile?.email || null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),
       body: data.body,
@@ -251,13 +251,13 @@ export const composeEnquiryEmail = createServerFn({ method: "POST" })
     const role = await amOrAdmin(context);
     if (!data.subject?.trim()) throw new Error("Subject is required");
     if (!data.body?.trim()) throw new Error("Message is required");
-    const { data: profile } = await context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const { data: profile } = await context.supabase.from("profiles").select("full_name, email, work_email").eq("id", context.userId).maybeSingle();
     const roleLabel = String(role).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     const result = await createAndSendEnquiryEmail({
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
-      senderEmail: profile?.email ?? null,
+      senderEmail: profile?.work_email || profile?.email || null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),
       to: data.to,
@@ -357,7 +357,7 @@ async function isMailAdmin(context: any) {
 async function authorizedMailbox(context: any, requested?: string) {
   const { data, error } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
   if (error) throw new Error(error.message);
-  const own = personalMailbox(context);
+  const own = await personalMailbox(context);
   const roles = (data ?? []).map((r: any) => String(r.role));
   const addresses = [...(own ? [own] : []), ...mailboxesForRoles(roles).flatMap((d) => d.addresses)];
   const address = (requested || addresses[0] || "").toLowerCase();
@@ -367,8 +367,9 @@ async function authorizedMailbox(context: any, requested?: string) {
   return address;
 }
 /** The signed-in staff member's own @imtsolutions.co.zw mailbox, so their personal conversations are listable. */
-function personalMailbox(context: any): string | null {
-  const email = String(context.claims?.email ?? "").toLowerCase();
+async function personalMailbox(context: any): Promise<string | null> {
+  const { data } = await context.supabase.from("profiles").select("work_email").eq("id", context.userId).maybeSingle();
+  const email = String(data?.work_email || context.claims?.email || "").toLowerCase();
   return email.endsWith("@imtsolutions.co.zw") ? email : null;
 }
 async function personalSignature(context: any) {
@@ -382,7 +383,7 @@ export const getEmailWorkspace = createServerFn({ method: "POST" }).middleware([
     context.supabase.from("email_workspace_preferences").select("*").eq("user_id", context.userId).maybeSingle(),
     isMailAdmin(context),
   ]);
-  const own = personalMailbox(context);
+  const own = await personalMailbox(context);
   const departments = [...(own ? [{ department: "My mailbox", addresses: [own], roles: [] as string[] }] : []), ...mailboxesForRoles((roles ?? []).map((r: any) => String(r.role)))];
   if (admin) {
     // Administrators also see every staff member's personal mailbox that has conversations.

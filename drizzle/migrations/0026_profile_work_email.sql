@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS work_email text;
+COMMENT ON COLUMN public.profiles.work_email IS 'Business address used for sending, mailbox and signatures when it differs from the login email.';
