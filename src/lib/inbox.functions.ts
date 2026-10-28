@@ -367,10 +367,16 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
 async function authorizedMailbox(context: any, requested?: string) {
   const { data, error } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
   if (error) throw new Error(error.message);
-  const addresses = mailboxesForRoles((data ?? []).map((r: any) => String(r.role))).flatMap((d) => d.addresses);
+  const own = personalMailbox(context);
+  const addresses = [...(own ? [own] : []), ...mailboxesForRoles((data ?? []).map((r: any) => String(r.role))).flatMap((d) => d.addresses)];
   const address = requested || addresses[0];
   if (!address || !addresses.includes(address)) throw new Error("This mailbox is not available to your department");
   return address;
+}
+/** The signed-in staff member's own @imtsolutions.co.zw mailbox, so their personal conversations are listable. */
+function personalMailbox(context: any): string | null {
+  const email = String(context.claims?.email ?? "").toLowerCase();
+  return email.endsWith("@imtsolutions.co.zw") ? email : null;
 }
 async function personalSignature(context: any) {
   const { data } = await context.supabase.from("email_workspace_preferences").select("signature_html").eq("user_id", context.userId).maybeSingle();
@@ -382,7 +388,9 @@ export const getEmailWorkspace = createServerFn({ method: "POST" }).middleware([
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
     context.supabase.from("email_workspace_preferences").select("*").eq("user_id", context.userId).maybeSingle(),
   ]);
-  return { departments: mailboxesForRoles((roles ?? []).map((r: any) => String(r.role))), drafts: (preferences?.drafts ?? {}) as Record<string, EmailDraft>, organization: (preferences?.organization ?? {}) as Record<string, EmailOrganization>, signatureHtml: preferences?.signature_html ?? "" };
+  const own = personalMailbox(context);
+  const departments = [...(own ? [{ department: "My mailbox", addresses: [own], roles: [] as string[] }] : []), ...mailboxesForRoles((roles ?? []).map((r: any) => String(r.role)))];
+  return { departments, drafts: (preferences?.drafts ?? {}) as Record<string, EmailDraft>, organization: (preferences?.organization ?? {}) as Record<string, EmailOrganization>, signatureHtml: preferences?.signature_html ?? "" };
 });
 export const saveEmailWorkspace = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: { field: "drafts" | "organization" | "signature_html"; key?: string; value: EmailDraft | EmailOrganization | string | null }) => input)
