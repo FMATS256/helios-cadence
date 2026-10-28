@@ -4554,6 +4554,7 @@ export type Database = {
           status: string
           updated_at: string
           username: string | null
+          work_email: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -4567,6 +4568,7 @@ export type Database = {
           status?: string
           updated_at?: string
           username?: string | null
+          work_email?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -4580,6 +4582,7 @@ export type Database = {
           status?: string
           updated_at?: string
           username?: string | null
+          work_email?: string | null
         }
         Relationships: [
           {

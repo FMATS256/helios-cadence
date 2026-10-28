@@ -183,6 +183,13 @@
       "when": 1792843187631,
       "tag": "0025_portal_usernames_and_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793218791582,
+      "tag": "0026_profile_work_email",
+      "breakpoints": true
     }
   ]
 }
