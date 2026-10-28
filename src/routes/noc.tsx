@@ -1,3 +1,8 @@
+import { EmbeddedPageContext } from "@/components/enterprise";
+import { MonitoringPage } from "@/components/techops/monitoring-section";
+import { AlertsPage } from "@/components/techops/alerts-section";
+import { ServiceMapPage } from "@/components/techops/service-map-section";
+import { SocPage } from "@/components/techops/soc-section";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,10 +35,12 @@ export const Route = createFileRoute("/noc")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>) => ({ tab: typeof s.tab === "string" ? s.tab : undefined }),
   component: NocPage,
 });
 
 function NocPage() {
+  const { tab } = Route.useSearch();
   const qc = useQueryClient();
   const overviewFn = useServerFn(getNocOverview);
   const { data, isLoading, isFetching } = useQuery({
@@ -126,15 +133,19 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue="health">
+      <Tabs defaultValue={tab ?? "health"}>
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="health">Service Health</TabsTrigger>
+          <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
           <TabsTrigger value="remote">Remote Actions</TabsTrigger>
           <TabsTrigger value="accounts">Client accounts & access</TabsTrigger>
           {tickets.length > 0 && <TabsTrigger value="tickets">Open Tickets</TabsTrigger>}
           {servers.length > 0 && <TabsTrigger value="servers">Servers</TabsTrigger>}
+          <TabsTrigger value="map">Service Map</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
         </TabsList>
 
@@ -227,6 +238,13 @@ function NocPage() {
             </DetailCard>
           </TabsContent>
         )}
+
+        <EmbeddedPageContext.Provider value={true}>
+          <TabsContent value="uptime" className="mt-4"><MonitoringPage /></TabsContent>
+          <TabsContent value="alerts" className="mt-4"><AlertsPage /></TabsContent>
+          <TabsContent value="map" className="mt-4"><ServiceMapPage /></TabsContent>
+          <TabsContent value="security" className="mt-4"><SocPage /></TabsContent>
+        </EmbeddedPageContext.Provider>
 
         <TabsContent value="handover" className="mt-4">
           <DetailCard title="Shift Handover Notes" padded={false}>
