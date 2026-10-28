@@ -350,13 +350,20 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
     return getAttachmentDownloadUrl(message?.resend_email_id ?? "", att?.attachment_id ?? data.attachmentId);
   });
 
+async function isMailAdmin(context: any) {
+  const { data } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId).in("role", ["master_admin", "operations_manager"]);
+  return (data ?? []).length > 0;
+}
 async function authorizedMailbox(context: any, requested?: string) {
   const { data, error } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
   if (error) throw new Error(error.message);
   const own = personalMailbox(context);
-  const addresses = [...(own ? [own] : []), ...mailboxesForRoles((data ?? []).map((r: any) => String(r.role))).flatMap((d) => d.addresses)];
-  const address = requested || addresses[0];
-  if (!address || !addresses.includes(address)) throw new Error("This mailbox is not available to your department");
+  const roles = (data ?? []).map((r: any) => String(r.role));
+  const addresses = [...(own ? [own] : []), ...mailboxesForRoles(roles).flatMap((d) => d.addresses)];
+  const address = (requested || addresses[0] || "").toLowerCase();
+  // Administrators may work in any staff mailbox on the company domain (e.g. a manager's personal conversations).
+  const adminAllowed = roles.some((r: string) => ["master_admin", "operations_manager"].includes(r)) && address.endsWith("@imtsolutions.co.zw");
+  if (!address || (!addresses.includes(address) && !adminAllowed)) throw new Error("This mailbox is not available to your department");
   return address;
 }
 /** The signed-in staff member's own @imtsolutions.co.zw mailbox, so their personal conversations are listable. */
@@ -370,12 +377,20 @@ async function personalSignature(context: any) {
 }
 export const getEmailWorkspace = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   await amOrAdmin(context);
-  const [{ data: roles }, { data: preferences }] = await Promise.all([
+  const [{ data: roles }, { data: preferences }, admin] = await Promise.all([
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
     context.supabase.from("email_workspace_preferences").select("*").eq("user_id", context.userId).maybeSingle(),
+    isMailAdmin(context),
   ]);
   const own = personalMailbox(context);
   const departments = [...(own ? [{ department: "My mailbox", addresses: [own], roles: [] as string[] }] : []), ...mailboxesForRoles((roles ?? []).map((r: any) => String(r.role)))];
+  if (admin) {
+    // Administrators also see every staff member's personal mailbox that has conversations.
+    const { data: rows } = await context.supabase.from("email_enquiries").select("mailbox_address").limit(2000);
+    const known = new Set(departments.flatMap((d) => d.addresses));
+    const staff = [...new Set((rows ?? []).map((r: any) => String(r.mailbox_address ?? "").toLowerCase()))].filter((a) => a && !known.has(a)).sort();
+    if (staff.length) departments.push({ department: "Staff mailboxes", addresses: staff, roles: [] });
+  }
   return { departments, drafts: (preferences?.drafts ?? {}) as Record<string, EmailDraft>, organization: (preferences?.organization ?? {}) as Record<string, EmailOrganization>, signatureHtml: preferences?.signature_html ?? "" };
 });
 export const saveEmailWorkspace = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])

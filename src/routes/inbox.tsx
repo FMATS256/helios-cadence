@@ -55,6 +55,7 @@ type QuoteOption = { id: string; quote_number: string | null; title: string | nu
 const quoteLabel = (q: QuoteOption) =>
   `${q.quote_number || "Draft"} · ${q.title || "Quotation"} · ${q.currency || "USD"} ${Number(q.amount ?? 0).toFixed(2)}`;
 
+const ALL_MAILBOXES = "__all__";
 export const Route = createFileRoute("/inbox")({
   head: () => ({
     meta: [
@@ -159,7 +160,7 @@ function EnquiryRow({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs font-normal text-muted-foreground">
-            {isDepartmentMailbox(enquiry.mailbox_address) ? `${enquiry.reference} · ` : ""}{enquiry.customer_account_number ?? "Walk-in enquiry"}
+            {isDepartmentMailbox(enquiry.mailbox_address) ? `${enquiry.reference} · ` : ""}{enquiry.mailbox_address ? `${enquiry.mailbox_address.split("@")[0]} · ` : ""}{enquiry.customer_account_number ?? "Walk-in enquiry"}
           </span>
           <span className={`shrink-0 px-1.5 py-0.5 text-[10px] font-semibold ${statusClass(enquiry.status)}`}>
             {statusLabel(enquiry.status)}
@@ -200,7 +201,7 @@ function InboxPage() {
   const [compose, setCompose] = useState({ to: "", cc: "", subject: "", body: "", quoteId: quoteParam ?? "" });
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
-  const [scope, setScope] = useState<InboxScope>("mine");
+  const [scope, setScope] = useState<InboxScope>("all");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -262,7 +263,8 @@ function InboxPage() {
   const workspace = useQuery({ queryKey: ["email-workspace", user?.id], queryFn: () => workspaceFn(), enabled: !!user });
   const notes = useQuery({ queryKey: ["email-notes", selectedId], queryFn: () => { if (!selectedId) throw new Error("No enquiry"); return notesFn({ data: { enquiryId: selectedId } }); }, enabled: !!selectedId && showNotes });
   const organization = workspace.data?.organization ?? {};
-  useEffect(() => { if (workspace.data && !mailbox) { const address = workspace.data.departments[0]?.addresses[0] ?? ""; setMailbox(address); if (address && address !== "sales@imtsolutions.co.zw") setScope("all"); } }, [workspace.data, mailbox]);
+  useEffect(() => { if (workspace.data && !mailbox) setMailbox(ALL_MAILBOXES); }, [workspace.data, mailbox]);
+  const sendMailbox = mailbox === ALL_MAILBOXES || !mailbox ? (workspace.data?.departments[0]?.addresses[0] ?? "") : mailbox;
   useEffect(() => {
     if (!workspace.data || composeRestored.current) return;
     composeRestored.current = true;
@@ -316,7 +318,7 @@ function InboxPage() {
 
   const list = useQuery({
     queryKey: ["inbox", scope, status, debouncedSearch, folder, mailbox, user?.id],
-    queryFn: () => listEnquiriesFn({ data: { scope, status, search: debouncedSearch, folder: folder === "drafts" || folder === "flagged" ? "inbox" : folder, mailbox: mailbox || undefined } }),
+    queryFn: () => listEnquiriesFn({ data: { scope, status, search: debouncedSearch, folder: folder === "drafts" || folder === "flagged" ? "inbox" : folder, mailbox: mailbox && mailbox !== ALL_MAILBOXES ? mailbox : undefined } }),
     enabled: !!user,
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
@@ -360,7 +362,7 @@ function InboxPage() {
           bcc: splitAddrs(composeBcc),
           quoteId: compose.quoteId || null,
           files: toFilePayload(composeFiles),
-          mailbox,
+          mailbox: sendMailbox,
         },
       });
       toast.success(compose.quoteId ? "Email sent with quotation attached" : "Email sent");
@@ -447,7 +449,7 @@ function InboxPage() {
           bcc: splitAddrs(bcc),
           quoteId: quoteId || null,
           files: toFilePayload(replyFiles),
-          mailbox,
+          mailbox: mailbox === ALL_MAILBOXES ? (active?.mailbox_address ?? undefined) : mailbox,
         },
       });
       toast.success(quoteId ? "Reply sent with quotation attached" : "Reply sent");
@@ -513,6 +515,7 @@ function InboxPage() {
         <span className="flex items-center gap-2 text-sm font-semibold text-solar"><Mail className="h-4 w-4" /> IMT Mail</span>
         <span className="flex h-8 items-center border-b-2 border-solar px-1 text-xs font-semibold">Home</span>
         <select aria-label="Department mailbox" value={mailbox} onChange={(e) => { setMailbox(e.target.value); setScope("all"); }} className="ml-auto h-8 min-w-0 max-w-[calc(100%-3rem)] rounded-sm border border-border bg-card px-2 text-xs">
+          <option value={ALL_MAILBOXES}>All mailboxes</option>
           {(workspace.data?.departments ?? []).map((d) => <optgroup key={d.department} label={d.department}>{d.addresses.map((address) => <option key={address} value={address}>{d.department} · {address}</option>)}</optgroup>)}
         </select>
         <Button variant="ghost" size="icon" title="Email signature" aria-label="Email signature" onClick={() => { setSignatureHtml(workspace.data?.signatureHtml ?? ""); setSignatureOpen(true); }}><Settings2 className="h-4 w-4" /></Button>
@@ -533,7 +536,7 @@ function InboxPage() {
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">
           <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold">
-            <ChevronDown className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{mailbox}</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{mailbox === ALL_MAILBOXES ? "All mailboxes" : mailbox}</span>
           </div>
           <nav aria-label="Mailbox folders" className="space-y-0.5">
             {SCOPES.map((item) => (
@@ -844,7 +847,7 @@ function InboxPage() {
       <Dialog open={composeOpen} onOpenChange={(open) => { setComposeOpen(open); if (!open) void workspace.refetch(); }}>
         <DialogContent aria-describedby={undefined} className="imt-mail max-w-3xl max-h-[90dvh] overflow-y-auto gap-3 rounded-sm p-4 sm:fixed sm:bottom-3 sm:left-auto sm:right-3 sm:top-auto sm:w-[min(760px,calc(100vw-2rem))] sm:translate-x-0 sm:translate-y-0 sm:rounded-sm sm:p-5">
           <DialogHeader><DialogTitle>New message <span className="ml-2 text-xs font-normal text-muted-foreground">{draftState}</span></DialogTitle></DialogHeader>
-          <p className="break-all text-xs text-muted-foreground">From: {mailbox}</p>
+          <p className="break-all text-xs text-muted-foreground">From: {sendMailbox}</p>
           <div className="space-y-2">
             {composeError ? <div role="alert" className="text-sm text-destructive"><p>{composeError.startsWith("Gateway 500") ? "The IMT email service returned error 500. Your email was not accepted; your message is still here." : composeError}</p><details className="mt-1 text-xs"><summary className="cursor-pointer">Error details</summary><pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-sans">{composeError}</pre></details></div> : null}
             <Input aria-label="To" placeholder="To" value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} />
@@ -879,7 +882,7 @@ function InboxPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={removeDraft}><Trash2 className="h-4 w-4" /> Discard</Button><Button variant="outline" onClick={async () => { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: { to: compose.to, cc: compose.cc, bcc: composeBcc, subject: compose.subject, html: composeEditor.current?.getHtml() ?? composeHtml, files: composeFiles, mailbox, quoteId: compose.quoteId } } }); setComposeOpen(false); await workspace.refetch(); }}><Save className="h-4 w-4" /> Save draft</Button>
+            <Button variant="ghost" onClick={removeDraft}><Trash2 className="h-4 w-4" /> Discard</Button><Button variant="outline" onClick={async () => { await saveWorkspaceFn({ data: { field: "drafts", key: draftKey, value: { to: compose.to, cc: compose.cc, bcc: composeBcc, subject: compose.subject, html: composeEditor.current?.getHtml() ?? composeHtml, files: composeFiles, mailbox: sendMailbox, quoteId: compose.quoteId } } }); setComposeOpen(false); await workspace.refetch(); }}><Save className="h-4 w-4" /> Save draft</Button>
             <Button onClick={sendCompose} disabled={composing} className="bg-solar text-solar-foreground hover:bg-solar/90">
               <Send className="h-4 w-4" /> {composing ? "Sending…" : "Send"}
             </Button>
