@@ -105,22 +105,8 @@ export const listEnquiries = createServerFn({ method: "POST" })
       if (!ids.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
       q = q.in("id", ids);
     }
-    if (data.folder === "inbox" || data.folder === "enquiries") {
-      // Inbox = real conversations (staff wrote and the client replied); Enquiries = untouched new enquiries.
-      const { data: staffSent } = await context.supabase.from("email_messages").select("enquiry_id").eq("direction", "outbound").not("created_by", "is", null).limit(5000);
-      const staffIds = [...new Set((staffSent ?? []).map((row: any) => row.enquiry_id))];
-      if (data.folder === "inbox") {
-        if (!staffIds.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
-        const { data: inbound } = await context.supabase.from("email_messages").select("enquiry_id, created_at").eq("direction", "inbound").in("enquiry_id", staffIds).limit(5000);
-        const ids = [...new Set((inbound ?? []).map((row: any) => row.enquiry_id))];
-        if (!ids.length) return { enquiries: [], canAssign: role === "master_admin" || role === "operations_manager" };
-        q = q.in("id", ids);
-      } else if (staffIds.length) {
-        q = q.not("id", "in", `(${staffIds.join(",")})`);
-      }
-      // Enquiries awaiting our reply disappear once we answer them (status flips to awaiting_customer).
-      if (data.folder === "enquiries") q = q.eq("status", "open");
-    }
+    // Inbox = every conversation sent or received in this mailbox; Enquiries = new enquiries still awaiting our reply.
+    if (data.folder === "enquiries") q = q.eq("status", "open");
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     if (data.search?.trim()) {
       const s = data.search.trim();

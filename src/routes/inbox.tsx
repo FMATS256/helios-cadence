@@ -142,7 +142,7 @@ function EnquiryRow({
       onFocus={onPrefetch}
       aria-current={active ? "true" : undefined}
       className={`relative h-auto w-full justify-start rounded-none border-b border-border px-4 py-2.5 text-left transition-colors ${
-        active ? "bg-accent hover:bg-accent" : "bg-card hover:bg-muted/60"
+        active ? "bg-accent hover:bg-accent" : enquiry.status === "open" ? "bg-solar/10 hover:bg-solar/15" : "bg-card hover:bg-muted/60"
       }`}
     >
       {active || organization?.unread || enquiry.status === "open" ? <span className="absolute inset-y-0 left-0 w-1 bg-solar" /> : null}
