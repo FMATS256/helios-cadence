@@ -40,32 +40,16 @@ const siteNav: NavNode[] = [
   {
     title: "Services", url: "/cloud-ops", icon: Server,
     children: [
-      { title: "Cloud Ops", url: "/cloud-ops", icon: Cloud },
-      { title: "Managed Services", url: "/cloud", icon: Server },
       { title: "Starlink", url: "/starlink", icon: Satellite },
+      { title: "Cloud & VPS Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
       { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
 
     ],
   },
-  {
-    title: "Technical Operations", url: "/techops/dashboard", icon: Wrench,
-    children: [
-      { title: "Technician Dashboard", url: "/techops/dashboard", icon: LayoutDashboard },
-      { title: "Work Orders & Jobs", url: "/work-orders", icon: Wrench },
-      { title: "Equipment Register", url: "/techops/equipment", icon: PackageCheck },
-      { title: "Alert Console", url: "/techops/alerts", icon: Siren },
-    ],
-  },
-  {
-    title: "Network", url: "/monitoring", icon: Activity,
-    children: [
-      { title: "NOC Command Centre", url: "/noc", icon: ShieldCheck },
-      { title: "Monitoring", url: "/monitoring", icon: Activity },
-      { title: "Service Map", url: "/service-map", icon: MapPin },
-    ],
-  },
+  { title: "NOC Command", url: "/noc", icon: ShieldCheck },
+  { title: "Field TechOps", url: "/techops/dashboard", icon: Wrench },
   {
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
@@ -102,7 +86,7 @@ const siteNav: NavNode[] = [
     title: "Tools", url: "/automation", icon: Zap,
     children: [
       { title: "Automation", url: "/automation", icon: Zap },
-      { title: "Credential Vault", url: "/credentials", icon: KeyRound },
+      { title: "Credential Vault", url: "/techops/vault", icon: KeyRound },
       { title: "Notifications", url: "/notifications", icon: Bell },
     ],
   },
@@ -253,9 +237,9 @@ function TopBar() {
               <DropdownMenuItem asChild><Link to="/payments" search={{ tab: "submissions" }}>Submit Payment to Billing</Link></DropdownMenuItem>
             )}
             <DropdownMenuItem asChild><Link to="/starlink">New Starlink Account</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/cloud">New Managed Service</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/cloud-ops">New Managed Service</Link></DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/tickets">New Ticket</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/credentials">New Credential</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/techops/vault">New Credential</Link></DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

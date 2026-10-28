@@ -132,18 +132,18 @@ const SERVICE_LINES: Array<{
   route: string;
   match: (text: string) => boolean;
 }> = [
-  { key: "cloud",       label: "Cloud & VPS",         icon: Cloud,       color: "#2563eb", route: "/cloud",           match: (t) => /(vps|cloud|server|vm|instance|kamatera|vultr|contabo|kvm)/i.test(t) },
+  { key: "cloud",       label: "Cloud & VPS",         icon: Cloud,       color: "#2563eb", route: "/cloud-ops",           match: (t) => /(vps|cloud|server|vm|instance|kamatera|vultr|contabo|kvm)/i.test(t) },
   { key: "hosting",     label: "Web Hosting",         icon: Globe,       color: "#0891b2", route: "/web-hosting",     match: (t) => /(hosting|cpanel|website|wordpress|shared host)/i.test(t) },
   { key: "domains",     label: "Domains & DNS",       icon: Globe,       color: "#7c3aed", route: "/web-hosting",     match: (t) => /(domain|dns|\.co\.zw|\.com|registrar)/i.test(t) },
   { key: "m365",        label: "Microsoft 365",       icon: MailIcon,    color: "#0369a1", route: "/licenses",        match: (t) => /(m365|microsoft ?365|office ?365|exchange|outlook)/i.test(t) },
   { key: "security",    label: "Cybersecurity",       icon: ShieldAlert, color: "#dc2626", route: "/cloud-ops", match: (t) => /(security|kaspersky|sophos|antivirus|edr|soc|firewall|endpoint)/i.test(t) },
   { key: "starlink",    label: "Starlink",            icon: Satellite,   color: "#7c2d12", route: "/starlink",        match: (t) => /(starlink|satellite)/i.test(t) },
   { key: "voip",        label: "VoIP / Telephony",    icon: PhoneCall,   color: "#16a34a", route: "/voip",            match: (t) => /(voip|sip|pbx|telephony|dandemutande|call)/i.test(t) },
-  { key: "nas",         label: "Managed NAS",         icon: HardDrive,   color: "#059669", route: "/managed-nas",     match: (t) => /(nas|synology|qnap|file server)/i.test(t) },
+  { key: "nas",         label: "Managed NAS",         icon: HardDrive,   color: "#059669", route: "/cloud-storage",     match: (t) => /(nas|synology|qnap|file server)/i.test(t) },
   { key: "storage",     label: "Cloud Storage",       icon: Database,    color: "#0d9488", route: "/cloud-storage",   match: (t) => /(storage|s3|backup storage|object store)/i.test(t) },
   { key: "backup",      label: "Backup & DR",         icon: Database,    color: "#4338ca", route: "/cloud-ops",       match: (t) => /(backup|dr|disaster|acronis|veeam)/i.test(t) },
   { key: "licenses",    label: "Software Licenses",   icon: PackageIcon, color: "#a16207", route: "/licenses",        match: (t) => /(licen[sc]e|subscription key|product key)/i.test(t) },
-  { key: "trackx",      label: "TrackX / Devices",    icon: Laptop,      color: "#334155", route: "/laptop-tracking", match: (t) => /(trackx|laptop|device|asset tracking|absolute)/i.test(t) },
+  { key: "trackx",      label: "TrackX / Devices",    icon: Laptop,      color: "#334155", route: "/inventory", match: (t) => /(trackx|laptop|device|asset tracking|absolute)/i.test(t) },
   { key: "support",     label: "Managed Support",     icon: SupportIcon, color: "#0f766e", route: "/tickets",         match: (t) => /(support|managed|sla|helpdesk|retainer)/i.test(t) },
 ];
 
@@ -1305,7 +1305,7 @@ function Customer360() {
 
         <TabsContent value="credentials" className="mt-4">
           <Card><CardContent className="p-0 divide-y">
-            {credentials.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No credentials linked yet. <Link to="/credentials" className="text-solar font-semibold">Add one →</Link></p>}
+            {credentials.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No credentials linked yet. <Link to="/techops/vault" className="text-solar font-semibold">Add one →</Link></p>}
             {credentials.map((c: any) => (
               <div key={c.id} className="flex items-center justify-between p-4">
                 <div><p className="font-semibold">{c.name}</p><p className="text-xs text-muted-foreground">{c.credential_type}{c.username ? ` · ${c.username}` : ""}</p></div>
@@ -1629,7 +1629,7 @@ function IspHeroPane(props: {
   const hasOverdue = stats.openInvoiceTotal > 0;
   const slot5: { label: string; icon: any; onClick: () => void } =
     hasCloud
-      ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud"; } }
+      ? { label: "Cloud Console", icon: Server, onClick: () => { window.location.href = "/cloud-ops"; } }
       : hasOverdue && hasPrepaid
         ? { label: "Send Reminder", icon: Bell, onClick: onSendReminder }
         : { label: "New Ticket", icon: LifeBuoy, onClick: () => setOpen("ticket") };

@@ -47,7 +47,7 @@ async function runOne(admin: any, check: any) {
         kind: "monitoring_down",
         title: `DOWN: ${check.name}`,
         body: `${check.target} — ${result.error ?? "unreachable"}`,
-        link: "/monitoring",
+        link: "/noc",
       });
     }
   } else if (result.status === "up" && open) {

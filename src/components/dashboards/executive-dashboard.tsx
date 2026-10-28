@@ -216,7 +216,7 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
           value={s && s.devicesDown > 0 ? s.devicesDown : (s?.serversRunning ?? 0)}
           icon={s && s.devicesDown > 0 ? ServerOff : Server}
           tone={s && s.devicesDown > 0 ? "danger" : "success"}
-          to="/monitoring"
+          to="/noc"
           hint={s && s.devicesDown > 0 ? "Needs attention" : `${s?.serversTotal ?? 0} total`}
         />
       </div>
@@ -231,9 +231,9 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
             <Shortcut icon={DollarSign} label="Record payment" to="/payments" color={IMT_COLORS.success} />
             <Shortcut icon={FileText} label="Create invoice" to="/billing" color={IMT_COLORS.warning} />
             <Shortcut icon={Rocket} label="Provision server" to="/cloud-ops/new" color={IMT_COLORS.solar} />
-            <Shortcut icon={KeyRound} label="Vault entry" to="/credentials" color={IMT_COLORS.navy} />
+            <Shortcut icon={KeyRound} label="Vault entry" to="/techops/vault" color={IMT_COLORS.navy} />
             <Shortcut icon={Cloud} label="Cloud ops" to="/cloud-ops" color={IMT_COLORS.info} />
-            <Shortcut icon={Server} label="Monitoring" to="/monitoring" color={IMT_COLORS.success} />
+            <Shortcut icon={Server} label="Monitoring" to="/noc" color={IMT_COLORS.success} />
           </div>
         </CardContent>
       </Card>
@@ -364,7 +364,7 @@ export function ExecutiveDashboard({ displayName }: { displayName: string }) {
             <Shortcut icon={Repeat} label="Subscriptions" to="/subscriptions" color={IMT_COLORS.solar} />
             <Shortcut icon={ShieldCheck} label="Licenses" to="/licenses" color={IMT_COLORS.success} />
             <Shortcut icon={Warehouse} label="Inventory" to="/inventory" color={IMT_COLORS.warning} />
-            <Shortcut icon={Server} label="Assets" to="/assets" color={IMT_COLORS.info} />
+            <Shortcut icon={Server} label="Assets" to="/inventory" color={IMT_COLORS.info} />
             <Shortcut icon={BarChart3} label="Financial reports" to="/reports" color={IMT_COLORS.solar} />
             <Shortcut icon={FolderKanban} label="Projects" to="/projects" color={IMT_COLORS.info} />
             <Shortcut icon={Wallet} label="Finance workspace" to="/finance" color={IMT_COLORS.success} />

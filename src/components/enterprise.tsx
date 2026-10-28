@@ -9,7 +9,7 @@
  * Do not add page-specific logic in here. If a page needs bespoke rendering,
  * pass a `render*` prop or compose the primitives directly.
  */
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, createContext, useContext } from "react";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,10 @@ import { cn } from "@/lib/utils";
  * -------------------------------------------------------------------------*/
 
 /** Standard page wrapper — same padding/rhythm as Customer 360. */
+/** When a page is shown as a tab inside a hub, its own padding and header collapse. */
+export const EmbeddedPageContext = createContext(false);
 export function PageShell({ children, className }: { children: ReactNode; className?: string }) {
+  if (useContext(EmbeddedPageContext)) return <div className="min-w-0 space-y-4">{children}</div>;
   return <div className={cn("min-w-0 overflow-x-clip p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6", className)}>{children}</div>;
 }
 
@@ -41,6 +44,8 @@ export function SectionHeader({
   actions?: ReactNode;
   className?: string;
 }) {
+  const embedded = useContext(EmbeddedPageContext);
+  if (embedded) return actions ? <div className="flex flex-wrap justify-end gap-2">{actions}</div> : null;
   return (
     <div className={cn(
       "flex flex-col md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-border",

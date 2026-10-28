@@ -1,3 +1,6 @@
+import { EmbeddedPageContext } from "@/components/enterprise";
+import { WorkOrdersPage } from "@/components/techops/work-orders-section";
+import { EquipmentPage } from "@/components/techops/equipment-section";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,10 +25,12 @@ export const Route = createFileRoute("/techops/dashboard")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => (typeof s.tab === "string" ? { tab: s.tab } : {}),
   component: TechDashboard,
 });
 
 function TechDashboard() {
+  const { tab } = Route.useSearch();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [scope, setScope] = useState<"mine" | "team">("mine");
@@ -82,9 +87,10 @@ function TechDashboard() {
 
       <StatChipRow chips={chips} cols={6} />
 
-      <Tabs defaultValue="jobs" className="w-full">
+      <Tabs defaultValue={tab ?? "jobs"} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="jobs"><Wrench className="h-3.5 w-3.5 mr-1.5" />Jobs</TabsTrigger>
+          <TabsTrigger value="workorders"><Wrench className="h-3.5 w-3.5 mr-1.5" />Work Orders</TabsTrigger>
           <TabsTrigger value="upcoming"><CalendarClock className="h-3.5 w-3.5 mr-1.5" />Upcoming</TabsTrigger>
           <TabsTrigger value="alerts"><Siren className="h-3.5 w-3.5 mr-1.5" />Alerts</TabsTrigger>
           <TabsTrigger value="tickets"><LifeBuoy className="h-3.5 w-3.5 mr-1.5" />Tickets</TabsTrigger>
@@ -146,7 +152,7 @@ function TechDashboard() {
           <DetailCard
             title="Operational alerts"
             padded={false}
-            action={<Link to="/techops/alerts" className="text-xs font-semibold text-info">Open alert console →</Link>}
+            action={<Link to="/noc" search={{ tab: "alerts" }} className="text-xs font-semibold text-info">Open alert console →</Link>}
           >
             <DataGrid
               rows={(data?.alerts ?? []) as any[]}
@@ -184,7 +190,7 @@ function TechDashboard() {
           <DetailCard
             title="Equipment in your hands"
             padded={false}
-            action={<Link to="/techops/equipment" className="text-xs font-semibold text-info">Equipment register →</Link>}
+            action={<span className="text-xs text-muted-foreground">Full register below</span>}
           >
             <DataGrid
               rows={(data?.equipment ?? []) as any[]}
@@ -198,6 +204,11 @@ function TechDashboard() {
             />
           </DetailCard>
         </TabsContent>
+
+        <EmbeddedPageContext.Provider value={true}>
+          <TabsContent value="workorders" className="mt-4"><WorkOrdersPage /></TabsContent>
+          <TabsContent value="equipment" className="mt-4"><EquipmentPage /></TabsContent>
+        </EmbeddedPageContext.Provider>
 
         <TabsContent value="failures" className="mt-4">
           <DetailCard title="Failed automation & provisioning runs" padded={false}>

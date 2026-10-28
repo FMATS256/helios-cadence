@@ -1,3 +1,5 @@
+import { EmbeddedPageContext } from "@/components/enterprise";
+import { CloudPage } from "@/components/techops/managed-services-section";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -182,7 +184,7 @@ function CloudOpsPage() {
         <div className="flex flex-wrap gap-2">
           <ActionBtn tone="indigo" icon={Plus} label="New Server" onClick={() => { window.location.href = "/cloud-ops/new"; }} />
           <ActionBtn tone="sky" icon={RefreshCw} label={sync.isPending ? "Syncing…" : "Sync Providers"} onClick={() => sync.mutate()} disabled={sync.isPending} />
-          <ActionBtn tone="emerald" icon={Package} label="Managed Services" onClick={() => { window.location.href = "/cloud"; }} />
+          <ActionBtn tone="emerald" icon={Package} label="Managed Services" onClick={() => setTab("services")} />
           <ActionBtn tone="amber" icon={HardDrive} label="Backups & DR" onClick={() => setTab("backups")} />
           <ActionBtn tone="rose" icon={Wallet} label="Budgets & Alerts" onClick={() => setTab("budgets")} />
           <ActionBtn tone="slate" icon={ShieldCheck} label="Re-check Providers" onClick={() => verify.refetch()} />
@@ -289,44 +291,7 @@ function CloudOpsPage() {
         </TabsContent>
 
         <TabsContent value="services" className="mt-3">
-          <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm">SaaS subscriptions & managed services</CardTitle>
-              <Link to="/cloud"><Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" />Add / edit services</Button></Link>
-            </CardHeader>
-            <CardContent className="p-0">
-              {services.length === 0 ? (
-                <div className="p-10 text-center">
-                  <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">No managed services logged yet.</p>
-                  <Link to="/cloud"><Button size="sm" className="mt-3">Add first service</Button></Link>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>Service</TableHead><TableHead>Vendor</TableHead>
-                    <TableHead>Customer</TableHead><TableHead>Plan</TableHead>
-                    <TableHead>Seats</TableHead><TableHead>Renewal</TableHead>
-                    <TableHead>Status</TableHead><TableHead className="text-right">Monthly</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {services.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell><div className="font-semibold">{r.service_name}</div><div className="text-xs text-muted-foreground">{r.service_type}</div></TableCell>
-                        <TableCell>{r.vendor || "—"}</TableCell>
-                        <TableCell className="font-mono text-xs">{r.account_number ?? "—"}</TableCell>
-                        <TableCell>{r.plan || "—"}</TableCell>
-                        <TableCell>{r.seats ?? 0}</TableCell>
-                        <TableCell className="text-xs">{r.renewal_date ? new Date(r.renewal_date).toLocaleDateString() : "—"}</TableCell>
-                        <TableCell><StatusPill tone={r.status === "active" ? "success" : r.status === "cancelled" ? "danger" : "warning"}>{r.status}</StatusPill></TableCell>
-                        <TableCell className="text-right font-mono text-xs">${Number(r.monthly_cost || 0).toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <EmbeddedPageContext.Provider value={true}><CloudPage /></EmbeddedPageContext.Provider>
         </TabsContent>
 
         <TabsContent value="providers" className="mt-3">

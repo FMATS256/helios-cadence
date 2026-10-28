@@ -123,7 +123,7 @@ export const createServiceTask = createServerFn({ method: "POST" })
         kind: data.assigned_to === id ? "task_assigned" : "job_created",
         title: `New work order · ${customer.company_name}`,
         body: `${data.title.trim()} · ${data.service_type} / ${data.task_type}${assigneeName ? ` · assigned to ${assigneeName}` : " · unassigned"}`,
-        link: "/work-orders",
+        link: "/techops/dashboard",
       })) as any);
     }
 
@@ -209,7 +209,7 @@ export const updateServiceTask = createServerFn({ method: "POST" })
         kind: "task_assigned",
         title: "Technical task assigned to you",
         body: existing.title,
-        link: "/work-orders",
+        link: "/techops/dashboard",
       } as any);
     }
     if (existing.customer_id && (patch.status || patch.assigned_to !== undefined)) {
