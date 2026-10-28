@@ -69,7 +69,7 @@ export function BillingPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader
         eyebrow="Finance"
         title="Billing"

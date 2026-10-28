@@ -50,7 +50,7 @@ function PaymentsWorkspace() {
       <WorkspaceTabs tabs={TABS as any} active={active} to="/payments" />
       {active === "payments" && <PaymentsPage />}
       {active === "submissions" && (
-        <PageShell>
+        <PageShell className="sharp-corners">
           <SectionHeader
             eyebrow="Separation of duties"
             title="Payment Submissions"
@@ -102,7 +102,7 @@ function BalancesPage() {
   const stats = data?.stats;
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader
         eyebrow="Receivables"
         title="Balances Due"

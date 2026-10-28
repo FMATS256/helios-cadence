@@ -87,7 +87,7 @@ export function ExpensesPage() {
   }, [stats]);
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader
         eyebrow="Finance"
         title="Expenses & Cash"
@@ -128,10 +128,10 @@ export function ExpensesPage() {
       </div>
 
       <Tabs defaultValue="expenses">
-        <TabsList>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          {movements.length > 0 && <TabsTrigger value="movements">Cash Movements</TabsTrigger>}
-          {topCategories.length > 0 && <TabsTrigger value="breakdown">Category Breakdown</TabsTrigger>}
+        <TabsList className="flex-wrap h-auto gap-1.5 border border-border/60 shadow-sm">
+          <TabsTrigger value="expenses" className="text-amber/70 hover:bg-amber/10 hover:text-amber data-[state=active]:bg-amber/15 data-[state=active]:text-amber data-[state=active]:font-semibold">Expenses</TabsTrigger>
+          {movements.length > 0 && <TabsTrigger value="movements" className="text-success/70 hover:bg-success/10 hover:text-success data-[state=active]:bg-success/15 data-[state=active]:text-success data-[state=active]:font-semibold">Cash Movements</TabsTrigger>}
+          {topCategories.length > 0 && <TabsTrigger value="breakdown" className="text-info/70 hover:bg-info/10 hover:text-info data-[state=active]:bg-info/15 data-[state=active]:text-info data-[state=active]:font-semibold">Category Breakdown</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="expenses" className="mt-4">

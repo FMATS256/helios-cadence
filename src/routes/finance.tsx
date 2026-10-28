@@ -307,7 +307,7 @@ function FinanceWorkspace() {
   const yearStartDate = new Date(new Date().getFullYear(), 0, 1).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 
   return (
-    <PageContainer>
+    <PageContainer><div className="sharp-corners space-y-4 sm:space-y-6">
       {/* ── Top workspace bar ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-4 py-2 sm:flex md:px-6" style={{ background: "var(--gradient-navy)" }}>
@@ -416,7 +416,7 @@ function FinanceWorkspace() {
 
 
       <CustomerPanel customerId={customerId} onClose={() => setCustomerId(null)} currency={currency} />
-    </PageContainer>
+    </div></PageContainer>
   );
 }
 
