@@ -152,7 +152,7 @@ function TechDashboard() {
           <DetailCard
             title="Operational alerts"
             padded={false}
-            action={<Link to="/techops/alerts" className="text-xs font-semibold text-info">Open alert console →</Link>}
+            action={<Link to="/noc" search={{ tab: "alerts" }} className="text-xs font-semibold text-info">Open alert console →</Link>}
           >
             <DataGrid
               rows={(data?.alerts ?? []) as any[]}

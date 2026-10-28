@@ -57,7 +57,7 @@ export function SupportDashboard({ displayName }: { displayName: string }) {
         actions={
           <>
             <Button asChild variant="outline" className="bg-white/10 text-navy-foreground border-white/20 hover:bg-white/20 hover:text-navy-foreground">
-              <Link to="/monitoring">Monitors</Link>
+              <Link to="/noc">Monitors</Link>
             </Button>
             <Button asChild className="text-solar-foreground border-0" style={{ background: "var(--gradient-solar)" }}>
               <Link to="/tickets"><Plus className="h-4 w-4 mr-1.5" />New Ticket</Link>
@@ -72,14 +72,14 @@ export function SupportDashboard({ displayName }: { displayName: string }) {
         <KpiCard label="High" value={s?.high ?? 0} icon={Activity} tone="warning" to="/tickets" />
         <KpiCard label="Unassigned" value={s?.unassigned ?? 0} icon={Clock} tone="warning" to="/tickets" />
         <KpiCard label="Resolved Today" value={s?.resolvedToday ?? 0} icon={CheckCircle2} tone="success" to="/tickets" />
-        <KpiCard label="Monitors" value={`${s?.monitorsUp ?? 0}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/monitoring" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All up"} />
+        <KpiCard label="Monitors" value={`${s?.monitorsUp ?? 0}/${s?.monitorsTotal ?? 0}`} icon={Server} tone={(s?.monitorsDown ?? 0) > 0 ? "danger" : "success"} to="/noc" hint={(s?.monitorsDown ?? 0) > 0 ? `${s?.monitorsDown} down` : "All up"} />
       </div>
 
       <SectionCard title="Support workflows">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <QuickAction icon={Plus} label="Log Ticket" to="/tickets" tone="solar" />
-          <QuickAction icon={Server} label="Add Monitor" to="/monitoring" tone="info" />
-          <QuickAction icon={KeyRound} label="Access Vault" to="/credentials" tone="warning" />
+          <QuickAction icon={Server} label="Add Monitor" to="/noc" tone="info" />
+          <QuickAction icon={KeyRound} label="Access Vault" to="/techops/vault" tone="warning" />
           <QuickAction icon={Activity} label="Knowledge Base" to="/knowledge" tone="success" />
         </div>
       </SectionCard>
@@ -107,7 +107,7 @@ export function SupportDashboard({ displayName }: { displayName: string }) {
           </div>
         </SectionCard>
 
-        <SectionCard title="Monitors down" action={<Button variant="ghost" size="sm" asChild><Link to="/monitoring">All <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}>
+        <SectionCard title="Monitors down" action={<Button variant="ghost" size="sm" asChild><Link to="/noc">All <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>}>
           <div className="space-y-2">
             {(s?.downChecks ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-6">All systems nominal ✅</p>}
             {(s?.downChecks ?? []).map((m: any) => (

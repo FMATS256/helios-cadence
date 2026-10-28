@@ -64,7 +64,7 @@ export type Capability = {
 export const CAPABILITIES: Capability[] = [
   {
     key: "cloud", label: "Cloud & VPS", icon: Cloud, color: "#2563eb",
-    route: "/cloud", tab: true,
+    route: "/cloud-ops", tab: true,
     pickItems: (v) => v.cloudServers,
     metrics: (v) => [
       { label: "Servers", value: v.cloudServers.length, tone: "info" },
@@ -73,7 +73,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     key: "monitoring", label: "Monitoring", icon: Activity, color: "#0ea5e9",
-    route: "/monitoring", tab: true,
+    route: "/noc", tab: true,
     pickItems: (v) => v.monitoringChecks,
     metrics: (v) => {
       const total = v.monitoringChecks.length;
@@ -108,7 +108,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     key: "nas", label: "Managed NAS", icon: HardDrive, color: "#059669",
-    route: "/managed-nas", tab: true,
+    route: "/cloud-storage", tab: true,
     pickItems: (v) => v.managedNas,
   },
   {
@@ -128,7 +128,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     key: "assets", label: "Assets & Devices", icon: Laptop, color: "#334155",
-    route: "/assets", tab: true,
+    route: "/inventory", tab: true,
     pickItems: (v) => v.assets,
     metrics: (v) => (v.assets.length > 0
       ? [{ label: "Assets", value: v.assets.length, tone: "info" as const }]
@@ -158,7 +158,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     key: "credentials", label: "Credentials", icon: KeyRound, color: "#334155",
-    route: "/credentials", tab: true,
+    route: "/techops/vault", tab: true,
     pickItems: (v) => v.credentials,
     metrics: (v) => (v.stats.credentialsExpiring > 0
       ? [{ label: "Creds expiring", value: v.stats.credentialsExpiring, tone: "warning" as const }]

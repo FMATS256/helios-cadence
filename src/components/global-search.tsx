@@ -223,7 +223,7 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
             <CommandSeparator />
             <CommandGroup heading="Credentials">
               {r.credentials.map((c: any) => (
-                <CommandItem key={c.id} value={`cr-${c.id}-${c.name}`} onSelect={() => go("/credentials")}>
+                <CommandItem key={c.id} value={`cr-${c.id}-${c.name}`} onSelect={() => go("/techops/vault")}>
                   <div className="flex justify-between w-full">
                     <span>{c.name}</span>
                     <span className="text-xs text-muted-foreground">{c.credential_type} · {c.username || "—"}</span>
