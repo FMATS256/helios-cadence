@@ -357,7 +357,7 @@ async function isMailAdmin(context: any) {
 async function authorizedMailbox(context: any, requested?: string) {
   const { data, error } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
   if (error) throw new Error(error.message);
-  const own = personalMailbox(context);
+  const own = await personalMailbox(context);
   const roles = (data ?? []).map((r: any) => String(r.role));
   const addresses = [...(own ? [own] : []), ...mailboxesForRoles(roles).flatMap((d) => d.addresses)];
   const address = (requested || addresses[0] || "").toLowerCase();
@@ -367,8 +367,9 @@ async function authorizedMailbox(context: any, requested?: string) {
   return address;
 }
 /** The signed-in staff member's own @imtsolutions.co.zw mailbox, so their personal conversations are listable. */
-function personalMailbox(context: any): string | null {
-  const email = String(context.claims?.email ?? "").toLowerCase();
+async function personalMailbox(context: any): Promise<string | null> {
+  const { data } = await context.supabase.from("profiles").select("work_email").eq("id", context.userId).maybeSingle();
+  const email = String(data?.work_email || context.claims?.email || "").toLowerCase();
   return email.endsWith("@imtsolutions.co.zw") ? email : null;
 }
 async function personalSignature(context: any) {
@@ -382,7 +383,7 @@ export const getEmailWorkspace = createServerFn({ method: "POST" }).middleware([
     context.supabase.from("email_workspace_preferences").select("*").eq("user_id", context.userId).maybeSingle(),
     isMailAdmin(context),
   ]);
-  const own = personalMailbox(context);
+  const own = await personalMailbox(context);
   const departments = [...(own ? [{ department: "My mailbox", addresses: [own], roles: [] as string[] }] : []), ...mailboxesForRoles((roles ?? []).map((r: any) => String(r.role)))];
   if (admin) {
     // Administrators also see every staff member's personal mailbox that has conversations.
