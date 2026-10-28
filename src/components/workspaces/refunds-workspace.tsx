@@ -81,7 +81,7 @@ export function RefundsWorkspace() {
   ];
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader
         eyebrow="Separation of duties"
         title="Refunds"

@@ -80,7 +80,7 @@ export function MoneyPage({ section }: { section: MoneySection }) {
   }, [data]);
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader eyebrow={meta.eyebrow} title={meta.title} description={meta.description} />
       {error ? (
         <DetailCard title="Access">

@@ -89,7 +89,7 @@ function InvoiceDetail() {
   });
 
   if (isLoading || !invoice) {
-    return <PageShell><SectionHeader title="Loading invoice…" /></PageShell>;
+    return <PageShell className="sharp-corners"><SectionHeader title="Loading invoice…" /></PageShell>;
   }
   const overdue = invoice.due_date && invoice.status !== "paid" && new Date(invoice.due_date) < new Date();
   const aging = invoice.due_date ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / 86400000) : 0;
@@ -113,7 +113,7 @@ function InvoiceDetail() {
   ];
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SectionHeader
         eyebrow={<Link to="/finance" search={{ tab: "invoices" } as any} className="text-solar hover:underline">← Invoices</Link>}
         title={`Invoice ${invoice.invoice_number}`}

@@ -113,7 +113,7 @@ export function PaymentsPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="sharp-corners">
       <SubmitPaymentDialog open={openSubmit} onOpenChange={setOpenSubmit} />
       <SectionHeader
         eyebrow="Business"
