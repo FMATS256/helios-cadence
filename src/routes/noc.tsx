@@ -111,7 +111,7 @@ function NocPage() {
   }, [stats]);
 
   return (
-    <PageShell>
+    <PageShell className="max-w-full">
       <SectionHeader
         eyebrow="Network Operations"
         title="NOC Command Centre"
@@ -133,8 +133,8 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue={tab ?? "health"}>
-        <TabsList className="overflow-x-auto">
+      <Tabs defaultValue={tab ?? "health"} className="min-w-0 max-w-full">
+        <TabsList className="w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
@@ -242,7 +242,7 @@ function NocPage() {
         <EmbeddedPageContext.Provider value={true}>
           <TabsContent value="uptime" className="mt-4"><MonitoringPage /></TabsContent>
           <TabsContent value="alerts" className="mt-4"><AlertsPage /></TabsContent>
-          <TabsContent value="map" className="mt-4"><ServiceMapPage /></TabsContent>
+          <TabsContent value="map" className="mt-4 min-w-0 overflow-hidden rounded-lg border"><ServiceMapPage /></TabsContent>
           <TabsContent value="security" className="mt-4"><SocPage /></TabsContent>
         </EmbeddedPageContext.Provider>
 

@@ -293,7 +293,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background min-w-0">
         <TopBar />
         <main className="flex-1 overflow-auto">{children}</main>
       </SidebarInset>
