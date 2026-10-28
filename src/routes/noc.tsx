@@ -111,7 +111,7 @@ function NocPage() {
   }, [stats]);
 
   return (
-    <PageShell>
+    <PageShell className="max-w-full">
       <SectionHeader
         eyebrow="Network Operations"
         title="NOC Command Centre"
@@ -133,7 +133,7 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue={tab ?? "health"}>
+      <Tabs defaultValue={tab ?? "health"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
