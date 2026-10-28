@@ -28,7 +28,7 @@ export async function listAccountManagerRecords(db: any): Promise<AmRecord[]> {
   if (!ids.length) return [];
 
   const { data: profiles } = await db
-    .from("profiles").select("id, full_name, email, status").in("id", ids);
+    .from("profiles").select("id, full_name, email, work_email, status").in("id", ids);
 
   const counts = new Map<string, number>();
   for (const c of customers ?? []) {
@@ -47,7 +47,7 @@ export async function listAccountManagerRecords(db: any): Promise<AmRecord[]> {
       return {
         id: p.id,
         full_name: p.full_name,
-        email: p.email,
+        email: p.work_email || p.email,
         phone: AM_PHONE,
         roles,
         role,
@@ -94,7 +94,7 @@ export async function resolveAccountManager(
 export async function accountManagerContact(db: any, managerId?: string | null) {
   if (!managerId) return null;
   const { data } = await db
-    .from("profiles").select("id, full_name, email").eq("id", managerId).maybeSingle();
+    .from("profiles").select("id, full_name, email, work_email").eq("id", managerId).maybeSingle();
   if (!data) return null;
-  return { id: data.id, name: data.full_name as string | null, email: data.email as string | null, phone: AM_PHONE };
+  return { id: data.id, name: data.full_name as string | null, email: (data.work_email || data.email) as string | null, phone: AM_PHONE };
 }

@@ -202,7 +202,7 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
     if (!visible) throw new Error("Enquiry not found or not visible to you");
     const { data: profile } = await context.supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name, email, work_email")
       .eq("id", context.userId)
       .maybeSingle();
     const roleLabel = String(role)
@@ -213,7 +213,7 @@ export const replyToEnquiry = createServerFn({ method: "POST" })
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
-      senderEmail: profile?.email ?? null,
+      senderEmail: profile?.work_email || profile?.email || null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),
       body: data.body,
@@ -251,13 +251,13 @@ export const composeEnquiryEmail = createServerFn({ method: "POST" })
     const role = await amOrAdmin(context);
     if (!data.subject?.trim()) throw new Error("Subject is required");
     if (!data.body?.trim()) throw new Error("Message is required");
-    const { data: profile } = await context.supabase.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const { data: profile } = await context.supabase.from("profiles").select("full_name, email, work_email").eq("id", context.userId).maybeSingle();
     const roleLabel = String(role).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     const result = await createAndSendEnquiryEmail({
       senderId: context.userId,
       senderName: profile?.full_name || "IMT Solutions",
       senderRole: signatureTitle(profile?.full_name || "IMT Solutions", roleLabel),
-      senderEmail: profile?.email ?? null,
+      senderEmail: profile?.work_email || profile?.email || null,
       mailbox: await authorizedMailbox(context, data.mailbox),
       signatureHtml: await personalSignature(context),
       to: data.to,

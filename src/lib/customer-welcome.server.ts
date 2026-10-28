@@ -9,7 +9,7 @@ export async function sendCustomerWelcome(db: any, customerId: string) {
     if (!claimed) return;
     const { data: customer, error } = await db.from("customers").select("*").eq("id", customerId).single();
     if (error || !customer) throw new Error(error?.message ?? "Account not found");
-    const { data: manager } = await db.from("profiles").select("id,full_name,email").eq("id", customer.account_manager_id).maybeSingle();
+    const { data: manager } = await db.from("profiles").select("id,full_name,email,work_email").eq("id", customer.account_manager_id).maybeSingle();
     const { data: roles, error: roleError } = await db.from("user_roles").select("role").eq("user_id", customer.account_manager_id).in("role", [...AM_ROLES]);
     if (roleError) throw new Error(roleError.message);
     if (!customer.primary_email || !manager?.full_name || !manager?.email || !roles?.length) {
