@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, PauseCircle, PlayCircle, XCircle, RefreshCw, Settings2 } from "lucide-react";
 import {
-  AddServiceDialog, ApplyCreditDialog,
+  AddServiceDialog, ApplyCreditDialog, RecordPaymentDialog,
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
@@ -1607,7 +1607,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit">(null);
+  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit" | "cash">(null);
   // Separation of duties: invoices are raised by billing from requests, so
   // every user — including billing and admins — requests one from here.
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
@@ -1660,7 +1660,9 @@ function IspHeroPane(props: {
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Request Invoice"    onClick={() => setOpen("invoice")} />
+        <ActionBtn tone="emerald" icon={DollarSign}  label="Receive Payment"    onClick={() => setOpen("cash")} />
         <ActionBtn tone="sky"     icon={CreditCard}  label="Submit Payment"     onClick={() => setOpen("payment")} />
+        <ActionBtn tone="indigo"  icon={FileCheck}   label="New Quotation"      onClick={() => setOpen("quote")} />
         <ComposeEmailDialog
           accountNumber={customer.account_number}
           trigger={
@@ -1725,6 +1727,7 @@ function IspHeroPane(props: {
       {open === "invoice" && (
         <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
       )}
+      {open === "cash"    && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}

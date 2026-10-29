@@ -215,7 +215,7 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
 
   const [form, setForm] = useState({
     amount: "" as string, currency: "", method: "cash",
-    reference: "", notes: "", service_id: "__none__",
+    reference: "", notes: "", service_id: "__none__", cash_account_id: "",
     paid_at: new Date().toISOString().slice(0, 10),
   });
   const [mode, setMode] = useState<"auto" | "manual">("auto");
@@ -261,6 +261,8 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
   const mut = useMutation({
     mutationFn: async () => {
       if (!(amt > 0)) throw new Error("Enter a payment amount");
+      const till = form.cash_account_id || ws?.cashAccounts?.[0]?.id;
+      if (!till) throw new Error("Choose the till or bank account the money is going into");
       if (allocated > settleTotal + 0.005) throw new Error("Allocations exceed the amount being settled");
       return payFn({ data: {
         customer_id: ctx.customerId,
@@ -276,6 +278,7 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
         apply_credit: credit || 0,
         credit_remainder: creditRemainder,
         auto_resume: autoResume,
+        cash_account_id: till,
       } });
     },
     onSuccess: (r: any) => {
@@ -324,6 +327,14 @@ export function RecordPaymentDialog({ ctx, onClose }: { ctx: ClientContext; onCl
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["cash", "bank_transfer", "mobile_money", "card", "cheque", "other"].map((m) => <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1"><Label>Till / bank account *</Label>
+                <Select value={form.cash_account_id || ws?.cashAccounts?.[0]?.id || ""} onValueChange={(v) => setForm({ ...form, cash_account_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Choose till" /></SelectTrigger>
+                  <SelectContent>
+                    {(ws?.cashAccounts ?? []).map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name} · {a.currency}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
