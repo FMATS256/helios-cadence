@@ -1306,6 +1306,8 @@ export const getPaymentWorkspace = createServerFn({ method: "POST" })
       db.from("payments").select("id,receipt_number,amount,currency,method,paid_at,status,reference,service_context,reconciliation_status")
         .eq("customer_id", cust.id).order("paid_at", { ascending: false }).limit(8),
     ]);
+    const { cashAccounts } = await import("./payment-submissions.functions");
+    const tills = await cashAccounts(db);
     const outstanding = Math.round(openInvoices.reduce((s, i) => s + i.balance, 0) * 100) / 100;
     const overdue = Math.round(openInvoices.filter((i) => i.is_overdue).reduce((s, i) => s + i.balance, 0) * 100) / 100;
     const suspended = services.filter((s) => s.suspended);
@@ -1316,6 +1318,7 @@ export const getPaymentWorkspace = createServerFn({ method: "POST" })
       services,
       creditBalance: credit,
       recentPayments: rows<any>(payR as any),
+      cashAccounts: tills,
       outstanding,
       overdue,
       currency,
@@ -1348,14 +1351,19 @@ export const recordCustomerPayment = createServerFn({ method: "POST" })
     credit_remainder?: boolean;
     /** restore suspended services when the account clears (default true) */
     auto_resume?: boolean;
+    /** destination till / bank account the money is banked into (required) */
+    cash_account_id: string;
   }) => input)
   .handler(async ({ data, context }) => {
     await assertBillingStaff(context);
+    if (!data.cash_account_id) throw new Error("Choose the till or bank account the money is going into");
     const amount = Math.round(Number(data.amount) * 100) / 100;
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be greater than zero");
 
     const db = await admin();
     const cust = await loadCustomer(db, data.customer_id);
+    const { data: till } = await db.from("cash_accounts").select("id,name,kind,is_active").eq("id", data.cash_account_id).maybeSingle();
+    if (!till || !(till as any).is_active) throw new Error("That till or bank account is not active");
     const currency = (data.currency || "USD").toUpperCase();
     const open = await loadOpenInvoices(db, cust.id);
     const byId = new Map(open.map((i) => [i.id, i]));
@@ -1409,9 +1417,22 @@ export const recordCustomerPayment = createServerFn({ method: "POST" })
       notes: data.notes?.trim() || null,
       service_context: serviceLabel,
       invoice_id: plan.length === 1 ? plan[0].invoice_id : null,
+      cash_account_id: (till as any).id,
       created_by: context.userId,
     } as any).select("*").single();
     if (error) throw new Error(error.message);
+
+    // ---- till movement + balanced journal entry --------------------------
+    {
+      const { bankDeposit, postPaymentToLedger } = await import("./payment-submissions.functions");
+      await bankDeposit(db, {
+        account_id: (till as any).id, amount, currency, occurred_at: paidAt,
+        payment_id: payment.id, reference: payment.receipt_number ?? payment.reference ?? null,
+        notes: serviceLabel ? `Payment for ${serviceLabel}` : `Payment from ${cust.account_number}`,
+        created_by: context.userId,
+      });
+      await postPaymentToLedger(db, { payment, account: till, customer: cust, userId: context.userId });
+    }
 
     // credit consumption is booked as its own zero-cash payment so invoice
     // allocations always resolve to a real payment row
