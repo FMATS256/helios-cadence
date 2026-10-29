@@ -1188,13 +1188,32 @@ function Customer360() {
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4">
+          {(() => {
+            const real = (payments as any[]).filter((p) => p.method !== "account_credit");
+            const total = real.reduce((s, p) => s + Number(p.amount || 0), 0);
+            const cash = real.filter((p) => p.method === "cash").reduce((s, p) => s + Number(p.amount || 0), 0);
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <KpiTile icon={DollarSign} label="Total Paid" value={money(total)} tone="success" />
+                <KpiTile icon={DollarSign} label="Cash Received" value={money(cash)} tone="info" />
+                <KpiTile icon={Receipt} label="Payments" value={real.length} tone="info" />
+                <KpiTile icon={CalendarClock} label="Last Payment" value={real[0] ? new Date(real[0].paid_at).toLocaleDateString() : "—"} tone="info" />
+              </div>
+            );
+          })()}
           <Card><CardContent className="p-0 divide-y">
             {payments.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No payments recorded.</p>}
             {payments.map((p: any) => (
-              <div key={p.id} className="p-4 flex items-center justify-between">
-                <div>
+              <div key={p.id} className="p-4 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold">{p.receipt_number || "—"}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(p.paid_at).toLocaleString()} · {p.method} · {p.reference || "no ref"}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(p.paid_at).toLocaleString()} · {String(p.method || "").replace("_", " ")} · {p.reference || "no ref"}</p>
+                  {(p.service_context || p.invoice_id) && (
+                    <p className="text-xs mt-0.5">
+                      {p.service_context && <span className="font-medium">For: {p.service_context}</span>}
+                      {p.invoice_id && <span className="text-muted-foreground"> · {(invoices as any[]).find((i) => i.id === p.invoice_id)?.invoice_number ?? "Invoice"}</span>}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-mono">{money(p.amount, p.currency)}</span>
