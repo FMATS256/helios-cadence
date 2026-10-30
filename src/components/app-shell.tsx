@@ -54,6 +54,7 @@ const siteNav: NavNode[] = [
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
+      { title: "Finance AI Agent", url: "/finance-agent", icon: Bot },
       { title: "Payments & Receivables", url: "/payments", icon: Receipt },
       { title: "Payment Submissions", url: "/payments", icon: Receipt, search: { tab: "submissions" } },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },
