@@ -1,7 +1,7 @@
 import imtLogo from "@/assets/imt-logo.png.asset.json";
 import { useEffect, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Zap } from "lucide-react";
+import { Bot, Zap } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, KeyRound, LifeBuoy, Cloud, Server, Activity, Receipt, FolderKanban,
@@ -54,6 +54,7 @@ const siteNav: NavNode[] = [
     title: "Finance", url: "/finance", icon: Wallet,
     children: [
       { title: "Finance Workspace", url: "/finance", icon: Wallet },
+      { title: "Finance AI Agent", url: "/finance-agent", icon: Bot },
       { title: "Payments & Receivables", url: "/payments", icon: Receipt },
       { title: "Payment Submissions", url: "/payments", icon: Receipt, search: { tab: "submissions" } },
       { title: "Expenses & Cash", url: "/expenses", icon: Banknote },

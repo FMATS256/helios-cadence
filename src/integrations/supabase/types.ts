@@ -2497,6 +2497,125 @@ export type Database = {
           },
         ]
       }
+      finance_agent_proposals: {
+        Row: {
+          apply_result: string | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          rationale: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          apply_result?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          rationale?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          apply_result?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          rationale?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_agent_proposals_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "finance_agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_agent_settings: {
+        Row: {
+          agent_name: string
+          enabled_roles: string[]
+          id: boolean
+          persona: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent_name?: string
+          enabled_roles?: string[]
+          id?: boolean
+          persona?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent_name?: string
+          enabled_roles?: string[]
+          id?: boolean
+          persona?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      finance_agent_tasks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          instructions: string
+          role: string
+          started_at: string | null
+          status: string
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instructions?: string
+          role?: string
+          started_at?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instructions?: string
+          role?: string
+          started_at?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       geo_locations: {
         Row: {
           display_name: string | null

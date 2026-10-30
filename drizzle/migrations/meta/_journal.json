@@ -190,6 +190,13 @@
       "when": 1793218791582,
       "tag": "0026_profile_work_email",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793384864151,
+      "tag": "0027_migration",
+      "breakpoints": true
     }
   ]
 }
