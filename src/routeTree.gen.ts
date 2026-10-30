@@ -25,6 +25,7 @@ import { Route as EmailLogsRouteImport } from './routes/email-logs'
 import { Route as EmailStudioRouteImport } from './routes/email-studio'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as FinanceAgentRouteImport } from './routes/finance-agent'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
@@ -188,6 +189,11 @@ const ExpensesRoute = ExpensesRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceAgentRoute = FinanceAgentRouteImport.update({
+  id: '/finance-agent',
+  path: '/finance-agent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InboxRoute = InboxRouteImport.update({
@@ -650,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -751,6 +758,7 @@ export interface FileRoutesByTo {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -853,6 +861,7 @@ export interface FileRoutesById {
   '/email-studio': typeof EmailStudioRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
+  '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
   '/knowledge': typeof KnowledgeRoute
@@ -957,6 +966,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/finance-agent'
     | '/inbox'
     | '/inventory'
     | '/knowledge'
@@ -1058,6 +1068,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/finance-agent'
     | '/inbox'
     | '/inventory'
     | '/knowledge'
@@ -1159,6 +1170,7 @@ export interface FileRouteTypes {
     | '/email-studio'
     | '/expenses'
     | '/finance'
+    | '/finance-agent'
     | '/inbox'
     | '/inventory'
     | '/knowledge'
@@ -1262,6 +1274,7 @@ export interface RootRouteChildren {
   EmailStudioRoute: typeof EmailStudioRoute
   ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRoute
+  FinanceAgentRoute: typeof FinanceAgentRoute
   InboxRoute: typeof InboxRoute
   InventoryRoute: typeof InventoryRoute
   KnowledgeRoute: typeof KnowledgeRoute
@@ -1446,6 +1459,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance-agent': {
+      id: '/finance-agent'
+      path: '/finance-agent'
+      fullPath: '/finance-agent'
+      preLoaderRoute: typeof FinanceAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbox': {
@@ -2128,6 +2148,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailStudioRoute: EmailStudioRoute,
   ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRoute,
+  FinanceAgentRoute: FinanceAgentRoute,
   InboxRoute: InboxRoute,
   InventoryRoute: InventoryRoute,
   KnowledgeRoute: KnowledgeRoute,
