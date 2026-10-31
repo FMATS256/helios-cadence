@@ -667,7 +667,7 @@ export async function backfillGatewayAttachments(opts: { since?: string; provide
   const admin = adminClient();
   let checked = 0, retained = 0, pending = 0;
   for (const direction of ["inbound", "outbound"] as const) {
-    const listed = await listGatewayMessages({ direction, since: opts.since, limit: 500 });
+    const listed = await listGatewayMessages({ direction, since: opts.since, limit: 100 });
     if (!listed.ok) return { checked, retained, pending, error: listed.error };
     const list: any[] = Array.isArray(listed.data?.data) ? listed.data.data : Array.isArray(listed.data) ? listed.data : [];
     for (const m of list) {
