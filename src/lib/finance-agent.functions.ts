@@ -104,9 +104,10 @@ export const reviewFinanceProposal = createServerFn({ method: "POST" })
         if (!rows?.length) throw new Error("Expense is no longer pending");
         result = `Expense ${status}`;
       } else if (p.kind === "payment_reminder") {
-        const { data: invoice } = await db.from("invoices").select("id,total,amount_paid,status,customer_id,customers(primary_email)").eq("id", payload.target).is("archived_at", null).maybeSingle();
+        const { data: invoice } = await db.from("invoices").select("id,total,amount_paid,status,currency,customer_id,customers(primary_email)").eq("id", payload.target).is("archived_at", null).maybeSingle();
         const customer: any = invoice?.customers;
         if (!invoice || ["paid", "void", "cancelled", "draft"].includes(invoice.status) || Number(invoice.total) - Number(invoice.amount_paid) <= 0.005 || invoice.customer_id !== payload.customer_id || customer?.primary_email !== payload.to) throw new Error("Invoice is settled, unavailable or recipient changed; generate a fresh reminder");
+        if (payload.balance === undefined || Math.abs(Number(invoice.total) - Number(invoice.amount_paid) - payload.balance) > 0.005 || invoice.currency !== payload.currency) throw new Error("Invoice balance changed; generate a fresh reminder before sending");
         const { createAndSendEnquiryEmail } = await import("./inbox.server");
         const sent = await createAndSendEnquiryEmail({
           senderId: context.userId, senderName: "IMT Solutions Billing", senderRole: "Finance",

@@ -59,11 +59,11 @@ function buildTools(db: Admin, taskId: string, roles: FinanceAgentRole[]) {
       description: "Draft a polite payment reminder email for one open invoice. Staff approve before it is sent.",
       inputSchema: z.object({ invoice_id: z.string(), subject: z.string(), body: z.string(), reason: z.string() }),
       execute: async ({ invoice_id, subject, body, reason }) => {
-        const { data: inv } = await db.from("invoices").select("id, invoice_number, customer_id, customers(company_name, primary_email)").eq("id", invoice_id).maybeSingle();
+        const { data: inv } = await db.from("invoices").select("id, invoice_number, customer_id, total, amount_paid, currency, status, customers(company_name, primary_email)").eq("id", invoice_id).is("archived_at", null).maybeSingle();
         const c: any = inv?.customers;
-        if (!inv || !c?.primary_email) return { error: "Invoice not found or customer has no email" };
+        if (!inv || !c?.primary_email || ["paid", "void", "cancelled", "draft"].includes(inv.status) || Number(inv.total) - Number(inv.amount_paid) <= 0.005) return { error: "Open invoice not found or customer has no email" };
         return propose("payment_reminder", `Reminder for ${inv.invoice_number} – ${c.company_name}`, reason,
-          { target: invoice_id, customer_id: inv.customer_id, to: c.primary_email, subject, body });
+          { target: invoice_id, customer_id: inv.customer_id, to: c.primary_email, subject, body, balance: Number(inv.total) - Number(inv.amount_paid), currency: inv.currency });
       },
     });
   }
