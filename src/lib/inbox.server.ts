@@ -1083,7 +1083,7 @@ export async function sendEnquiryReply(opts: {
       delivery_error: "Delivery not attempted",
       created_by: opts.senderId,
       sender_name: opts.senderName,
-      bcc_address: opts.bcc?.join(", ") || null,
+      bcc_address: bccList.join(", ") || null,
     })
     .select("*")
     .single();
@@ -1126,7 +1126,7 @@ export async function sendEnquiryReply(opts: {
     from: fromLine,
     to: enquiry.contact_email,
     cc: opts.cc?.filter(Boolean),
-    bcc: opts.bcc?.filter(Boolean),
+    bcc: bccList,
     subject: taggedSubject,
     html,
     text,
