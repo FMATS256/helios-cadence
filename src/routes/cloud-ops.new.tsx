@@ -374,10 +374,10 @@ function NewServerPage() {
           {provider === "vultr" && (tierPackages.data?.length ?? 0) > 0 && (
             <Card><CardContent className="p-6">
               <StepHeader n={5} title="IMT package (optional)" subtitle="Pick a workload tier — fills the plan and customer price with our margin." />
-              {(["voip", "accounting", "web"] as const).map((w) => (
+              {Array.from(new Set((tierPackages.data ?? []).map((p: any) => p.workload as string))).map((w) => (
                 <div key={w} className="mb-4 last:mb-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    {w === "voip" ? "VoIP / PBX" : w === "accounting" ? "Accounting" : "Web hosting"}
+                    {({ voip: "VoIP / PBX", accounting: "Accounting (general)", web: "Web hosting", pastel: "Sage Pastel", evol: "Sage 200 Evolution", qbd: "QuickBooks Desktop", pall: "Palladium", odoo: "Odoo / ERPNext", nc: "Nextcloud files", bkp: "Backup vault", rds: "Remote desktop", vms: "CCTV recording", mail: "Mail server" } as Record<string, string>)[w] ?? w}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {(tierPackages.data ?? []).filter((p: any) => p.workload === w).map((p: any) => {
