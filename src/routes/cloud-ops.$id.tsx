@@ -11,6 +11,7 @@ import {
   accrueServerCost, addServerCostEntry,
 } from "@/lib/servers.functions";
 import { upsertBackupSchedule, restoreBackup } from "@/lib/backups.functions";
+import { workloadGuide } from "@/lib/server-config-guides";
 import { GradientAreaChart, IMT_COLORS } from "@/components/dashboards/charts";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -530,10 +531,18 @@ function ServerDetailPage() {
         </TabsContent>
 
         <TabsContent value="firewall" className="mt-4">
-          <InfoCard title="Firewall rules">
-            <p className="text-sm text-muted-foreground">
-              Firewall management runs at the Kamatera network layer. Managed rules will appear here once configured.
-            </p>
+          <InfoCard title="Recommended configuration">
+            {(() => {
+              const g = workloadGuide(`${s.name} ${s.image ?? ""} ${s.notes ?? ""}`);
+              if (!g) return <p className="text-sm text-muted-foreground">No template matched. See all guides on the Fleet control page.</p>;
+              return (
+                <div className="text-sm space-y-2">
+                  <div><span className="font-semibold">{g.label}</span> · {g.os}</div>
+                  <div className="text-muted-foreground">Open ports: {g.ports}</div>
+                  <ul className="list-disc pl-4 space-y-1">{g.steps.map((x) => <li key={x}>{x}</li>)}</ul>
+                </div>
+              );
+            })()}
           </InfoCard>
         </TabsContent>
 

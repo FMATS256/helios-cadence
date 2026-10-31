@@ -66,6 +66,7 @@ import { Route as ClientStatementsRouteImport } from './routes/client.statements
 import { Route as ClientSupportRouteImport } from './routes/client.support'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
+import { Route as CloudOpsFleetRouteImport } from './routes/cloud-ops.fleet'
 import { Route as CloudOpsNewRouteImport } from './routes/cloud-ops.new'
 import { Route as CustomersIndexRouteImport } from './routes/customers.index'
 import { Route as CustomersAccountNumberRouteImport } from './routes/customers.$accountNumber'
@@ -404,6 +405,11 @@ const CloudOpsIdRoute = CloudOpsIdRouteImport.update({
   path: '/cloud-ops/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CloudOpsFleetRoute = CloudOpsFleetRouteImport.update({
+  id: '/cloud-ops/fleet',
+  path: '/cloud-ops/fleet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CloudOpsNewRoute = CloudOpsNewRouteImport.update({
   id: '/cloud-ops/new',
   path: '/cloud-ops/new',
@@ -734,6 +740,7 @@ export interface FileRoutesByFullPath {
   '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
+  '/cloud-ops/fleet': typeof CloudOpsFleetRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
@@ -842,6 +849,7 @@ export interface FileRoutesByTo {
   '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
+  '/cloud-ops/fleet': typeof CloudOpsFleetRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
@@ -951,6 +959,7 @@ export interface FileRoutesById {
   '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
+  '/cloud-ops/fleet': typeof CloudOpsFleetRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
   '/customers/$accountNumber': typeof CustomersAccountNumberRoute
   '/customers/new': typeof CustomersNewRoute
@@ -1062,6 +1071,7 @@ export interface FileRouteTypes {
     | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
+    | '/cloud-ops/fleet'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
     | '/customers/new'
@@ -1170,6 +1180,7 @@ export interface FileRouteTypes {
     | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
+    | '/cloud-ops/fleet'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
     | '/customers/new'
@@ -1278,6 +1289,7 @@ export interface FileRouteTypes {
     | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
+    | '/cloud-ops/fleet'
     | '/cloud-ops/new'
     | '/customers/$accountNumber'
     | '/customers/new'
@@ -1382,6 +1394,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AssetsIdRoute: typeof AssetsIdRoute
   CloudOpsIdRoute: typeof CloudOpsIdRoute
+  CloudOpsFleetRoute: typeof CloudOpsFleetRoute
   CloudOpsNewRoute: typeof CloudOpsNewRoute
   CustomersAccountNumberRoute: typeof CustomersAccountNumberRoute
   CustomersNewRoute: typeof CustomersNewRoute
@@ -1826,6 +1839,13 @@ declare module '@tanstack/react-router' {
       path: '/cloud-ops/$id'
       fullPath: '/cloud-ops/$id'
       preLoaderRoute: typeof CloudOpsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cloud-ops/fleet': {
+      id: '/cloud-ops/fleet'
+      path: '/cloud-ops/fleet'
+      fullPath: '/cloud-ops/fleet'
+      preLoaderRoute: typeof CloudOpsFleetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cloud-ops/new': {
@@ -2306,6 +2326,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AssetsIdRoute: AssetsIdRoute,
   CloudOpsIdRoute: CloudOpsIdRoute,
+  CloudOpsFleetRoute: CloudOpsFleetRoute,
   CloudOpsNewRoute: CloudOpsNewRoute,
   CustomersAccountNumberRoute: CustomersAccountNumberRoute,
   CustomersNewRoute: CustomersNewRoute,
