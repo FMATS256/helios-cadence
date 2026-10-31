@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Bot, Check, X, Loader2, Settings2, ListTodo } from "lucide-react";
+import { Bot, Check, X, Loader2, Settings2, ListTodo, Mail, RefreshCw } from "lucide-react";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  getFinanceAgent, saveFinanceAgentSettings, assignFinanceAgentTask, reviewFinanceProposal,
+  getFinanceAgent, saveFinanceAgentSettings, assignFinanceAgentTask, reviewFinanceProposal, refreshFinanceMailbox,
 } from "@/lib/finance-agent.functions";
 import { FINANCE_AGENT_ROLES, ROLE_LABELS, type FinanceAgentRole } from "@/lib/finance-agent.shared";
 
@@ -46,6 +46,8 @@ function FinanceAgentPage() {
   const save = useServerFn(saveFinanceAgentSettings);
   const assign = useServerFn(assignFinanceAgentTask);
   const review = useServerFn(reviewFinanceProposal);
+  const sync = useServerFn(refreshFinanceMailbox);
+  const [syncing, setSyncing] = useState(false);
   const { data, error, isLoading } = useQuery({ queryKey: ["finance-agent"], queryFn: () => load() });
   const refresh = () => qc.invalidateQueries({ queryKey: ["finance-agent"] });
 
@@ -78,14 +80,20 @@ function FinanceAgentPage() {
   if (isLoading) return <PageContainer><Loader2 className="animate-spin" /></PageContainer>;
   if (error) return <PageContainer><p className="text-destructive">{(error as Error).message}</p></PageContainer>;
 
-  const pending = data!.proposals.filter((p: any) => p.status === "pending");
-  const history = data!.proposals.filter((p: any) => p.status !== "pending").slice(0, 20);
+  if (!data) return null;
+  const pending = data.proposals.filter((p: any) => p.status === "pending");
+  const history = data.proposals.filter((p: any) => p.status !== "pending").slice(0, 20);
 
   return (
     <PageContainer>
-      <PageHeader eyebrow="Finance" title={data!.settings?.agent_name ?? "Finance Agent"}
-        description="Give the agent tasks. It prepares reminders, payment matches and expense decisions; nothing happens until Finance staff approve." />
+      <PageHeader eyebrow="Finance" title={data.settings?.agent_name ?? "Finance Agent"}
+        description="billing@imtsolutions.co.zw" />
 
+      <section className="border-b border-border pb-4 space-y-3">
+        <div className="flex flex-wrap justify-between gap-2 items-center"><h2 className="font-semibold flex items-center gap-2"><Mail className="h-4 w-4" />Billing inbox ({data.messages.length})</h2><Button variant="outline" size="sm" disabled={syncing} onClick={async () => { setSyncing(true); try { const r = await sync(); toast.success(`Billing mailbox checked: ${r.imported} new messages`); refresh(); } catch (e: any) { toast.error(e.message); } finally { setSyncing(false); } }}><RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />Refresh mailbox</Button></div>
+        {data.messages.length === 0 && <p className="text-sm text-muted-foreground">No received billing emails.</p>}
+        {data.messages.map((m: any) => <div key={m.id} className="border-b border-border pb-2"><Button asChild variant="link" className="px-0"><Link to="/inbox" search={{ enquiry: m.email_enquiries.id }}>{m.subject}</Link></Button><p className="text-xs text-muted-foreground">{m.from_address} · {new Date(m.created_at).toLocaleString()}</p><p className="text-sm whitespace-pre-wrap break-words">{m.body_text?.slice(0, 400)}</p></div>)}
+      </section>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="rounded-none lg:col-span-2">
           <CardHeader><CardTitle className="flex items-center gap-2"><ListTodo className="h-5 w-5" />Assign a task</CardTitle></CardHeader>
@@ -131,7 +139,7 @@ function FinanceAgentPage() {
       </div>
 
       <Card className="rounded-none">
-        <CardHeader><CardTitle>Waiting for your approval ({pending.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Waiting for Finance approval ({pending.length})</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {pending.length === 0 && <p className="text-muted-foreground text-sm">Nothing to approve.</p>}
           {pending.map((p: any) => (
@@ -139,11 +147,12 @@ function FinanceAgentPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">{p.title}</p>
                 <div className="flex gap-2">
-                  <Button size="sm" disabled={busyId === p.id} onClick={() => decide(p.id, "approve")}><Check className="h-4 w-4" />Approve</Button>
+                  <Button size="sm" disabled={busyId === p.id} onClick={() => decide(p.id, "approve")}><Check className="h-4 w-4" />{p.kind === "payment_reminder" ? "Approve & send" : p.kind === "email_payment" ? "Submit to Finance" : "Approve"}</Button>
                   <Button size="sm" variant="outline" disabled={busyId === p.id} onClick={() => decide(p.id, "reject")}><X className="h-4 w-4" />Reject</Button>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{p.rationale}</p>
+              {p.kind === "email_payment" && <div className="bg-muted p-3 text-sm"><b>{p.payload.currency} {p.payload.amount}</b> · {p.payload.reference} · {p.payload.payment_date}<p className="text-muted-foreground">Unverified client claim · pending Finance verification</p></div>}
               {p.kind === "payment_reminder" && (
                 <div className="bg-muted p-3 text-sm whitespace-pre-wrap"><b>To:</b> {p.payload.to}<br /><b>Subject:</b> {p.payload.subject}<br /><br />{p.payload.body}</div>
               )}
@@ -156,8 +165,8 @@ function FinanceAgentPage() {
         <Card className="rounded-none">
           <CardHeader><CardTitle>Task history</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {data!.tasks.length === 0 && <p className="text-muted-foreground text-sm">No tasks yet.</p>}
-            {data!.tasks.map((t: any) => (
+            {data.tasks.length === 0 && <p className="text-muted-foreground text-sm">No tasks yet.</p>}
+            {data.tasks.map((t: any) => (
               <div key={t.id} className="border-b border-border pb-2">
                 <div className="flex justify-between gap-2"><p className="font-medium">{t.title}</p><StatusPill tone={tone(t.status)}>{t.status}</StatusPill></div>
                 {(t.summary || t.error) && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{t.error ?? t.summary}</p>}

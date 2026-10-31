@@ -1,6 +1,6 @@
 export const FINANCE_AGENT_ROLES = {
   invoice_reminders: "Chase open and overdue invoices with payment reminder emails",
-  payment_matching: "Match client payment submissions to the right invoices",
+  payment_matching: "Review billing payment emails and match client submissions to the right invoices",
   expense_review: "Review pending expenses and recommend approve or reject",
 } as const;
 
