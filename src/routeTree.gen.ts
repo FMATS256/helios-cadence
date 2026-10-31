@@ -84,7 +84,9 @@ import { Route as CSlugWorkspaceKeyRouteImport } from './routes/c.$slug.$workspa
 import { Route as TechopsJobsIdRouteImport } from './routes/techops.jobs.$id'
 import { Route as ApiPublicAccountsOpenRouteImport } from './routes/api/public/accounts/open'
 import { Route as ApiPublicAgentProvisionRouteImport } from './routes/api/public/agent/provision'
+import { Route as ApiPublicAssistantApproveRouteImport } from './routes/api/public/assistant/approve'
 import { Route as ApiPublicEmailInboundRouteImport } from './routes/api/public/email/inbound'
+import { Route as ApiPublicHooksAssistantDailyReportRouteImport } from './routes/api/public/hooks/assistant-daily-report'
 import { Route as ApiPublicHooksAutomationTickRouteImport } from './routes/api/public/hooks/automation-tick'
 import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/public/hooks/backups-tick'
 import { Route as ApiPublicHooksBase44TicketsRouteImport } from './routes/api/public/hooks/base44-tickets'
@@ -493,11 +495,23 @@ const ApiPublicAgentProvisionRoute = ApiPublicAgentProvisionRouteImport.update({
   path: '/api/public/agent/provision',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAssistantApproveRoute =
+  ApiPublicAssistantApproveRouteImport.update({
+    id: '/api/public/assistant/approve',
+    path: '/api/public/assistant/approve',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEmailInboundRoute = ApiPublicEmailInboundRouteImport.update({
   id: '/api/public/email/inbound',
   path: '/api/public/email/inbound',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksAssistantDailyReportRoute =
+  ApiPublicHooksAssistantDailyReportRouteImport.update({
+    id: '/api/public/hooks/assistant-daily-report',
+    path: '/api/public/hooks/assistant-daily-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutomationTickRoute =
   ApiPublicHooksAutomationTickRouteImport.update({
     id: '/api/public/hooks/automation-tick',
@@ -740,7 +754,9 @@ export interface FileRoutesByFullPath {
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/assistant/approve': typeof ApiPublicAssistantApproveRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
+  '/api/public/hooks/assistant-daily-report': typeof ApiPublicHooksAssistantDailyReportRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
@@ -845,7 +861,9 @@ export interface FileRoutesByTo {
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/assistant/approve': typeof ApiPublicAssistantApproveRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
+  '/api/public/hooks/assistant-daily-report': typeof ApiPublicHooksAssistantDailyReportRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
@@ -953,7 +971,9 @@ export interface FileRoutesById {
   '/techops/jobs/$id': typeof TechopsJobsIdRoute
   '/api/public/accounts/open': typeof ApiPublicAccountsOpenRoute
   '/api/public/agent/provision': typeof ApiPublicAgentProvisionRoute
+  '/api/public/assistant/approve': typeof ApiPublicAssistantApproveRoute
   '/api/public/email/inbound': typeof ApiPublicEmailInboundRoute
+  '/api/public/hooks/assistant-daily-report': typeof ApiPublicHooksAssistantDailyReportRoute
   '/api/public/hooks/automation-tick': typeof ApiPublicHooksAutomationTickRoute
   '/api/public/hooks/backups-tick': typeof ApiPublicHooksBackupsTickRoute
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
@@ -1062,7 +1082,9 @@ export interface FileRouteTypes {
     | '/techops/jobs/$id'
     | '/api/public/accounts/open'
     | '/api/public/agent/provision'
+    | '/api/public/assistant/approve'
     | '/api/public/email/inbound'
+    | '/api/public/hooks/assistant-daily-report'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/base44-tickets'
@@ -1167,7 +1189,9 @@ export interface FileRouteTypes {
     | '/techops/jobs/$id'
     | '/api/public/accounts/open'
     | '/api/public/agent/provision'
+    | '/api/public/assistant/approve'
     | '/api/public/email/inbound'
+    | '/api/public/hooks/assistant-daily-report'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/base44-tickets'
@@ -1274,7 +1298,9 @@ export interface FileRouteTypes {
     | '/techops/jobs/$id'
     | '/api/public/accounts/open'
     | '/api/public/agent/provision'
+    | '/api/public/assistant/approve'
     | '/api/public/email/inbound'
+    | '/api/public/hooks/assistant-daily-report'
     | '/api/public/hooks/automation-tick'
     | '/api/public/hooks/backups-tick'
     | '/api/public/hooks/base44-tickets'
@@ -1375,7 +1401,9 @@ export interface RootRouteChildren {
   TechopsJobsIdRoute: typeof TechopsJobsIdRoute
   ApiPublicAccountsOpenRoute: typeof ApiPublicAccountsOpenRoute
   ApiPublicAgentProvisionRoute: typeof ApiPublicAgentProvisionRoute
+  ApiPublicAssistantApproveRoute: typeof ApiPublicAssistantApproveRoute
   ApiPublicEmailInboundRoute: typeof ApiPublicEmailInboundRoute
+  ApiPublicHooksAssistantDailyReportRoute: typeof ApiPublicHooksAssistantDailyReportRoute
   ApiPublicHooksAutomationTickRoute: typeof ApiPublicHooksAutomationTickRoute
   ApiPublicHooksBackupsTickRoute: typeof ApiPublicHooksBackupsTickRoute
   ApiPublicHooksBase44TicketsRoute: typeof ApiPublicHooksBase44TicketsRoute
@@ -1926,11 +1954,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgentProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/assistant/approve': {
+      id: '/api/public/assistant/approve'
+      path: '/api/public/assistant/approve'
+      fullPath: '/api/public/assistant/approve'
+      preLoaderRoute: typeof ApiPublicAssistantApproveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email/inbound': {
       id: '/api/public/email/inbound'
       path: '/api/public/email/inbound'
       fullPath: '/api/public/email/inbound'
       preLoaderRoute: typeof ApiPublicEmailInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/assistant-daily-report': {
+      id: '/api/public/hooks/assistant-daily-report'
+      path: '/api/public/hooks/assistant-daily-report'
+      fullPath: '/api/public/hooks/assistant-daily-report'
+      preLoaderRoute: typeof ApiPublicHooksAssistantDailyReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/automation-tick': {
@@ -2283,7 +2325,10 @@ const rootRouteChildren: RootRouteChildren = {
   TechopsJobsIdRoute: TechopsJobsIdRoute,
   ApiPublicAccountsOpenRoute: ApiPublicAccountsOpenRoute,
   ApiPublicAgentProvisionRoute: ApiPublicAgentProvisionRoute,
+  ApiPublicAssistantApproveRoute: ApiPublicAssistantApproveRoute,
   ApiPublicEmailInboundRoute: ApiPublicEmailInboundRoute,
+  ApiPublicHooksAssistantDailyReportRoute:
+    ApiPublicHooksAssistantDailyReportRoute,
   ApiPublicHooksAutomationTickRoute: ApiPublicHooksAutomationTickRoute,
   ApiPublicHooksBackupsTickRoute: ApiPublicHooksBackupsTickRoute,
   ApiPublicHooksBase44TicketsRoute: ApiPublicHooksBase44TicketsRoute,

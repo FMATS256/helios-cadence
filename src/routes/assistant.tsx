@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Settings2, ListTodo } from "lucide-react";
+import { Sparkles, Loader2, Settings2, ListTodo, CheckCircle2, Send } from "lucide-react";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getPersonalAssistant, savePersonalAssistant, assignPersonalAssistantTask } from "@/lib/personal-assistant.functions";
+import { getPersonalAssistant, savePersonalAssistant, assignPersonalAssistantTask, decideAssistantAction, sendAssistantReportNow } from "@/lib/personal-assistant.functions";
 import { ASSISTANT_ROLES, ASSISTANT_ROLE_LABELS, type AssistantRole } from "@/lib/personal-assistant.shared";
 
 export const Route = createFileRoute("/assistant")({
@@ -43,6 +43,11 @@ function AssistantPage() {
   const load = useServerFn(getPersonalAssistant);
   const save = useServerFn(savePersonalAssistant);
   const assign = useServerFn(assignPersonalAssistantTask);
+  const decide = useServerFn(decideAssistantAction);
+  const reportNow = useServerFn(sendAssistantReportNow);
+  const [reportEmail, setReportEmail] = useState("");
+  const [reportOn, setReportOn] = useState(false);
+  const [deciding, setDeciding] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery({ queryKey: ["personal-assistant"], queryFn: () => load() });
   const [name, setName] = useState("");
   const [persona, setPersona] = useState("");
@@ -53,7 +58,7 @@ function AssistantPage() {
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   useEffect(() => {
-    if (data?.settings) { setName(data.settings.assistant_name); setPersona(data.settings.persona); setRoles(data.settings.enabled_roles); }
+    if (data?.settings) { setName(data.settings.assistant_name); setPersona(data.settings.persona); setRoles(data.settings.enabled_roles); setReportEmail((data.settings as any).report_email ?? ""); setReportOn(!!(data.settings as any).daily_report_enabled); }
   }, [data?.settings]);
 
   async function run(t: string, i: string, r: string) {
@@ -66,8 +71,15 @@ function AssistantPage() {
   }
 
   async function saveSettings() {
-    try { await save({ data: { assistant_name: name, persona, enabled_roles: roles } }); toast.success("Assistant updated"); qc.invalidateQueries({ queryKey: ["personal-assistant"] }); }
+    try { await save({ data: { assistant_name: name, persona, enabled_roles: roles, report_email: reportEmail, daily_report_enabled: reportOn } }); toast.success("Assistant updated"); qc.invalidateQueries({ queryKey: ["personal-assistant"] }); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Could not save"); }
+  }
+
+  async function act(id: string, approve: boolean) {
+    setDeciding(id);
+    try { const r = await decide({ data: { id, approve } }); toast.success(r.result); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Could not complete"); }
+    finally { setDeciding(null); qc.invalidateQueries({ queryKey: ["personal-assistant"] }); }
   }
 
   if (isLoading) return <PageContainer><Loader2 className="h-5 w-5 animate-spin" /></PageContainer>;
@@ -75,7 +87,7 @@ function AssistantPage() {
 
   return (
     <PageContainer>
-      <PageHeader title={data?.settings.assistant_name || "Personal Assistant"} description="Private to you. Reads your emails, tickets and accounts — never sends or changes anything." />
+      <PageHeader title={data?.settings.assistant_name || "Personal Assistant"} description="Private to you. Client emails and quotations go out only after you approve them." />
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
           <Card>
@@ -102,6 +114,32 @@ function AssistantPage() {
               </div>
               {busy ? <p className="text-sm text-muted-foreground">Working on it — this can take up to a minute…</p> : null}
               {answer ? <div className="whitespace-pre-wrap break-words border bg-muted/40 p-3 text-sm">{answer}</div> : null}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CheckCircle2 className="h-4 w-4" /> Awaiting your approval</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {(data?.actions ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Nothing proposed yet.</p> : null}
+              {(data?.actions ?? []).map((a: any) => (
+                <details key={a.id} className="border p-2" open={a.status === "pending"}>
+                  <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-medium">
+                    {a.title} <StatusPill tone={a.status === "done" ? "success" : a.status === "failed" ? "danger" : "info"}>{a.status}</StatusPill>
+                    <span className="text-xs text-muted-foreground">{a.kind}</span>
+                  </summary>
+                  <div className="mt-2 space-y-2 text-sm">
+                    {a.kind === "quotation"
+                      ? <ul className="list-disc pl-5">{(a.payload?.lines ?? []).map((l: any, i: number) => <li key={i}>{l.description} × {l.quantity} @ {a.payload?.currency} {l.unit_price}</li>)}</ul>
+                      : <><p className="break-words"><b>To:</b> {a.payload?.to}</p><div className="whitespace-pre-wrap break-words bg-muted/40 p-2">{a.payload?.body}</div></>}
+                    {a.result || a.error ? <p className={a.error ? "text-destructive" : "text-muted-foreground"}>{a.result ?? a.error}</p> : null}
+                    {a.status === "pending" ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" disabled={deciding === a.id} onClick={() => act(a.id, true)}>{deciding === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Approve</Button>
+                        <Button size="sm" variant="outline" disabled={deciding === a.id} onClick={() => act(a.id, false)}>Reject</Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
+              ))}
             </CardContent>
           </Card>
           <Card>
@@ -132,6 +170,12 @@ function AssistantPage() {
                   <span><span className="font-medium">{ASSISTANT_ROLE_LABELS[r]}</span><br /><span className="text-muted-foreground">{ASSISTANT_ROLES[r]}</span></span>
                 </label>
               ))}
+            </div>
+            <div className="space-y-2 border-t pt-3">
+              <Label>Daily PDF report (18:30)</Label>
+              <Input type="email" placeholder="Send report to" value={reportEmail} onChange={(e) => setReportEmail(e.target.value)} />
+              <label className="flex items-center gap-2 text-sm"><Checkbox checked={reportOn} onCheckedChange={(c) => setReportOn(!!c)} /> Send me a report every evening</label>
+              <Button size="sm" variant="outline" onClick={async () => { try { await reportNow(); toast.success("Report sent"); } catch (e) { toast.error(e instanceof Error ? e.message : "Could not send"); } }}><Send className="h-4 w-4" /> Send report now</Button>
             </div>
             <Button onClick={saveSettings}>Save</Button>
           </CardContent>
