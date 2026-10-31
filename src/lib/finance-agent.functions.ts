@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { BILLING_MAILBOX, validEmailPayment } from "./finance-billing.shared";
 
 async function assertFinance(context: { supabase: any; userId: string }) {
   const [f, a] = await Promise.all([
@@ -18,8 +19,16 @@ export const getFinanceAgent = createServerFn({ method: "GET" })
       context.supabase.from("finance_agent_tasks").select("*").order("created_at", { ascending: false }).limit(30),
       context.supabase.from("finance_agent_proposals").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
-    return { settings: s.data, tasks: t.data ?? [], proposals: p.data ?? [] };
+    const { data: messages, error: mailError } = await context.supabase.from("email_messages").select("id,subject,from_address,body_text,created_at,email_enquiries!inner(id,customer_id,mailbox_address)").eq("direction", "inbound").eq("email_enquiries.mailbox_address", BILLING_MAILBOX).order("created_at", { ascending: false }).limit(30);
+    if (mailError) throw new Error("Unable to load billing correspondence");
+    return { settings: s.data, tasks: t.data ?? [], proposals: p.data ?? [], messages: messages ?? [], mailbox: BILLING_MAILBOX };
   });
+
+export const refreshFinanceMailbox = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  await assertFinance(context);
+  const { syncBillingMailbox } = await import("./finance-billing.server");
+  return syncBillingMailbox();
+});
 
 export const saveFinanceAgentSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -40,6 +49,8 @@ export const assignFinanceAgentTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinance(context);
     if (!data.title.trim()) throw new Error("Give the task a title");
+    const { syncBillingMailbox } = await import("./finance-billing.server");
+    await syncBillingMailbox();
     const { data: task, error } = await context.supabase.from("finance_agent_tasks").insert({
       title: data.title.trim(), instructions: data.instructions.slice(0, 4000), role: data.role, created_by: context.userId,
     }).select("id").single();
@@ -65,7 +76,22 @@ export const reviewFinanceProposal = createServerFn({ method: "POST" })
     const payload: any = p.payload;
     let result = "";
     try {
-      if (p.kind === "payment_match") {
+      if (p.kind === "email_payment") {
+        const { data: message } = await db.from("email_messages").select("id,direction,email_enquiries!inner(customer_id,mailbox_address)").eq("id", payload.target).maybeSingle();
+        const enquiry: any = message?.email_enquiries;
+        const inv = payload.invoice_id ? (await db.from("invoices").select("customer_id,currency").eq("id", payload.invoice_id).maybeSingle()).data : null;
+        if (!message || message.direction !== "inbound" || enquiry?.mailbox_address !== BILLING_MAILBOX || enquiry.customer_id !== payload.customer_id || (payload.invoice_id && !inv) || !validEmailPayment(payload.amount, payload.currency, payload.customer_id, inv)) throw new Error("Payment evidence no longer matches this customer/invoice");
+        const { data: prior, error: priorError } = await db.from("payment_submissions").select("id").eq("external_id", `billing-email:${message.id}`).limit(1);
+        if (priorError) throw priorError;
+        if (prior?.length) throw new Error("This payment email was already submitted to Finance");
+        const { data: customer } = await db.from("customers").select("account_number").eq("id", payload.customer_id).single();
+        const { data: duplicates, error: duplicateError } = await db.from("payment_submissions").select("id").eq("customer_id", payload.customer_id).eq("reference", payload.reference).in("status", ["pending", "clarification", "approved"]).limit(1);
+        if (duplicateError) throw duplicateError;
+        if (duplicates?.length) throw new Error("A submission with this payment reference already exists; verify it in Finance");
+        const { error } = await db.from("payment_submissions").insert({ customer_id: payload.customer_id, account_number: customer?.account_number, invoice_id: payload.invoice_id, amount: payload.amount, currency: payload.currency, payment_date: payload.payment_date, reference: payload.reference, method: "bank_transfer", status: "pending", source: "billing_email", external_id: `billing-email:${message.id}`, external_payload: { message_id: message.id, proposal_id: p.id }, notes: `Unverified client email claim. Review original billing email ${message.id} and verify funds before approving.`, submitted_by: context.userId });
+        if (error) throw error;
+        result = "Payment claim received in Finance; awaiting verification, no ledger payment recorded";
+      } else if (p.kind === "payment_match") {
         const { data: rows, error } = await db.from("payment_submissions").update({ invoice_id: payload.invoice_id })
           .eq("id", payload.target).eq("status", "pending").is("invoice_id", null).select("id");
         if (error) throw error;
@@ -78,11 +104,13 @@ export const reviewFinanceProposal = createServerFn({ method: "POST" })
         if (!rows?.length) throw new Error("Expense is no longer pending");
         result = `Expense ${status}`;
       } else if (p.kind === "payment_reminder") {
-        const { data: profile } = await db.from("profiles").select("full_name, work_email, email").eq("id", context.userId).maybeSingle();
+        const { data: invoice } = await db.from("invoices").select("id,total,amount_paid,status,customer_id,customers(primary_email)").eq("id", payload.target).is("archived_at", null).maybeSingle();
+        const customer: any = invoice?.customers;
+        if (!invoice || ["paid", "void", "cancelled", "draft"].includes(invoice.status) || Number(invoice.total) - Number(invoice.amount_paid) <= 0.005 || invoice.customer_id !== payload.customer_id || customer?.primary_email !== payload.to) throw new Error("Invoice is settled, unavailable or recipient changed; generate a fresh reminder");
         const { createAndSendEnquiryEmail } = await import("./inbox.server");
         const sent = await createAndSendEnquiryEmail({
-          senderId: context.userId, senderName: profile?.full_name || "IMT Solutions Finance", senderRole: "Finance",
-          senderEmail: profile?.work_email || profile?.email || null, to: payload.to, subject: payload.subject,
+          senderId: context.userId, senderName: "IMT Solutions Billing", senderRole: "Finance",
+          senderEmail: BILLING_MAILBOX, mailbox: BILLING_MAILBOX, to: payload.to, subject: payload.subject,
           body: payload.body, customerId: payload.customer_id, originalSubject: true,
         });
         if (!sent.ok) throw new Error(sent.error);

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountManagerRouteImport } from './routes/account-manager'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -114,6 +115,11 @@ import { Route as CSlugWorkspaceKeyServersServerIdRouteImport } from './routes/c
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountManagerRoute = AccountManagerRouteImport.update({
+  id: '/account-manager',
+  path: '/account-manager',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -641,6 +647,7 @@ const CSlugWorkspaceKeyServersServerIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
@@ -744,6 +751,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
@@ -846,6 +854,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
   '/auth': typeof AuthRoute
@@ -951,6 +960,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account-manager'
     | '/admin'
     | '/assets'
     | '/auth'
@@ -1054,6 +1064,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account-manager'
     | '/admin'
     | '/assets'
     | '/auth'
@@ -1155,6 +1166,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account-manager'
     | '/admin'
     | '/assets'
     | '/auth'
@@ -1259,6 +1271,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountManagerRoute: typeof AccountManagerRoute
   AdminRoute: typeof AdminRoute
   AssetsRoute: typeof AssetsRoute
   AuthRoute: typeof AuthRoute
@@ -1354,6 +1367,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account-manager': {
+      id: '/account-manager'
+      path: '/account-manager'
+      fullPath: '/account-manager'
+      preLoaderRoute: typeof AccountManagerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -2133,6 +2153,7 @@ const ApiPublicPortalPaymentsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountManagerRoute: AccountManagerRoute,
   AdminRoute: AdminRoute,
   AssetsRoute: AssetsRoute,
   AuthRoute: AuthRoute,
