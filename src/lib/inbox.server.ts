@@ -572,7 +572,144 @@ type IngestResult = {
   status: "created" | "appended" | "duplicate" | "skipped";
   reference?: string;
   error?: string;
+  attachmentsRetained?: number;
+  attachmentsPending?: number;
 };
+
+export interface InboundAttachment {
+  filename: string;
+  content_type?: string | null;
+  size_bytes?: number | null;
+  /** Stable private reference (gateway storage path or id). */
+  attachment_id?: string | null;
+  /** Short-lived signed HTTPS link supplied by the website gateway. */
+  download_url?: string | null;
+  content?: string | null;
+  content_id?: string | null;
+}
+
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+
+async function attachmentBytes(a: InboundAttachment): Promise<Uint8Array | null> {
+  if (a.content) return new Uint8Array(Buffer.from(a.content, "base64"));
+  const url = a.download_url ?? (/^https:\/\//i.test(a.attachment_id ?? "") ? a.attachment_id! : null);
+  if (!url || !/^https:\/\//i.test(url)) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return buf.byteLength > MAX_ATTACHMENT_BYTES ? null : buf;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-sent or newly received gateway attachments: copy any file we do not yet
+ * hold into our own storage, matching saved rows by private reference or name.
+ * Rows the website no longer lists are left untouched.
+ */
+export async function refreshStoredAttachments(
+  admin: any,
+  message: { id: string; enquiry_id: string | null },
+  incoming: InboundAttachment[],
+): Promise<{ attachmentsRetained: number; attachmentsPending: number }> {
+  if (!incoming.length) return { attachmentsRetained: 0, attachmentsPending: 0 };
+  const { data: rows } = await admin
+    .from("email_message_attachments")
+    .select("id, filename, attachment_id, storage_path")
+    .eq("message_id", message.id);
+  const saved: any[] = rows ?? [];
+  const used = new Set<string>();
+  let retained = 0;
+  let pending = 0;
+  for (const a of incoming) {
+    const name = a.filename || "attachment";
+    let row = saved.find((r) => !used.has(r.id) && a.attachment_id && r.attachment_id === a.attachment_id)
+      ?? saved.find((r) => !used.has(r.id) && r.filename === name);
+    if (row) used.add(row.id);
+    if (row?.storage_path) continue;
+    const bytes = await attachmentBytes(a);
+    if (!bytes) {
+      pending++;
+      if (!row) {
+        await admin.from("email_message_attachments").insert({
+          message_id: message.id, filename: name, content_type: a.content_type ?? null,
+          size_bytes: a.size_bytes ?? null, attachment_id: a.attachment_id ?? null, content_id: a.content_id ?? null,
+        });
+      }
+      continue;
+    }
+    const storagePath = `${message.enquiry_id ?? "unlinked"}/${message.id}/${randomUUID()}-${name.replace(/[^\w.-]/g, "-")}`;
+    const { error } = await admin.storage.from("email-attachments").upload(storagePath, bytes, {
+      contentType: a.content_type || "application/octet-stream",
+    });
+    if (error) { pending++; continue; }
+    if (row) {
+      await admin.from("email_message_attachments").update({ storage_path: storagePath, size_bytes: a.size_bytes ?? bytes.byteLength }).eq("id", row.id);
+    } else {
+      await admin.from("email_message_attachments").insert({
+        message_id: message.id, filename: name, content_type: a.content_type ?? null,
+        size_bytes: a.size_bytes ?? bytes.byteLength, attachment_id: a.attachment_id ?? null,
+        content_id: a.content_id ?? null, storage_path: storagePath,
+      });
+    }
+    retained++;
+  }
+  return { attachmentsRetained: retained, attachmentsPending: pending };
+}
+
+/**
+ * Pull fresh links from the website's messages API (looked up by thread) and
+ * retain every saved attachment we still lack. Used for backfill and on demand.
+ */
+export async function backfillGatewayAttachments(opts: { messageIds?: string[] } = {}): Promise<{ checked: number; retained: number; pending: number; errors: string[] }> {
+  const admin = adminClient();
+  let query = admin
+    .from("email_message_attachments")
+    .select("message_id, message:email_messages!inner(id, enquiry_id, resend_email_id, message_id, references_header)")
+    .is("storage_path", null)
+    .limit(500);
+  if (opts.messageIds?.length) query = query.in("message_id", opts.messageIds);
+  const { data: rows, error } = await query;
+  if (error) return { checked: 0, retained: 0, pending: 0, errors: [error.message] };
+  const messages = new Map<string, any>();
+  for (const r of (rows ?? []) as any[]) if (r.message) messages.set(r.message.id, r.message);
+  let checked = 0, retained = 0, pending = 0;
+  const errors: string[] = [];
+  for (const local of messages.values()) {
+    checked++;
+    const threadKeys = [local.message_id, String(local.references_header ?? "").match(/<?([^<>\s]+@[^<>\s]+)>?/)?.[1]]
+      .filter(Boolean)
+      .flatMap((id: string) => [`<${stripMessageId(id)}>`, stripMessageId(id)]);
+    let found: any = null;
+    for (const thread_id of [...new Set(threadKeys)]) {
+      const listed = await listGatewayMessages({ thread_id, limit: 100 });
+      if (!listed.ok) { errors.push(listed.error); continue; }
+      const list: any[] = Array.isArray(listed.data?.data) ? listed.data.data : [];
+      found = list.find((m) => m.provider_id === local.resend_email_id);
+      if (found) break;
+    }
+    if (!found) { pending++; continue; }
+    const r = await refreshStoredAttachments(admin, local, mapGatewayAttachments(found.attachments));
+    retained += r.attachmentsRetained;
+    pending += r.attachmentsPending;
+  }
+  return { checked, retained, pending, errors: [...new Set(errors)].slice(0, 5) };
+}
+
+/** Website gateway attachment JSON → normalized inbound attachment. */
+export function mapGatewayAttachments(list: any[] | null | undefined): InboundAttachment[] {
+  return (list ?? []).map((att) => ({
+    filename: att?.filename || "attachment",
+    content_type: att?.content_type ?? null,
+    size_bytes: att?.size_bytes ?? att?.size ?? null,
+    attachment_id: att?.path ?? att?.id ?? (/^https:\/\//i.test(att?.url ?? "") ? null : att?.url) ?? null,
+    download_url: att?.download_url ?? (/^https:\/\//i.test(att?.url ?? "") ? att.url : null),
+    content: att?.content ?? null,
+    content_id: att?.content_id ?? null,
+  }));
+}
 
 export interface NormalizedInbound {
   providerId: string;
@@ -586,7 +723,7 @@ export interface NormalizedInbound {
   inReplyTo?: string | null;
   references?: string | null;
   receivedAt?: string | null;
-  attachments?: Array<{ filename: string; content_type?: string | null; size_bytes?: number | null; attachment_id?: string | null; content?: string | null; content_id?: string | null }>;
+  attachments?: InboundAttachment[];
   /** Gateway-supplied enquiry reference / contact name to prefer when creating. */
   referenceHint?: string | null;
   contactNameHint?: string | null;
@@ -616,25 +753,31 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (!emailId || !fromEmail) return { status: "skipped", error: "missing provider_id or from" };
   const admin = adminClient();
 
+  const attachments = input.attachments ?? [];
   const { data: dupe } = await admin
     .from("email_messages")
-    .select("id")
+    .select("id, enquiry_id")
     .eq("resend_email_id", emailId)
     .limit(1)
     .maybeSingle();
-  if (dupe) return { status: "duplicate" };
+  if (dupe) {
+    const refreshed = await refreshStoredAttachments(admin, dupe, attachments);
+    return { status: "duplicate", ...refreshed };
+  }
 
-  const attachments = input.attachments ?? [];
   if (attachments.reduce((sum, a) => sum + Math.floor((a.content?.length ?? 0) * 0.75), 0) > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
   const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
       .from("email_messages")
-      .select("id")
+      .select("id, enquiry_id")
       .eq("message_id", rawMessageId)
       .limit(1)
       .maybeSingle();
-    if (dupe2) return { status: "duplicate" };
+    if (dupe2) {
+      const refreshed = await refreshStoredAttachments(admin, dupe2, attachments);
+      return { status: "duplicate", ...refreshed };
+    }
   }
 
   const inReplyTo = input.inReplyTo ?? null;
@@ -710,31 +853,20 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (msgError) return { status: "skipped", error: msgError.message };
 
   if (attachments.length) {
-    const retained = [];
-    let bytesTotal = 0;
-    for (const attachment of attachments) {
-      let storagePath: string | null = null;
-      if (attachment.content) {
-        const bytes = new Uint8Array(Buffer.from(attachment.content, "base64"));
-        bytesTotal += bytes.byteLength;
-        if (bytesTotal > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
-        storagePath = `${enquiry.id}/${message.id}/${randomUUID()}-${(attachment.filename || "attachment").replace(/[^\w.-]/g, "-")}`;
-        const { error } = await admin.storage.from("email-attachments").upload(storagePath, bytes, { contentType: attachment.content_type || "application/octet-stream" });
-        if (error) return { status: "skipped", error: `Could not retain inbound attachment: ${error.message}` };
-      }
-      retained.push({ ...attachment, storage_path: storagePath });
-    }
     await admin.from("email_message_attachments").insert(
-      retained.map((a) => ({
+      attachments.map((a) => ({
         message_id: message.id,
         filename: a.filename || "attachment",
         content_type: a.content_type ?? null,
         size_bytes: a.size_bytes ?? null,
         attachment_id: a.attachment_id ?? null,
-        storage_path: a.storage_path,
+        storage_path: null,
         content_id: a.content_id ?? null,
       })),
     );
+    // Copy each file into our own storage so it keeps opening after the
+    // website's short-lived link expires.
+    await refreshStoredAttachments(admin, { id: message.id, enquiry_id: enquiry.id }, attachments);
   }
 
   const now = new Date().toISOString();

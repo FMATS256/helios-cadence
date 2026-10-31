@@ -8,6 +8,7 @@ import {
   createAndSendEnquiryEmail,
   retryFailedMessageSend,
   adminClient,
+  backfillGatewayAttachments,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
 import { mailboxesForRoles, type EmailDraft, type EmailOrganization } from "./inbox.shared";
@@ -347,6 +348,12 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
       .select("resend_email_id")
       .eq("id", data.messageId)
       .maybeSingle();
+    // Not saved yet: ask the website for a fresh link and keep a copy.
+    if (message?.resend_email_id && !/^https:\/\//i.test(att.attachment_id ?? "")) {
+      await backfillGatewayAttachments({ messageIds: [data.messageId] });
+      const { data: fresh } = await context.supabase.from("email_message_attachments").select("storage_path").eq("id", data.attachmentId).maybeSingle();
+      if (fresh?.storage_path) return getStoredAttachmentDownloadUrl(fresh.storage_path);
+    }
     return getAttachmentDownloadUrl(message?.resend_email_id ?? "", att?.attachment_id ?? data.attachmentId);
   });
 
