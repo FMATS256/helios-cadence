@@ -388,6 +388,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
     status?: string;
     started_on?: string | null;
     next_renewal?: string | null;
+    paid_months?: number | null;
     auto_renew?: boolean;
     notes?: string;
   }) => input)
@@ -397,6 +398,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
     if (!hasRole) throw new Error("Your account needs a staff role before you can add subscriptions.");
     if (!data.customer_id) throw new Error("Customer is required");
     if (!data.plan_name?.trim()) throw new Error("Plan is required");
+    if (data.paid_months != null && (!Number.isInteger(data.paid_months) || data.paid_months < 1 || data.paid_months > 120)) throw new Error("Months covered must be between 1 and 120");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: customer, error: customerError } = await supabaseAdmin
@@ -419,6 +421,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
         status: data.status || "active",
         started_on: data.started_on || null,
         next_renewal: data.next_renewal || null,
+        paid_months: data.paid_months ?? null,
         auto_renew: data.auto_renew ?? true,
         notes: data.notes?.trim() || null,
         created_by: context.userId,

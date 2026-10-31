@@ -1,4 +1,5 @@
 # Architecture decisions
+- Subscription automatic and staff-triggered recurring billing share a row-locked database function and unique subscription-period invoice key; daily SQL scheduling generates invoices without approving payments or claiming email delivery.
 - Client receipt views reuse authenticated portal payment/profile data, and service visibility derives from one shared active-state filter; presentation never creates receipts or changes Finance approval.
 - Portal service identities and subscriptions reuse one invoice-style presentation card; mobile navigation uses an accessible dropdown over the page while desktop navigation stays inline, keeping service actions and account reads unchanged.
 - The /account-manager hub and leads workspace reuse existing CRM records, owner-scoped account portfolios and technician dispatch with server-checked portfolio ownership; Customer 360 and NOC share account-access controls, with server-authorized client-only recovery emails and administrator-only ownership linking, to avoid duplicate workflows and staff credential exposure.
