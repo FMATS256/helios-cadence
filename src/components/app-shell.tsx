@@ -65,7 +65,7 @@ const siteNav: NavNode[] = [
     title: "CRM", url: "/leads", icon: MessageSquare,
     children: [
       { title: "Leads & Accounts", url: "/leads", icon: Target },
-      { title: "Account Workspace", url: "/leads", icon: Users, search: { view: "accounts" } },
+      { title: "Account Manager", url: "/account-manager", icon: Users },
       { title: "Email Inbox", url: "/inbox", icon: Inbox },
       { title: "Quotations", url: "/quotes", icon: FileText },
       { title: "Communications", url: "/communications", icon: MessageSquare },

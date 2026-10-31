@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { portfolioCustomerAllowed } from "./account-workspace.shared";
 import { TASK_STATUSES, type TaskStatus } from "./service-tasks.shared";
 
 async function requireStaff(ctx: { supabase: any; userId: string }) {
@@ -57,6 +58,9 @@ export const createServiceTask = createServerFn({ method: "POST" })
     if (!data.customer_id) throw new Error("Customer is required");
     if (!data.title?.trim()) throw new Error("A short task title is required");
 
+    const { data: callerRoles, error: roleError } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
+    const { data: accessibleCustomer, error: accessError } = await context.supabase.from("customers").select("account_manager_id").eq("id", data.customer_id).is("archived_at", null).maybeSingle();
+    if (roleError || accessError || !accessibleCustomer || !portfolioCustomerAllowed((callerRoles ?? []).map((r) => r.role), context.userId, accessibleCustomer.account_manager_id)) throw new Error("You can only dispatch technicians for accounts in your portfolio");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: customer, error: custErr } = await supabaseAdmin
       .from("customers").select("id, account_number, company_name, primary_email, primary_phone").eq("id", data.customer_id).single();

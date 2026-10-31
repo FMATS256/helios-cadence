@@ -9,3 +9,6 @@ export function ownPortfolioOnly(roles: readonly string[]) {
 export function recoveryTargetAllowed(customerId: string, profile: { customer_id: string | null }, targetRoles: readonly string[]) {
   return profile.customer_id === customerId && targetRoles.length === 0;
 }
+export function portfolioCustomerAllowed(roles: readonly string[], userId: string, managerId: string | null) {
+  return !ownPortfolioOnly(roles) || managerId === userId;
+}

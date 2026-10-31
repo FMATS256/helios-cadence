@@ -22,17 +22,19 @@ export const getAccountWorkspace = createServerFn({ method: "POST" })
     const { data: customers, error } = await query;
     if (error) throw new Error("Unable to load client accounts");
     const ids = (customers ?? []).map((c) => c.id);
-    if (!ids.length) return { customers: [], users: [], tickets: [], renewals: [], canRecover: canRecoverPortal(roles), isMaster: roles.includes("master_admin") };
-    const [tickets, renewals] = await Promise.all([
+    if (!ids.length) return { customers: [], users: [], tickets: [], renewals: [], jobs: [], invoiceRequests: [], canRecover: canRecoverPortal(roles), isMaster: roles.includes("master_admin") };
+    const [tickets, renewals, jobs, invoiceRequests] = await Promise.all([
       context.supabase.from("tickets").select("id,ticket_number,customer_id,subject,status,priority,created_at").in("customer_id", ids).is("archived_at", null).not("status", "in", "(resolved,closed)").order("created_at", { ascending: false }),
       context.supabase.from("subscriptions").select("id,customer_id,plan_name,next_renewal,status,amount,currency").in("customer_id", ids).eq("status", "active").order("next_renewal"),
+      context.supabase.from("service_tasks").select("id,customer_id,title,status,priority,assigned_to,scheduled_at,due_date").in("customer_id", ids).not("status", "in", "(completed,cancelled)").order("created_at", { ascending: false }),
+      context.supabase.from("invoice_requests").select("id,customer_id,title,status,requested_at").in("customer_id", ids).in("status", ["pending", "clarification"]).order("requested_at", { ascending: false }),
     ]);
-    if (tickets.error || renewals.error) throw new Error("Unable to load account activity");
+    if (tickets.error || renewals.error || jobs.error || invoiceRequests.error) throw new Error("Unable to load account activity");
     // Only expose client identity metadata after explicit staff authorization; no credentials or sessions.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: users, error: userError } = await supabaseAdmin.from("profiles").select("id,customer_id,full_name,email,status").in("customer_id", ids);
     if (userError) throw new Error("Unable to load portal access");
-    return { customers: customers ?? [], users: users ?? [], tickets: tickets.data ?? [], renewals: renewals.data ?? [], canRecover: canRecoverPortal(roles), isMaster: roles.includes("master_admin") };
+    return { customers: customers ?? [], users: users ?? [], tickets: tickets.data ?? [], renewals: renewals.data ?? [], jobs: jobs.data ?? [], invoiceRequests: invoiceRequests.data ?? [], canRecover: canRecoverPortal(roles), isMaster: roles.includes("master_admin") };
   });
 
 export const sendClientPortalRecovery = createServerFn({ method: "POST" })

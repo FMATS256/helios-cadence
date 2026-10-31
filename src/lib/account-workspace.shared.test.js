@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { canRecoverPortal, ownPortfolioOnly, recoveryTargetAllowed } from "./account-workspace.shared";
+import { canRecoverPortal, ownPortfolioOnly, recoveryTargetAllowed, portfolioCustomerAllowed } from "./account-workspace.shared";
 describe("account workspace boundaries", () => {
+  it("managers cannot dispatch for another portfolio", () => expect(portfolioCustomerAllowed(["account_manager"], "A", "B")).toBe(false));
+  it("managers can dispatch for their assigned account", () => expect(portfolioCustomerAllowed(["account_manager"], "A", "A")).toBe(true));
   it("NOC can send client portal recovery", () => expect(canRecoverPortal(["noc"])).toBe(true));
   it("account managers cannot reset passwords", () => expect(canRecoverPortal(["account_manager"])).toBe(false));
   it("account managers default to their assigned portfolio", () => expect(ownPortfolioOnly(["corporate_account_manager"])).toBe(true));
