@@ -260,6 +260,13 @@
       "when": 1793456263576,
       "tag": "0036_cloud_tier_packages_with_margins",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793458511513,
+      "tag": "0037_software_hosting_templates",
+      "breakpoints": true
     }
   ]
 }
