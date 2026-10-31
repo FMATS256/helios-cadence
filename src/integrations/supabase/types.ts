@@ -5938,6 +5938,7 @@ export type Database = {
           billing_cycle: string
           category: string
           code: string
+          cost_price: number | null
           created_at: string
           created_by: string | null
           currency: string
@@ -5945,13 +5946,17 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          provider_plan: string | null
+          tier: string | null
           unit_price: number
           updated_at: string
+          workload: string | null
         }
         Insert: {
           billing_cycle?: string
           category?: string
           code: string
+          cost_price?: number | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -5959,13 +5964,17 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          provider_plan?: string | null
+          tier?: string | null
           unit_price?: number
           updated_at?: string
+          workload?: string | null
         }
         Update: {
           billing_cycle?: string
           category?: string
           code?: string
+          cost_price?: number | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -5973,8 +5982,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          provider_plan?: string | null
+          tier?: string | null
           unit_price?: number
           updated_at?: string
+          workload?: string | null
         }
         Relationships: []
       }

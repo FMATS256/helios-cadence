@@ -103,6 +103,12 @@ function NewServerPage() {
       .select("id,account_number,company_name").is("archived_at", null)
       .order("company_name")).data ?? [],
   });
+  const tierPackages = useQuery({
+    queryKey: ["tier-packages"],
+    queryFn: async () => (await supabase.from("service_catalog")
+      .select("code,name,tier,workload,provider_plan,unit_price,cost_price")
+      .not("tier", "is", null).eq("is_active", true).order("unit_price")).data ?? [],
+  });
   const regions = useQuery({
     queryKey: [provider, "regions"],
     queryFn: () => fnRegions({ data: { provider } }),
@@ -363,6 +369,33 @@ function NewServerPage() {
               </>
             )}
           </CardContent></Card>
+
+          {/* IMT managed package presets (Entry → Platinum) */}
+          {provider === "vultr" && (tierPackages.data?.length ?? 0) > 0 && (
+            <Card><CardContent className="p-6">
+              <StepHeader n={5} title="IMT package (optional)" subtitle="Pick a workload tier — fills the plan and customer price with our margin." />
+              {(["voip", "accounting", "web"] as const).map((w) => (
+                <div key={w} className="mb-4 last:mb-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    {w === "voip" ? "VoIP / PBX" : w === "accounting" ? "Accounting" : "Web hosting"}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {(tierPackages.data ?? []).filter((p: any) => p.workload === w).map((p: any) => {
+                      const m = Number(p.unit_price) - Number(p.cost_price);
+                      return (
+                        <Tile key={p.code} active={form.plan_id === p.provider_plan && form.selling_price_usd === Number(p.unit_price)}
+                          onClick={() => setF({ plan_id: p.provider_plan, selling_price_usd: Number(p.unit_price) })}>
+                          <div className="text-xs font-semibold capitalize">{p.tier}</div>
+                          <div className="font-mono font-bold">${Number(p.unit_price)}/mo</div>
+                          <div className="text-[11px] text-muted-foreground">Cost ${Number(p.cost_price)} · +${m} ({Math.round((m / Number(p.unit_price)) * 100)}%)</div>
+                        </Tile>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </CardContent></Card>
+          )}
 
           {/* Step 5: Specs / Plan */}
           <Card><CardContent className="p-6">
