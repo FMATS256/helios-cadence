@@ -11,6 +11,7 @@ import {
   accrueServerCost, addServerCostEntry,
 } from "@/lib/servers.functions";
 import { upsertBackupSchedule, restoreBackup } from "@/lib/backups.functions";
+import { workloadGuide } from "@/lib/server-config-guides";
 import { GradientAreaChart, IMT_COLORS } from "@/components/dashboards/charts";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
