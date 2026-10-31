@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Automatic subscription invoices scheduled daily at 02:00 Harare; creation-day anchoring, covered-month input, atomic invoice/line creation and subscription-period deduplication added. Four date tests, eleven invoice tests and rolled-back database expiry/amount/duplicate/permission checks passed; IMT Cloud Basic renews 28 November 2026. No email delivery or payment approval added.
 - Built /account-manager using the shared portfolio, client counts, support/invoice request queues, renewals and existing technician dispatch; ownership rules tested.
 - Connected Finance agent to the existing live billing mailbox, approved reminder sends and email-payment claims entering pending Finance verification; mailbox read returned 200 with no messages, 13 tests pass and pages require sign-in.
 - Invoice-style service/subscription/equipment cards, Liquid-inspired mobile dropdown and welcome screen verified in a layout fixture on mobile/desktop with no horizontal overflow; service details open and ten service/payment tests pass. Real linked-client checks remain blocked by no requesting-user login.
@@ -40,7 +41,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Automate creation-date anchored subscription billing after covered months, with atomic period deduplication and daily scheduling; test billing dates and invoice creation.
+- [ ] Verify covered-month subscription creation through signed-in Finance UI; requesting user has no matching login. Database generation and safeguards are verified.
 - [ ] Verify signed-in portfolio/dispatch and billing reminder/payment-email round-trip; requesting user has no matching login and billing mailbox is empty, so sign-in and real payment correspondence are needed. No reminder was sent or payment recorded during this task.
 - [ ] Verify new workspace signed-in account readback, client invitation and recovery email round-trip: the requesting user has no matching staff login; needs preview sign-in.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
