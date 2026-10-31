@@ -168,7 +168,7 @@ export const Route = createFileRoute("/api/public/email/inbound")({
           console.error("[email-inbound] skipped:", result.error);
           return Response.json({ ok: false, status: result.status, error: result.error }, { status: 422 });
         }
-        return Response.json({ ok: true, status: result.status, reference: result.reference ?? null });
+        return Response.json({ ok: true, status: result.status, reference: result.reference ?? null, attachments_retained: result.attachmentsRetained ?? 0, attachments_pending: result.attachmentsPending ?? 0 });
       },
     },
   },

@@ -344,9 +344,16 @@ export const getAttachmentLink = createServerFn({ method: "POST" })
     if (att?.storage_path) return getStoredAttachmentDownloadUrl(att.storage_path);
     const { data: message } = await context.supabase
       .from("email_messages")
-      .select("resend_email_id")
+      .select("resend_email_id, created_at")
       .eq("id", data.messageId)
       .maybeSingle();
+    // Not saved yet: ask the website for a fresh link and keep a copy.
+    if (message?.resend_email_id && !/^https:\/\//i.test(att.attachment_id ?? "")) {
+      const since = new Date(new Date(message.created_at).getTime() - 2 * 86400_000).toISOString();
+      await backfillGatewayAttachments({ since, providerId: message.resend_email_id });
+      const { data: fresh } = await context.supabase.from("email_message_attachments").select("storage_path").eq("id", data.attachmentId).maybeSingle();
+      if (fresh?.storage_path) return getStoredAttachmentDownloadUrl(fresh.storage_path);
+    }
     return getAttachmentDownloadUrl(message?.resend_email_id ?? "", att?.attachment_id ?? data.attachmentId);
   });
 
