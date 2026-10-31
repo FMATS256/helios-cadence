@@ -704,16 +704,15 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureBilling(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { advanceDate } = await import("./customer360.server");
     const { recordCustomerEvent, recordAudit } = await import("./customer-events.server");
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Harare" }).format(new Date());
     let q = supabaseAdmin
       .from("subscriptions")
       .select("*, customers:customer_id(id, company_name, primary_email, account_number)")
       .eq("status", "active");
     if (data.subscription_ids?.length) q = q.in("id", data.subscription_ids);
-    else q = q.lte("next_renewal", today);
+    q = q.lte("next_renewal", today).eq("auto_renew", true);
     const subs = rows(await q) as any[];
 
     const eligible = subs.filter(
@@ -743,60 +742,22 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
 
     for (const s of eligible) {
       try {
-        // Idempotency: never bill the same period twice.
-        const { data: dupe } = await supabaseAdmin
-          .from("invoices")
-          .select("id")
-          .eq("customer_id", s.customer_id)
-          .eq("issue_date", today)
-          .ilike("notes", `%subscription:${s.id}%`)
-          .limit(1);
-        if ((dupe ?? []).length) { skipped += 1; continue; }
-
-        const subtotal = r2(Number(s.amount || 0));
-        const due = new Date(today);
-        due.setDate(due.getDate() + dueDays);
-        const { data: invoice, error } = await supabaseAdmin
-          .from("invoices")
-          .insert({
-            customer_id: s.customer_id,
-            account_number: s.account_number,
-            currency: s.currency || "USD",
-            issue_date: today,
-            due_date: due.toISOString().slice(0, 10),
-            subtotal, tax: 0, total: subtotal,
-            status: issue ? "sent" : "draft",
-            notes: `Recurring billing — ${s.plan_name} (${s.billing_cycle}) [subscription:${s.id}]`,
-            created_by: context.userId,
-          } as any)
-          .select("*")
-          .single();
-        if (error) throw new Error(error.message);
-
-        // Maintenance contracts list the covered equipment on the invoice.
-        const { data: covered } = await supabaseAdmin.from("assets").select("asset_type,make,model,serial_number,site_name").eq("subscription_id", s.id).is("archived_at", null);
-        const coverage = (covered ?? []).map((a: any) => [a.asset_type, [a.make, a.model].filter(Boolean).join(" "), a.serial_number && `S/N ${a.serial_number}`].filter(Boolean).join(" ")).join("; ");
-        const line = {
-          invoice_id: invoice.id,
-          description: `${s.plan_name}${s.description ? ` — ${s.description}` : ""} (${s.billing_cycle})${coverage ? ` · Covers: ${coverage}` : ""}`,
-          quantity: 1,
-          unit_price: subtotal,
-          tax_rate: 0,
-          position: 0,
-        };
-        await supabaseAdmin.from("invoice_line_items").insert(line as any);
-
-        // Roll the subscription forward.
-        const base = s.next_renewal ? new Date(s.next_renewal) : new Date(today);
-        const next = advanceDate(base, s.billing_cycle);
-        await supabaseAdmin
-          .from("subscriptions")
-          .update({ next_renewal: next.toISOString().slice(0, 10) } as any)
-          .eq("id", s.id);
+        const { data: billed, error: billingError } = await supabaseAdmin.rpc("bill_subscription_period", {
+          p_subscription_id: s.id, p_issue: issue, p_due_days: dueDays,
+        });
+        if (billingError) throw new Error(billingError.message);
+        const result = billed as any;
+        if (result?.skipped) { skipped += 1; continue; }
+        const { data: invoice, error: invoiceError } = await supabaseAdmin.from("invoices").select("*").eq("id", result.invoice_id).single();
+        if (invoiceError || !invoice) throw new Error(invoiceError?.message ?? "Generated invoice could not be loaded");
+        const { data: lines, error: linesError } = await supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id);
+        if (linesError) throw new Error(linesError.message);
+        const subtotal = Number(result.total);
+        const nextRenewal = String(result.next_renewal);
 
         let sent = false;
         if (issue && data.send_email !== false) {
-          sent = await sendInvoiceEmail(supabaseAdmin, context, invoice, s.customers, [line]).catch(() => false);
+          sent = await sendInvoiceEmail(supabaseAdmin, context, invoice, s.customers, lines ?? []).catch(() => false);
           if (sent) emailed += 1;
         }
 
@@ -805,7 +766,7 @@ export const runRecurringBilling = createServerFn({ method: "POST" })
           account_number: s.account_number,
           event_type: issue ? "invoice_sent" : "invoice_generated",
           title: `Recurring invoice ${(invoice as any).invoice_number} ${issue ? "issued" : "drafted"}`,
-          description: `${invoice.currency} ${subtotal.toFixed(2)} · ${s.plan_name} · next renewal ${next.toISOString().slice(0, 10)}`,
+          description: `${invoice.currency} ${subtotal.toFixed(2)} · ${s.plan_name} · next renewal ${nextRenewal}`,
           module: "billing",
           entity_type: "invoice",
           entity_id: invoice.id,

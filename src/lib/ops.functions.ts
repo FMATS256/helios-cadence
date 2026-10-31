@@ -602,32 +602,15 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub, error: subErr } = await supabaseAdmin.from("subscriptions").select("*").eq("id", data.subscription_id).single();
     if (subErr || !sub) throw new Error(subErr?.message ?? "Subscription not found");
-    const issue = data.issue_date ? new Date(data.issue_date) : new Date();
-    const due = new Date(issue); due.setDate(due.getDate() + (data.due_days ?? 14));
-    const subtotal = Number(sub.amount) || 0;
-    const taxRate = data.tax_rate ?? 0;
-    const tax = +(subtotal * taxRate / 100).toFixed(2);
-    const total = +(subtotal + tax).toFixed(2);
-    const { data: invoice, error } = await supabaseAdmin.from("invoices").insert({
-      customer_id: sub.customer_id,
-      account_number: sub.account_number,
-      currency: sub.currency || "USD",
-      issue_date: issue.toISOString().slice(0, 10),
-      due_date: due.toISOString().slice(0, 10),
-      subtotal, tax, total,
-      status: "sent",
-      notes: `Auto-generated for subscription: ${sub.plan_name}`,
-      created_by: context.userId,
-    }).select("*").single();
-    if (error) throw new Error(error.message);
-    await supabaseAdmin.from("invoice_line_items").insert({
-      invoice_id: invoice.id,
-      description: `${sub.plan_name}${sub.description ? ` — ${sub.description}` : ""} (${sub.billing_cycle})`,
-      quantity: 1,
-      unit_price: subtotal,
-      tax_rate: taxRate,
-      position: 0,
+    const { data: billed, error: billingError } = await supabaseAdmin.rpc("bill_subscription_period", {
+      p_subscription_id: sub.id, p_issue: true, p_due_days: data.due_days ?? 14,
     });
+    if (billingError) throw new Error(billingError.message);
+    const result = billed as any;
+    if (result?.skipped) throw new Error("This subscription is not due for billing or this period already has an invoice.");
+    const { data: invoice, error } = await supabaseAdmin.from("invoices").select("*").eq("id", result.invoice_id).single();
+    if (error || !invoice) throw new Error(error?.message ?? "Invoice could not be loaded");
+    const subtotal = Number(invoice.subtotal), tax = Number(invoice.tax), total = Number(invoice.total);
 
     // Invoice-issued email
     const { data: cust } = await supabaseAdmin
