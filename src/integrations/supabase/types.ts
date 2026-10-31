@@ -2616,6 +2616,74 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_statement_deliveries: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          error: string | null
+          id: string
+          message_id: string | null
+          period: string
+          recipient: string | null
+          statement_date: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          period: string
+          recipient?: string | null
+          statement_date: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          period?: string
+          recipient?: string | null
+          statement_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_statement_deliveries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_statement_schedule: {
+        Row: {
+          callback_secret: string
+          enabled: boolean
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          callback_secret: string
+          enabled?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          callback_secret?: string
+          enabled?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       geo_locations: {
         Row: {
           display_name: string | null
@@ -7189,6 +7257,11 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: boolean
       }
+      configure_finance_statement_schedule: {
+        Args: { secret_value: string }
+        Returns: undefined
+      }
+      finance_statement_schedule_status: { Args: never; Returns: boolean }
       gen_customer_account_number: { Args: never; Returns: string }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {

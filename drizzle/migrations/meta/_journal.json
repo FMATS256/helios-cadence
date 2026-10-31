@@ -211,6 +211,13 @@
       "when": 1793428759277,
       "tag": "0029_secure_subscription_billing_authorization",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793436064791,
+      "tag": "0030_monthly_finance_statement_delivery",
+      "breakpoints": true
     }
   ]
 }
