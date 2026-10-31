@@ -35,18 +35,15 @@ export function EmailAttachment({ messageId, attachment }: { messageId: string; 
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [messageId, attachment.id, attachment.content_type, getLink, attempt]);
 
-  async function download() {
+  function download() {
     if (!file) return;
     const name = attachment.filename.replace(/[\\/\r\n]/g, "-");
-    const shareFile = new File([file.blob], name, { type: file.blob.type });
-    if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [shareFile] })) {
-      try { await navigator.share({ files: [shareFile], title: name }); return; }
-      catch (e) { if (e instanceof DOMException && e.name === "AbortError") return; }
-    }
-    const url = URL.createObjectURL(file.blob);
-    const link = document.createElement("a"); link.href = url; link.download = name;
+    // Save straight to the device's Downloads (phones included) instead of opening a share sheet.
+    const saved = new File([file.blob], name, { type: file.blob.type || "application/octet-stream" });
+    const url = URL.createObjectURL(saved);
+    const link = document.createElement("a"); link.href = url; link.download = name; link.rel = "noopener";
     document.body.appendChild(link); link.click(); link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
   const image = !!file && /^image\/(png|jpeg|gif|webp)$/.test(file.blob.type);
   const pdf = !!file && file.blob.type.split(";")[0] === "application/pdf";
