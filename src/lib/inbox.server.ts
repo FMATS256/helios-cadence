@@ -780,6 +780,13 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
     }
   }
 
+  // Questions emailed to the personal assistant mailbox are answered privately, not filed as enquiries.
+  if ([...(input.to ?? []), ...(input.cc ?? [])].some((a) => extractEmail(a)?.toLowerCase() === "assistant@imtsolutions.co.zw")) {
+    const { handleAssistantEmail } = await import("./personal-assistant-actions.server");
+    const r = await handleAssistantEmail({ providerId: emailId, fromEmail, subject: (input.subject || "(no subject)").toString(), text: input.text ?? (input.html ?? "").replace(/<[^>]+>/g, " ") });
+    if (r.handled) return { status: "duplicate" } as IngestResult;
+  }
+
   const inReplyTo = input.inReplyTo ?? null;
   const references = input.references ?? null;
   const subject = (input.subject || "(no subject)").toString().slice(0, 300);

@@ -4497,6 +4497,39 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_assistant_email_requests: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          provider_id: string
+          reply_id: string | null
+          status: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider_id: string
+          reply_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider_id?: string
+          reply_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_assistant_reports: {
         Row: {
           created_at: string

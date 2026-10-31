@@ -164,3 +164,40 @@ export async function sendAllDailyReports() {
 }
 
 const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+
+/**
+ * Answers a question emailed to the assistant mailbox. Only master admins with an assistant can use it.
+ * The answer always goes to the owner's saved address (never the From header), so a forged sender learns nothing.
+ * Each inbound message is claimed once by provider id, so gateway re-sends never produce a second reply.
+ */
+export async function handleAssistantEmail(input: { providerId: string; fromEmail: string; subject: string; text: string }) {
+  const db = await admin();
+  const from = input.fromEmail.toLowerCase();
+  const { data: settingsRows } = await db.from("personal_assistant_settings").select("user_id,assistant_name,persona,enabled_roles,report_email");
+  let owner: any = null;
+  for (const s of settingsRows ?? []) {
+    const { data: p } = await db.from("profiles").select("email,work_email").eq("id", s.user_id).maybeSingle();
+    const addrs = [s.report_email, p?.email, p?.work_email].filter(Boolean).map((a: string) => a.toLowerCase());
+    if (addrs.includes(from)) { owner = { ...s, replyTo: s.report_email || p?.email }; break; }
+  }
+  if (!owner) return { handled: false };
+  const { data: role } = await db.from("user_roles").select("role").eq("user_id", owner.user_id).eq("role", "master_admin").maybeSingle();
+  if (!role) return { handled: false };
+  const claim = await db.from("personal_assistant_email_requests").insert({ user_id: owner.user_id, provider_id: input.providerId, subject: input.subject.slice(0, 300) }).select("id").single();
+  if (claim.error?.code === "23505") return { handled: true, duplicate: true };
+  if (claim.error) throw new Error(claim.error.message);
+  const question = input.text.split(/\n>|\nOn .+wrote:/)[0].slice(0, 4000);
+  try {
+    const { runPersonalAssistant } = await import("./personal-assistant.server");
+    const { allowedAssistantRoles } = await import("./personal-assistant.shared");
+    const roles = allowedAssistantRoles(owner.enabled_roles ?? [], "general");
+    const answer = await runPersonalAssistant(db, owner.user_id, owner, roles, `Question emailed by Sir (subject: ${input.subject}):\n${question}\n\nAnswer using the system records.`);
+    const html = answer.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`).join("");
+    const { sendInboxEmail } = await import("./inbox.server");
+    const res = await sendInboxEmail({ from: `${owner.assistant_name || "Personal Assistant"} <${ASSISTANT_MAILBOX}>`, to: owner.replyTo, subject: `Re: ${input.subject}`.slice(0, 300), html, text: answer });
+    await db.from("personal_assistant_email_requests").update(res.ok ? { status: "answered", reply_id: res.id } : { status: "failed", error: res.error }).eq("id", claim.data.id);
+  } catch (e: any) {
+    await db.from("personal_assistant_email_requests").update({ status: "failed", error: String(e?.message ?? e).slice(0, 500) }).eq("id", claim.data.id);
+  }
+  return { handled: true };
+}

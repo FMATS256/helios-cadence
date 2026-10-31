@@ -246,6 +246,13 @@
       "when": 1793446602990,
       "tag": "0034_assistant_actions_and_daily_report",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793447934807,
+      "tag": "0035_migration",
+      "breakpoints": true
     }
   ]
 }

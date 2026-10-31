@@ -38,6 +38,26 @@ function buildTools(db: any, userId: string, mailbox: string | null, roles: Assi
         return (data ?? []).map((m: any) => ({ ...m, body_text: strip(m.body_text, 3000) }));
       },
     }),
+    lookup_records: tool({
+      description: "Look up any business records in the system (read-only): customers, invoices, payments, quotes, subscriptions, tickets, inventory_items, assets, expenses, leads. Optional free-text search matches names/numbers. Use this to answer any question about the business.",
+      inputSchema: z.object({
+        table: z.enum(["customers", "invoices", "payments", "quotes", "subscriptions", "tickets", "inventory_items", "assets", "expenses", "leads"]),
+        search: z.string().nullable(), limit: z.number().int().min(1).max(50),
+      }),
+      execute: async ({ table, search, limit }) => {
+        let q = db.from(table).select("*").order("created_at", { ascending: false }).limit(limit);
+        const term = search?.replace(/[^\p{L}\p{N} @._-]/gu, "").trim();
+        const cols: Record<string, string[]> = {
+          customers: ["company_name", "account_number", "primary_email"], invoices: ["invoice_number"], quotes: ["quote_number"],
+          tickets: ["subject", "ticket_number"], inventory_items: ["name", "sku"], leads: ["company_name", "contact_name"],
+        };
+        if (term && cols[table]) q = q.or(cols[table].map((c) => `${c}.ilike.%${term}%`).join(","));
+        let { data, error } = await q;
+        if (error && term) ({ data, error } = await db.from(table).select("*").order("created_at", { ascending: false }).limit(limit));
+        if (error) return { error: error.message };
+        return (data ?? []).map((r: any) => Object.fromEntries(Object.entries(r).filter(([k]) => !/password|secret|token|hash/i.test(k)).map(([k, v]) => [k, typeof v === "string" ? strip(v, 400) : v])));
+      },
+    }),
   };
   if (roles.includes("daily_briefing")) {
     tools.list_my_tickets = tool({
