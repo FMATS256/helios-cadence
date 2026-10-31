@@ -27,6 +27,7 @@ const sections = [
   { title: "Dashboard", to: "/client", icon: LayoutDashboard },
   { title: "My Invoices", to: "/client/invoices", icon: FileText },
   { title: "My Payments", to: "/client/payments", icon: CreditCard },
+  { title: "My Statements", to: "/client/statements", icon: FileText },
   { title: "My Services", to: "/client/services", icon: Server },
   { title: "Support", to: "/client/support", icon: LifeBuoy },
 ] as const;
@@ -48,7 +49,7 @@ export function ClientPortalLayout() {
   const account = useAccount();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileMenu, setMobileMenu] = useState(false);
-  const billsPage = ["/client", "/client/", "/client/invoices", "/client/services", "/client/payments", "/client/support"].includes(pathname);
+  const billsPage = ["/client", "/client/", "/client/invoices", "/client/services", "/client/payments", "/client/support", "/client/statements"].includes(pathname);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const signOut = async () => {
