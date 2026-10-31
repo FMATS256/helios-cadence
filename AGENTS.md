@@ -31,3 +31,4 @@
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
 - Server firewall changes go only through provider APIs (Vultr), staff-only and activity-logged; other providers show unsupported, never simulated.
 - Per-order-billed Cloud Ops providers stay pending_approval until an ops manager/master admin (not the requester, unless master) claims the decision atomically.
+- Server rebuild/restore/app-install go through server_action_requests and run only after an ops manager/master admin (not the requester) atomically claims them; power and snapshots are immediate staff actions.
