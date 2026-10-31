@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { ProviderName } from "./providers/types";
 
+/** Providers whose orders bill IMT directly and therefore need staff approval. */
+const APPROVAL_PROVIDERS = new Set<ProviderName>(["interserver"]);
+
 export const listCloudProviders = createServerFn({ method: "GET" })
   .handler(async () => {
     const { listProviders } = await import("./providers/registry.server");
@@ -156,6 +159,21 @@ export const provisionOnProvider = createServerFn({ method: "POST" })
       }
     } catch (e: any) {
       console.error("Failed to save root credential", e);
+    }
+
+    // Providers that charge IMT's account per order are held for staff approval.
+    if (APPROVAL_PROVIDERS.has(data.provider)) {
+      await supabaseAdmin.from("cloud_servers").update({ status: "pending_approval", power_state: "off" }).eq("id", server.id);
+      await supabaseAdmin.from("cloud_deployments").insert({
+        server_id: server.id, action: "provision", status: "pending_approval",
+        request_payload: { ...req, password: undefined, requested_by: context.userId } as any,
+        started_at: new Date().toISOString(),
+      });
+      await supabaseAdmin.from("cloud_activity").insert({
+        server_id: server.id, action: "provision.requested",
+        detail: { provider: data.provider, region: data.region, requested_by: context.userId } as any,
+      });
+      return { server_id: server.id, provider_server_id: null, root_password_saved: true, pending_approval: true };
     }
 
     try {
@@ -449,3 +467,89 @@ export const syncProviderServers = createServerFn({ method: "POST" })
     return { provider: data.provider, total: 0, created: 0, updated: 0, note: "Sync not yet implemented for this provider" };
   });
 
+
+/* --------------------- Staff approval for held orders -------------------- */
+async function canApproveServerOrders(context: { supabase: any; userId: string }) {
+  const [ops, master] = await Promise.all([
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "operations_manager" }),
+    context.supabase.rpc("is_master_admin", { _user_id: context.userId }),
+  ]);
+  return { allowed: Boolean(ops.data || master.data), master: Boolean(master.data) };
+}
+
+export const decideServerOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { server_id: string; decision: "approve" | "reject"; reason?: string }) => {
+    if (!d?.server_id || !["approve", "reject"].includes(d.decision)) throw new Error("Invalid request");
+    return d;
+  })
+  .handler(async ({ data, context }) => {
+    const auth = await canApproveServerOrders(context);
+    if (!auth.allowed) throw new Error("Only operations managers or master admins can approve server orders.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Claim the order atomically so it can only be decided once.
+    const nextStatus = data.decision === "approve" ? "provisioning" : "rejected";
+    const { data: srv } = await supabaseAdmin.from("cloud_servers")
+      .update({ status: nextStatus, power_state: data.decision === "approve" ? "starting" : "off" })
+      .eq("id", data.server_id).eq("status", "pending_approval")
+      .select("id, provider, created_by, root_password_ref").maybeSingle();
+    if (!srv) throw new Error("This order is no longer waiting for approval.");
+
+    if (srv.created_by === context.userId && !auth.master) {
+      await supabaseAdmin.from("cloud_servers").update({ status: "pending_approval", power_state: "off" }).eq("id", srv.id);
+      throw new Error("You can't approve your own order — another staff member must approve it.");
+    }
+
+    const { data: dep } = await supabaseAdmin.from("cloud_deployments")
+      .select("id, request_payload").eq("server_id", srv.id).eq("status", "pending_approval")
+      .order("started_at", { ascending: false }).limit(1).maybeSingle();
+
+    if (data.decision === "reject") {
+      if (dep) await supabaseAdmin.from("cloud_deployments").update({
+        status: "rejected", error: data.reason ?? "Rejected by staff", completed_at: new Date().toISOString(),
+      }).eq("id", dep.id);
+      await supabaseAdmin.from("cloud_activity").insert({
+        server_id: srv.id, action: "provision.rejected",
+        detail: { by: context.userId, reason: data.reason ?? null } as any,
+      });
+      return { ok: true, status: "rejected" };
+    }
+
+    try {
+      if (!dep) throw new Error("Original order details are missing.");
+      let password: string | undefined;
+      if (srv.root_password_ref) {
+        const { data: cred } = await supabaseAdmin.from("credentials")
+          .select("ciphertext, iv, auth_tag").eq("id", srv.root_password_ref).maybeSingle();
+        if (cred) {
+          const { decryptSecret } = await import("./encryption.server");
+          password = decryptSecret({ ciphertext: cred.ciphertext, iv: cred.iv, authTag: cred.auth_tag });
+        }
+      }
+      const { getProvider } = await import("./providers/registry.server");
+      const result = await getProvider(srv.provider as ProviderName)
+        .createServer({ ...(dep.request_payload as any), password });
+      await supabaseAdmin.from("cloud_servers").update({
+        provider_server_id: result.provider_server_id,
+        public_ips: result.public_ips, private_ips: result.private_ips,
+        status: "provisioning",
+      }).eq("id", srv.id);
+      await supabaseAdmin.from("cloud_deployments").update({
+        status: "completed", provider_command_id: result.provider_server_id,
+        provider_response: result.raw as any, completed_at: new Date().toISOString(),
+      }).eq("id", dep.id);
+      await supabaseAdmin.from("cloud_activity").insert({
+        server_id: srv.id, action: "provision.approved",
+        detail: { by: context.userId, provider: srv.provider } as any,
+      });
+      return { ok: true, status: "provisioning" };
+    } catch (e: any) {
+      const message = e instanceof Error ? e.message : "Provider order failed";
+      await supabaseAdmin.from("cloud_servers").update({ status: "failed" }).eq("id", srv.id);
+      if (dep) await supabaseAdmin.from("cloud_deployments").update({
+        status: "failed", error: message, completed_at: new Date().toISOString(),
+      }).eq("id", dep.id);
+      return { ok: false, status: "failed", error: message };
+    }
+  });

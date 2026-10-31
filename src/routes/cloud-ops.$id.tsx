@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  refreshProviderServer, powerProviderServer, terminateProviderServer, sendServerHandover,
+  refreshProviderServer, powerProviderServer, decideServerOrder, terminateProviderServer, sendServerHandover,
 } from "@/lib/providers.functions";
 import {
   getServerOps, sampleServerMetrics, snapshotServer, deleteServerSnapshot,
@@ -45,6 +45,7 @@ function ServerDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fnRefresh = useServerFn(refreshProviderServer);
+  const fnDecide = useServerFn(decideServerOrder);
   const fnPower = useServerFn(powerProviderServer);
   const fnTerminate = useServerFn(terminateProviderServer);
 
@@ -297,6 +298,15 @@ function ServerDetailPage() {
     })),
   ].sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
 
+  const decide = async (decision: "approve" | "reject") => {
+    try {
+      const reason = decision === "reject" ? (window.prompt("Reason for rejecting this order?") ?? undefined) : undefined;
+      const r: any = await fnDecide({ data: { server_id: s.id, decision, reason } });
+      if (r?.ok === false) toast.error(r.error ?? "Order failed");
+      else toast.success(decision === "approve" ? "Approved — order sent to the provider" : "Order rejected");
+      window.location.reload();
+    } catch (e: any) { toast.error(e?.message ?? "Could not update order"); }
+  };
   const on = s.power_state === "on";
   const isProvisioning = s.status === "provisioning";
   const isHandedOver = !!s.handed_over_at;
@@ -310,6 +320,18 @@ function ServerDetailPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Cloud
         </Link>
       </div>
+      {s.status === "pending_approval" && (
+        <div className="mb-4 border border-amber-500/40 bg-amber-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm">
+            <div className="font-semibold">Waiting for staff approval</div>
+            <div className="text-muted-foreground">Nothing has been ordered or charged yet. An operations manager or master admin (not the requester) must approve.</div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => decide("reject")}>Reject</Button>
+            <Button size="sm" onClick={() => decide("approve")}>Approve &amp; order</Button>
+          </div>
+        </div>
+      )}
       <PageHeader
         eyebrow={`${(s.provider ?? "cloud").toString().toUpperCase()} · ${s.datacenter ?? "—"}`}
         title={s.name}

@@ -6,6 +6,7 @@ export type ProviderName =
   | "digitalocean"
   | "vultr"
   | "contabo"
+  | "interserver"
   | "aws"
   | "azure"
   | "gcp";
