@@ -62,7 +62,7 @@ CONNECTIVITY | CLOUD SERVICES | CYBERSECURITY | IT SUPPORT
             reason: res.ok ? undefined : res.error,
           });
         }
-
+        if (requestedTemplate === "welcome-boss") {
           const { imtSignature } = await import("@/lib/email-signature.shared");
           const body = `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#202124"><p>Dear Farai,</p><p>Welcome, our boss Farai Matare! We are delighted to have you leading IMT Solutions and look forward to achieving great things together.</p></div>`;
           const html = `${body}<br/>${imtSignature({ name: "Farai Matare", role: "admin", email: "farai.matare@imtsolutions.co.zw" })}`;
