@@ -225,6 +225,13 @@
       "when": 1793436246449,
       "tag": "0031_monthly_statement_callback_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793436325553,
+      "tag": "0032_finance_department_mailbox_access",
+      "breakpoints": true
     }
   ]
 }

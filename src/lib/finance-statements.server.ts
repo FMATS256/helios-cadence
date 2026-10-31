@@ -11,7 +11,7 @@ export async function prepareClientStatements(db: any, customerId: string, from:
   const results = await Promise.all([
     db.from("invoices").select("*").eq("customer_id", customerId).is("archived_at", null).lte("issue_date", to).not("status", "in", "(draft,void,cancelled)"),
     db.from("payments").select("*").eq("customer_id", customerId).eq("status", "received").lte("paid_at", `${to}T23:59:59.999+02:00`),
-    db.from("refunds").select("*").eq("customer_id", customerId).eq("status", "completed").lte("refunded_at", `${to}T23:59:59.999+02:00`),
+    db.from("refunds").select("*").eq("customer_id", customerId).in("status", ["completed", "recorded"]).lte("refunded_at", `${to}T23:59:59.999+02:00`),
   ]);
   if (results.some(r => r.error)) throw new Error("Statement transactions could not be loaded");
   const [invoices, payments, refunds] = results.map(r => r.data ?? []);

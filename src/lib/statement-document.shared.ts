@@ -12,7 +12,7 @@ export function statementModel(customer: any, invoices: any[], payments: any[], 
   const all = [
     ...validInvoices.map(i => ({ date: i.issue_date, kind: "Invoice", ref: i.invoice_number, description: `Invoice ${i.invoice_number}`, debit: money(i.total), credit: 0 })),
     ...received.map(p => ({ date: String(p.paid_at).slice(0, 10), kind: "Receipt", ref: p.receipt_number || p.reference || "", description: `Payment received${p.method ? ` / ${p.method}` : ""}`, debit: 0, credit: money(p.amount) })),
-    ...refunds.filter(r => r.currency === currency && r.status === "completed").map(r => ({ date: String(r.refunded_at).slice(0, 10), kind: "Refund", ref: r.id.slice(0, 8), description: r.reason || "Refund", debit: money(r.amount), credit: 0 })),
+    ...refunds.filter(r => r.currency === currency && ["completed", "recorded"].includes(r.status)).map(r => ({ date: String(r.refunded_at).slice(0, 10), kind: "Refund", ref: r.id.slice(0, 8), description: r.reason || "Refund", debit: money(r.amount), credit: 0 })),
   ].filter(l => l.date && l.date <= to).sort((a, b) => a.date.localeCompare(b.date) || a.ref.localeCompare(b.ref));
   const opening = all.filter(l => l.date < from).reduce((s, l) => s + l.debit - l.credit, 0);
   let running = opening;
