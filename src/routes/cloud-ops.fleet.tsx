@@ -74,7 +74,7 @@ function FleetPage() {
     setBusy(id + kind);
     try {
       if (kind === "check") await fnSample({ data: { server_id: id } });
-      else if (kind === "sync") await fnRefresh({ data: { server_id: id } } as any);
+      else if (kind === "sync") await fnRefresh({ data: { server_id: id } });
       else await fnPower({ data: { server_id: id, action: kind } });
       toast.success("Done");
       refreshAll();
