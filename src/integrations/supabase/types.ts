@@ -5765,6 +5765,56 @@ export type Database = {
           },
         ]
       }
+      server_action_requests: {
+        Row: {
+          action: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          error: string | null
+          id: string
+          params: Json
+          reason: string | null
+          requested_by: string
+          server_id: string
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error?: string | null
+          id?: string
+          params?: Json
+          reason?: string | null
+          requested_by: string
+          server_id: string
+          status?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error?: string | null
+          id?: string
+          params?: Json
+          reason?: string | null
+          requested_by?: string
+          server_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_action_requests_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       server_backups: {
         Row: {
           created_at: string

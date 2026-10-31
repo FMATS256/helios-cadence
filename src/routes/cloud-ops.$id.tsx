@@ -13,6 +13,7 @@ import {
 import { upsertBackupSchedule, restoreBackup } from "@/lib/backups.functions";
 import { workloadGuide } from "@/lib/server-config-guides";
 import { FirewallManager } from "@/components/firewall-manager";
+import { ServerToolsPanel } from "@/components/server-tools-panel";
 import { GradientAreaChart, IMT_COLORS } from "@/components/dashboards/charts";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -425,6 +426,7 @@ function ServerDetailPage() {
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="overview"><ServerIcon className="h-3.5 w-3.5 mr-1.5" />Overview</TabsTrigger>
+          <TabsTrigger value="tools"><Rocket className="h-3.5 w-3.5 mr-1.5" />Tools</TabsTrigger>
           <TabsTrigger value="monitoring"><Gauge className="h-3.5 w-3.5 mr-1.5" />Monitoring</TabsTrigger>
           <TabsTrigger value="compute"><Cpu className="h-3.5 w-3.5 mr-1.5" />Compute</TabsTrigger>
           <TabsTrigger value="storage"><HardDrive className="h-3.5 w-3.5 mr-1.5" />Storage</TabsTrigger>
@@ -454,6 +456,10 @@ function ServerDetailPage() {
               <p className="text-sm whitespace-pre-wrap">{s.notes || "No notes."}</p>
             </InfoCard>
           </div>
+        </TabsContent>
+
+        <TabsContent value="tools" className="mt-4">
+          <ServerToolsPanel server={s} />
         </TabsContent>
 
         <TabsContent value="monitoring" className="mt-4">

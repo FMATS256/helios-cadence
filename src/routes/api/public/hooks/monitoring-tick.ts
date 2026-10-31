@@ -42,7 +42,34 @@ async function runTick() {
       await supabaseAdmin.from("monitoring_incidents").update({ ended_at: new Date().toISOString() }).eq("id", open.id);
     }
   }
-  return { ran: due.length, total: (checks || []).length };
+  const servers = await serverUptime(supabaseAdmin);
+  return { ran: due.length, total: (checks || []).length, servers };
+}
+
+// Server uptime: probe each powered-on server's common ports; raise or resolve a NOC alert.
+async function serverUptime(admin: any) {
+  const { tcpProbe } = await import("@/lib/netdiag.server");
+  const { data: list } = await admin.from("cloud_servers").select("id, name, public_ips, customer_id")
+    .eq("status", "active").is("archived_at", null).limit(50);
+  let down = 0;
+  for (const s of list ?? []) {
+    const ip = ((s.public_ips ?? []) as string[])[0];
+    if (!ip) continue;
+    const probes = await Promise.all([22, 80, 443, 3389].map((p) => tcpProbe(ip, p)));
+    const up = probes.some((p) => p.ok);
+    const key = `server-down:${s.id}`;
+    const { data: open } = await admin.from("ops_alerts").select("id, occurrences").eq("dedupe_key", key).neq("status", "resolved").maybeSingle();
+    if (!up) {
+      down++;
+      if (open) await admin.from("ops_alerts").update({ last_seen_at: new Date().toISOString(), occurrences: (open.occurrences ?? 1) + 1 }).eq("id", open.id);
+      else await admin.from("ops_alerts").insert({ dedupe_key: key, source: "server_uptime", severity: "critical",
+        title: `Server ${s.name} is unreachable`, detail: `No response on ${ip} (ports 22/80/443/3389)`,
+        customer_id: s.customer_id, entity_type: "cloud_server", entity_id: s.id });
+    } else if (open) {
+      await admin.from("ops_alerts").update({ status: "resolved", resolved_at: new Date().toISOString(), resolution: "Server responded again" }).eq("id", open.id);
+    }
+  }
+  return { checked: (list ?? []).length, down };
 }
 
 export const Route = createFileRoute("/api/public/hooks/monitoring-tick")({
