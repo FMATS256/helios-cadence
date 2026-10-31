@@ -7279,6 +7279,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      invoke_monthly_finance_statements: { Args: never; Returns: number }
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_member: {
