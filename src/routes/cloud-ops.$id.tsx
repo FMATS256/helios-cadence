@@ -694,9 +694,7 @@ function ServerDetailPage() {
               </CardContent>
             </Card>
             <InfoCard title="Pricing">
-              <Row k="Provider cost / mo" v={`$${Number(s.monthly_cost_usd || 0).toFixed(2)} USD`} />
               <Row k="Selling price / mo" v={`$${Number(s.selling_price_usd || 0).toFixed(2)} USD`} />
-              <Row k="Gross margin / mo" v={`$${(Number(s.selling_price_usd || 0) - Number(s.monthly_cost_usd || 0)).toFixed(2)} USD`} />
               <Row k="Cycle" v={s.billing_cycle ?? "monthly"} />
             </InfoCard>
           </div>
