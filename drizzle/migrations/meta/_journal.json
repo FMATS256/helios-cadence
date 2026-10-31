@@ -267,6 +267,13 @@
       "when": 1793458511513,
       "tag": "0037_software_hosting_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793479040678,
+      "tag": "0038_server_action_requests",
+      "breakpoints": true
     }
   ]
 }
