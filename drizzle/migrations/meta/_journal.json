@@ -204,6 +204,13 @@
       "when": 1793428600211,
       "tag": "0028_creation_anchored_subscription_auto_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793428759277,
+      "tag": "0029_secure_subscription_billing_authorization",
+      "breakpoints": true
     }
   ]
 }
