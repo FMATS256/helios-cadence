@@ -190,8 +190,8 @@ export async function handleAssistantEmail(input: { providerId: string; fromEmai
   try {
     const { runPersonalAssistant } = await import("./personal-assistant.server");
     const { allowedAssistantRoles } = await import("./personal-assistant.shared");
-    const roles = allowedAssistantRoles(owner.enabled_roles ?? [], "any");
-    const answer = await runPersonalAssistant(db, owner.user_id, owner, roles.length ? roles : (owner.enabled_roles as any), `Question emailed by Sir (subject: ${input.subject}):\n${question}\n\nAnswer using the system records.`);
+    const roles = allowedAssistantRoles(owner.enabled_roles ?? [], "general");
+    const answer = await runPersonalAssistant(db, owner.user_id, owner, roles, `Question emailed by Sir (subject: ${input.subject}):\n${question}\n\nAnswer using the system records.`);
     const html = answer.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")}</p>`).join("");
     const { sendInboxEmail } = await import("./inbox.server");
     const res = await sendInboxEmail({ from: `${owner.assistant_name || "Personal Assistant"} <${ASSISTANT_MAILBOX}>`, to: owner.replyTo, subject: `Re: ${input.subject}`.slice(0, 300), html, text: answer });
