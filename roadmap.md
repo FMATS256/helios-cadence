@@ -1,6 +1,8 @@
 # Roadmap
 
 ## Done
+- Built /account-manager using the shared portfolio, client counts, support/invoice request queues, renewals and existing technician dispatch; ownership rules tested.
+- Connected Finance agent to the existing live billing mailbox, approved reminder sends and email-payment claims entering pending Finance verification; mailbox read returned 200 with no messages, 13 tests pass and pages require sign-in.
 - Invoice-style service/subscription/equipment cards, Liquid-inspired mobile dropdown and welcome screen verified in a layout fixture on mobile/desktop with no horizontal overflow; service details open and ten service/payment tests pass. Real linked-client checks remain blocked by no requesting-user login.
 - Mobile services and receipt cards follow the supplied examples; active-service filter tests pass and receipt View/details checked with a layout fixture. Real client-session verification remains unavailable.
 - Invoice payment buttons and payment choices exclude fully gateway-paid invoices while Finance approval is pending; shared server preflight blocks repeat charges, nine payment-rule tests pass. Signed-in readback awaits a linked client session.
@@ -38,8 +40,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
-- [ ] Build /account-manager portfolio counts, pending requests and direct technician dispatch.
-- [ ] Connect Finance AI to billing@imtsolutions.co.zw for real reminder sends and payment correspondence, preserving Finance approval.
+- [ ] Verify signed-in portfolio/dispatch and billing reminder/payment-email round-trip; requesting user has no matching login and billing mailbox is empty, so sign-in and real payment correspondence are needed. No reminder was sent or payment recorded during this task.
 - [ ] Verify new workspace signed-in account readback, client invitation and recovery email round-trip: the requesting user has no matching staff login; needs preview sign-in.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
 - [ ] Verify general-ledger posting/reversal coverage for legacy/POS receipts and authenticated invoice download; requesting user has no matching staff login, so the actual PDF was verified directly instead
