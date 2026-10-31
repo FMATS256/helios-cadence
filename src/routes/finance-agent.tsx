@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  getFinanceAgent, saveFinanceAgentSettings, assignFinanceAgentTask, reviewFinanceProposal, refreshFinanceMailbox,
+  getFinanceAgent, saveFinanceAgentSettings, assignFinanceAgentTask, reviewFinanceProposal, refreshFinanceMailbox, downloadFinanceStatement,
 } from "@/lib/finance-agent.functions";
 import { FINANCE_AGENT_ROLES, ROLE_LABELS, type FinanceAgentRole } from "@/lib/finance-agent.shared";
 
@@ -47,6 +47,7 @@ function FinanceAgentPage() {
   const assign = useServerFn(assignFinanceAgentTask);
   const review = useServerFn(reviewFinanceProposal);
   const sync = useServerFn(refreshFinanceMailbox);
+  const downloadStatement = useServerFn(downloadFinanceStatement);
   const [syncing, setSyncing] = useState(false);
   const { data, error, isLoading } = useQuery({ queryKey: ["finance-agent"], queryFn: () => load() });
   const refresh = () => qc.invalidateQueries({ queryKey: ["finance-agent"] });
@@ -90,6 +91,16 @@ function FinanceAgentPage() {
         description="billing@imtsolutions.co.zw" />
 
       <section className="border-b border-border pb-4 space-y-3">
+        <h2 className="font-semibold">Monthly client statements</h2>
+        <dl className="grid sm:grid-cols-3 border-y border-border divide-y sm:divide-y-0 sm:divide-x divide-border text-sm">
+          <div className="py-3 sm:pr-3"><dt className="text-muted-foreground">Sender</dt><dd className="break-all font-medium">finance@imtsolutions.co.zw</dd></div>
+          <div className="py-3 sm:px-3"><dt className="text-muted-foreground">Schedule</dt><dd className="font-medium">21st each month · 09:17 Harare</dd></div>
+          <div className="py-3 sm:pl-3"><dt className="text-muted-foreground">Status</dt><dd className="font-medium">{data.scheduled ? "Enabled" : "Awaiting activation"}</dd></div>
+        </dl>
+        <div className="divide-y divide-border">
+          {data.statementClients.map((c: any) => <div key={c.id} className="py-3 flex flex-wrap justify-between items-center gap-2 text-sm"><div><b>{c.company_name}</b> · {c.account_number}<span className="block text-muted-foreground break-all">{c.primary_email || "Billing email required"}</span></div><Button size="sm" variant="outline" onClick={async () => { try { const files = await downloadStatement({ data: { customer_id: c.id } }); for (const f of files) { const a = document.createElement("a"); a.href = `data:application/pdf;base64,${f.base64}`; a.download = f.filename; a.click(); } } catch (e: any) { toast.error(e.message); } }}>Download statement</Button></div>)}
+        </div>
+        {data.deliveries.map((d: any) => <div key={d.id} className="border-t border-border py-2 text-sm"><b>{d.customers?.company_name}</b> · {d.period} · <StatusPill tone={tone(d.status)}>{d.status === "sent" ? "Gateway accepted" : d.status}</StatusPill>{d.error && <p className="text-destructive break-words">{d.error}</p>}</div>)}
         <div className="flex flex-wrap justify-between gap-2 items-center"><h2 className="font-semibold flex items-center gap-2"><Mail className="h-4 w-4" />Billing inbox ({data.messages.length})</h2><Button variant="outline" size="sm" disabled={syncing} onClick={async () => { setSyncing(true); try { const r = await sync(); toast.success(`Billing mailbox checked: ${r.imported} new messages`); refresh(); } catch (e: any) { toast.error(e.message); } finally { setSyncing(false); } }}><RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />Refresh mailbox</Button></div>
         {data.messages.length === 0 && <p className="text-sm text-muted-foreground">No received billing emails.</p>}
         {data.messages.map((m: any) => <div key={m.id} className="border-b border-border pb-2"><Button asChild variant="link" className="px-0"><Link to="/inbox" search={{ enquiry: m.email_enquiries.id, quote: undefined }}>{m.subject}</Link></Button><p className="text-xs text-muted-foreground">{m.from_address} · {new Date(m.created_at).toLocaleString()}</p><p className="text-sm whitespace-pre-wrap break-words">{m.body_text?.slice(0, 400)}</p></div>)}

@@ -4,7 +4,7 @@ export const MAIL_DOMAIN = "imtsolutions.co.zw";
 export const SALES_INBOX = `sales@${MAIL_DOMAIN}`;
 export const DEPARTMENT_MAILBOXES = [
   { department: "Account Managers", addresses: [SALES_INBOX], roles: ["sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager"] },
-  { department: "Accounting", addresses: [`accounts@${MAIL_DOMAIN}`, `billing@${MAIL_DOMAIN}`], roles: ["finance"] },
+  { department: "Accounting", addresses: [`accounts@${MAIL_DOMAIN}`, `billing@${MAIL_DOMAIN}`, `finance@${MAIL_DOMAIN}`], roles: ["finance"] },
   { department: "Technical", addresses: [`support@${MAIL_DOMAIN}`, `helpdesk@${MAIL_DOMAIN}`], roles: ["technical_support", "cloud_engineer", "cyber_security", "noc"] },
 ];
 /** True for shared department mailboxes (sales@, accounts@...); false for a staff member's own inbox. */
