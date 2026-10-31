@@ -373,7 +373,7 @@ function NewServerPage() {
           {/* IMT managed package presets (Entry → Platinum) */}
           {provider === "vultr" && (tierPackages.data?.length ?? 0) > 0 && (
             <Card><CardContent className="p-6">
-              <StepHeader n={5} title="IMT package (optional)" subtitle="Pick a workload tier — fills the plan and customer price with our margin." />
+              <StepHeader n={5} title="Server template (optional)" subtitle="Pick a workload template — fills the server size and customer price." />
               {Array.from(new Set((tierPackages.data ?? []).map((p: any) => p.workload as string))).map((w) => (
                 <div key={w} className="mb-4 last:mb-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
@@ -381,13 +381,12 @@ function NewServerPage() {
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {(tierPackages.data ?? []).filter((p: any) => p.workload === w).map((p: any) => {
-                      const m = Number(p.unit_price) - Number(p.cost_price);
                       return (
                         <Tile key={p.code} active={form.plan_id === p.provider_plan && form.selling_price_usd === Number(p.unit_price)}
                           onClick={() => setF({ plan_id: p.provider_plan, selling_price_usd: Number(p.unit_price) })}>
                           <div className="text-xs font-semibold capitalize">{p.tier}</div>
                           <div className="font-mono font-bold">${Number(p.unit_price)}/mo</div>
-                          <div className="text-[11px] text-muted-foreground">Cost ${Number(p.cost_price)} · +${m} ({Math.round((m / Number(p.unit_price)) * 100)}%)</div>
+                          <div className="text-[11px] text-muted-foreground">{p.provider_plan}</div>
                         </Tile>
                       );
                     })}
@@ -542,7 +541,7 @@ function NewServerPage() {
             <div className="border-t pt-3 space-y-2">
               <Label className="text-xs">Customer price / month (USD)</Label>
               <Input type="number" step="0.01" value={form.selling_price_usd} onChange={(e) => setF({ selling_price_usd: Number(e.target.value) })} />
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Margin</span><span className={cn("font-mono font-semibold", margin < 0 ? "text-destructive" : "text-emerald-600")}>${margin}</span></div>
+              {margin < 0 && <p className="text-xs text-destructive">Price is below server cost.</p>}
             </div>
             <Button
               type="submit" disabled={submit.isPending || passwordBlocked}

@@ -131,7 +131,6 @@ function CloudOpsPage() {
     { label: "Top region", value: topRegion ? topRegion[0] : "—", sub: topRegion ? `${topRegion[1]} server(s)` : undefined },
     { label: "Top image", value: topImage ? topImage[0] : "—", sub: topImage ? `${topImage[1]} server(s)` : undefined },
     { label: "Unassigned servers", value: unassigned, sub: unassigned ? "Not linked to a customer" : "All servers assigned" },
-    { label: "Gross margin / mo", value: `$${margin.toFixed(2)}`, sub: `Cost $${monthlyCost.toFixed(2)} · Revenue $${monthlyRevenue.toFixed(2)}` },
   ];
 
   return (
@@ -194,9 +193,7 @@ function CloudOpsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <KpiTile icon={Server} label="Fleet" value={total} tone="info" hint={`${Object.keys(byDc).length} region(s)`} />
           <KpiTile icon={Activity} label="Healthy" value={active} tone={failed > 0 ? "warning" : "success"} hint={failed ? `${failed} failed` : "No failures"} />
-          <KpiTile icon={DollarSign} label="Cost / mo" value={`$${monthlyCost.toFixed(2)}`} tone="neutral" />
           <KpiTile icon={DollarSign} label="Revenue / mo" value={`$${monthlyRevenue.toFixed(2)}`} tone="success" />
-          <KpiTile icon={CloudIcon} label="Margin / mo" value={`$${margin.toFixed(2)}`} tone={margin >= 0 ? "success" : "danger"} />
         </div>
       </div>
 
