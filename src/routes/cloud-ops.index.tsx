@@ -140,6 +140,9 @@ function CloudOpsPage() {
         title="Cloud Operations"
         description="Servers, managed services and cloud spend across all providers."
       />
+      <div className="mb-4">
+        <Link to="/cloud-ops/fleet"><Button variant="outline" size="sm">Fleet control: monitor, manage &amp; configure</Button></Link>
+      </div>
 
       {/* Hero chips — Customer 360 pattern */}
       <div className="space-y-4 mb-6">
