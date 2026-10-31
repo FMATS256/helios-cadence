@@ -4452,25 +4452,106 @@ export type Database = {
           },
         ]
       }
+      personal_assistant_actions: {
+        Row: {
+          approval_token: string
+          created_at: string
+          decided_at: string | null
+          error: string | null
+          id: string
+          kind: string
+          payload: Json
+          result: string | null
+          status: string
+          task_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          approval_token?: string
+          created_at?: string
+          decided_at?: string | null
+          error?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          result?: string | null
+          status?: string
+          task_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          approval_token?: string
+          created_at?: string
+          decided_at?: string | null
+          error?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          result?: string | null
+          status?: string
+          task_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      personal_assistant_reports: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          message_id: string | null
+          report_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          report_date: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          report_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_assistant_settings: {
         Row: {
           assistant_name: string
+          daily_report_enabled: boolean
           enabled_roles: string[]
           persona: string
+          report_email: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           assistant_name?: string
+          daily_report_enabled?: boolean
           enabled_roles?: string[]
           persona?: string
+          report_email?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           assistant_name?: string
+          daily_report_enabled?: boolean
           enabled_roles?: string[]
           persona?: string
+          report_email?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -7342,6 +7423,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      invoke_assistant_daily_reports: { Args: never; Returns: number }
       invoke_monthly_finance_statements: { Args: never; Returns: number }
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
