@@ -1057,6 +1057,12 @@ export async function sendEnquiryReply(opts: {
     };
   }
 
+  // Hidden copy to the sender's own mailbox so sent mail also appears in their Outlook.
+  // Only for personal staff addresses — department mail would loop back into the shared inbox.
+  const senderCopy =
+    fromAddress !== departmentMailbox && !isDepartmentMailbox(fromAddress) ? [fromAddress] : [];
+  const bccList = [...new Set([...(opts.bcc ?? []).filter(Boolean), ...senderCopy])];
+
   const now = new Date().toISOString();
   const { data: message, error } = await admin
     .from("email_messages")
