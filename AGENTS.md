@@ -30,3 +30,4 @@
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
 - Server firewall changes go only through provider APIs (Vultr), staff-only and activity-logged; other providers show unsupported, never simulated.
+- Cloud Ops providers that bill IMT per order (InterServer) are held as pending_approval and only ordered after an operations manager/master admin decides via an atomic status claim; requesters cannot self-approve unless master admin.
