@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountManagerRouteImport } from './routes/account-manager'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AssetsRouteImport } from './routes/assets'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as BillingRouteImport } from './routes/billing'
@@ -132,6 +133,11 @@ const AdminRoute = AdminRouteImport.update({
 const AssetsRoute = AssetsRouteImport.update({
   id: '/assets',
   path: '/assets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -663,6 +669,7 @@ export interface FileRoutesByFullPath {
   '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -769,6 +776,7 @@ export interface FileRoutesByTo {
   '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -874,6 +882,7 @@ export interface FileRoutesById {
   '/account-manager': typeof AccountManagerRoute
   '/admin': typeof AdminRoute
   '/assets': typeof AssetsRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/automation': typeof AutomationRoute
   '/billing': typeof BillingRoute
@@ -982,6 +991,7 @@ export interface FileRouteTypes {
     | '/account-manager'
     | '/admin'
     | '/assets'
+    | '/assistant'
     | '/auth'
     | '/automation'
     | '/billing'
@@ -1088,6 +1098,7 @@ export interface FileRouteTypes {
     | '/account-manager'
     | '/admin'
     | '/assets'
+    | '/assistant'
     | '/auth'
     | '/automation'
     | '/billing'
@@ -1192,6 +1203,7 @@ export interface FileRouteTypes {
     | '/account-manager'
     | '/admin'
     | '/assets'
+    | '/assistant'
     | '/auth'
     | '/automation'
     | '/billing'
@@ -1299,6 +1311,7 @@ export interface RootRouteChildren {
   AccountManagerRoute: typeof AccountManagerRoute
   AdminRoute: typeof AdminRoute
   AssetsRoute: typeof AssetsRoute
+  AssistantRoute: typeof AssistantRoute
   AuthRoute: typeof AuthRoute
   AutomationRoute: typeof AutomationRoute
   BillingRoute: typeof BillingRoute
@@ -1414,6 +1427,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets'
       preLoaderRoute: typeof AssetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -2198,6 +2218,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountManagerRoute: AccountManagerRoute,
   AdminRoute: AdminRoute,
   AssetsRoute: AssetsRoute,
+  AssistantRoute: AssistantRoute,
   AuthRoute: AuthRoute,
   AutomationRoute: AutomationRoute,
   BillingRoute: BillingRoute,
