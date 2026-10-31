@@ -616,25 +616,31 @@ export async function ingestNormalizedEmail(input: NormalizedInbound): Promise<I
   if (!emailId || !fromEmail) return { status: "skipped", error: "missing provider_id or from" };
   const admin = adminClient();
 
+  const attachments = input.attachments ?? [];
   const { data: dupe } = await admin
     .from("email_messages")
-    .select("id")
+    .select("id, enquiry_id")
     .eq("resend_email_id", emailId)
     .limit(1)
     .maybeSingle();
-  if (dupe) return { status: "duplicate" };
+  if (dupe) {
+    const refreshed = await refreshStoredAttachments(admin, dupe, attachments);
+    return { status: "duplicate", ...refreshed };
+  }
 
-  const attachments = input.attachments ?? [];
   if (attachments.reduce((sum, a) => sum + Math.floor((a.content?.length ?? 0) * 0.75), 0) > 15 * 1024 * 1024) return { status: "skipped", error: "Inbound attachments exceed 15 MB" };
   const rawMessageId = stripMessageId(input.messageId);
   if (rawMessageId) {
     const { data: dupe2 } = await admin
       .from("email_messages")
-      .select("id")
+      .select("id, enquiry_id")
       .eq("message_id", rawMessageId)
       .limit(1)
       .maybeSingle();
-    if (dupe2) return { status: "duplicate" };
+    if (dupe2) {
+      const refreshed = await refreshStoredAttachments(admin, dupe2, attachments);
+      return { status: "duplicate", ...refreshed };
+    }
   }
 
   const inReplyTo = input.inReplyTo ?? null;
