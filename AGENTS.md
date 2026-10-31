@@ -13,9 +13,9 @@
 - Quotation previews and PDF downloads share a saved-value document model; pure PDF generation renders the branded layout without changing external-engine lifecycle or financial calculations.
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
-- Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so persistence failures cannot cause an unrecorded send or a direct-provider fallback.
+- Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
 - Base44 webhook resolves client ownership from the protected system setting, not incoming customer identifiers, so requester data cannot route tickets to another client.
-- Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links (on first receipt, on duplicate re-sends, or on demand via thread lookup), never another mail provider. Prepare blobs before download clicks to keep mobile user activation; preview only safe image/PDF/text.
+- Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
 - Default inbox and transactional signatures share one email-safe table template and staff-title resolver; compact inline mobile typography disables text autosizing, with desktop media overrides and a single linked promotional image to preserve proportions across mail clients. Custom personal signatures remain explicit overrides.
 - Inbox conversation rendering uses a dedicated collapsible message view with the latest message expanded first, authorized thread prefetching and foreground refresh, so older HTML signatures do not delay access to new replies.
