@@ -16,6 +16,7 @@ import { Activity, Power, PowerOff, RotateCw, RefreshCw, Settings2, Loader2 } fr
 import { FirewallManager } from "@/components/firewall-manager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Shield } from "lucide-react";
+import { ServerApprovals } from "@/components/server-tools-panel";
 import { workloadGuide, WORKLOAD_GUIDES } from "@/lib/server-config-guides";
 
 export const Route = createFileRoute("/cloud-ops/fleet")({
@@ -106,6 +107,7 @@ function FleetPage() {
         </Button>
       </div>
 
+      <div className="mb-4"><ServerApprovals /></div>
       <Card><CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
