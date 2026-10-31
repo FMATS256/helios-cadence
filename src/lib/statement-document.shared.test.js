@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { STATEMENT_MAILBOX, statementWindow, statementModel } from "./statement-document.shared";
+import { STATEMENT_MAILBOX, statementWindow, statementModel, statementAllocatedInvoices } from "./statement-document.shared";
 describe("monthly client statements", () => {
+  it("uses only received allocations as of the statement date for invoice ageing", () => {
+    const invoices = statementAllocatedInvoices([{ id: "I1", total: 200, amount_paid: 200 }], [
+      { invoice_id: "I1", amount: 25, payments: { status: "received", paid_at: "2026-10-20" } },
+      { invoice_id: "I1", amount: 100, payments: { status: "received", paid_at: "2026-11-01" } },
+      { invoice_id: "I1", amount: 75, payments: { status: "pending", paid_at: "2026-10-20" } },
+    ], "2026-10-21");
+    expect(invoices[0].amount_paid).toBe(25);
+  });
   it("uses finance rather than billing for monthly documents", () => expect(STATEMENT_MAILBOX).toBe("finance@imtsolutions.co.zw"));
   it("runs on the 21st in Harare", () => {
     expect(statementWindow(new Date("2026-11-20T22:00:00Z"))).toEqual({ period: "2026-11", from: "2026-11-01", to: "2026-11-21", due: true });
