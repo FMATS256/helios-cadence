@@ -228,7 +228,7 @@ function NewServerPage() {
       }
       return result;
     },
-    onSuccess: () => { toast.success("Server provisioning started"); navigate({ to: "/cloud-ops" }); },
+    onSuccess: (r: any) => { toast.success(r?.pending_approval ? "Order sent for staff approval — nothing is charged until approved" : "Server provisioning started"); navigate({ to: "/cloud-ops" }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -589,7 +589,7 @@ function continentBucket(hint: string): string {
 }
 
 function providerLabel(p: ProviderName) {
-  return ({ kamatera: "Kamatera", vultr: "Vultr", contabo: "Contabo",
+  return ({ kamatera: "Kamatera", vultr: "Vultr", contabo: "Contabo", interserver: "InterServer",
     hetzner: "Hetzner", digitalocean: "DigitalOcean", aws: "AWS", azure: "Azure", gcp: "GCP" } as any)[p];
 }
 
