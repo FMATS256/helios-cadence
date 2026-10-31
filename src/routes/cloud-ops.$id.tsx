@@ -12,6 +12,7 @@ import {
 } from "@/lib/servers.functions";
 import { upsertBackupSchedule, restoreBackup } from "@/lib/backups.functions";
 import { workloadGuide } from "@/lib/server-config-guides";
+import { FirewallManager } from "@/components/firewall-manager";
 import { GradientAreaChart, IMT_COLORS } from "@/components/dashboards/charts";
 import { PageContainer, PageHeader, StatusPill } from "@/components/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -530,7 +531,8 @@ function ServerDetailPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="firewall" className="mt-4">
+        <TabsContent value="firewall" className="mt-4 space-y-4">
+          <InfoCard title="Firewall rules"><FirewallManager server={s} /></InfoCard>
           <InfoCard title="Recommended configuration">
             {(() => {
               const g = workloadGuide(`${s.name} ${s.image ?? ""} ${s.notes ?? ""}`);
