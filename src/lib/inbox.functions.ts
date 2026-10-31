@@ -8,6 +8,7 @@ import {
   createAndSendEnquiryEmail,
   retryFailedMessageSend,
   adminClient,
+  backfillGatewayAttachments,
 } from "./inbox.server";
 import type { EnquiryListItem, EnquiryThread, InboxMessage } from "./inbox.shared";
 import { mailboxesForRoles, type EmailDraft, type EmailOrganization } from "./inbox.shared";
