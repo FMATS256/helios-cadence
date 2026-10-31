@@ -660,28 +660,42 @@ export async function refreshStoredAttachments(
 }
 
 /**
- * Pull fresh links from the website's messages API and retain every saved
- * attachment we still lack. Used for backfill and on-demand when opening one.
+ * Pull fresh links from the website's messages API (looked up by thread) and
+ * retain every saved attachment we still lack. Used for backfill and on demand.
  */
-export async function backfillGatewayAttachments(opts: { since?: string; providerId?: string } = {}): Promise<{ checked: number; retained: number; pending: number; error?: string }> {
+export async function backfillGatewayAttachments(opts: { messageIds?: string[] } = {}): Promise<{ checked: number; retained: number; pending: number; errors: string[] }> {
   const admin = adminClient();
+  let query = admin
+    .from("email_message_attachments")
+    .select("message_id, message:email_messages!inner(id, enquiry_id, resend_email_id, message_id, references_header)")
+    .is("storage_path", null)
+    .limit(500);
+  if (opts.messageIds?.length) query = query.in("message_id", opts.messageIds);
+  const { data: rows, error } = await query;
+  if (error) return { checked: 0, retained: 0, pending: 0, errors: [error.message] };
+  const messages = new Map<string, any>();
+  for (const r of (rows ?? []) as any[]) if (r.message) messages.set(r.message.id, r.message);
   let checked = 0, retained = 0, pending = 0;
-  for (const direction of ["inbound", "outbound"] as const) {
-    const listed = await listGatewayMessages({ direction, since: opts.since, limit: 100 });
-    if (!listed.ok) return { checked, retained, pending, error: listed.error };
-    const list: any[] = Array.isArray(listed.data?.data) ? listed.data.data : Array.isArray(listed.data) ? listed.data : [];
-    for (const m of list) {
-      if (!m?.attachments?.length || !m.provider_id) continue;
-      if (opts.providerId && m.provider_id !== opts.providerId) continue;
-      const { data: local } = await admin.from("email_messages").select("id, enquiry_id").eq("resend_email_id", m.provider_id).maybeSingle();
-      if (!local) continue;
-      checked++;
-      const r = await refreshStoredAttachments(admin, local, mapGatewayAttachments(m.attachments));
-      retained += r.attachmentsRetained;
-      pending += r.attachmentsPending;
+  const errors: string[] = [];
+  for (const local of messages.values()) {
+    checked++;
+    const threadKeys = [local.message_id, String(local.references_header ?? "").match(/<?([^<>\s]+@[^<>\s]+)>?/)?.[1]]
+      .filter(Boolean)
+      .flatMap((id: string) => [`<${stripMessageId(id)}>`, stripMessageId(id)]);
+    let found: any = null;
+    for (const thread_id of [...new Set(threadKeys)]) {
+      const listed = await listGatewayMessages({ thread_id, limit: 100 });
+      if (!listed.ok) { errors.push(listed.error); continue; }
+      const list: any[] = Array.isArray(listed.data?.data) ? listed.data.data : [];
+      found = list.find((m) => m.provider_id === local.resend_email_id);
+      if (found) break;
     }
+    if (!found) { pending++; continue; }
+    const r = await refreshStoredAttachments(admin, local, mapGatewayAttachments(found.attachments));
+    retained += r.attachmentsRetained;
+    pending += r.attachmentsPending;
   }
-  return { checked, retained, pending };
+  return { checked, retained, pending, errors: [...new Set(errors)].slice(0, 5) };
 }
 
 /** Website gateway attachment JSON → normalized inbound attachment. */
