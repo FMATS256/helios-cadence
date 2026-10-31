@@ -40,6 +40,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Automate creation-date anchored subscription billing after covered months, with atomic period deduplication and daily scheduling; test billing dates and invoice creation.
 - [ ] Verify signed-in portfolio/dispatch and billing reminder/payment-email round-trip; requesting user has no matching login and billing mailbox is empty, so sign-in and real payment correspondence are needed. No reminder was sent or payment recorded during this task.
 - [ ] Verify new workspace signed-in account readback, client invitation and recovery email round-trip: the requesting user has no matching staff login; needs preview sign-in.
 - [ ] Complete INV-01024 exact Microsoft 365 product/billing period and UK2AFRICA contact/address: real details are missing; demo licence cannot establish what the $200 invoice covers
