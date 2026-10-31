@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
-import { ingestNormalizedEmail } from "@/lib/inbox.server";
+import { ingestNormalizedEmail, mapGatewayAttachments } from "@/lib/inbox.server";
 
 const addressList = z
   .union([z.string(), z.array(z.string())])
@@ -38,7 +38,7 @@ const GatewayEnvelope = z.object({
     id: z.string().nullish(),
     direction: z.string().nullish(),
     enquiry_id: z.string().nullish(),
-    provider_id: z.string().min(1).max(300),
+    provider_id: z.string().max(300).nullish(),
     message_id: z.string().max(998).nullish(),
     in_reply_to: z.string().max(998).nullish(),
     references_header: z.string().max(20_000).nullish(),
@@ -57,7 +57,8 @@ const GatewayEnvelope = z.object({
 
 // Legacy flat shape (kept so older gateway builds keep working).
 const FlatPayload = z.object({
-  provider_id: z.string().min(1).max(300),
+  provider_id: z.string().max(300).nullish(),
+  id: z.string().max(300).nullish(),
   message_id: z.string().max(998).nullish(),
   thread_id: z.string().max(300).nullish(),
   from: z.string().min(3).max(500),
@@ -73,16 +74,19 @@ const FlatPayload = z.object({
 });
 
 function mapAttachments(list: z.infer<typeof Attachment>[] | null | undefined) {
-  return (list ?? []).map((att) => ({
-    filename: att.filename || "attachment",
-    content_type: att.content_type ?? null,
-    size_bytes: att.size_bytes ?? att.size ?? null,
-    // Gateway attachments are private storage paths; keep the path (or a URL
-    // when provided) so the file can be fetched from the gateway later.
-    attachment_id: att.download_url ?? att.url ?? att.path ?? att.id ?? null,
-    content: att.content ?? null,
-    content_id: att.content_id ?? null,
-  }));
+  return mapGatewayAttachments(list as any[]);
+}
+
+/**
+ * Some older emails have no provider or Message-ID. Fall back to the website's
+ * own row id, then the Message-ID, then a hash of sender/subject/time so a
+ * re-send of the same email still lands on the same record.
+ */
+function stableProviderId(...parts: Array<string | null | undefined>): string {
+  const [provider, rowId, messageId, ...rest] = parts;
+  const direct = provider || rowId || (messageId ? String(messageId).trim().replace(/^<|>$/g, "") : "");
+  if (direct) return direct;
+  return "gw-" + createHash("sha256").update(rest.map((v) => String(v ?? "")).join("\n")).digest("hex").slice(0, 40);
 }
 
 export const Route = createFileRoute("/api/public/email/inbound")({
@@ -118,7 +122,7 @@ export const Route = createFileRoute("/api/public/email/inbound")({
           referenceHint = envelope.data.enquiry?.reference ?? null;
           contactNameHint = envelope.data.enquiry?.customer_name ?? null;
           input = {
-            providerId: d.provider_id,
+            providerId: stableProviderId(d.provider_id, d.id, d.message_id, d.from_address, d.subject, d.created_at),
             messageId: d.message_id ?? null,
             from: d.from_address,
             to: d.to_addresses,
@@ -143,7 +147,7 @@ export const Route = createFileRoute("/api/public/email/inbound")({
           }
           const p = flat.data;
           input = {
-            providerId: p.provider_id,
+            providerId: stableProviderId(p.provider_id, p.id, p.message_id, p.from, p.subject, p.received_at),
             messageId: p.message_id ?? null,
             from: p.from,
             to: p.to,
