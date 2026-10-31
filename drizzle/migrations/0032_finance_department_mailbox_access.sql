@@ -1,0 +1,3 @@
+CREATE POLICY finance_mailbox_enquiries_read ON public.email_enquiries FOR SELECT TO authenticated USING (mailbox_address='finance@imtsolutions.co.zw' AND public.has_role(auth.uid(),'finance'));
+CREATE POLICY finance_mailbox_enquiries_modify ON public.email_enquiries FOR UPDATE TO authenticated USING (mailbox_address='finance@imtsolutions.co.zw' AND public.has_role(auth.uid(),'finance')) WITH CHECK (mailbox_address='finance@imtsolutions.co.zw' AND public.has_role(auth.uid(),'finance'));
+CREATE POLICY finance_mailbox_messages_read ON public.email_messages FOR SELECT TO authenticated USING (EXISTS(SELECT 1 FROM public.email_enquiries e WHERE e.id=email_messages.enquiry_id AND e.mailbox_address='finance@imtsolutions.co.zw' AND public.has_role(auth.uid(),'finance')));

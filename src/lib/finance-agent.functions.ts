@@ -21,7 +21,13 @@ export const getFinanceAgent = createServerFn({ method: "GET" })
     ]);
     const { data: messages, error: mailError } = await context.supabase.from("email_messages").select("id,subject,from_address,body_text,created_at,email_enquiries!inner(id,customer_id,mailbox_address)").eq("direction", "inbound").eq("email_enquiries.mailbox_address", BILLING_MAILBOX).order("created_at", { ascending: false }).limit(30);
     if (mailError) throw new Error("Unable to load billing correspondence");
-    return { settings: s.data, tasks: t.data ?? [], proposals: p.data ?? [], messages: messages ?? [], mailbox: BILLING_MAILBOX };
+    const [deliveries, scheduled, clients] = await Promise.all([
+      context.supabase.from("finance_statement_deliveries").select("*,customers(company_name,account_number)").order("created_at", { ascending: false }).limit(100),
+      context.supabase.rpc("finance_statement_schedule_status"),
+      context.supabase.from("customers").select("id,company_name,account_number,primary_email").is("archived_at", null),
+    ]);
+    if (deliveries.error || scheduled.error || clients.error) throw new Error("Unable to load monthly statement status");
+    return { settings: s.data, tasks: t.data ?? [], proposals: p.data ?? [], messages: messages ?? [], mailbox: BILLING_MAILBOX, deliveries: deliveries.data ?? [], scheduled: scheduled.data, statementClients: clients.data ?? [] };
   });
 
 export const refreshFinanceMailbox = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
@@ -29,6 +35,16 @@ export const refreshFinanceMailbox = createServerFn({ method: "POST" }).middlewa
   const { syncBillingMailbox } = await import("./finance-billing.server");
   return syncBillingMailbox();
 });
+
+export const downloadFinanceStatement = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((d: { customer_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+    const { prepareClientStatements } = await import("./finance-statements.server");
+    const now = new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);
+    return (await prepareClientStatements(db, data.customer_id, `${now.slice(0, 7)}-01`, now)).files;
+  });
 
 export const saveFinanceAgentSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

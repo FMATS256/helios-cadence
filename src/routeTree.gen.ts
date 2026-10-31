@@ -88,6 +88,7 @@ import { Route as ApiPublicHooksBackupsTickRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksBase44TicketsRouteImport } from './routes/api/public/hooks/base44-tickets'
 import { Route as ApiPublicHooksBudgetTickRouteImport } from './routes/api/public/hooks/budget-tick'
 import { Route as ApiPublicHooksEmailInboundRouteImport } from './routes/api/public/hooks/email-inbound'
+import { Route as ApiPublicHooksFinanceStatementsRouteImport } from './routes/api/public/hooks/finance-statements'
 import { Route as ApiPublicHooksHostingSyncRouteImport } from './routes/api/public/hooks/hosting-sync'
 import { Route as ApiPublicHooksMonitoringTickRouteImport } from './routes/api/public/hooks/monitoring-tick'
 import { Route as ApiPublicHooksProvisioningRetryRouteImport } from './routes/api/public/hooks/provisioning-retry'
@@ -515,6 +516,12 @@ const ApiPublicHooksEmailInboundRoute =
     path: '/api/public/hooks/email-inbound',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFinanceStatementsRoute =
+  ApiPublicHooksFinanceStatementsRouteImport.update({
+    id: '/api/public/hooks/finance-statements',
+    path: '/api/public/hooks/finance-statements',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksHostingSyncRoute =
   ApiPublicHooksHostingSyncRouteImport.update({
     id: '/api/public/hooks/hosting-sync',
@@ -725,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
+  '/api/public/hooks/finance-statements': typeof ApiPublicHooksFinanceStatementsRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -827,6 +835,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
+  '/api/public/hooks/finance-statements': typeof ApiPublicHooksFinanceStatementsRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -932,6 +941,7 @@ export interface FileRoutesById {
   '/api/public/hooks/base44-tickets': typeof ApiPublicHooksBase44TicketsRoute
   '/api/public/hooks/budget-tick': typeof ApiPublicHooksBudgetTickRoute
   '/api/public/hooks/email-inbound': typeof ApiPublicHooksEmailInboundRoute
+  '/api/public/hooks/finance-statements': typeof ApiPublicHooksFinanceStatementsRoute
   '/api/public/hooks/hosting-sync': typeof ApiPublicHooksHostingSyncRoute
   '/api/public/hooks/monitoring-tick': typeof ApiPublicHooksMonitoringTickRoute
   '/api/public/hooks/provisioning-retry': typeof ApiPublicHooksProvisioningRetryRoute
@@ -1038,6 +1048,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
+    | '/api/public/hooks/finance-statements'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -1140,6 +1151,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
+    | '/api/public/hooks/finance-statements'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -1244,6 +1256,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/base44-tickets'
     | '/api/public/hooks/budget-tick'
     | '/api/public/hooks/email-inbound'
+    | '/api/public/hooks/finance-statements'
     | '/api/public/hooks/hosting-sync'
     | '/api/public/hooks/monitoring-tick'
     | '/api/public/hooks/provisioning-retry'
@@ -1343,6 +1356,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBase44TicketsRoute: typeof ApiPublicHooksBase44TicketsRoute
   ApiPublicHooksBudgetTickRoute: typeof ApiPublicHooksBudgetTickRoute
   ApiPublicHooksEmailInboundRoute: typeof ApiPublicHooksEmailInboundRoute
+  ApiPublicHooksFinanceStatementsRoute: typeof ApiPublicHooksFinanceStatementsRoute
   ApiPublicHooksHostingSyncRoute: typeof ApiPublicHooksHostingSyncRoute
   ApiPublicHooksMonitoringTickRoute: typeof ApiPublicHooksMonitoringTickRoute
   ApiPublicHooksProvisioningRetryRoute: typeof ApiPublicHooksProvisioningRetryRoute
@@ -1915,6 +1929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksEmailInboundRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/finance-statements': {
+      id: '/api/public/hooks/finance-statements'
+      path: '/api/public/hooks/finance-statements'
+      fullPath: '/api/public/hooks/finance-statements'
+      preLoaderRoute: typeof ApiPublicHooksFinanceStatementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/hosting-sync': {
       id: '/api/public/hooks/hosting-sync'
       path: '/api/public/hooks/hosting-sync'
@@ -2226,6 +2247,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBase44TicketsRoute: ApiPublicHooksBase44TicketsRoute,
   ApiPublicHooksBudgetTickRoute: ApiPublicHooksBudgetTickRoute,
   ApiPublicHooksEmailInboundRoute: ApiPublicHooksEmailInboundRoute,
+  ApiPublicHooksFinanceStatementsRoute: ApiPublicHooksFinanceStatementsRoute,
   ApiPublicHooksHostingSyncRoute: ApiPublicHooksHostingSyncRoute,
   ApiPublicHooksMonitoringTickRoute: ApiPublicHooksMonitoringTickRoute,
   ApiPublicHooksProvisioningRetryRoute: ApiPublicHooksProvisioningRetryRoute,
