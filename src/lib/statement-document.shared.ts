@@ -1,5 +1,10 @@
 export const STATEMENT_MAILBOX = "finance@imtsolutions.co.zw";
 export const STATEMENT_DAY = 21;
+export function statementAllocatedInvoices(invoices: any[], allocations: any[], to: string) {
+  return invoices.map(invoice => ({ ...invoice, amount_paid: allocations
+    .filter(a => a.invoice_id === invoice.id && a.payments?.status === "received" && String(a.payments.paid_at).slice(0, 10) <= to)
+    .reduce((sum, a) => sum + Number(a.amount), 0) }));
+}
 export function statementWindow(now = new Date()) {
   const date = new Date(now.getTime() + 2 * 3600000).toISOString().slice(0, 10);
   const period = date.slice(0, 7);

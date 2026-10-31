@@ -1,4 +1,4 @@
-import { statementModel, statementWindow, STATEMENT_MAILBOX } from "./statement-document.shared";
+import { statementModel, statementWindow, statementAllocatedInvoices, STATEMENT_MAILBOX } from "./statement-document.shared";
 import { statementPdf } from "./statement-document.server";
 import { officialInvoicePdf, invoicePdfResponse } from "./invoice-document.server";
 import { accountManagerContact } from "./account-managers.server";
@@ -14,7 +14,11 @@ export async function prepareClientStatements(db: any, customerId: string, from:
     db.from("refunds").select("*").eq("customer_id", customerId).in("status", ["completed", "recorded"]).lte("refunded_at", `${to}T23:59:59.999+02:00`),
   ]);
   if (results.some(r => r.error)) throw new Error("Statement transactions could not be loaded");
-  const [invoices, payments, refunds] = results.map(r => r.data ?? []);
+  const [rawInvoices, payments, refunds] = results.map(r => r.data ?? []);
+  const ids = rawInvoices.map((i: any) => i.id);
+  const allocations = ids.length ? await db.from("payment_allocations").select("invoice_id,amount,payments:payment_id(status,paid_at)").in("invoice_id", ids) : { data: [], error: null };
+  if (allocations.error) throw new Error("Statement invoice balances could not be loaded");
+  const invoices = statementAllocatedInvoices(rawInvoices, allocations.data ?? [], to);
   const manager = await accountManagerContact(db, customer.account_manager_id);
   const currencies: string[] = [...new Set<string>([...invoices, ...payments, ...refunds].map(r => String(r.currency)))];
   if (!currencies.length) currencies.push("USD");

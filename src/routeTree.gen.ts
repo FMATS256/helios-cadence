@@ -61,6 +61,7 @@ import { Route as ClientAccessRouteImport } from './routes/client.access'
 import { Route as ClientInvoicesRouteImport } from './routes/client.invoices'
 import { Route as ClientPaymentsRouteImport } from './routes/client.payments'
 import { Route as ClientServicesRouteImport } from './routes/client.services'
+import { Route as ClientStatementsRouteImport } from './routes/client.statements'
 import { Route as ClientSupportRouteImport } from './routes/client.support'
 import { Route as CloudOpsIndexRouteImport } from './routes/cloud-ops.index'
 import { Route as CloudOpsIdRouteImport } from './routes/cloud-ops.$id'
@@ -373,6 +374,11 @@ const ClientPaymentsRoute = ClientPaymentsRouteImport.update({
 const ClientServicesRoute = ClientServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientStatementsRoute = ClientStatementsRouteImport.update({
+  id: '/statements',
+  path: '/statements',
   getParentRoute: () => ClientRoute,
 } as any)
 const ClientSupportRoute = ClientSupportRouteImport.update({
@@ -704,6 +710,7 @@ export interface FileRoutesByFullPath {
   '/client/invoices': typeof ClientInvoicesRoute
   '/client/payments': typeof ClientPaymentsRoute
   '/client/services': typeof ClientServicesRoute
+  '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
@@ -808,6 +815,7 @@ export interface FileRoutesByTo {
   '/client/invoices': typeof ClientInvoicesRoute
   '/client/payments': typeof ClientPaymentsRoute
   '/client/services': typeof ClientServicesRoute
+  '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
@@ -913,6 +921,7 @@ export interface FileRoutesById {
   '/client/invoices': typeof ClientInvoicesRoute
   '/client/payments': typeof ClientPaymentsRoute
   '/client/services': typeof ClientServicesRoute
+  '/client/statements': typeof ClientStatementsRoute
   '/client/support': typeof ClientSupportRoute
   '/cloud-ops/$id': typeof CloudOpsIdRoute
   '/cloud-ops/new': typeof CloudOpsNewRoute
@@ -1020,6 +1029,7 @@ export interface FileRouteTypes {
     | '/client/invoices'
     | '/client/payments'
     | '/client/services'
+    | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
@@ -1124,6 +1134,7 @@ export interface FileRouteTypes {
     | '/client/invoices'
     | '/client/payments'
     | '/client/services'
+    | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
@@ -1228,6 +1239,7 @@ export interface FileRouteTypes {
     | '/client/invoices'
     | '/client/payments'
     | '/client/services'
+    | '/client/statements'
     | '/client/support'
     | '/cloud-ops/$id'
     | '/cloud-ops/new'
@@ -1740,6 +1752,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientServicesRouteImport
       parentRoute: typeof ClientRoute
     }
+    '/client/statements': {
+      id: '/client/statements'
+      path: '/statements'
+      fullPath: '/client/statements'
+      preLoaderRoute: typeof ClientStatementsRouteImport
+      parentRoute: typeof ClientRoute
+    }
     '/client/support': {
       id: '/client/support'
       path: '/support'
@@ -2105,6 +2124,7 @@ interface ClientRouteChildren {
   ClientInvoicesRoute: typeof ClientInvoicesRoute
   ClientPaymentsRoute: typeof ClientPaymentsRoute
   ClientServicesRoute: typeof ClientServicesRoute
+  ClientStatementsRoute: typeof ClientStatementsRoute
   ClientSupportRoute: typeof ClientSupportRoute
   ClientIndexRoute: typeof ClientIndexRoute
 }
@@ -2114,6 +2134,7 @@ const ClientRouteChildren: ClientRouteChildren = {
   ClientInvoicesRoute: ClientInvoicesRoute,
   ClientPaymentsRoute: ClientPaymentsRoute,
   ClientServicesRoute: ClientServicesRoute,
+  ClientStatementsRoute: ClientStatementsRoute,
   ClientSupportRoute: ClientSupportRoute,
   ClientIndexRoute: ClientIndexRoute,
 }
