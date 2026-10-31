@@ -1057,6 +1057,12 @@ export async function sendEnquiryReply(opts: {
     };
   }
 
+  // Hidden copy to the sender's own mailbox so sent mail also appears in their Outlook.
+  // Only for personal staff addresses — department mail would loop back into the shared inbox.
+  const senderCopy =
+    fromAddress !== departmentMailbox && !isDepartmentMailbox(fromAddress) ? [fromAddress] : [];
+  const bccList = [...new Set([...(opts.bcc ?? []).filter(Boolean), ...senderCopy])];
+
   const now = new Date().toISOString();
   const { data: message, error } = await admin
     .from("email_messages")
@@ -1077,7 +1083,7 @@ export async function sendEnquiryReply(opts: {
       delivery_error: "Delivery not attempted",
       created_by: opts.senderId,
       sender_name: opts.senderName,
-      bcc_address: opts.bcc?.join(", ") || null,
+      bcc_address: bccList.join(", ") || null,
     })
     .select("*")
     .single();
@@ -1120,7 +1126,7 @@ export async function sendEnquiryReply(opts: {
     from: fromLine,
     to: enquiry.contact_email,
     cc: opts.cc?.filter(Boolean),
-    bcc: opts.bcc?.filter(Boolean),
+    bcc: bccList,
     subject: taggedSubject,
     html,
     text,
