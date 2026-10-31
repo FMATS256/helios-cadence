@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { subscriptionCycleMonths } from "@/lib/subscription-billing.shared";
 
 const CYCLES = ["monthly", "quarterly", "annually", "one_time"];
 const STATUSES = ["active", "paused", "cancelled", "expired"];
@@ -48,9 +49,9 @@ export function SubscriptionsPage() {
         emptyLabel="No subscriptions yet."
         createTitle="New subscription"
         createLabel="New subscription"
-        emptyForm={{ customer_id: "", plan_name: "", description: "", amount: 0, currency: "USD", billing_cycle: "monthly", status: "active", started_on: new Date().toISOString().slice(0, 10), next_renewal: "", auto_renew: true, notes: "" }}
+        emptyForm={{ customer_id: "", plan_name: "", description: "", amount: 0, currency: "USD", billing_cycle: "monthly", status: "active", started_on: new Date().toISOString().slice(0, 10), paid_months: 1, auto_renew: true, notes: "" }}
         validateForm={(f) => (!f.customer_id ? "Customer required" : !f.plan_name ? "Plan required" : null)}
-        transformInsert={(f) => ({ ...f, amount: Number(f.amount) || 0, started_on: f.started_on || null, next_renewal: f.next_renewal || null })}
+        transformInsert={(f) => ({ ...f, amount: Number(f.amount) || 0, started_on: f.started_on || null, paid_months: f.billing_cycle === "one_time" ? null : Number(f.paid_months) })}
         onCreate={(f) => createSubscription({ data: f })}
         onCreated={(created: any) => {
           if (!created?.account_number) return;
@@ -78,7 +79,7 @@ export function SubscriptionsPage() {
             </div>
             <div className="space-y-2"><Label>Plan name *</Label><Input required value={form.plan_name} onChange={(e) => setForm({ ...form, plan_name: e.target.value })} /></div>
             <div className="space-y-2"><Label>Billing cycle</Label>
-              <Select value={form.billing_cycle} onValueChange={(v) => setForm({ ...form, billing_cycle: v })}>
+              <Select value={form.billing_cycle} onValueChange={(v) => setForm({ ...form, billing_cycle: v, paid_months: subscriptionCycleMonths(v) || 1 })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CYCLES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>)}</SelectContent>
               </Select>
@@ -98,7 +99,7 @@ export function SubscriptionsPage() {
               </Select>
             </div>
             <div className="space-y-2"><Label>Started on</Label><Input type="date" value={form.started_on} onChange={(e) => setForm({ ...form, started_on: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Next renewal</Label><Input type="date" value={form.next_renewal} onChange={(e) => setForm({ ...form, next_renewal: e.target.value })} /></div>
+            {form.billing_cycle !== "one_time" && <div className="space-y-2"><Label>Months already covered</Label><Input type="number" min={1} max={120} step={1} value={form.paid_months} onChange={(e) => setForm({ ...form, paid_months: e.target.value })} /></div>}
             <div className="col-span-2 space-y-2"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
             <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>

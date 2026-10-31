@@ -2859,6 +2859,8 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           status: string
+          subscription_id: string | null
+          subscription_period_start: string | null
           subtotal: number
           tax: number
           total: number
@@ -2879,6 +2881,8 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           status?: string
+          subscription_id?: string | null
+          subscription_period_start?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -2899,6 +2903,8 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           status?: string
+          subscription_id?: string | null
+          subscription_period_start?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -2910,6 +2916,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -6213,6 +6226,7 @@ export type Database = {
           account_number: string
           amount: number
           auto_renew: boolean
+          billing_anchor: string | null
           billing_cycle: string
           created_at: string
           created_by: string | null
@@ -6222,6 +6236,7 @@ export type Database = {
           id: string
           next_renewal: string | null
           notes: string | null
+          paid_months: number | null
           plan_name: string
           started_on: string | null
           status: string
@@ -6231,6 +6246,7 @@ export type Database = {
           account_number: string
           amount?: number
           auto_renew?: boolean
+          billing_anchor?: string | null
           billing_cycle?: string
           created_at?: string
           created_by?: string | null
@@ -6240,6 +6256,7 @@ export type Database = {
           id?: string
           next_renewal?: string | null
           notes?: string | null
+          paid_months?: number | null
           plan_name: string
           started_on?: string | null
           status?: string
@@ -6249,6 +6266,7 @@ export type Database = {
           account_number?: string
           amount?: number
           auto_renew?: boolean
+          billing_anchor?: string | null
           billing_cycle?: string
           created_at?: string
           created_by?: string | null
@@ -6258,6 +6276,7 @@ export type Database = {
           id?: string
           next_renewal?: string | null
           notes?: string | null
+          paid_months?: number | null
           plan_name?: string
           started_on?: string | null
           status?: string
@@ -7158,6 +7177,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bill_subscription_period: {
+        Args: {
+          p_due_days?: number
+          p_issue?: boolean
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       claim_customer_welcome: {
         Args: { p_customer_id: string }
         Returns: boolean
@@ -7211,6 +7238,7 @@ export type Database = {
         Args: { _payment_id: string }
         Returns: undefined
       }
+      run_subscription_auto_billing: { Args: never; Returns: Json }
       save_email_workspace_value: {
         Args: { p_field: string; p_key: string; p_value: Json }
         Returns: undefined
@@ -7229,6 +7257,15 @@ export type Database = {
           p_size: number
           p_type: string
         }
+        Returns: string
+      }
+      subscription_anchor_date: {
+        Args: { p_anchor: string; p_months: number }
+        Returns: string
+      }
+      subscription_cycle_months: { Args: { p_cycle: string }; Returns: number }
+      subscription_next_date: {
+        Args: { p_after: string; p_anchor: string; p_cycle: string }
         Returns: string
       }
       workspace_role_of: {

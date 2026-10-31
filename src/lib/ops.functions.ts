@@ -388,6 +388,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
     status?: string;
     started_on?: string | null;
     next_renewal?: string | null;
+    paid_months?: number | null;
     auto_renew?: boolean;
     notes?: string;
   }) => input)
@@ -397,6 +398,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
     if (!hasRole) throw new Error("Your account needs a staff role before you can add subscriptions.");
     if (!data.customer_id) throw new Error("Customer is required");
     if (!data.plan_name?.trim()) throw new Error("Plan is required");
+    if (data.paid_months != null && (!Number.isInteger(data.paid_months) || data.paid_months < 1 || data.paid_months > 120)) throw new Error("Months covered must be between 1 and 120");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: customer, error: customerError } = await supabaseAdmin
@@ -419,6 +421,7 @@ export const createSubscriptionRecord = createServerFn({ method: "POST" })
         status: data.status || "active",
         started_on: data.started_on || null,
         next_renewal: data.next_renewal || null,
+        paid_months: data.paid_months ?? null,
         auto_renew: data.auto_renew ?? true,
         notes: data.notes?.trim() || null,
         created_by: context.userId,
@@ -599,32 +602,15 @@ export const generateInvoiceForSubscription = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: sub, error: subErr } = await supabaseAdmin.from("subscriptions").select("*").eq("id", data.subscription_id).single();
     if (subErr || !sub) throw new Error(subErr?.message ?? "Subscription not found");
-    const issue = data.issue_date ? new Date(data.issue_date) : new Date();
-    const due = new Date(issue); due.setDate(due.getDate() + (data.due_days ?? 14));
-    const subtotal = Number(sub.amount) || 0;
-    const taxRate = data.tax_rate ?? 0;
-    const tax = +(subtotal * taxRate / 100).toFixed(2);
-    const total = +(subtotal + tax).toFixed(2);
-    const { data: invoice, error } = await supabaseAdmin.from("invoices").insert({
-      customer_id: sub.customer_id,
-      account_number: sub.account_number,
-      currency: sub.currency || "USD",
-      issue_date: issue.toISOString().slice(0, 10),
-      due_date: due.toISOString().slice(0, 10),
-      subtotal, tax, total,
-      status: "sent",
-      notes: `Auto-generated for subscription: ${sub.plan_name}`,
-      created_by: context.userId,
-    }).select("*").single();
-    if (error) throw new Error(error.message);
-    await supabaseAdmin.from("invoice_line_items").insert({
-      invoice_id: invoice.id,
-      description: `${sub.plan_name}${sub.description ? ` — ${sub.description}` : ""} (${sub.billing_cycle})`,
-      quantity: 1,
-      unit_price: subtotal,
-      tax_rate: taxRate,
-      position: 0,
+    const { data: billed, error: billingError } = await supabaseAdmin.rpc("bill_subscription_period", {
+      p_subscription_id: sub.id, p_issue: true, p_due_days: data.due_days ?? 14,
     });
+    if (billingError) throw new Error(billingError.message);
+    const result = billed as any;
+    if (result?.skipped) throw new Error("This subscription is not due for billing or this period already has an invoice.");
+    const { data: invoice, error } = await supabaseAdmin.from("invoices").select("*").eq("id", result.invoice_id).single();
+    if (error || !invoice) throw new Error(error?.message ?? "Invoice could not be loaded");
+    const subtotal = Number(invoice.subtotal), tax = Number(invoice.tax), total = Number(invoice.total);
 
     // Invoice-issued email
     const { data: cust } = await supabaseAdmin
