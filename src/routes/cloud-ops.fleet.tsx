@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Activity, Power, PowerOff, RotateCw, RefreshCw, Settings2, Loader2 } from "lucide-react";
+import { FirewallManager } from "@/components/firewall-manager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Shield } from "lucide-react";
 import { workloadGuide, WORKLOAD_GUIDES } from "@/lib/server-config-guides";
 
 export const Route = createFileRoute("/cloud-ops/fleet")({
@@ -32,6 +35,7 @@ export const Route = createFileRoute("/cloud-ops/fleet")({
 function FleetPage() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [fw, setFw] = useState<any>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const fnSample = useServerFn(sampleServerMetrics);
   const fnPower = useServerFn(powerProviderServer);
@@ -128,6 +132,7 @@ function FleetPage() {
                     <IconBtn title="Power on" onClick={() => act(s.id, "on")} busy={busy === s.id + "on"}><Power className="h-3.5 w-3.5" /></IconBtn>
                     <IconBtn title="Reboot" onClick={() => act(s.id, "reboot")} busy={busy === s.id + "reboot"}><RotateCw className="h-3.5 w-3.5" /></IconBtn>
                     <IconBtn title="Power off" onClick={() => act(s.id, "off")} busy={busy === s.id + "off"}><PowerOff className="h-3.5 w-3.5" /></IconBtn>
+                    <Button size="icon" variant="ghost" title="Firewall" onClick={() => setFw(s)}><Shield className="h-3.5 w-3.5" /></Button>
                     <Link to="/cloud-ops/$id" params={{ id: s.id }}><Button size="icon" variant="ghost" title="Manage"><Settings2 className="h-3.5 w-3.5" /></Button></Link>
                   </TableCell>
                 </TableRow>
@@ -136,6 +141,13 @@ function FleetPage() {
           </TableBody>
         </Table>
       </CardContent></Card>
+
+      <Dialog open={!!fw} onOpenChange={(o) => !o && setFw(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Firewall — {fw?.name}</DialogTitle></DialogHeader>
+          {fw && <FirewallManager server={fw} />}
+        </DialogContent>
+      </Dialog>
 
       <h2 className="text-lg font-semibold mt-8 mb-3">Configuration guides</h2>
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
