@@ -67,6 +67,7 @@ const siteNav: NavNode[] = [
       { title: "Leads & Accounts", url: "/leads", icon: Target },
       { title: "Account Manager", url: "/account-manager", icon: Users },
       { title: "Email Inbox", url: "/inbox", icon: Inbox },
+      { title: "Personal Assistant", url: "/assistant", icon: Bot },
       { title: "Quotations", url: "/quotes", icon: FileText },
       { title: "Communications", url: "/communications", icon: MessageSquare },
       { title: "Projects", url: "/projects", icon: FolderKanban },

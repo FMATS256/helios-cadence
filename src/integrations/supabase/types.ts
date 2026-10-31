@@ -4452,6 +4452,69 @@ export type Database = {
           },
         ]
       }
+      personal_assistant_settings: {
+        Row: {
+          assistant_name: string
+          enabled_roles: string[]
+          persona: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assistant_name?: string
+          enabled_roles?: string[]
+          persona?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assistant_name?: string
+          enabled_roles?: string[]
+          persona?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      personal_assistant_tasks: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          instructions: string
+          role: string
+          status: string
+          summary: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instructions?: string
+          role?: string
+          status?: string
+          summary?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instructions?: string
+          role?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portal_announcements: {
         Row: {
           active: boolean
