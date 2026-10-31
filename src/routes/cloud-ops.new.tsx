@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Cloud, MapPin, Cpu, HardDrive, Server, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type ProviderName = "kamatera" | "vultr" | "contabo" | "hetzner" | "digitalocean" | "aws" | "azure" | "gcp";
+type ProviderName = "kamatera" | "vultr" | "contabo" | "interserver" | "hetzner" | "digitalocean" | "aws" | "azure" | "gcp";
 
 export const Route = createFileRoute("/cloud-ops/new")({
   head: () => ({ meta: [{ title: "Provision Server — IMT Cloud Ops" }] }),

@@ -2,11 +2,13 @@ import type { CloudProvider, ProviderName } from "./types";
 import { kamateraAdapter } from "./kamatera/adapter.server";
 import { vultrAdapter } from "./vultr/adapter.server";
 import { contaboAdapter } from "./contabo/adapter.server";
+import { interserverAdapter } from "./interserver/adapter.server";
 
 const REGISTRY: Partial<Record<ProviderName, CloudProvider>> = {
   vultr: vultrAdapter,
   kamatera: kamateraAdapter,
   contabo: contaboAdapter,
+  interserver: interserverAdapter,
 };
 
 export function listProviders(): {
@@ -28,6 +30,8 @@ export function listProviders(): {
       ? "Custom sizing — requires IP allowlist & manual validation"
       : n === "contabo"
       ? "Budget VPS — requires OAuth2 credentials"
+      : n === "interserver"
+      ? "Low-cost VPS slices (USA) — every order needs staff approval"
       : undefined,
   }));
 }
@@ -47,6 +51,7 @@ function displayNameFor(n: ProviderName) {
     kamatera: "Kamatera",
     vultr: "Vultr",
     contabo: "Contabo",
+    interserver: "InterServer",
     hetzner: "Hetzner Cloud",
     digitalocean: "DigitalOcean",
     aws: "Amazon Web Services",
