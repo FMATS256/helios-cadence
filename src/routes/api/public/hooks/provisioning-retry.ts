@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 // Cron hook: retries failed provisioning workflows (Phase 4 agent completion).
 // Marks stale running workflows as failed after 30 min of inactivity, then
 // re-runs any recently-failed workflow up to MAX_RETRIES times.
@@ -9,7 +10,7 @@ const STALE_MINUTES = 30;
 export const Route = createFileRoute("/api/public/hooks/provisioning-retry")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => { const denied = denyUnlessInternal(request); if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runWorkflow } = await import("@/lib/agent/workflow.server");
         const staleCutoff = new Date(Date.now() - STALE_MINUTES * 60 * 1000).toISOString();

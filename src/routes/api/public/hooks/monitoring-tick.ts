@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 // Cron-triggered monitoring tick. Uses admin client to run due checks.
@@ -75,11 +76,11 @@ async function serverUptime(admin: any) {
 export const Route = createFileRoute("/api/public/hooks/monitoring-tick")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => { const denied = denyUnlessInternal(request); if (denied) return denied;
         const out = await runTick();
         return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
       },
-      GET: async () => {
+      GET: async ({ request }) => { const denied = denyUnlessInternal(request); if (denied) return denied;
         const out = await runTick();
         return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
       },

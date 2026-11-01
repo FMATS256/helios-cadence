@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 // Automation tick — runs every enabled automation rule (renewal reminders,
@@ -18,8 +19,8 @@ async function tick(request: Request) {
 export const Route = createFileRoute("/api/public/hooks/automation-tick")({
   server: {
     handlers: {
-      GET: async ({ request }) => tick(request),
-      POST: async ({ request }) => tick(request),
+      GET: async ({ request }) => denyUnlessInternal(request) ?? tick(request),
+      POST: async ({ request }) => denyUnlessInternal(request) ?? tick(request),
     },
   },
 });

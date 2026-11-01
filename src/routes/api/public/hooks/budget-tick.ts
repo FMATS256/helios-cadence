@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 // Cron hook: computes each customer's monthly spend and fires notifications
 // when a budget threshold (warning) or cap (breach) is crossed.
 // Schedule via pg_cron hourly.
@@ -10,7 +11,7 @@ function monthStart(d = new Date()) {
 export const Route = createFileRoute("/api/public/hooks/budget-tick")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => { const denied = denyUnlessInternal(request); if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const [{ data: budgets }, { data: servers }, { data: subs }] = await Promise.all([
           supabaseAdmin.from("customer_budgets").select("*").eq("enabled", true),

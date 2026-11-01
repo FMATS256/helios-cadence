@@ -55,6 +55,7 @@
     "@tanstack/router-plugin": "1.168.42",
     "@types/leaflet": "^1.9.22",
     "ai": "^7.0.154",
+    "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

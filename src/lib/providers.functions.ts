@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStaffAuth } from "./staff-auth";
 import type { ProviderName } from "./providers/types";
 
 /** Providers whose orders bill IMT directly and therefore need staff approval. */
@@ -245,7 +246,7 @@ export const estimateProviderPrice = createServerFn({ method: "POST" })
 
 /* ------------------------- Handover to customer ------------------------- */
 export const sendServerHandover = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireStaffAuth])
   .inputValidator((d: { server_id: string; contact_email?: string; root_password?: string; message?: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

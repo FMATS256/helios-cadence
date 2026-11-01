@@ -27,6 +27,8 @@ export const invitePortalUser = createServerFn({ method: "POST" })
       const { data: roles, error: rolesError } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", existing.id);
       if (rolesError || roles?.length) throw new Error("Staff logins cannot be linked as client-only portal users");
       if (existing.customer_id && existing.customer_id !== data.customer_id) throw new Error("Login is already linked to another client");
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(existing.id);
+      if (!authUser?.user?.email_confirmed_at) throw new Error("This login has not confirmed its email address yet, so it cannot be linked");
       const { error: linkError } = await supabaseAdmin.from("profiles").update({ customer_id: data.customer_id }).eq("id", existing.id);
       if (linkError) throw new Error("Unable to link portal access");
       return { ok: true, user_id: existing.id };

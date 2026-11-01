@@ -1,25 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireStaffAuth } from "./staff-auth";
 
-export const listDatacenters = createServerFn({ method: "GET" }).handler(async () => {
+export const listDatacenters = createServerFn({ method: "GET" }).middleware([requireStaffAuth]).handler(async () => {
   const { listDatacenters } = await import("./kamatera.server");
   return listDatacenters();
 });
 
-export const getCapabilities = createServerFn({ method: "GET" })
+export const getCapabilities = createServerFn({ method: "GET" }).middleware([requireStaffAuth])
   .inputValidator((d: { datacenter: string }) => d)
   .handler(async ({ data }) => {
     const { getCapabilities } = await import("./kamatera.server");
     return getCapabilities(data.datacenter);
   });
 
-export const listImages = createServerFn({ method: "GET" })
+export const listImages = createServerFn({ method: "GET" }).middleware([requireStaffAuth])
   .inputValidator((d: { datacenter: string }) => d)
   .handler(async ({ data }) => {
     const { listImages } = await import("./kamatera.server");
     return listImages(data.datacenter);
   });
 
-export const verifyKamatera = createServerFn({ method: "GET" }).handler(async () => {
+export const verifyKamatera = createServerFn({ method: "GET" }).middleware([requireStaffAuth]).handler(async () => {
   try {
     const { ping } = await import("./kamatera.server");
     const res = await ping();
@@ -41,7 +42,7 @@ export const verifyKamatera = createServerFn({ method: "GET" }).handler(async ()
   }
 });
 
-export const provisionServer = createServerFn({ method: "POST" })
+export const provisionServer = createServerFn({ method: "POST" }).middleware([requireStaffAuth])
   .inputValidator((d: {
     customer_id?: string | null;
     name: string;
@@ -157,7 +158,7 @@ export const provisionServer = createServerFn({ method: "POST" })
     }
   });
 
-export const getDeploymentStatus = createServerFn({ method: "GET" })
+export const getDeploymentStatus = createServerFn({ method: "GET" }).middleware([requireStaffAuth])
   .inputValidator((d: { commandId: string }) => d)
   .handler(async ({ data }) => {
     const { getCommandStatus } = await import("./kamatera.server");
@@ -165,7 +166,7 @@ export const getDeploymentStatus = createServerFn({ method: "GET" })
   });
 
 /** Sync every Kamatera server into cloud_servers, upserting by provider_server_id / name. */
-export const syncServers = createServerFn({ method: "POST" }).handler(async () => {
+export const syncServers = createServerFn({ method: "POST" }).middleware([requireStaffAuth]).handler(async () => {
   const { listServers } = await import("./kamatera.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -237,7 +238,7 @@ export const syncServers = createServerFn({ method: "POST" }).handler(async () =
   return { total: list.length, created, updated };
 });
 
-export const refreshServer = createServerFn({ method: "POST" })
+export const refreshServer = createServerFn({ method: "POST" }).middleware([requireStaffAuth])
   .inputValidator((d: { server_id: string }) => d)
   .handler(async ({ data }) => {
     const { getServerInfo } = await import("./kamatera.server");
@@ -273,7 +274,7 @@ export const refreshServer = createServerFn({ method: "POST" })
     return { ok: true, info: r };
   });
 
-export const serverPower = createServerFn({ method: "POST" })
+export const serverPower = createServerFn({ method: "POST" }).middleware([requireStaffAuth])
   .inputValidator((d: { server_id: string; action: "poweron" | "poweroff" | "reboot" }) => d)
   .handler(async ({ data }) => {
     const { powerAction } = await import("./kamatera.server");
@@ -300,7 +301,7 @@ export const serverPower = createServerFn({ method: "POST" })
     return { ok: true, commandId };
   });
 
-export const terminateServer = createServerFn({ method: "POST" })
+export const terminateServer = createServerFn({ method: "POST" }).middleware([requireStaffAuth])
   .inputValidator((d: { server_id: string }) => d)
   .handler(async ({ data }) => {
     const { terminateServer } = await import("./kamatera.server");

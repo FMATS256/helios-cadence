@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 // Daily reminders tick — emits in-app notifications for:
@@ -178,8 +179,8 @@ async function runReminders() {
 export const Route = createFileRoute("/api/public/hooks/reminders-tick")({
   server: {
     handlers: {
-      GET: async () => new Response(JSON.stringify(await runReminders()), { headers: { "content-type": "application/json" } }),
-      POST: async () => new Response(JSON.stringify(await runReminders()), { headers: { "content-type": "application/json" } }),
+      GET: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runReminders()), { headers: { "content-type": "application/json" } }),
+      POST: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runReminders()), { headers: { "content-type": "application/json" } }),
     },
   },
 });

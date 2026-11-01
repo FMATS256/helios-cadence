@@ -47,6 +47,20 @@ export const provisionVultrStorage = createServerFn({ method: "POST" })
     });
     const os = created.object_storage ?? {};
 
+    // Create the client's bucket once the S3 endpoint is ready (Vultr activates within ~1 minute).
+    const bucket = `imt-${data.name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 40)}-${Date.now().toString(36)}`.replace(/-+$/, "");
+    let bucketCreated = false;
+    if (os.s3_access_key && os.s3_secret_key && os.s3_hostname) {
+      const { AwsClient } = await import("aws4fetch");
+      const s3 = new AwsClient({ accessKeyId: os.s3_access_key, secretAccessKey: os.s3_secret_key, service: "s3", region: "us-east-1" });
+      for (let i = 0; i < 6 && !bucketCreated; i++) {
+        const r = await s3.fetch(`https://${os.s3_hostname}/${bucket}`, { method: "PUT" }).catch(() => null);
+        if (r && (r.ok || r.status === 409)) bucketCreated = true;
+        else await new Promise((res) => setTimeout(res, 10000));
+      }
+    }
+
+
     let credId: string | null = null;
     if (os.s3_secret_key) {
       const { encryptSecret } = await import("./encryption.server");
@@ -83,5 +97,19 @@ export const provisionVultrStorage = createServerFn({ method: "POST" })
       created_by: context.userId,
     }).select("id").single();
     if (error) throw new Error(`Storage was created at Vultr (${os.id}) but saving failed: ${error.message}`);
-    return { id: row.id, vultr_id: os.id ?? null, price, hostname: os.s3_hostname ?? null };
+
+    // Charge the client: a monthly subscription anchored today feeds automatic invoicing.
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: subError } = await db.from("subscriptions").insert({
+      customer_id: data.customer_id,
+      account_number: "", // filled by trigger
+      plan_name: `Cloud Storage ${Number(data.size_gb) >= 1000 ? `${Number(data.size_gb) / 1000} TB` : `${data.size_gb} GB`}`,
+      description: `Vultr Object Storage "${data.name.trim()}" (${os.id ?? "pending"})`,
+      amount: price, currency: "USD", billing_cycle: "monthly", status: "active",
+      started_on: today, billing_anchor: today, paid_months: 0,
+      next_renewal: renewal.toISOString().slice(0, 10), auto_renew: true,
+      notes: `cloud_storage_account:${row.id}`, created_by: context.userId,
+    } as any);
+    if (subError) throw new Error(`Storage is live but the monthly charge was not saved: ${subError.message}. Add the subscription in Customer 360.`);
+    return { id: row.id, vultr_id: os.id ?? null, price, hostname: os.s3_hostname ?? null, billed: true };
   });

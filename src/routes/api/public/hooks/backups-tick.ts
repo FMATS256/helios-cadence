@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 // Cron hook: runs due backup schedules and prunes expired backups.
 // Schedule via pg_cron every 15 minutes.
 import { createFileRoute } from "@tanstack/react-router";
@@ -5,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/api/public/hooks/backups-tick")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => { const denied = denyUnlessInternal(request); if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const now = new Date();
 

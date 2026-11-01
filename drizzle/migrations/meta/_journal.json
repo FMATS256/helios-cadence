@@ -274,6 +274,13 @@
       "when": 1793479040678,
       "tag": "0038_server_action_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793521027241,
+      "tag": "0039_secure_internal_hook_schedules",
+      "breakpoints": true
     }
   ]
 }
