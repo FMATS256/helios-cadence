@@ -8,6 +8,7 @@ import {
 import { Search, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { globalSearch } from "@/lib/ops.functions";
+import { openClientDesk, ClientDeskSheet } from "@/components/techops/support-desk";
 
 type Recent = { id: string; account_number: string; company_name: string; at: number };
 const RECENTS_KEY = "imt.customer.recents";
@@ -53,13 +54,14 @@ export function GlobalSearchTrigger() {
       >
         <Search className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="text-sm text-muted-foreground truncate flex-1">
-          Search customers, invoices, receipts, tickets, assets…
+          Search clients, tickets, services, invoices, serials…
         </span>
         <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded border border-border bg-background px-1.5 text-[10px] font-mono text-muted-foreground">
           ⌘K
         </kbd>
       </button>
       <GlobalSearchPalette open={open} onOpenChange={setOpen} />
+      <ClientDeskSheet />
     </>
   );
 }
@@ -89,10 +91,16 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
     pushRecent(c);
     onOpenChange(false);
     setQ("");
-    navigate({ to: "/customers/$accountNumber", params: { accountNumber: c.account_number } });
+    if (c.id) openClientDesk(c.id);
+    else navigate({ to: "/customers/$accountNumber", params: { accountNumber: c.account_number } });
+  };
+  const goDesk = (customerId: string | null | undefined, fallback: () => void) => {
+    onOpenChange(false); setQ("");
+    if (customerId) openClientDesk(customerId); else fallback();
   };
 
-  const r = data ?? { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [] };
+  const r: any = data ?? { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [], services: [] };
+  if (!r.services) r.services = [];
   const showRecents = q.trim().length < 2 && recents.length > 0;
 
   return (
@@ -102,7 +110,7 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
         {q.trim().length < 2 && recents.length === 0 && (
           <CommandEmpty>Type at least 2 characters. Try an M-number, invoice #, or receipt #.</CommandEmpty>
         )}
-        {q.trim().length >= 2 && !isFetching && (r.customers.length + r.invoices.length + r.payments.length + r.tickets.length + r.subscriptions.length + r.assets.length + r.credentials.length === 0) && (
+        {q.trim().length >= 2 && !isFetching && (r.customers.length + r.invoices.length + r.payments.length + r.tickets.length + r.subscriptions.length + r.assets.length + r.credentials.length + r.services.length === 0) && (
           <CommandEmpty>No results for “{q}”.</CommandEmpty>
         )}
 
@@ -131,6 +139,22 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
                   <div className="flex flex-col">
                     <span className="font-medium">{c.company_name}</span>
                     <span className="text-xs text-muted-foreground font-mono">{c.account_number} · {c.primary_email || c.primary_phone || "—"}</span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {r.services.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Services">
+              {r.services.map((s: any) => (
+                <CommandItem key={s.id} value={`sv-${s.id}-${s.label}`} onSelect={() => goDesk(s.customer_id, () => {})}>
+                  <div className="flex justify-between w-full gap-2">
+                    <span className="truncate">{s.label}</span>
+                    <span className="text-xs text-muted-foreground">{s.kind} · {s.account_number ?? ""} · {s.status}</span>
                   </div>
                 </CommandItem>
               ))}
@@ -175,7 +199,7 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
             <CommandSeparator />
             <CommandGroup heading="Tickets">
               {r.tickets.map((t: any) => (
-                <CommandItem key={t.id} value={`t-${t.id}-${t.ticket_number}`} onSelect={() => go("/tickets/$id", { id: t.id })}>
+                <CommandItem key={t.id} value={`t-${t.id}-${t.ticket_number}`} onSelect={() => goDesk(t.customer_id, () => go("/tickets/$id", { id: t.id }))}>
                   <div className="flex flex-col">
                     <span className="font-medium">{t.subject}</span>
                     <span className="text-xs text-muted-foreground font-mono">{t.ticket_number} · {t.status} · {t.priority}</span>
@@ -207,7 +231,7 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
             <CommandSeparator />
             <CommandGroup heading="Assets">
               {r.assets.map((a: any) => (
-                <CommandItem key={a.id} value={`a-${a.id}-${a.asset_tag}`} onSelect={() => go("/assets/$id", { id: a.id })}>
+                <CommandItem key={a.id} value={`a-${a.id}-${a.asset_tag}`} onSelect={() => goDesk(a.customer_id, () => go("/assets/$id", { id: a.id }))}>
                   <div className="flex justify-between w-full">
                     <span>{a.name}</span>
                     <span className="text-xs text-muted-foreground font-mono">{a.asset_tag} · {a.serial_number || "—"}</span>
