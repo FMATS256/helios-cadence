@@ -7531,9 +7531,16 @@ export type Database = {
       invoke_internal_hook: { Args: { hook: string }; Returns: number }
       invoke_monthly_finance_statements: { Args: never; Returns: number }
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_finance_staff: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_sales_staff: { Args: { _uid: string }; Returns: boolean }
+      is_tech_staff: { Args: { _uid: string }; Returns: boolean }
       is_workspace_member: {
         Args: { _user: string; _workspace: string }
+        Returns: boolean
+      }
+      manages_customer: {
+        Args: { _customer: string; _uid: string }
         Returns: boolean
       }
       next_enquiry_reference: { Args: never; Returns: string }
