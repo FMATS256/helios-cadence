@@ -34,7 +34,7 @@ export function validateRule(r: RuleInput): RuleInput {
   if (r.protocol !== "icmp") {
     const prefix = +sm[2];
     const [a, b] = port.split(":").map(Number);
-    const hit = SENSITIVE_PORTS.find((s) => s.port >= a && s.port <= (b ?? a));
+    const hit = (b ?? a) - a <= 200 ? SENSITIVE_PORTS.find((s) => s.port >= a && s.port <= (b ?? a)) : undefined;
     if (hit && prefix < 16) {
       throw new Error(`Security policy: ${hit.name} (port ${hit.port}) must not be open to the internet. Allow only the client's office IP or the VPN range (a /16 or smaller).`);
     }
