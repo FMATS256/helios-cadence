@@ -23,6 +23,7 @@ import { Activity, ShieldCheck, Siren, NotebookPen, RefreshCw, LifeBuoy } from "
 import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } from "@/lib/noc.functions";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
 import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
+import { TicketWorkbench } from "@/components/techops/ticket-workbench";
 import { AccountPortfolio } from "@/components/account-portfolio";
 
 export const Route = createFileRoute("/noc")({
@@ -137,6 +138,7 @@ function NocPage() {
       <Tabs defaultValue={tab ?? "telemetry"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
+          <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
@@ -152,6 +154,7 @@ function NocPage() {
         </TabsList>
 
         <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
+        <TabsContent value="workbench" className="mt-4"><TicketWorkbench /></TabsContent>
         <TabsContent value="health" className="mt-4">
           <DetailCard title="Monitored Endpoints" padded={false}>
             <DataGrid
