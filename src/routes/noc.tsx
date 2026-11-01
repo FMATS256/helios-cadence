@@ -2,6 +2,7 @@ import { EmbeddedPageContext } from "@/components/enterprise";
 import { MonitoringPage } from "@/components/techops/monitoring-section";
 import { AlertsPage } from "@/components/techops/alerts-section";
 import { ServiceMapPage } from "@/components/techops/service-map-section";
+import { TelemetrySection, SocDashboard } from "@/components/techops/telemetry-section";
 import { SocPage } from "@/components/techops/soc-section";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -133,8 +134,9 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue={tab ?? "health"} className="min-w-0 max-w-full">
+      <Tabs defaultValue={tab ?? "telemetry"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
@@ -149,6 +151,7 @@ function NocPage() {
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
         <TabsContent value="health" className="mt-4">
           <DetailCard title="Monitored Endpoints" padded={false}>
             <DataGrid
@@ -243,7 +246,7 @@ function NocPage() {
           <TabsContent value="uptime" className="mt-4"><MonitoringPage /></TabsContent>
           <TabsContent value="alerts" className="mt-4"><AlertsPage /></TabsContent>
           <TabsContent value="map" className="mt-4 min-w-0 overflow-hidden rounded-lg border"><ServiceMapPage /></TabsContent>
-          <TabsContent value="security" className="mt-4"><SocPage /></TabsContent>
+          <TabsContent value="security" className="mt-4"><SocDashboard /><SocPage /></TabsContent>
         </EmbeddedPageContext.Provider>
 
         <TabsContent value="handover" className="mt-4">
