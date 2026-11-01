@@ -15,19 +15,23 @@ const CYCLE_TO_MONTHLY: Record<string, number> = {
 const monthlyOf = (s: any) =>
   Number(s.amount || 0) * (CYCLE_TO_MONTHLY[String(s.billing_cycle || "monthly").toLowerCase()] ?? 1);
 
-async function loadAM() {
+async function loadAM(ownerId: string | null) {
+  let cq = supabase.from("customers").select("id,account_number,company_name,status,industry,created_at").is("archived_at", null).order("created_at", { ascending: false });
+  if (ownerId) cq = cq.eq("account_manager_id", ownerId);
   const [customers, quotes, projects, subs, tickets] = await Promise.all([
-    supabase.from("customers").select("id,account_number,company_name,status,industry,created_at").is("archived_at", null).order("created_at", { ascending: false }),
+    cq,
     (supabase.from as any)("quotes").select("id,quote_number,amount,currency,status,valid_until,account_number,created_at").order("created_at", { ascending: false }),
     (supabase.from as any)("projects").select("id,project_code,name,status,budget,account_number").is("archived_at", null),
     (supabase.from as any)("subscriptions").select("id,amount,billing_cycle,status,next_renewal,account_number,plan_name"),
     supabase.from("tickets").select("id,account_number,status").is("archived_at", null),
   ]);
   const c = customers.data ?? [];
-  const q = (quotes.data ?? []) as any[];
-  const p = (projects.data ?? []) as any[];
-  const s = (subs.data ?? []) as any[];
-  const t = tickets.data ?? [];
+  const mine = new Set(c.map((x: any) => x.account_number));
+  const own = (rows: any[]) => (ownerId ? rows.filter((r) => mine.has(r.account_number)) : rows);
+  const q = own((quotes.data ?? []) as any[]);
+  const p = own((projects.data ?? []) as any[]);
+  const s = own((subs.data ?? []) as any[]);
+  const t = own((tickets.data ?? []) as any[]);
   const in30 = new Date(); in30.setDate(in30.getDate() + 30);
   const openTicketsByAcct = new Map<string, number>();
   t.filter((x: any) => x.status !== "resolved" && x.status !== "closed").forEach((x: any) => {
@@ -53,8 +57,8 @@ async function loadAM() {
   };
 }
 
-export function AccountManagerDashboard({ displayName }: { displayName: string }) {
-  const { data: s } = useQuery({ queryKey: ["dash-am"], queryFn: loadAM });
+export function AccountManagerDashboard({ displayName, ownerId = null }: { displayName: string; ownerId?: string | null }) {
+  const { data: s } = useQuery({ queryKey: ["dash-am", ownerId], queryFn: () => loadAM(ownerId) });
   const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
   return (
     <>
