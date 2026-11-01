@@ -14,7 +14,7 @@
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
-- Base44 webhook resolves client ownership from the protected system setting, not incoming customer identifiers, so requester data cannot route tickets to another client.
+- Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
 - Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
 - Inbox and transactional signatures share one email-safe table template and staff-title resolver (mobile-safe typography, one linked promo image); custom personal signatures override it.
