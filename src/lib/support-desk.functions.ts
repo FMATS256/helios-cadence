@@ -31,7 +31,7 @@ export const deskClient = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const id = data.id;
-    const q = (t: string, cols = "*") => sb.from(t).select(cols).eq("customer_id", id).is("archived_at", null);
+    const q = (t: string, cols = "*") => (sb as any).from(t).select(cols).eq("customer_id", id).is("archived_at", null);
     const [cust, contacts, hosting, voip, starlink, servers, storage, subs, assets, licenses, tickets, invoices] = await Promise.all([
       sb.from("customers").select("*").eq("id", id).maybeSingle(),
       q("customer_contacts"),
