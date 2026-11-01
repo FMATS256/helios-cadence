@@ -102,7 +102,7 @@ export async function loadJob(client: any, id: string) {
 export async function signPhotoUrls(admin: any, photos: any[]) {
   const out: any[] = [];
   for (const p of photos) {
-    const { data } = await admin.storage.from("job-photos").createSignedUrl(p.storage_path, 300);
+    const { data } = await admin.storage.from("job-photos").createSignedUrl(p.storage_path, 60);
     out.push({ ...p, url: data?.signedUrl ?? null });
   }
   return out;

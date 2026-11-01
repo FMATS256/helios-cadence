@@ -207,7 +207,7 @@ export const getExpenseReceiptUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinance(context as Ctx);
     const { data: signed, error } = await context.supabase.storage
-      .from("finance-receipts").createSignedUrl(data.path, 300);
+      .from("finance-receipts").createSignedUrl(data.path, 60);
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl as string };
   });

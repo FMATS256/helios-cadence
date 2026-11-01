@@ -496,6 +496,8 @@ export const uploadJobPhoto = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStaff(context);
     if (!data.data_base64) throw new Error("No image data received");
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+    if (!ALLOWED.includes(data.content_type)) throw new Error("Only JPG, PNG, WEBP or HEIC photos can be uploaded");
     const binary = Uint8Array.from(atob(data.data_base64), (c) => c.charCodeAt(0));
     if (binary.byteLength > 8 * 1024 * 1024) throw new Error("Images must be 8 MB or smaller");
 
@@ -503,7 +505,7 @@ export const uploadJobPhoto = createServerFn({ method: "POST" })
     const path = `${data.task_id}/${Date.now()}-${safe}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: upErr } = await supabaseAdmin.storage.from("job-photos")
-      .upload(path, binary, { contentType: data.content_type || "image/jpeg", upsert: false });
+      .upload(path, binary, { contentType: data.content_type, upsert: false });
     if (upErr) throw new Error(upErr.message);
 
     const { data: row, error } = await context.supabase.from("job_photos").insert({
@@ -511,7 +513,7 @@ export const uploadJobPhoto = createServerFn({ method: "POST" })
     } as any).select("*").single();
     if (error) throw new Error(error.message);
 
-    const { data: signed } = await supabaseAdmin.storage.from("job-photos").createSignedUrl(path, 300);
+    const { data: signed } = await supabaseAdmin.storage.from("job-photos").createSignedUrl(path, 60);
     return { ...row, url: signed?.signedUrl ?? null };
   });
 

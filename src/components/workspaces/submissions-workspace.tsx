@@ -194,7 +194,7 @@ function ReviewSheet({ id, isBilling, onClose, onDone }: {
 
   async function openProof() {
     if (!proof?.file_path) return;
-    const { data: signed, error } = await supabase.storage.from("customer-documents").createSignedUrl(proof.file_path, 300);
+    const { data: signed, error } = await supabase.storage.from("customer-documents").createSignedUrl(proof.file_path, 60);
     if (error || !signed) return toast.error("Could not open the proof file");
     window.open(signed.signedUrl, "_blank");
   }
