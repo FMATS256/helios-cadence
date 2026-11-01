@@ -40,6 +40,7 @@ const siteNav: NavNode[] = [
   {
     title: "Services", url: "/cloud-ops", icon: Server,
     children: [
+      { title: "Managed Cloud", url: "/managed-cloud", icon: Cloud },
       { title: "Starlink", url: "/starlink", icon: Satellite },
       { title: "Cloud & VPS Ops", url: "/cloud-ops", icon: Cloud },
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
