@@ -281,6 +281,13 @@
       "when": 1793521027241,
       "tag": "0039_secure_internal_hook_schedules",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793536841529,
+      "tag": "0040_migration",
+      "breakpoints": true
     }
   ]
 }

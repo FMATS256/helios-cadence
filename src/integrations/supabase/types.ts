@@ -2723,6 +2723,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          image_url: string | null
           is_sellable: boolean
           location: string | null
           name: string
@@ -2730,6 +2731,8 @@ export type Database = {
           reorder_level: number
           sale_price: number
           sku: string
+          source_url: string | null
+          specs: Json
           supplier: string | null
           unit_cost: number | null
           updated_at: string
@@ -2742,6 +2745,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           is_sellable?: boolean
           location?: string | null
           name: string
@@ -2749,6 +2753,8 @@ export type Database = {
           reorder_level?: number
           sale_price?: number
           sku: string
+          source_url?: string | null
+          specs?: Json
           supplier?: string | null
           unit_cost?: number | null
           updated_at?: string
@@ -2761,6 +2767,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           is_sellable?: boolean
           location?: string | null
           name?: string
@@ -2768,6 +2775,8 @@ export type Database = {
           reorder_level?: number
           sale_price?: number
           sku?: string
+          source_url?: string | null
+          specs?: Json
           supplier?: string | null
           unit_cost?: number | null
           updated_at?: string
