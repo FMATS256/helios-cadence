@@ -15,3 +15,14 @@ describe("department page access", () => {
     expect(canOpenPage("/admin", ["operations_manager"])).toBe(false);
   });
 });
+
+describe("department page access v2", () => {
+  it("NOC engineers can see payments", () => expect(canOpenPage("/payments", ["noc"])).toBe(true));
+  it("NOC engineers still cannot see expenses", () => expect(canOpenPage("/expenses", ["noc"])).toBe(false));
+  it("Finance can view service pages", () => expect(canOpenPage("/starlink", ["finance"])).toBe(true));
+  it("account managers can open Reports", () => expect(canOpenPage("/reports", ["account_manager"])).toBe(true));
+  it("read-only staff can open Reports but not Finance", () => {
+    expect(canOpenPage("/reports", ["read_only"])).toBe(true);
+    expect(canOpenPage("/finance", ["read_only"])).toBe(false);
+  });
+});
