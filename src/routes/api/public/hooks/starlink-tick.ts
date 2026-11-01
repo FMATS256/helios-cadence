@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 // Block 6 — Starlink recharge supplier follow-up.
@@ -102,8 +103,8 @@ async function runStarlinkTick() {
 export const Route = createFileRoute("/api/public/hooks/starlink-tick")({
   server: {
     handlers: {
-      GET: async () => new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
-      POST: async () => new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
+      GET: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
+      POST: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
     },
   },
 });

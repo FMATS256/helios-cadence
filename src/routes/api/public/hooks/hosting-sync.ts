@@ -1,3 +1,4 @@
+import { denyUnlessInternal } from "@/lib/hook-auth.server";
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
@@ -60,8 +61,8 @@ async function runTick() {
 export const Route = createFileRoute("/api/public/hooks/hosting-sync")({
   server: {
     handlers: {
-      POST: async () => new Response(JSON.stringify(await runTick()), { headers: { "content-type": "application/json" } }),
-      GET: async () => new Response(JSON.stringify(await runTick()), { headers: { "content-type": "application/json" } }),
+      POST: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runTick()), { headers: { "content-type": "application/json" } }),
+      GET: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runTick()), { headers: { "content-type": "application/json" } }),
     },
   },
 });
