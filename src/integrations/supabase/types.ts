@@ -1665,6 +1665,38 @@ export type Database = {
           },
         ]
       }
+      customer_shares: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          shared_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          shared_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          shared_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_shares_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_timeline: {
         Row: {
           account_number: string
@@ -7501,6 +7533,10 @@ export type Database = {
         }
         Returns: Json
       }
+      can_see_customer: {
+        Args: { _customer: string; _uid: string }
+        Returns: boolean
+      }
       claim_customer_welcome: {
         Args: { p_customer_id: string }
         Returns: boolean
@@ -7533,6 +7569,7 @@ export type Database = {
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_finance_staff: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_sales_only: { Args: { _uid: string }; Returns: boolean }
       is_sales_staff: { Args: { _uid: string }; Returns: boolean }
       is_tech_staff: { Args: { _uid: string }; Returns: boolean }
       is_workspace_member: {
