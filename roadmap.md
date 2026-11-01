@@ -43,6 +43,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Match desktop client portal to uploaded references; preserve mobile and verify linked-account pages.
 - [ ] Activate monthly statement delivery by publishing; obtain UK2AFRICA billing email and verify a real Finance send/readback after sign-in. No delivery was attempted on October 31; the requesting user's own sign-in could not be minted.
 - [ ] Verify covered-month subscription creation through signed-in Finance UI; requesting user has no matching login. Database generation and safeguards are verified.
 - [ ] Verify signed-in portfolio/dispatch and billing reminder/payment-email round-trip; requesting user has no matching login and billing mailbox is empty, so sign-in and real payment correspondence are needed. No reminder was sent or payment recorded during this task.
