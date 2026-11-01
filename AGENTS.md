@@ -33,3 +33,4 @@
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
 - Staff test mail goes only to the caller; customer mail to recorded contacts; exports/prints/searches use safe-output helpers
+- Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
