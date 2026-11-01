@@ -34,6 +34,7 @@ import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as LicensesRouteImport } from './routes/licenses'
+import { Route as ManagedCloudRouteImport } from './routes/managed-cloud'
 import { Route as ManagedNasRouteImport } from './routes/managed-nas'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
@@ -241,6 +242,11 @@ const LeadsRoute = LeadsRouteImport.update({
 const LicensesRoute = LicensesRouteImport.update({
   id: '/licenses',
   path: '/licenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagedCloudRoute = ManagedCloudRouteImport.update({
+  id: '/managed-cloud',
+  path: '/managed-cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManagedNasRoute = ManagedNasRouteImport.update({
@@ -710,6 +716,7 @@ export interface FileRoutesByFullPath {
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
+  '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
@@ -819,6 +826,7 @@ export interface FileRoutesByTo {
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
+  '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
@@ -929,6 +937,7 @@ export interface FileRoutesById {
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
   '/licenses': typeof LicensesRoute
+  '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
   '/monitoring': typeof MonitoringRoute
@@ -1041,6 +1050,7 @@ export interface FileRouteTypes {
     | '/laptop-tracking'
     | '/leads'
     | '/licenses'
+    | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
@@ -1150,6 +1160,7 @@ export interface FileRouteTypes {
     | '/laptop-tracking'
     | '/leads'
     | '/licenses'
+    | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
@@ -1259,6 +1270,7 @@ export interface FileRouteTypes {
     | '/laptop-tracking'
     | '/leads'
     | '/licenses'
+    | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
     | '/monitoring'
@@ -1370,6 +1382,7 @@ export interface RootRouteChildren {
   LaptopTrackingRoute: typeof LaptopTrackingRoute
   LeadsRoute: typeof LeadsRoute
   LicensesRoute: typeof LicensesRoute
+  ManagedCloudRoute: typeof ManagedCloudRoute
   ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
   MonitoringRoute: typeof MonitoringRoute
@@ -1615,6 +1628,13 @@ declare module '@tanstack/react-router' {
       path: '/licenses'
       fullPath: '/licenses'
       preLoaderRoute: typeof LicensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/managed-cloud': {
+      id: '/managed-cloud'
+      path: '/managed-cloud'
+      fullPath: '/managed-cloud'
+      preLoaderRoute: typeof ManagedCloudRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/managed-nas': {
@@ -2301,6 +2321,7 @@ const rootRouteChildren: RootRouteChildren = {
   LaptopTrackingRoute: LaptopTrackingRoute,
   LeadsRoute: LeadsRoute,
   LicensesRoute: LicensesRoute,
+  ManagedCloudRoute: ManagedCloudRoute,
   ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
   MonitoringRoute: MonitoringRoute,
