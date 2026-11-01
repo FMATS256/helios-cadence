@@ -4,7 +4,7 @@
  * mutations run through the authenticated server functions in
  * `src/lib/customer360.functions.ts`.
  */
-import { csvCell } from "@/lib/safe-output";
+import { csvCell, escapeHtml } from "@/lib/safe-output";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -76,7 +76,7 @@ function download(name: string, content: string, type: string) {
 function printHtml(title: string, body: string) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) { toast.error("Allow pop-ups to print this document"); return; }
-  w.document.write(`<!doctype html><html><head><title>${title}</title><style>
+  w.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>
     body{font-family:Inter,Arial,sans-serif;font-size:12px;color:#111;padding:32px}
     h1{font-size:20px;margin:0 0 4px} h2{font-size:14px;margin:20px 0 6px}
     table{width:100%;border-collapse:collapse;margin-top:8px}
@@ -89,8 +89,8 @@ function printHtml(title: string, body: string) {
 }
 
 const tableHtml = (headers: string[], rows: (string | number)[][]) =>
-  `<table><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${
-    rows.map((r) => `<tr>${r.map((c) => `<td>${c ?? ""}</td>`).join("")}</tr>`).join("")
+  `<table><thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>${
+    rows.map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")
   }</tbody></table>`;
 
 const csv = (headers: string[], rows: any[][]) =>
@@ -1197,10 +1197,10 @@ function ContractWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =>
   function print() {
     if (!doc) return;
     printHtml(doc.reference, `
-      <h1>${form.title}</h1>
-      <div class="muted">${doc.reference}</div>
+      <h1>${escapeHtml(form.title)}</h1>
+      <div class="muted">${escapeHtml(doc.reference)}</div>
       <h2>Customer</h2>
-      <div>${doc.customer.company_name} (${doc.customer.account_number})<br/>${doc.customer.primary_email ?? ""}<br/>${doc.customer.billing_address ?? ""}</div>
+      <div>${escapeHtml(doc.customer.company_name)} (${escapeHtml(doc.customer.account_number)})<br/>${escapeHtml(doc.customer.primary_email)}<br/>${escapeHtml(doc.customer.billing_address)}</div>
       <h2>Term</h2>
       <div>${doc.term_months} months · ${doc.start_date} → ${doc.end_date}</div>
       <h2>Services</h2>
@@ -1208,9 +1208,9 @@ function ContractWorkspace({ ctx, onClose }: { ctx: WorkspaceCtx; onClose: () =>
         doc.items.map((i: any) => [i.plan_name, i.billing_cycle, `${i.currency} ${i.amount.toFixed(2)}`, i.monthly.toFixed(2)]))}
       <h2>Totals</h2>
       <div>Monthly: ${doc.monthlyTotal.toFixed(2)} · Annual: ${doc.annualTotal.toFixed(2)}</div>
-      ${doc.notes ? `<h2>Notes</h2><div>${doc.notes}</div>` : ""}
+      ${doc.notes ? `<h2>Notes</h2><div>${escapeHtml(doc.notes)}</div>` : ""}
       <h2>Signatures</h2>
-      <div style="margin-top:40px">_____________________________ &nbsp;&nbsp;&nbsp; _____________________________<br/>IMT Solutions &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${doc.customer.company_name}</div>
+      <div style="margin-top:40px">_____________________________ &nbsp;&nbsp;&nbsp; _____________________________<br/>IMT Solutions &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${escapeHtml(doc.customer.company_name)}</div>
     `);
   }
 
