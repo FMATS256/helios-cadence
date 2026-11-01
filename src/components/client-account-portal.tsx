@@ -46,7 +46,10 @@ function useAccount() {
 }
 
 export function ClientPortalLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const loading = !hydrated || authLoading;
   const account = useAccount();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileMenu, setMobileMenu] = useState(false);
