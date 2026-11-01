@@ -7,7 +7,7 @@ type Ctx = { supabase: any; userId: string };
 async function assertStaff(ctx: Ctx) {
   const { data, error } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
   if (error) throw new Error(error.message);
-  const mine = new Set((data || []).map((r: any) => r.role));
+  const mine = new Set<string>((data || []).map((r: any) => String(r.role)));
   if (mine.has("master_admin")) return mine;
   const allowed = ["operations_manager", "finance", "sales", "inventory", "procurement", "account_manager", "customer_success"];
   if (!allowed.some((r) => mine.has(r))) throw new Error("Forbidden: sales, finance or inventory role required");
