@@ -24,7 +24,7 @@ const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : "
 function toCsv(rows: Record<string, any>[]): string {
   if (!rows.length) return "";
   const keys = Object.keys(rows[0]!);
-  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const esc = (v: any) => csvCell(v);
   return [keys.join(","), ...rows.map((r) => keys.map((k) => esc(r[k])).join(","))].join("\n");
 }
 

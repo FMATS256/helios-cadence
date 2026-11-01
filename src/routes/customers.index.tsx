@@ -70,7 +70,7 @@ type ColKey = (typeof COLUMNS)[number]["key"];
 function toCsv(rows: Row[], cols: ColKey[]) {
   const head = COLUMNS.filter((c) => cols.includes(c.key)).map((c) => c.label);
   const body = rows.map((r) =>
-    COLUMNS.filter((c) => cols.includes(c.key)).map((c) => `"${String((r as any)[c.key] ?? "").replace(/"/g, '""')}"`).join(","),
+    COLUMNS.filter((c) => cols.includes(c.key)).map((c) => csvCell((r as any)[c.key])).join(","),
   );
   return [head.join(","), ...body].join("\n");
 }

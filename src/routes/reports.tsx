@@ -63,10 +63,7 @@ function fmtCell(value: any, format?: string) {
 }
 
 function toCsv(columns: any[], rows: any[]) {
-  const esc = (v: any) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
+  const esc = (v: any) => csvCell(v);
   return [
     columns.map((c) => esc(c.label)).join(","),
     ...rows.map((r) => columns.map((c) => esc(r[c.key])).join(",")),

@@ -93,7 +93,7 @@ const tableHtml = (headers: string[], rows: (string | number)[][]) =>
   }</tbody></table>`;
 
 const csv = (headers: string[], rows: any[][]) =>
-  [headers, ...rows].map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  [headers, ...rows].map((r) => r.map((c) => csvCell(c)).join(",")).join("\n");
 
 function Shell({
   open, onClose, title, description, wide, children, footer,

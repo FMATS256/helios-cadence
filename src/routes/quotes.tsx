@@ -74,7 +74,7 @@ function QuotesPage() {
         r.quote_number ?? "", r.title, r.account_number ?? "Walk-in", r.customers?.company_name ?? r.walkin_name ?? "",
         r.status, r.currency, r.amount ?? r.total ?? 0, r.valid_until ?? "",
         new Date(r.created_at).toISOString(),
-      ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
+      ].map((c) => csvCell(c)).join(",")),
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
