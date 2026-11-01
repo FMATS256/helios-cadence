@@ -29,5 +29,5 @@
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
-- Firewall changes use provider APIs only (Vultr), staff-only, logged; others show unsupported.
+- Firewall changes use provider APIs only (Vultr), staff-only, logged; server-side validation blocks sensitive admin/database ports and very wide ranges from the whole internet; others show unsupported.
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
