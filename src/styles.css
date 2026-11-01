@@ -17,7 +17,7 @@
   --color-brand-mc-orange: oklch(0.76 0.17 62);
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', sans-serif;
-  --font-portal: 'Montserrat', system-ui, sans-serif;
+  --font-portal: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -348,7 +348,7 @@ main:has(> .imt-mail) {
 /* Desktop-only reference layout; business data and mobile controls are unchanged. */
 @media (min-width: 1024px) {
   .client-portal { --portal-gutter: max(32px, calc((100vw - 1170px) / 2)); background: var(--card); font-family: var(--font-portal); letter-spacing: 0; }
-  .client-portal h1, .client-portal h2, .client-portal h3, .client-portal h4 { font-family: var(--font-portal); letter-spacing: 0; }
+  .client-portal h1, .client-portal h2, .client-portal h3, .client-portal h4 { font-family: var(--font-display); letter-spacing: 0; }
   .client-portal .portal-header { min-height: 125px; box-shadow: none; }
   .client-portal .portal-header > div { max-width: 1170px; padding-inline: 0; margin-inline: var(--portal-gutter); }
   .client-portal .portal-header > div:first-child { min-height: 50px; padding-top: 0; align-items: start; }
@@ -358,7 +358,7 @@ main:has(> .imt-mail) {
   .client-portal .portal-header > div:nth-child(2) { min-height: 75px; gap: 22px; }
   .client-portal .portal-header > div:nth-child(2) > a { flex-shrink: 0; padding-block: 12px; }
   .client-portal .portal-header > div:nth-child(2) > a img { width: 48px; height: 48px; border-radius: 0; }
-  .client-portal .portal-header > div:nth-child(2) > a .font-display { font-family: var(--font-portal); font-size: 22px; }
+  .client-portal .portal-header > div:nth-child(2) > a .font-display { font-family: var(--font-display); font-size: 22px; }
   .client-portal .portal-navigation { flex: 1; justify-content: flex-end; gap: 0; overflow: visible; }
   .client-portal .portal-navigation > a { justify-content: center; gap: 0; padding: 16px 12px; font-size: 12px; font-weight: 400; opacity: 1; border-bottom-width: 4px; }
   .client-portal .portal-navigation > a svg { display: none; }
