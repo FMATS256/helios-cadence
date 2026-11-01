@@ -50,13 +50,18 @@ export function summarizeResults(rows: { checked_at: string; response_ms: number
 
 async function load() {
   const since = new Date(Date.now() - 24 * 3600e3).toISOString();
-  const [res, checks, tickets, sec] = await Promise.all([
+  const [res, checks, tickets, sec, vps, host, star, met] = await Promise.all([
     supabase.from("monitoring_results").select("checked_at,response_ms,status").gte("checked_at", since).order("checked_at").limit(5000),
     supabase.from("monitoring_checks").select("status,check_type").is("archived_at", null),
     supabase.from("tickets").select("status,priority,created_at").gte("created_at", new Date(Date.now() - 14 * 864e5).toISOString()).limit(2000),
     supabase.from("security_incidents").select("severity,status,category,detected_at").limit(1000),
+    supabase.from("cloud_servers").select("status,power_state,provider").is("archived_at", null),
+    supabase.from("web_hosting_accounts").select("status,ssl_status,disk_used_mb,disk_quota_gb").is("archived_at", null),
+    supabase.from("starlink_accounts").select("status,plan_type,last_checked_at").is("archived_at", null),
+    supabase.from("server_metrics").select("sampled_at,latency_ms,reachable,status").gte("sampled_at", since).order("sampled_at").limit(5000),
   ]);
-  return { res: res.data ?? [], checks: checks.data ?? [], tickets: tickets.data ?? [], sec: sec.data ?? [] };
+  const metrics = (met.data ?? []).map((m: any) => ({ checked_at: m.sampled_at, response_ms: m.latency_ms, status: m.reachable === false ? "down" : "up" }));
+  return { res: [...(res.data ?? []), ...metrics].sort((a: any, b: any) => a.checked_at.localeCompare(b.checked_at)), checks: checks.data ?? [], tickets: tickets.data ?? [], sec: sec.data ?? [], vps: vps.data ?? [], host: host.data ?? [], star: star.data ?? [] };
 }
 
 export function TelemetrySection() {
@@ -78,6 +83,12 @@ export function TelemetrySection() {
         <Kpi label="Avg response" value={`${avg} ms`} />
         <Kpi label="Checks down" value={down} tone={down ? "text-destructive" : ""} />
         <Kpi label="Tickets (14d)" value={data.tickets.length} />
+      </div>
+      {data.res.length === 0 && <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">No uptime checks or server samples in the last 24 hours. Add checks under Uptime Checks or sync VPS servers to start live graphs.</p>}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <PieCard title={`VPS servers (${data.vps.length})`} data={count(data.vps, "power_state")} />
+        <PieCard title={`Hosting accounts (${data.host.length})`} data={count(data.host, "status")} />
+        <PieCard title={`Starlink kits (${data.star.length})`} data={count(data.star, "status")} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Response time (p50 / p95 ms, 24h)">
