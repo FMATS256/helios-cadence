@@ -34,7 +34,7 @@ export function NocToolkitSection() {
   });
   const { data: customers } = useQuery({
     queryKey: ["noc-toolkit-customers"],
-    queryFn: async () => (await supabase.from("customers").select("id,name:company_name,email,account_number").limit(500)).data ?? [],
+    queryFn: async () => (await supabase.from("customers").select("id,name:company_name,email:primary_email,account_number").limit(500)).data ?? [],
   });
 
   const sla = useMemo(() => (data ?? []).map((t) => {
