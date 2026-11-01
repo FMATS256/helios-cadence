@@ -20,7 +20,7 @@
 - Inbox and transactional signatures share one email-safe table template and staff-title resolver (mobile-safe typography, one linked promo image); custom personal signatures override it.
 - Inbox conversation rendering uses a dedicated collapsible message view with the latest message expanded first, authorized thread prefetching and foreground refresh, so older HTML signatures do not delay access to new replies.
 - Compose restoration and outbound conversation display remove identifiable staff signature blocks without changing stored messages; delivery appends signatures separately so clients still receive them.
-- Reply composers show latest inbound HTML in a separate sanitized read-only preview, never in the sent body.
+- Reply composers preview latest inbound HTML separately (sanitized, read-only), never in the sent body.
 - Portal sign-in resolves email/username/account number to the login email server-side, returning only a session; new accounts get client-only logins with temporary credentials in the welcome email, never overwriting existing logins.
 - Login email and business email are separate: profiles.work_email (when set) is used for sending, mailbox, signatures and manager contact; login email is only for sign-in.
 - Technical workspaces are two tabbed hubs (/noc, /techops/dashboard); merged pages live as sections in src/components/techops and collapse their frame via EmbeddedPageContext, while their old URLs remain redirects.
@@ -29,7 +29,7 @@
 - Portal statements resolve account ownership from the authenticated profile, derive current and monthly cutoffs without email delivery dependencies, and prepare per-currency PDFs before download clicks to retain mobile user activation.
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
-- Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
+- Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
 - Firewall: Vultr-only, staff-only, logged; no public sensitive ports. Provider orders and server rebuild/restore/app-install need atomic ops-manager/master-admin approval (no self-approval except master); power/snapshots are immediate.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
 - Test mail goes only to the caller, customer mail to recorded contacts; exports/prints/searches use safe-output helpers
