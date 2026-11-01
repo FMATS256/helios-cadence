@@ -44,6 +44,7 @@ export const startClientPayment = createServerFn({ method: "POST" })
       const [available] = invoicePaymentAvailability(invoiceBalances([inv], allocations.data ?? []), intents.data ?? [], submissions.data ?? [], allocations.data ?? []);
       if (!available || available.payable <= 0) throw new Error("This invoice has already been paid or is not available for payment.");
       if (data.currency !== inv.currency) throw new Error("Choose the invoice currency");
+      if (data.amount > Number(available.payable) + 0.005) throw new Error(`The amount cannot exceed the invoice balance of ${inv.currency} ${Number(available.payable).toFixed(2)}`);
     }
     const result = await gateway("/api/public/v1/payments", { method: "POST", body: JSON.stringify({
       accountNumber: customer.account_number, amount: data.amount, currency: data.currency, method: data.method,
