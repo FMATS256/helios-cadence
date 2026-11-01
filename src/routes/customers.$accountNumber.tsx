@@ -668,6 +668,15 @@ function Customer360() {
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <Row k="Account #" v={<span className="font-mono text-solar font-semibold">{customer.account_number}</span>} />
                 <Row k="Tier" v={<StatusPill tone={tierTone as any}>{tier}</StatusPill>} />
+                <Row k="Payment standing" v={(() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  const overdue = (invoices as any[]).filter((i) => i.due_date && i.due_date < today && !["paid", "void", "cancelled", "draft"].includes(String(i.status)) && Number(i.total || 0) - Number(i.amount_paid || 0) > 0.01);
+                  const last = [...(payments as any[])].sort((a, b) => String(b.paid_at || b.created_at).localeCompare(String(a.paid_at || a.created_at)))[0];
+                  return <span className="flex flex-wrap items-center gap-2">
+                    <StatusPill tone={overdue.length ? "danger" : "success"}>{overdue.length ? `Overdue (${overdue.length})` : "Good standing"}</StatusPill>
+                    {last && <span className="text-xs text-muted-foreground">Last payment {new Date(last.paid_at || last.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span>}
+                  </span>;
+                })()} />
                 <Row k="Industry" v={customer.industry || "—"} />
                 <Row k="Website" v={customer.website || "—"} />
                 <Row k="Billing address" v={customer.billing_address || "—"} />

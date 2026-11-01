@@ -11,6 +11,7 @@ export const DEPARTMENTS = {
   sales: ["sales", "account_manager", "corporate_account_manager", "customer_account_manager", "key_account_manager", "customer_success"],
   tech: ["technical_support", "noc", "cyber_security", "cloud_engineer"],
   inventory: ["inventory", "procurement"],
+  readonly: ["read_only"],
 } as const satisfies Record<string, readonly AppRole[]>;
 
 export type Department = keyof typeof DEPARTMENTS;
@@ -21,10 +22,10 @@ export function departmentsOf(roles: readonly string[]): Department[] {
   );
 }
 
-type Rule = { prefix: string; allow: Department[] | "all" | "master" };
+export type Rule = { prefix: string; allow: Department[] | "all" | "master" };
 
 // Longest matching prefix wins. "admin" (master admin + ops manager) is added to every rule.
-const RULES: Rule[] = [
+export const RULES: Rule[] = [
   { prefix: "/", allow: "all" },
   { prefix: "/customers", allow: "all" },
   { prefix: "/tickets", allow: "all" },
@@ -37,13 +38,13 @@ const RULES: Rule[] = [
   // Finance
   { prefix: "/finance", allow: ["finance"] },
   { prefix: "/finance-agent", allow: ["finance"] },
-  { prefix: "/payments", allow: ["finance", "sales"] },
+  { prefix: "/payments", allow: ["finance", "sales", "tech"] },
   { prefix: "/expenses", allow: ["finance"] },
   { prefix: "/money", allow: ["finance"] },
   { prefix: "/billing", allow: ["finance"] },
-  { prefix: "/invoices", allow: ["finance", "sales"] },
+  { prefix: "/invoices", allow: ["finance", "sales", "tech"] },
   { prefix: "/refunds", allow: ["finance"] },
-  { prefix: "/reports", allow: ["finance"] },
+  { prefix: "/reports", allow: ["finance", "sales", "tech", "inventory", "readonly"] },
   { prefix: "/procurement", allow: ["finance", "inventory"] },
   // Sales / account management
   { prefix: "/leads", allow: ["sales", "finance"] },
@@ -56,12 +57,12 @@ const RULES: Rule[] = [
   { prefix: "/techops/vault", allow: ["tech"] },
   { prefix: "/credentials", allow: ["tech"] },
   { prefix: "/reset-password", allow: ["tech", "sales"] },
-  { prefix: "/cloud-ops", allow: ["tech", "sales"] },
-  { prefix: "/managed-cloud", allow: ["tech", "sales"] },
-  { prefix: "/starlink", allow: ["tech", "sales"] },
-  { prefix: "/web-hosting", allow: ["tech", "sales"] },
-  { prefix: "/cloud-storage", allow: ["tech", "sales"] },
-  { prefix: "/voip", allow: ["tech", "sales"] },
+  { prefix: "/cloud-ops", allow: ["tech", "sales", "finance"] },
+  { prefix: "/managed-cloud", allow: ["tech", "sales", "finance"] },
+  { prefix: "/starlink", allow: ["tech", "sales", "finance"] },
+  { prefix: "/web-hosting", allow: ["tech", "sales", "finance"] },
+  { prefix: "/cloud-storage", allow: ["tech", "sales", "finance"] },
+  { prefix: "/voip", allow: ["tech", "sales", "finance"] },
   // Stock
   { prefix: "/inventory", allow: ["inventory", "finance", "sales", "tech"] },
   { prefix: "/pos", allow: ["sales", "inventory", "finance"] },
