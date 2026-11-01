@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/safe-output";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStaffAuth } from "./staff-auth";
@@ -206,17 +207,17 @@ function buildPopEmail(p: {
 <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#fff;color:#111">
   <div style="border-bottom:3px solid #F5A623;padding-bottom:12px;margin-bottom:20px">
     <h2 style="margin:0">Proof of Payment · VoIP Recharge</h2>
-    <p style="margin:4px 0 0;color:#666">Receipt: <strong>${p.receipt}</strong></p>
+    <p style="margin:4px 0 0;color:#666">Receipt: <strong>${escapeHtml(p.receipt)}</strong></p>
   </div>
   <p>Dear Dandemutande Support,</p>
   <p>Please find below the proof of payment for a VoIP recharge on our behalf. Kindly apply the funds and confirm.</p>
   <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-    <tr><td style="padding:8px;background:#F7F7F7;width:180px">VoIP Number</td><td style="padding:8px"><strong>${p.number}</strong></td></tr>
-    <tr><td style="padding:8px;background:#F7F7F7">Dandemutande Account</td><td style="padding:8px">${p.account}</td></tr>
+    <tr><td style="padding:8px;background:#F7F7F7;width:180px">VoIP Number</td><td style="padding:8px"><strong>${escapeHtml(p.number)}</strong></td></tr>
+    <tr><td style="padding:8px;background:#F7F7F7">Dandemutande Account</td><td style="padding:8px">${escapeHtml(p.account)}</td></tr>
     <tr><td style="padding:8px;background:#F7F7F7">Amount</td><td style="padding:8px"><strong>USD ${p.amountUsd.toFixed(2)}</strong></td></tr>
-    <tr><td style="padding:8px;background:#F7F7F7">Payment Reference</td><td style="padding:8px">${p.reference}</td></tr>
-    <tr><td style="padding:8px;background:#F7F7F7">Payment Method</td><td style="padding:8px">${p.method}</td></tr>
-    ${p.notes ? `<tr><td style="padding:8px;background:#F7F7F7">Notes</td><td style="padding:8px">${p.notes}</td></tr>` : ""}
+    <tr><td style="padding:8px;background:#F7F7F7">Payment Reference</td><td style="padding:8px">${escapeHtml(p.reference)}</td></tr>
+    <tr><td style="padding:8px;background:#F7F7F7">Payment Method</td><td style="padding:8px">${escapeHtml(p.method)}</td></tr>
+    ${p.notes ? `<tr><td style="padding:8px;background:#F7F7F7">Notes</td><td style="padding:8px">${escapeHtml(p.notes)}</td></tr>` : ""}
   </table>
   <p>Please reply to this email once the recharge has been applied.</p>
   <p style="margin-top:32px">Thank you,<br/><strong>IMT Cloud Operations</strong></p>

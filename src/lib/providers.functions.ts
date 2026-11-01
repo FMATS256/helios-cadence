@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/safe-output";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStaffAuth } from "./staff-auth";
@@ -272,20 +273,20 @@ export const sendServerHandover = createServerFn({ method: "POST" })
     if (!to) throw new Error("No customer contact email on file. Add a contact or pass one in.");
 
     const ip = (s.public_ips as any[] | null)?.[0] ?? "—";
-    const subject = `Your new server "${s.name}" is ready`;
+    const subject = `Your new server "${escapeHtml(s.name)}" is ready`;
     const html = `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff;">
   <h2 style="margin:0 0 12px">Your server is ready</h2>
-  <p>Hi ${contactName || "there"},</p>
-  <p>${data.message ?? "We've provisioned a new cloud server for you. Details below."}</p>
+  <p>Hi ${escapeHtml(contactName || "there")},</p>
+  <p>${escapeHtml(data.message ?? "We've provisioned a new cloud server for you. Details below.")}</p>
   <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-    <tr><td style="padding:6px 0;color:#666">Name</td><td><strong>${s.name}</strong></td></tr>
-    <tr><td style="padding:6px 0;color:#666">Provider</td><td>${s.provider}</td></tr>
-    <tr><td style="padding:6px 0;color:#666">Datacenter</td><td>${s.datacenter ?? "—"}</td></tr>
-    <tr><td style="padding:6px 0;color:#666">OS image</td><td>${s.image ?? "—"}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Name</td><td><strong>${escapeHtml(s.name)}</strong></td></tr>
+    <tr><td style="padding:6px 0;color:#666">Provider</td><td>${escapeHtml(s.provider)}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Datacenter</td><td>${escapeHtml(s.datacenter ?? "—")}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">OS image</td><td>${escapeHtml(s.image ?? "—")}</td></tr>
     <tr><td style="padding:6px 0;color:#666">Specs</td><td>${s.cpu_cores ?? "?"} vCPU · ${((s.ram_mb ?? 0) / 1024).toFixed(0)} GB RAM · ${(s.disk_sizes_gb as number[] ?? []).join(" + ")} GB</td></tr>
-    <tr><td style="padding:6px 0;color:#666">Public IP</td><td style="font-family:monospace"><strong>${ip}</strong></td></tr>
-    ${data.root_password ? `<tr><td style="padding:6px 0;color:#666">Root user</td><td style="font-family:monospace">root</td></tr><tr><td style="padding:6px 0;color:#666">Root password</td><td style="font-family:monospace">${data.root_password}</td></tr>` : ""}
+    <tr><td style="padding:6px 0;color:#666">Public IP</td><td style="font-family:monospace"><strong>${escapeHtml(ip)}</strong></td></tr>
+    ${data.root_password ? `<tr><td style="padding:6px 0;color:#666">Root user</td><td style="font-family:monospace">root</td></tr><tr><td style="padding:6px 0;color:#666">Root password</td><td style="font-family:monospace">${escapeHtml(data.root_password)}</td></tr>` : ""}
   </table>
   <p style="color:#666;font-size:12px">Please change the root password on first login. Reply to this email for any assistance.</p>
 </div>`.trim();
