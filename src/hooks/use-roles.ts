@@ -6,7 +6,7 @@ import { useAuth } from "./use-auth";
 export function useRoles() {
   const { user } = useAuth();
   const fn = useServerFn(myRoles);
-  const { data = [] } = useQuery({
+  const { data = [], isLoading } = useQuery({
     queryKey: ["my-roles", user?.id],
     queryFn: () => fn(),
     enabled: !!user,
@@ -14,5 +14,5 @@ export function useRoles() {
   const has = (r: AppRole) => data.includes(r);
   const isMaster = has("master_admin");
   const isStaff = data.length > 0;
-  return { roles: data as AppRole[], has, isMaster, isStaff };
+  return { roles: data as AppRole[], has, isMaster, isStaff, loading: !!user && isLoading };
 }

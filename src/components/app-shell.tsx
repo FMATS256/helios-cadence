@@ -312,7 +312,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function PageGuard({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { roles, loading } = useRoles() as any;
+  const { roles, loading } = useRoles();
   if (loading) return <>{children}</>;
   if (canOpenPage(pathname, roles)) return <>{children}</>;
   return (
