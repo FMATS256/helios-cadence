@@ -1198,6 +1198,7 @@ export async function createAndSendEnquiryEmail(opts: {
   senderEmail: string | null;
   mailbox?: string;
   signatureHtml?: string;
+  noSignature?: boolean;
   to: string;
   subject: string;
   body: string;
