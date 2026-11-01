@@ -361,6 +361,9 @@ function PosPage() {
                         onClick={() => addToCart(i)}
                         className={`text-left rounded-xl border bg-card p-3 transition hover:border-solar hover:shadow-md ${out ? "opacity-60" : ""}`}
                       >
+                        {i.image_url && (
+                          <img src={i.image_url} alt={i.name} loading="lazy" referrerPolicy="no-referrer" className="mb-2 h-28 w-full rounded-md bg-muted object-contain" />
+                        )}
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="font-semibold text-sm truncate">{i.name}</p>

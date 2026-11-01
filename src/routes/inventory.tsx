@@ -63,7 +63,21 @@ function InventoryPage() {
       transformInsert={(f) => ({ ...f, quantity: Number(f.quantity) || 0, reorder_level: Number(f.reorder_level) || 0, unit_cost: Number(f.unit_cost) || 0 })}
       columns={[
         { header: "SKU", cell: (r: any) => <span className="font-mono font-semibold">{r.sku}</span> },
-        { header: "Item", cell: (r: any) => <div><div className="font-semibold">{r.name}</div><div className="text-xs text-muted-foreground">{r.category || "—"}</div></div> },
+        { header: "Item", cell: (r: any) => (
+          <div className="flex items-center gap-3">
+            {r.image_url && <img src={r.image_url} alt={r.name} loading="lazy" referrerPolicy="no-referrer" className="h-10 w-10 shrink-0 rounded bg-muted object-contain" />}
+            <div className="min-w-0">
+              <div className="font-semibold">{r.name}</div>
+              <div className="text-xs text-muted-foreground">{r.category || "—"}</div>
+              {r.specs && Object.keys(r.specs).filter((k) => k !== "Details").length > 0 && (
+                <div className="text-[11px] text-muted-foreground truncate max-w-xs">
+                  {Object.entries(r.specs).filter(([k]) => k !== "Details").map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                </div>
+              )}
+            </div>
+          </div>
+        ) },
+        { header: "Sell price", cell: (r: any) => <span className="font-mono font-semibold">${Number(r.sale_price).toFixed(2)}</span> },
         { header: "On hand", cell: (r: any) => <span className={`font-mono ${r.quantity <= r.reorder_level ? "text-destructive font-semibold" : ""}`}>{r.quantity}</span> },
         { header: "Reorder at", cell: (r: any) => <span className="font-mono text-muted-foreground">{r.reorder_level}</span> },
         { header: "Status", cell: (r: any) => r.quantity === 0 ? <StatusPill tone="danger">out of stock</StatusPill> : r.quantity <= r.reorder_level ? <StatusPill tone="warning">low</StatusPill> : <StatusPill tone="success">ok</StatusPill> },
