@@ -18,6 +18,7 @@ import { useRoles } from "@/hooks/use-roles";
 import { listAllUsers, assignRole, inviteUser, recentAuditLog, setUserActiveState, ALL_ROLES, type AppRole } from "@/lib/admin.functions";
 import { invitePortalUser, listPortalUsers, unlinkPortalUser } from "@/lib/portal-admin.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { AccessMatrix } from "@/components/admin-access-matrix";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Master Admin — IMT Operations" }] }),
@@ -44,10 +45,12 @@ function AdminPage() {
         <TabsList>
           <TabsTrigger value="users"><UserPlus className="h-4 w-4 mr-1.5" />Users & Roles</TabsTrigger>
           <TabsTrigger value="portal"><Users className="h-4 w-4 mr-1.5" />Portal Users</TabsTrigger>
+          <TabsTrigger value="access"><Shield className="h-4 w-4 mr-1.5" />Department Access</TabsTrigger>
           <TabsTrigger value="audit"><ScrollText className="h-4 w-4 mr-1.5" />Audit Log</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="portal" className="mt-4"><PortalTab /></TabsContent>
+        <TabsContent value="access" className="mt-4"><AccessMatrix /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditTab /></TabsContent>
       </Tabs>
     </PageContainer>
