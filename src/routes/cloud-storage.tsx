@@ -395,7 +395,7 @@ function VultrProvisionDialog({ customers, onClose, onDone }: { customers: any[]
   const [f, setF] = useState({ customer_id: "", name: "", size_gb: "500", cluster_id: "" });
   const run = useMutation({
     mutationFn: () => provisionFn({ data: { customer_id: f.customer_id, name: f.name, size_gb: Number(f.size_gb), cluster_id: Number(f.cluster_id) } }),
-    onSuccess: (r) => { toast.success(`Storage created · ${money(r.price)}/month · keys saved to Credential Vault`); onDone(); },
+    onSuccess: (r) => { toast.success(`Storage created${r.bucket ? ` with bucket ${r.bucket}` : ""} · client billed ${money(r.price)}/month · keys saved to Credential Vault`); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
