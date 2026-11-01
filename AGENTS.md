@@ -10,7 +10,7 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Quotation previews and PDF downloads share a saved-value document model; pure PDF generation renders the branded layout without changing external-engine lifecycle or financial calculations.
+- Quotation previews and PDFs share a saved-value document model without changing financial calculations.
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
@@ -32,4 +32,4 @@
 - Firewall changes: Vultr API only, staff-only, logged; sensitive ports/wide ranges never open to everyone.
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
-- Staff-tool outbound mail is limited to the caller's own addresses (tests) or the target customer's recorded contacts; exports/prints/searches use shared safe-output helpers, so typed data can never become formulas, markup or filter syntax.
+- Staff test mail goes only to the caller; customer mail only to recorded contacts; exports/prints/searches use safe-output helpers.
