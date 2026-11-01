@@ -21,11 +21,23 @@ async function actorName(ctx: Ctx): Promise<string | null> {
 
 const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+/** Finance roles that may record money and reconcile POS sales (mirrors is_billing_staff). */
+export function isBilling(roles: Set<string>) {
+  return roles.has("master_admin") || roles.has("finance") || roles.has("operations_manager");
+}
+
+async function assertBilling(ctx: Ctx) {
+  const roles = await assertStaff(ctx);
+  if (!isBilling(roles)) throw new Error("Only Finance can reconcile POS sales");
+  return roles;
+}
+
 /** Everything the POS screen needs: sellable stock, recent sales, tills, customers, KPIs. */
 export const getPosWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context as Ctx);
+    const roles = await assertStaff(context as Ctx);
+    const canReconcile = isBilling(roles);
     const db = context.supabase as any;
     const [itemsR, salesR, accountsR, customersR, closeoutsR] = await Promise.all([
       db.from("inventory_items").select("*").is("archived_at", null).order("name"),
@@ -53,6 +65,7 @@ export const getPosWorkspace = createServerFn({ method: "GET" })
     const unitsToday = today.reduce((t, s) => t + (s.pos_sale_items || []).reduce((x: number, l: any) => x + num(l.quantity), 0), 0);
 
     return {
+      can_reconcile: canReconcile,
       items,
       sales,
       accounts: accountsR.data ?? [],
