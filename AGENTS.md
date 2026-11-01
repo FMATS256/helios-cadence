@@ -31,4 +31,4 @@
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
 - Firewall changes: Vultr API only, staff-only, logged; sensitive ports/wide ranges never open to everyone.
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
-- Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook so outsiders cannot trigger jobs.
+- Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
