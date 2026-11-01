@@ -32,4 +32,4 @@
 - Firewall: Vultr-only, staff-only, logged; no public sensitive ports.
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
-- Staff test mail goes only to the caller; customer mail to recorded contacts; exports/prints/searches use safe-output helpers.
+- Staff test mail goes only to the caller; customer mail to recorded contacts; exports/prints/searches use safe-output helpers
