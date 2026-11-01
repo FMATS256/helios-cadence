@@ -7,7 +7,7 @@ type Ctx = { supabase: any; userId: string };
 async function assertStaff(ctx: Ctx) {
   const { data, error } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
   if (error) throw new Error(error.message);
-  const mine = new Set((data || []).map((r: any) => r.role));
+  const mine = new Set<string>((data || []).map((r: any) => String(r.role)));
   if (mine.has("master_admin")) return mine;
   const allowed = ["operations_manager", "finance", "sales", "inventory", "procurement", "account_manager", "customer_success"];
   if (!allowed.some((r) => mine.has(r))) throw new Error("Forbidden: sales, finance or inventory role required");
@@ -21,11 +21,23 @@ async function actorName(ctx: Ctx): Promise<string | null> {
 
 const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+/** Finance roles that may record money and reconcile POS sales (mirrors is_billing_staff). */
+export function isBilling(roles: Set<string>) {
+  return roles.has("master_admin") || roles.has("finance") || roles.has("operations_manager");
+}
+
+async function assertBilling(ctx: Ctx) {
+  const roles = await assertStaff(ctx);
+  if (!isBilling(roles)) throw new Error("Only Finance can reconcile POS sales");
+  return roles;
+}
+
 /** Everything the POS screen needs: sellable stock, recent sales, tills, customers, KPIs. */
 export const getPosWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context as Ctx);
+    const roles = await assertStaff(context as Ctx);
+    const canReconcile = isBilling(roles);
     const db = context.supabase as any;
     const [itemsR, salesR, accountsR, customersR, closeoutsR] = await Promise.all([
       db.from("inventory_items").select("*").is("archived_at", null).order("name"),
@@ -53,6 +65,7 @@ export const getPosWorkspace = createServerFn({ method: "GET" })
     const unitsToday = today.reduce((t, s) => t + (s.pos_sale_items || []).reduce((x: number, l: any) => x + num(l.quantity), 0), 0);
 
     return {
+      can_reconcile: canReconcile,
       items,
       sales,
       accounts: accountsR.data ?? [],
@@ -175,75 +188,11 @@ export const createPosSale = createServerFn({ method: "POST" })
       await db.from("inventory_items").update({ quantity: remaining }).eq("id", l.item_id);
     }
 
-    // Bank the money in the selected till / account
-    if (data.account_id) {
-      await db.from("cash_movements").insert({
-        account_id: data.account_id,
-        kind: "deposit",
-        amount: total,
-        currency: data.currency || "USD",
-        occurred_at: now.toISOString(),
-        reference: saleNumber,
-        notes: `POS sale ${saleNumber}`,
-        created_by: context.userId,
-      });
-    }
-
-    // Generate a PAID invoice + receipted payment for account customers.
-    let invoiceId: string | null = null;
-    let invoiceNumber: string | null = null;
-    let paymentId: string | null = null;
-    if (data.customer_id) {
-      const issue = now.toISOString().slice(0, 10);
-      const { data: inv, error: invErr } = await db.from("invoices").insert({
-        customer_id: data.customer_id,
-        account_number: accountNumber,
-        invoice_number: `INV-${saleNumber.replace(/^POS-/, "")}`,
-        status: "draft",
-        currency: data.currency || "USD",
-        subtotal: subtotal - discount,
-        tax,
-        total,
-        issue_date: issue,
-        due_date: issue,
-        notes: `Counter sale ${saleNumber}`,
-        created_by: context.userId,
-      }).select("id, invoice_number").maybeSingle();
-      if (!invErr && inv) {
-        invoiceId = inv.id;
-        invoiceNumber = inv.invoice_number;
-        await db.from("invoice_line_items").insert(
-          itemRows.map((l, i) => ({
-            invoice_id: inv.id,
-            description: l.sku ? `${l.name} (${l.sku})` : l.name,
-            quantity: l.quantity,
-            unit_price: l.unit_price,
-            tax_rate: 0,
-            position: i,
-          })),
-        );
-        const { data: pay } = await db.from("payments").insert({
-          customer_id: data.customer_id,
-          account_number: accountNumber,
-          invoice_id: inv.id,
-          amount: total,
-          currency: data.currency || "USD",
-          method: data.payment_method || "cash",
-          status: "completed",
-          paid_at: now.toISOString(),
-          reference: saleNumber,
-          service_context: "pos",
-          notes: `Counter sale ${saleNumber}`,
-          created_by: context.userId,
-        }).select("id").maybeSingle();
-        if (pay) {
-          paymentId = pay.id;
-          // Allocation triggers recompute → invoice flips to paid.
-          await db.from("payment_allocations").insert({ payment_id: pay.id, invoice_id: inv.id, amount: total });
-        }
-        await db.from("pos_sales").update({ invoice_id: invoiceId, payment_id: paymentId }).eq("id", sale.id);
-      }
-    }
+    // Money is not banked here: the sale waits in Finance's reconciliation queue,
+    // where Finance records (or matches) the payment, invoice and ledger entry.
+    const invoiceId: string | null = null;
+    const invoiceNumber: string | null = null;
+    const paymentId: string | null = null;
 
     await db.from("audit_log").insert({
       actor_id: context.userId,
@@ -273,11 +222,15 @@ export const voidPosSale = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; reason?: string }) => d)
   .handler(async ({ data, context }) => {
-    await assertStaff(context as Ctx);
+    const roles = await assertStaff(context as Ctx);
     const db = context.supabase as any;
     const { data: sale, error } = await db.from("pos_sales").select("*, pos_sale_items(*)").eq("id", data.id).single();
     if (error) throw new Error(error.message);
     if (sale.status === "void") throw new Error("Sale is already voided");
+    const reconciled = sale.reconciliation_status === "reconciled";
+    if (reconciled && !isBilling(roles)) {
+      throw new Error("Finance has already reconciled this sale — ask Finance to void it");
+    }
 
     for (const l of sale.pos_sale_items || []) {
       if (!l.item_id) continue;
@@ -285,7 +238,8 @@ export const voidPosSale = createServerFn({ method: "POST" })
       if (item) await db.from("inventory_items").update({ quantity: num(item.quantity) + num(l.quantity) }).eq("id", l.item_id);
     }
 
-    if (sale.account_id) {
+    // Money was only recorded once Finance reconciled the sale, so only then reverse it.
+    if (reconciled && sale.account_id) {
       await db.from("cash_movements").insert({
         account_id: sale.account_id,
         kind: "withdrawal",
@@ -299,12 +253,26 @@ export const voidPosSale = createServerFn({ method: "POST" })
     }
 
     // Reverse the generated invoice / payment so finance stays in balance.
-    if (sale.payment_id) {
+    if (reconciled && sale.payment_id) {
       await db.from("payment_allocations").delete().eq("payment_id", sale.payment_id);
       await db.from("payments").update({ status: "voided", notes: `Voided with POS sale ${sale.sale_number}` }).eq("id", sale.payment_id);
     }
-    if (sale.invoice_id) {
+    if (reconciled && sale.invoice_id) {
       await db.from("invoices").update({ status: "void", paid_at: null, notes: `Voided with POS sale ${sale.sale_number}` }).eq("id", sale.invoice_id);
+    }
+    if (reconciled) {
+      const { data: je } = await db.from("journal_entries").select("id").eq("source_type", "pos_sale").eq("source_id", sale.id).maybeSingle();
+      if (je?.id) {
+        const { data: jl } = await db.from("journal_lines").select("account_code, debit, credit, description, customer_id").eq("entry_id", je.id);
+        const { postJournalEntry } = await import("./ledger.server");
+        await postJournalEntry(db, {
+          source_type: "pos_sale_void", source_id: sale.id, source_ref: sale.sale_number,
+          entry_date: new Date().toISOString().slice(0, 10),
+          memo: `Reversal of POS sale ${sale.sale_number}`, currency: sale.currency || "USD",
+          customer_id: sale.customer_id ?? null,
+          lines: (jl ?? []).map((l: any) => ({ ...l, debit: num(l.credit), credit: num(l.debit) })),
+        }, context.userId);
+      }
     }
 
     const { data: updated, error: upErr } = await db.from("pos_sales").update({
@@ -522,7 +490,7 @@ export const closePosDay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { date?: string; counted_cash?: number; account_id?: string | null; notes?: string | null }) => d)
   .handler(async ({ data, context }) => {
-    await assertStaff(context as Ctx);
+    const roles = await assertStaff(context as Ctx);
     const db = context.supabase as any;
     const date = data.date || new Date().toISOString().slice(0, 10);
 
@@ -558,8 +526,8 @@ export const closePosDay = createServerFn({ method: "POST" })
       .update({ closeout_id: row.id })
       .in("id", z.sales.map((s: any) => s.id).length ? z.sales.map((s: any) => s.id) : ["00000000-0000-0000-0000-000000000000"]);
 
-    // Post the cash variance so the till reconciles to what was counted.
-    if (data.account_id && Math.abs(variance) > 0.005) {
+    // Cash variance is posted only by Finance (here, or later when Finance reviews the day).
+    if (isBilling(roles) && data.account_id && Math.abs(variance) > 0.005) {
       await db.from("cash_movements").insert({
         account_id: data.account_id,
         kind: variance > 0 ? "deposit" : "withdrawal",
@@ -708,4 +676,185 @@ export const getPosSalePdf = createServerFn({ method: "POST" })
       filename: `${reference || "invoice"}.pdf`.replace(/[^\w.-]+/g, "-"),
       base64: btoa(binary),
     };
+  });
+
+/* ------------------------------------------------------------------ *
+ * Finance reconciliation — sales staff ring up sales; Finance confirms
+ * the money by recording the payment or matching one already received.
+ * ------------------------------------------------------------------ */
+
+/** Pending/disputed sales plus candidate payments Finance can match them to. */
+export const getPosReconciliation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertBilling(context as Ctx);
+    const db = context.supabase as any;
+    const [salesR, linkedR, paysR, closeR] = await Promise.all([
+      db.from("pos_sales").select("*, pos_sale_items(*)").neq("status", "void")
+        .in("reconciliation_status", ["pending", "disputed"]).order("created_at", { ascending: true }).limit(300),
+      db.from("pos_sales").select("payment_id").not("payment_id", "is", null),
+      db.from("payments").select("id, amount, currency, method, reference, paid_at, status, customer_id, account_number, receipt_number")
+        .neq("status", "voided").order("paid_at", { ascending: false }).limit(400),
+      db.from("pos_closeouts").select("*").is("finance_reviewed_at", null).order("business_date", { ascending: false }).limit(60),
+    ]);
+    if (salesR.error) throw new Error(salesR.error.message);
+    const linked = new Set((linkedR.data ?? []).map((r: any) => r.payment_id));
+    const payments = (paysR.data ?? []).filter((p: any) => !linked.has(p.id));
+    const sales = (salesR.data ?? []).map((s: any) => {
+      const t = new Date(s.created_at).getTime();
+      const suggestions = payments.filter((p: any) =>
+        Math.abs(num(p.amount) - num(s.total)) < 0.01 &&
+        String(p.currency || "USD").toUpperCase() === String(s.currency || "USD").toUpperCase() &&
+        (!s.customer_id || !p.customer_id || p.customer_id === s.customer_id) &&
+        Math.abs(new Date(p.paid_at || 0).getTime() - t) <= 7 * 86_400_000,
+      ).slice(0, 5);
+      return { ...s, suggestions };
+    });
+    return { sales, payments, closeouts: closeR.data ?? [] };
+  });
+
+export const reconcilePosSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; mode: "record" | "match" | "dispute"; account_id?: string | null; payment_id?: string | null; note?: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    await assertBilling(context as Ctx);
+    const db = context.supabase as any;
+    const { data: sale, error } = await db.from("pos_sales").select("*, pos_sale_items(*)").eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+    if (sale.status === "void") throw new Error("Voided sales cannot be reconciled");
+    if (sale.reconciliation_status === "reconciled") throw new Error("Sale is already reconciled");
+    const who = await actorName(context as Ctx);
+    const note = data.note?.trim() || null;
+    const total = num(sale.total);
+    const currency = String(sale.currency || "USD").toUpperCase();
+    let paymentId: string | null = null;
+    let invoiceId: string | null = sale.invoice_id ?? null;
+    let accountId: string | null = sale.account_id ?? null;
+
+    if (data.mode === "dispute") {
+      if (!note) throw new Error("Add a note explaining what doesn't match");
+      const { data: row, error: e } = await db.from("pos_sales").update({ reconciliation_status: "disputed", reconciliation_note: note }).eq("id", sale.id).select("*").single();
+      if (e) throw new Error(e.message);
+      await db.from("audit_log").insert({ actor_id: context.userId, action: "pos_sale_disputed", entity_type: "pos_sales", entity_id: sale.id, module: "pos", new_value: { note } });
+      return row;
+    }
+
+    if (data.mode === "match") {
+      if (!data.payment_id) throw new Error("Choose the payment this sale was paid with");
+      const { data: pay, error: pe } = await db.from("payments").select("*").eq("id", data.payment_id).single();
+      if (pe) throw new Error(pe.message);
+      if (pay.status === "voided") throw new Error("That payment is voided");
+      if (Math.abs(num(pay.amount) - total) >= 0.01) throw new Error(`Payment amount ${num(pay.amount).toFixed(2)} does not equal sale total ${total.toFixed(2)}`);
+      if (String(pay.currency || "USD").toUpperCase() !== currency) throw new Error("Payment currency differs from the sale");
+      if (sale.customer_id && pay.customer_id && pay.customer_id !== sale.customer_id) throw new Error("Payment belongs to a different client");
+      const { data: used } = await db.from("pos_sales").select("sale_number").eq("payment_id", pay.id).maybeSingle();
+      if (used) throw new Error(`Payment is already matched to ${used.sale_number}`);
+      paymentId = pay.id;
+    } else {
+      // Record: Finance banks the money now — cash movement, payment (for clients) and ledger.
+      accountId = data.account_id || null;
+      if (!accountId) throw new Error("Choose the till or bank account the money went into");
+      const { data: acct, error: ae } = await db.from("cash_accounts").select("id, name, kind, currency").eq("id", accountId).single();
+      if (ae) throw new Error(ae.message);
+      const when = new Date(sale.created_at).toISOString();
+      const { error: cmErr } = await db.from("cash_movements").insert({
+        account_id: accountId, kind: "deposit", amount: total, currency, occurred_at: when,
+        reference: sale.sale_number, notes: `POS sale ${sale.sale_number} (reconciled by Finance)`, created_by: context.userId,
+      });
+      if (cmErr) throw new Error(cmErr.message);
+
+      if (sale.customer_id) {
+        const issue = when.slice(0, 10);
+        const { data: inv, error: invErr } = await db.from("invoices").insert({
+          customer_id: sale.customer_id, account_number: sale.account_number,
+          invoice_number: `INV-${String(sale.sale_number).replace(/^POS-/, "")}`,
+          status: "draft", currency, subtotal: num(sale.subtotal) - num(sale.discount), tax: num(sale.tax), total,
+          issue_date: issue, due_date: issue, notes: `Counter sale ${sale.sale_number}`, created_by: context.userId,
+        }).select("id").single();
+        if (invErr) throw new Error(invErr.message);
+        invoiceId = inv.id;
+        await db.from("invoice_line_items").insert((sale.pos_sale_items || []).map((l: any, i: number) => ({
+          invoice_id: inv.id, description: l.sku ? `${l.name} (${l.sku})` : l.name,
+          quantity: l.quantity, unit_price: l.unit_price, tax_rate: 0, position: i,
+        })));
+        const { data: pay, error: payErr } = await db.from("payments").insert({
+          customer_id: sale.customer_id, account_number: sale.account_number, invoice_id: inv.id,
+          amount: total, currency, method: sale.payment_method || "cash", status: "completed",
+          paid_at: when, reference: sale.sale_number, service_context: "pos",
+          notes: `Counter sale ${sale.sale_number}`, created_by: context.userId,
+        }).select("id").single();
+        if (payErr) throw new Error(payErr.message);
+        paymentId = pay.id;
+        await db.from("payment_allocations").insert({ payment_id: pay.id, invoice_id: inv.id, amount: total });
+      }
+
+      const [{ latestRateMap, toBase }, { postJournalEntry, cashAccountCode }] = await Promise.all([
+        import("@/lib/currency.shared"), import("./ledger.server"),
+      ]);
+      const { data: rateRows } = await db.from("exchange_rates").select("currency, rate, effective_date").order("effective_date", { ascending: false }).limit(400);
+      const rates = latestRateMap((rateRows ?? []) as any);
+      const usd = Math.round(toBase(total, currency, rates) * 100) / 100;
+      const usdTax = Math.round(toBase(num(sale.tax), currency, rates) * 100) / 100;
+      const cost = (sale.pos_sale_items || []).reduce((t: number, l: any) => t + num(l.unit_cost) * num(l.quantity), 0);
+      await postJournalEntry(db, {
+        source_type: "pos_sale", source_id: sale.id, source_ref: sale.sale_number, entry_date: when.slice(0, 10),
+        memo: `POS sale ${sale.sale_number} · ${acct.name}`, currency, fx_rate: rates[currency] ?? 1,
+        customer_id: sale.customer_id ?? null,
+        lines: [
+          { account_code: cashAccountCode(acct.kind, sale.payment_method), debit: usd, credit: 0, description: `Banked into ${acct.name}` },
+          { account_code: "4100", debit: 0, credit: usd - usdTax, description: "Hardware sales" },
+          { account_code: "2200", debit: 0, credit: usdTax, description: "Tax collected" },
+          { account_code: "5000", debit: cost, credit: 0, description: "Cost of goods sold" },
+          { account_code: "1200", debit: 0, credit: cost, description: "Stock issued" },
+        ],
+      }, context.userId);
+    }
+
+    const { data: row, error: upErr } = await db.from("pos_sales").update({
+      reconciliation_status: "reconciled", reconciled_at: new Date().toISOString(), reconciled_by: context.userId,
+      reconciled_by_name: who, reconciliation_note: note, payment_id: paymentId, invoice_id: invoiceId, account_id: accountId,
+    }).eq("id", sale.id).select("*").single();
+    if (upErr) throw new Error(upErr.message);
+    await db.from("audit_log").insert({
+      actor_id: context.userId, action: "pos_sale_reconciled", entity_type: "pos_sales", entity_id: sale.id,
+      account_number: sale.account_number, module: "pos",
+      new_value: { mode: data.mode, payment_id: paymentId, account_id: accountId, total, note },
+    });
+    return row;
+  });
+
+/** Finance signs off a closed trading day and, if needed, posts the counted-cash variance. */
+export const reviewPosCloseout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; account_id?: string | null; note?: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    await assertBilling(context as Ctx);
+    const db = context.supabase as any;
+    const { data: close, error } = await db.from("pos_closeouts").select("*").eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+    if (close.finance_reviewed_at) throw new Error("This day is already reviewed");
+    const { count } = await db.from("pos_sales").select("id", { count: "exact", head: true })
+      .eq("closeout_id", close.id).neq("status", "void").neq("reconciliation_status", "reconciled");
+    if ((count ?? 0) > 0) throw new Error(`${count} sale(s) from this day still need reconciling`);
+    const variance = num(close.variance);
+    const accountId = data.account_id || close.account_id;
+    if (Math.abs(variance) > 0.005) {
+      if (!accountId) throw new Error("Choose the till to post the cash variance to");
+      const { data: posted } = await db.from("cash_movements").select("id").eq("reference", `CLOSE-${close.business_date}`).maybeSingle();
+      if (!posted) {
+        await db.from("cash_movements").insert({
+          account_id: accountId, kind: variance > 0 ? "deposit" : "withdrawal", amount: Math.abs(variance),
+          currency: close.currency || "USD", occurred_at: new Date().toISOString(), reference: `CLOSE-${close.business_date}`,
+          notes: `POS closeout variance for ${close.business_date}`, created_by: context.userId,
+        });
+      }
+    }
+    const { data: row, error: e } = await db.from("pos_closeouts").update({
+      finance_reviewed_at: new Date().toISOString(), finance_reviewed_by: context.userId,
+      finance_reviewed_by_name: await actorName(context as Ctx), finance_review_note: data.note?.trim() || null,
+      account_id: accountId,
+    }).eq("id", close.id).select("*").single();
+    if (e) throw new Error(e.message);
+    await db.from("audit_log").insert({ actor_id: context.userId, action: "pos_closeout_reviewed", entity_type: "pos_closeouts", entity_id: close.id, module: "pos", new_value: { variance, account_id: accountId } });
+    return row;
   });

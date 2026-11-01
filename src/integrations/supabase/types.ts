@@ -4722,6 +4722,10 @@ export type Database = {
           currency: string
           discounts: number
           expected_cash: number
+          finance_review_note: string | null
+          finance_reviewed_at: string | null
+          finance_reviewed_by: string | null
+          finance_reviewed_by_name: string | null
           gross_profit: number
           gross_sales: number
           id: string
@@ -4746,6 +4750,10 @@ export type Database = {
           currency?: string
           discounts?: number
           expected_cash?: number
+          finance_review_note?: string | null
+          finance_reviewed_at?: string | null
+          finance_reviewed_by?: string | null
+          finance_reviewed_by_name?: string | null
           gross_profit?: number
           gross_sales?: number
           id?: string
@@ -4770,6 +4778,10 @@ export type Database = {
           currency?: string
           discounts?: number
           expected_cash?: number
+          finance_review_note?: string | null
+          finance_reviewed_at?: string | null
+          finance_reviewed_by?: string | null
+          finance_reviewed_by_name?: string | null
           gross_profit?: number
           gross_sales?: number
           id?: string
@@ -4862,6 +4874,11 @@ export type Database = {
           notes: string | null
           payment_id: string | null
           payment_method: string
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciled_by_name: string | null
+          reconciliation_note: string | null
+          reconciliation_status: string
           sale_number: string
           sold_by: string | null
           sold_by_name: string | null
@@ -4889,6 +4906,11 @@ export type Database = {
           notes?: string | null
           payment_id?: string | null
           payment_method?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_by_name?: string | null
+          reconciliation_note?: string | null
+          reconciliation_status?: string
           sale_number: string
           sold_by?: string | null
           sold_by_name?: string | null
@@ -4916,6 +4938,11 @@ export type Database = {
           notes?: string | null
           payment_id?: string | null
           payment_method?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_by_name?: string | null
+          reconciliation_note?: string | null
+          reconciliation_status?: string
           sale_number?: string
           sold_by?: string | null
           sold_by_name?: string | null
@@ -7569,6 +7596,7 @@ export type Database = {
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_finance_staff: { Args: { _uid: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_pos_staff: { Args: { _uid: string }; Returns: boolean }
       is_sales_only: { Args: { _uid: string }; Returns: boolean }
       is_sales_staff: { Args: { _uid: string }; Returns: boolean }
       is_tech_staff: { Args: { _uid: string }; Returns: boolean }

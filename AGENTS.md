@@ -10,17 +10,17 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Quotation previews and PDFs share a saved-value document model without changing financial calculations.
+- Quotation previews and PDFs share one saved-value document model; calculations unchanged.
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
-- Base44 webhook resolves client ownership from the protected system setting, not incoming customer identifiers, so requester data cannot route tickets to another client.
+- Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
 - Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
 - Inbox and transactional signatures share one email-safe table template and staff-title resolver (mobile-safe typography, one linked promo image); custom personal signatures override it.
 - Inbox conversation rendering uses a dedicated collapsible message view with the latest message expanded first, authorized thread prefetching and foreground refresh, so older HTML signatures do not delay access to new replies.
 - Compose restoration and outbound conversation display remove identifiable staff signature blocks without changing stored messages; delivery appends signatures separately so clients still receive them.
-- Reply composers show latest inbound HTML in a separate sanitized read-only preview, never in the sent body.
+- Reply composers preview latest inbound HTML separately (sanitized, read-only), never in the sent body.
 - Portal sign-in resolves email/username/account number to the login email server-side, returning only a session; new accounts get client-only logins with temporary credentials in the welcome email, never overwriting existing logins.
 - Login email and business email are separate: profiles.work_email (when set) is used for sending, mailbox, signatures and manager contact; login email is only for sign-in.
 - Technical workspaces are two tabbed hubs (/noc, /techops/dashboard); merged pages live as sections in src/components/techops and collapse their frame via EmbeddedPageContext, while their old URLs remain redirects.
@@ -29,9 +29,9 @@
 - Portal statements resolve account ownership from the authenticated profile, derive current and monthly cutoffs without email delivery dependencies, and prepare per-currency PDFs before download clicks to retain mobile user activation.
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
-- Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
-- Firewall: Vultr-only, staff-only, logged; no public sensitive ports.
-- Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
+- Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
+- Firewall: Vultr-only, staff-only, logged; no public sensitive ports. Provider orders and server rebuild/restore/app-install need atomic ops-manager/master-admin approval (no self-approval unless master); power/snapshots are immediate.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
-- Staff test mail goes only to the caller; customer mail to recorded contacts; exports/prints/searches use safe-output helpers
+- Test mail goes only to the caller, customer mail to recorded contacts; exports/prints/searches use safe-output helpers
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
+- POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
