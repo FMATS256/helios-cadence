@@ -59,6 +59,6 @@
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
 
-- [ ] Security: lock scheduled jobs behind secret + reschedule cron with credential
-- [ ] Security: review remaining deep-scan findings (cloud server control, email sending, payment amount, portal linking)
-- [ ] Vultr Object Storage provisioner: real bucket creation + client charge (verify existing flow)
+- [x] Security: scheduled jobs locked behind secret; cron rescheduled
+- [ ] Security: remaining email-recipient, export-formula, link-expiry warnings (awaiting user go-ahead)
+- [x] Vultr storage: real instance + bucket + monthly subscription billing (not live-tested, incurs charges)
