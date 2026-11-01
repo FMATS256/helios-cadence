@@ -31,8 +31,32 @@ export function validateRule(r: RuleInput): RuleInput {
   const source = String(r.source ?? "").trim() || "0.0.0.0/0";
   const sm = /^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,2})$/.exec(source);
   if (!sm || sm[1].split(".").some((o) => +o > 255) || +sm[2] > 32) throw new Error("Source must be an IPv4 range like 41.0.0.0/16 or 0.0.0.0/0");
+  if (r.protocol !== "icmp") {
+    const prefix = +sm[2];
+    const [a, b] = port.split(":").map(Number);
+    const hit = (b ?? a) - a <= 200 ? SENSITIVE_PORTS.find((s) => s.port >= a && s.port <= (b ?? a)) : undefined;
+    if (hit && prefix < 16) {
+      throw new Error(`Security policy: ${hit.name} (port ${hit.port}) must not be open to the internet. Allow only the client's office IP or the VPN range (a /16 or smaller).`);
+    }
+    if ((b ?? a) - a > 2000 && prefix === 0) throw new Error("Security policy: port ranges wider than 2000 ports cannot be open to everyone");
+  }
   return { protocol: r.protocol, port: r.protocol === "icmp" ? "" : port, source, notes: (r.notes ?? "").slice(0, 200) };
 }
+
+// Ports that must never be reachable from the whole internet (compliance policy).
+export const SENSITIVE_PORTS = [
+  { port: 3389, name: "Remote Desktop (RDP)" },
+  { port: 5900, name: "VNC remote control" },
+  { port: 445, name: "Windows file sharing (SMB)" },
+  { port: 139, name: "NetBIOS file sharing" },
+  { port: 1433, name: "SQL Server database" },
+  { port: 3306, name: "MySQL database" },
+  { port: 5432, name: "PostgreSQL database" },
+  { port: 27017, name: "MongoDB database" },
+  { port: 6379, name: "Redis" },
+  { port: 9200, name: "Elasticsearch" },
+  { port: 11211, name: "Memcached" },
+];
 
 async function loadServer(context: any, server_id: string) {
   const { assertStaff } = await import("./customer360.server");
