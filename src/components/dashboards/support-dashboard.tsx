@@ -95,7 +95,7 @@ export function SupportDashboard({ displayName }: { displayName: string }) {
       <SectionCard title="Service health" description="Live technical status across managed services">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <KpiCard label="Availability" value={s?.tech.availability == null ? "—" : `${s.tech.availability}%`} icon={Activity} tone={(s?.tech.availability ?? 100) < 99 ? "warning" : "success"} to="/noc" hint="Monitors up" />
-          <KpiCard label="Cloud servers" value={`${s?.tech.servers.ok ?? 0}/${s?.tech.servers.total ?? 0}`} icon={Server} tone={(s?.tech.servers.issue ?? 0) > 0 ? "warning" : "success"} to="/noc" search={{ tab: "servers" }} hint={`${s?.tech.servers.issue ?? 0} not running`} />
+          <KpiCard label="Cloud servers" value={`${s?.tech.servers.ok ?? 0}/${s?.tech.servers.total ?? 0}`} icon={Server} tone={(s?.tech.servers.issue ?? 0) > 0 ? "warning" : "success"} to="/cloud-ops/fleet" hint={`${s?.tech.servers.issue ?? 0} not running`} />
           <KpiCard label="Web hosting" value={`${s?.tech.hosting.ok ?? 0}/${s?.tech.hosting.total ?? 0}`} icon={Server} tone={(s?.tech.hosting.issue ?? 0) > 0 ? "warning" : "success"} to="/web-hosting" hint={`${s?.tech.hosting.issue ?? 0} suspended/other`} />
           <KpiCard label="VoIP lines" value={`${s?.tech.voip.ok ?? 0}/${s?.tech.voip.total ?? 0}`} icon={Activity} tone={(s?.tech.voip.issue ?? 0) > 0 ? "warning" : "success"} to="/noc" hint={`${s?.tech.voip.issue ?? 0} inactive`} />
           <KpiCard label="Stale checks" value={s?.tech.stale ?? 0} icon={Clock} tone={(s?.tech.stale ?? 0) > 0 ? "warning" : "success"} to="/noc" hint="No result in 15 min" />
