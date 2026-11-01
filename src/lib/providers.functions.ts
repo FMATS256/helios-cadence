@@ -273,7 +273,7 @@ export const sendServerHandover = createServerFn({ method: "POST" })
     if (!to) throw new Error("No customer contact email on file. Add a contact or pass one in.");
 
     const ip = (s.public_ips as any[] | null)?.[0] ?? "—";
-    const subject = `Your new server "${escapeHtml(s.name)}" is ready`;
+    const subject = `Your new server "${s.name}" is ready`;
     const html = `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff;">
   <h2 style="margin:0 0 12px">Your server is ready</h2>
