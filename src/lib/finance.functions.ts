@@ -456,6 +456,10 @@ export const emailInvoice = createServerFn({ method: "POST" })
     const cust = (invoice as any).customers;
     const recipient = (data.to || cust?.primary_email || "").trim();
     if (!recipient || !/@/.test(recipient)) throw new Error("This customer has no email address on file.");
+    if (data.to) {
+      const { assertCustomerAddresses } = await import("./recipient-guard.server");
+      await assertCustomerAddresses(invoice.customer_id, [recipient]);
+    }
 
     const [itemsR, allocR, profileR] = await Promise.all([
       supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),

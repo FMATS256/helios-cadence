@@ -12,6 +12,8 @@ export const sendAllTestEmails = createServerFn({ method: "POST" })
       _role: "master_admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
+    const { assertOwnAddress } = await import("./recipient-guard.server");
+    await assertOwnAddress(context as any, data.to);
 
     const results: Array<{ template: string; ok: boolean; reason?: string }> = [];
     for (const [name, tpl] of Object.entries(TEMPLATES)) {

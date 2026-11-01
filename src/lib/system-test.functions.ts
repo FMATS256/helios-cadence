@@ -116,6 +116,8 @@ export const runEmailTemplateSuite = createServerFn({ method: "POST" })
     const { assertStaff } = await import("./customer360.server");
     await assertStaff(context as any);
     if (!/@/.test(data.to || "")) throw new Error("A valid recipient email is required");
+    const { assertOwnAddress } = await import("./recipient-guard.server");
+    await assertOwnAddress(context as any, data.to);
     const { TEMPLATES } = await import("./email-templates/registry");
     const { sendTemplateEmail } = await import("./email-templates/send-email");
     const results: Array<{ template: string; ok: boolean; kind: "sent" | "suppressed" | "external" | "error"; reason?: string }> = [];

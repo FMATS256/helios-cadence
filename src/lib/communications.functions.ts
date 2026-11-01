@@ -49,6 +49,8 @@ export const logCommunication = createServerFn({ method: "POST" })
     let failure: string | null = null;
 
     if (shouldSend) {
+      const { assertCustomerAddresses } = await import("./recipient-guard.server");
+      await assertCustomerAddresses(customer_id, [data.recipient!]);
       try {
         const { sendTemplateEmail } = await import("./email-templates/send-email");
         const res = await sendTemplateEmail("general-message", data.recipient!, {
@@ -184,6 +186,9 @@ export const composeClientEmail = createServerFn({ method: "POST" })
         : q.eq("account_number", (data.account_number || "").toUpperCase());
       customer = (await q.maybeSingle()).data;
     }
+
+    const { assertCustomerAddresses } = await import("./recipient-guard.server");
+    await assertCustomerAddresses(customer?.id, to);
 
     const { sendTemplateEmail } = await import("./email-templates/send-email");
     const stamp = Date.now();

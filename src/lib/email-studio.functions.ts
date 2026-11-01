@@ -199,6 +199,8 @@ export const sendEmailStudioTest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    const { assertOwnAddress } = await import("./recipient-guard.server");
+    await assertOwnAddress(context as any, data.to);
     const { sendTemplateEmail } = await import("./email-templates/send-email");
     const res = await sendTemplateEmail(data.templateName, data.to, {
       templateData: data.sampleDataOverride,
