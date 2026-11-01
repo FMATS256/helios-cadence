@@ -414,7 +414,8 @@ main:has(> .imt-mail) {
   .client-portal .portal-welcome-account > button:last-child { min-height: 24px; font-size: 12px; font-weight: 400; }
   .client-portal .portal-desktop-dashboard { display: none; }
   .client-portal .portal-overview-extras { display: none; }
-  .client-portal .portal-welcome { display: flex; align-items: center; justify-content: center; margin-bottom: 0; }
+  .client-portal .portal-welcome { display: flex; flex-direction: column; margin-bottom: 0; }
+  .client-portal .portal-welcome-heading { width: 100%; }
   .client-portal .portal-welcome-account { width: min(520px, 90%); margin: 40px auto; padding: 32px 40px 24px; }
   .client-portal .portal-welcome-account .grid { gap: 48px; }
   .client-portal .portal-reference-footer { display: block; background: var(--portal-footer); color: var(--navy-foreground); padding: 60px var(--portal-gutter) 70px; margin-top: auto; }
