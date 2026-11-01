@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { getStorageOverview } from "@/lib/infra.functions";
 import { storageLifecycleAction } from "@/lib/hosting.functions";
+import { listVultrStorageClusters, provisionVultrStorage } from "@/lib/vultr-storage.functions";
+import { STORAGE_PLANS_GB, STORAGE_PRICE_PER_TB_USD, storageSellPrice } from "@/lib/storage-pricing";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, type ColumnDef,
@@ -68,6 +70,7 @@ function CloudStoragePage() {
 
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
+  const [provisioning, setProvisioning] = useState(false);
 
   const accounts = overview.data?.accounts ?? [];
   const customers = overview.data?.customers ?? [];
@@ -162,6 +165,7 @@ function CloudStoragePage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <RefreshButton onClick={() => overview.refetch()} loading={overview.isFetching} />
+            <Button variant="outline" onClick={() => setProvisioning(true)}><Cloud className="mr-1.5 h-4 w-4" /> Provision on Vultr</Button>
             <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setEditing({ ...EMPTY })}>
               <Plus className="mr-1.5 h-4 w-4" /> New storage account
             </Button>
@@ -230,6 +234,7 @@ function CloudStoragePage() {
         </TabsContent>
       </Tabs>
 
+      {provisioning && <VultrProvisionDialog customers={customers} onClose={() => setProvisioning(false)} onDone={() => { setProvisioning(false); overview.refetch(); }} />}
       {editing && (
         <StorageDialog
           record={editing}
@@ -378,6 +383,48 @@ function StorageDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function VultrProvisionDialog({ customers, onClose, onDone }: { customers: any[]; onClose: () => void; onDone: () => void }) {
+  const clustersFn = useServerFn(listVultrStorageClusters);
+  const provisionFn = useServerFn(provisionVultrStorage);
+  const clusters = useQuery({ queryKey: ["vultr-storage-clusters"], queryFn: () => clustersFn() });
+  const [f, setF] = useState({ customer_id: "", name: "", size_gb: "500", cluster_id: "" });
+  const run = useMutation({
+    mutationFn: () => provisionFn({ data: { customer_id: f.customer_id, name: f.name, size_gb: Number(f.size_gb), cluster_id: Number(f.cluster_id) } }),
+    onSuccess: (r) => { toast.success(`Storage created · ${money(r.price)}/month · keys saved to Credential Vault`); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Provision storage on Vultr</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div className="space-y-2"><Label>Client</Label>
+            <Select value={f.customer_id} onValueChange={(v) => setF({ ...f, customer_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Choose client" /></SelectTrigger>
+              <SelectContent>{customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name ?? c.company_name ?? c.account_number}</SelectItem>)}</SelectContent>
+            </Select></div>
+          <div className="space-y-2"><Label>Name</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Acme backups" /></div>
+          <div className="space-y-2"><Label>Size</Label>
+            <Select value={f.size_gb} onValueChange={(v) => setF({ ...f, size_gb: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{STORAGE_PLANS_GB.map((gb) => <SelectItem key={gb} value={String(gb)}>{gb >= 1000 ? `${gb / 1000} TB` : `${gb} GB`} — {money(storageSellPrice(gb))}/month</SelectItem>)}</SelectContent>
+            </Select></div>
+          <div className="space-y-2"><Label>Location</Label>
+            <Select value={f.cluster_id} onValueChange={(v) => setF({ ...f, cluster_id: v })}>
+              <SelectTrigger><SelectValue placeholder={clusters.isLoading ? "Loading…" : "Choose location"} /></SelectTrigger>
+              <SelectContent>{(clusters.data ?? []).map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.region.toUpperCase()} · {c.hostname}</SelectItem>)}</SelectContent>
+            </Select></div>
+          <p className="text-xs text-muted-foreground">Client price is {money(STORAGE_PRICE_PER_TB_USD)} per TB. Vultr does not cap space, so usage alerts warn at 85% of the sold allocation.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={run.isPending || !f.customer_id || !f.name || !f.cluster_id} onClick={() => run.mutate()}>{run.isPending ? "Provisioning…" : "Provision"}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
