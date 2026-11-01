@@ -568,7 +568,7 @@ export const globalSearch = createServerFn({ method: "POST" })
   .inputValidator((input: { q: string; limit?: number }) => input)
   .handler(async ({ data, context }) => {
     const q = safeSearchTerm(data.q);
-    if (!q) return { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [] };
+    if (!q) return { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [], services: [] as any[] };
     const limit = Math.min(data.limit ?? 6, 15);
     const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });
     if (!hasRole) throw new Error("Staff role required");
@@ -583,6 +583,20 @@ export const globalSearch = createServerFn({ method: "POST" })
       supabaseAdmin.from("assets").select("id,asset_tag,name,serial_number,status,customer_id,account_number").is("archived_at", null).or(`asset_tag.ilike.${like},name.ilike.${like},serial_number.ilike.${like},account_number.ilike.${like}`).limit(limit),
       supabaseAdmin.from("credentials").select("id,name,credential_type,username,customer_id,account_number").is("archived_at", null).or(`name.ilike.${like},username.ilike.${like},account_number.ilike.${like}`).limit(limit),
     ]);
+    const db: any = supabaseAdmin;
+    const svc = await Promise.all([
+      db.from("web_hosting_accounts").select("id,customer_id,account_number,domain,status").is("archived_at", null).ilike("domain", like).limit(limit),
+      db.from("voip_accounts").select("id,customer_id,account_number,voip_number,sip_username,status").is("archived_at", null).or(`voip_number.ilike.${like},sip_username.ilike.${like}`).limit(limit),
+      db.from("starlink_accounts").select("id,customer_id,account_number,kit_serial,starlink_account_number,status").is("archived_at", null).or(`kit_serial.ilike.${like},starlink_account_number.ilike.${like},terminal_id.ilike.${like}`).limit(limit),
+      db.from("cloud_servers").select("id,customer_id,account_number,name,status").is("archived_at", null).ilike("name", like).limit(limit),
+      db.from("licenses").select("id,customer_id,account_number,product,status").is("archived_at", null).or(`product.ilike.${like},vendor.ilike.${like}`).limit(limit),
+      db.from("cloud_storage_accounts").select("id,customer_id,account_number,name,status").is("archived_at", null).ilike("name", like).limit(limit),
+    ]);
+    const kinds = ["Hosting & email", "VoIP", "Starlink", "Server", "Licence", "Storage"];
+    const services = svc.flatMap((r: any, i: number) => (r.data ?? []).filter((x: any) => x.customer_id).map((x: any) => ({
+      id: x.id, kind: kinds[i], customer_id: x.customer_id, account_number: x.account_number, status: x.status,
+      label: x.domain ?? x.voip_number ?? x.kit_serial ?? x.starlink_account_number ?? x.name ?? x.product,
+    })));
     return {
       customers: customers.data ?? [],
       invoices: invoices.data ?? [],
@@ -591,6 +605,7 @@ export const globalSearch = createServerFn({ method: "POST" })
       subscriptions: subscriptions.data ?? [],
       assets: assets.data ?? [],
       credentials: credentials.data ?? [],
+      services,
     };
   });
 

@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
+import { syncVoipAccount, recordVoipRecharge } from "@/lib/voip.functions";
+import { checkStarlinkAccount } from "@/lib/starlink.functions";
+import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,43 +15,30 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Mail, Phone, Satellite, Server, HardDrive, Globe, Package, KeyRound, LifeBuoy, Truck, Activity, ExternalLink, Loader2, Copy } from "lucide-react";
-import { deskSearch, deskClient, deskMailboxes, deskMailboxAction, deskEmailHealth, deskOpenTicket } from "@/lib/support-desk.functions";
+import { Mail, Phone, Satellite, Server, HardDrive, Globe, Package, KeyRound, LifeBuoy, Truck, Activity, ExternalLink, Loader2, Copy } from "lucide-react";
+import { deskClient, deskMailboxes, deskMailboxAction, deskEmailHealth, deskOpenTicket } from "@/lib/support-desk.functions";
 import { hostingSsoLink, hostingLifecycleAction } from "@/lib/hosting.functions";
 
-export function SupportDesk() {
-  const [q, setQ] = useState("");
-  const [term, setTerm] = useState("");
-  const [id, setId] = useState<string | null>(null);
-  const fnSearch = useServerFn(deskSearch);
-  const fnClient = useServerFn(deskClient);
-  const results = useQuery({ queryKey: ["desk_search", term], queryFn: () => fnSearch({ data: { q: term } }), enabled: term.length >= 2 });
-  const client = useQuery({ queryKey: ["desk_client", id], queryFn: () => fnClient({ data: { id: id! } }), enabled: !!id });
+const listeners = new Set<(id: string) => void>();
+/** Open the client support panel from anywhere (global search, tickets, dashboards). */
+export function openClientDesk(customerId: string) { listeners.forEach((l) => l(customerId)); }
 
+export function ClientDeskSheet() {
+  const [id, setId] = useState<string | null>(null);
+  useEffect(() => { const l = (x: string) => setId(x); listeners.add(l); return () => { listeners.delete(l); }; }, []);
+  const fnClient = useServerFn(deskClient);
+  const client = useQuery({ queryKey: ["desk_client", id], queryFn: () => fnClient({ data: { id: id! } }), enabled: !!id });
   return (
-    <div className="min-w-0 space-y-4">
-      <DetailCard title="Support Desk — who is calling?">
-        <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); setTerm(q.trim()); }}>
-          <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Account number (M10…), company, email or phone" className="max-w-md" />
-          <Button type="submit"><Search className="h-4 w-4 mr-1.5" />Find client</Button>
-        </form>
-        {term && (
-          <div className="mt-3 divide-y border">
-            {results.isLoading && <p className="p-3 text-sm text-muted-foreground">Searching…</p>}
-            {results.data?.length === 0 && <p className="p-3 text-sm text-muted-foreground">No client matches “{term}”.</p>}
-            {results.data?.map((c: any) => (
-              <button key={c.id} onClick={() => { setId(c.id); setTerm(""); }} className="flex w-full items-center justify-between gap-2 p-3 text-left hover:bg-muted">
-                <span><span className="font-medium">{c.company_name}</span> <span className="text-xs text-muted-foreground">{c.account_number}</span></span>
-                <span className="text-xs text-muted-foreground">{c.primary_phone ?? c.primary_email ?? ""}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </DetailCard>
-      {client.isLoading && <p className="text-sm text-muted-foreground">Loading client…</p>}
-      {client.error && <p className="text-sm text-destructive">{(client.error as Error).message}</p>}
-      {client.data && <ClientDesk d={client.data} />}
-    </div>
+    <Sheet open={!!id} onOpenChange={(o) => !o && setId(null)}>
+      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto p-4">
+        <SheetHeader><SheetTitle>Client support panel</SheetTitle></SheetHeader>
+        <div className="mt-3">
+          {client.isLoading && <p className="text-sm text-muted-foreground">Loading client…</p>}
+          {client.error && <p className="text-sm text-destructive">{(client.error as Error).message}</p>}
+          {client.data && <ClientDesk d={client.data} />}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -96,7 +88,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.voip.map((v: any) => (
             <Row key={v.id}>
               <span className="flex items-center gap-2"><Phone className="h-4 w-4" /><span className="font-medium">{v.voip_number}</span><span className="text-xs text-muted-foreground">SIP {v.sip_username ?? "—"} · {v.extensions ?? 0} ext · balance ${Number(v.balance_usd ?? 0).toFixed(2)}</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(v.status)}>{v.status}</StatusBadge><Link to="/voip"><Button size="sm" variant="outline">Manage / recharge</Button></Link></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(v.status)}>{v.status}</StatusBadge><VoipActions v={v} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -107,7 +99,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.starlink.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Satellite className="h-4 w-4" /><span className="font-medium">{s.kit_serial ?? s.starlink_account_number}</span><span className="text-xs text-muted-foreground">{s.plan_type ?? "—"} · {s.service_address ?? ""} · checked {shortDate(s.last_checked_at)}</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Link to="/starlink"><Button size="sm" variant="outline">Manage / recharge</Button></Link></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Act label="Check status" fn={checkStarlinkAccount} data={{ id: s.id }} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -118,7 +110,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.servers.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Server className="h-4 w-4" /><span className="font-medium">{s.name}</span><span className="text-xs text-muted-foreground">{s.provider} · {(s.public_ips ?? []).join?.(", ") || "no IP"} · {s.cpu_cores ?? "?"} vCPU / {s.ram_mb ? Math.round(s.ram_mb / 1024) : "?"} GB</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Link to="/cloud-ops/$id" params={{ id: s.id }}><Button size="sm" variant="outline">Console, power & tools</Button></Link></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} />}<Link to="/cloud-ops/$id" params={{ id: s.id }}><Button size="sm" variant="ghost">Console & more</Button></Link></span>
             </Row>
           ))}
         </DetailCard>
@@ -138,7 +130,7 @@ function ClientDesk({ d }: { d: any }) {
       {(d.licenses.length > 0 || d.subscriptions.length > 0) && (
         <DetailCard title="Licences & subscriptions (e.g. Microsoft 365)" padded={false}>
           {d.licenses.map((l: any) => (
-            <Row key={l.id}><span className="flex items-center gap-2"><Package className="h-4 w-4" /><span className="font-medium">{l.product}</span><span className="text-xs text-muted-foreground">{l.vendor ?? ""} · {l.assigned_seats ?? 0}/{l.seats ?? 0} seats · expires {shortDate(l.expiry_date)}</span></span><StatusBadge tone={toneForStatus(l.status)}>{l.status}</StatusBadge></Row>
+            <Row key={l.id}><span className="flex items-center gap-2"><Package className="h-4 w-4" /><span className="font-medium">{l.product}</span><span className="text-xs text-muted-foreground">{l.vendor ?? ""} · {l.assigned_seats ?? 0}/{l.seats ?? 0} seats · expires {shortDate(l.expiry_date)}</span></span><span className="flex gap-2"><StatusBadge tone={toneForStatus(l.status)}>{l.status}</StatusBadge><SeatEditor l={l} /></span></Row>
           ))}
           {d.subscriptions.map((s: any) => (
             <Row key={s.id}><span className="flex items-center gap-2"><Package className="h-4 w-4" /><span className="font-medium">{s.plan_name}</span><span className="text-xs text-muted-foreground">{s.currency} {s.amount} / {s.billing_cycle} · renews {shortDate(s.next_renewal)}</span></span><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge></Row>
@@ -162,7 +154,7 @@ function ClientDesk({ d }: { d: any }) {
         {d.tickets.map((t: any) => (
           <Row key={t.id}>
             <Link to="/tickets/$id" params={{ id: t.id }} className="text-sm"><span className="font-medium">{t.ticket_number}</span> {t.subject}</Link>
-            <span className="flex gap-2"><StatusBadge tone={toneForStatus(t.priority)}>{t.priority}</StatusBadge><StatusBadge tone={toneForStatus(t.status)}>{t.status}</StatusBadge></span>
+            <span className="flex gap-2"><StatusBadge tone={toneForStatus(t.priority)}>{t.priority}</StatusBadge><TicketStatus t={t} /></span>
           </Row>
         ))}
       </DetailCard>
@@ -279,5 +271,76 @@ function TicketDialog({ customerId, init, onClose }: { customerId: string; init:
         <DialogFooter><Button onClick={() => m.mutate()} disabled={m.isPending || !f.subject.trim()}>{m.isPending ? "Saving…" : "Save ticket"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Act({ label, fn, data, confirm }: { label: string; fn: any; data: any; confirm?: boolean }) {
+  const qc = useQueryClient();
+  const f = useServerFn(fn) as any;
+  const m = useMutation({
+    mutationFn: () => f({ data }),
+    onSuccess: () => { toast.success(`${label}: done`); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => { if (!confirm || window.confirm(`${label}?`)) m.mutate(); }}>{m.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}{label}</Button>;
+}
+
+function VoipActions({ v }: { v: any }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [amt, setAmt] = useState(""); const [ref, setRef] = useState("");
+  const fn = useServerFn(recordVoipRecharge);
+  const m = useMutation({
+    mutationFn: () => fn({ data: { voip_account_id: v.id, amount_usd: Number(amt), payment_reference: ref || undefined, payment_method: "support_desk" } }),
+    onSuccess: () => { toast.success("Recharge recorded"); setOpen(false); setAmt(""); setRef(""); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return (
+    <>
+      <Act label="Sync balance" fn={syncVoipAccount} data={{ id: v.id }} />
+      <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}>Recharge</Button>
+      {open && (
+        <span className="flex w-full flex-wrap items-center gap-2 pt-2">
+          <Input className="w-24" placeholder="USD" value={amt} onChange={(e) => setAmt(e.target.value)} />
+          <Input className="w-40" placeholder="Payment reference" value={ref} onChange={(e) => setRef(e.target.value)} />
+          <Button size="sm" disabled={!(Number(amt) > 0) || m.isPending} onClick={() => m.mutate()}>Save recharge</Button>
+        </span>
+      )}
+    </>
+  );
+}
+
+function SeatEditor({ l }: { l: any }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: async (patch: any) => { const { error } = await (supabase as any).from("licenses").update(patch).eq("id", l.id); if (error) throw error; },
+    onSuccess: () => { toast.success("Licence updated"); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return (
+    <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => {
+      const seats = prompt(`Total seats for ${l.product}`, String(l.seats ?? 0)); if (seats == null) return;
+      const used = prompt("Seats assigned to users", String(l.assigned_seats ?? 0)); if (used == null) return;
+      if (Number(used) > Number(seats)) return toast.error("Assigned seats can't exceed total seats");
+      m.mutate({ seats: Number(seats), assigned_seats: Number(used) });
+    }}>Change seats</Button>
+  );
+}
+
+function TicketStatus({ t }: { t: any }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: async (status: string) => {
+      const { error } = await (supabase as any).from("tickets").update({ status, ...(status === "resolved" ? { resolved_at: new Date().toISOString() } : {}) }).eq("id", t.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Ticket updated"); qc.invalidateQueries({ queryKey: ["desk_client"] }); qc.invalidateQueries({ queryKey: ["noc"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  return (
+    <Select value={t.status} onValueChange={(v) => m.mutate(v)}>
+      <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+      <SelectContent>{["open", "in_progress", "pending", "resolved", "closed"].map((x) => <SelectItem key={x} value={x}>{x.replace("_", " ")}</SelectItem>)}</SelectContent>
+    </Select>
   );
 }

@@ -24,7 +24,6 @@ import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } fr
 import { runAllChecksNow } from "@/lib/monitoring.functions";
 import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 import { TicketWorkbench } from "@/components/techops/ticket-workbench";
-import { SupportDesk } from "@/components/techops/support-desk";
 import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
 
@@ -137,9 +136,8 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue={tab ?? "desk"} className="min-w-0 max-w-full">
+      <Tabs defaultValue={tab ?? "telemetry"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="desk">Support Desk</TabsTrigger>
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
           <TabsTrigger value="servers">Servers</TabsTrigger>
@@ -156,7 +154,6 @@ function NocPage() {
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="desk" className="mt-4"><SupportDesk /></TabsContent>
         <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
         <TabsContent value="workbench" className="mt-4"><TicketWorkbench /></TabsContent>
         <TabsContent value="health" className="mt-4">
