@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStaffAuth } from "./staff-auth";
 
 /* ---------------- List ---------------- */
 export const listVoipAccounts = createServerFn({ method: "GET" })
@@ -115,7 +116,7 @@ export const updateVoipAccount = createServerFn({ method: "POST" })
 
 /* ---------------- Recharge workflow ---------------- */
 export const recordVoipRecharge = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireStaffAuth])
   .inputValidator((d: {
     voip_account_id: string;
     amount_usd: number;
