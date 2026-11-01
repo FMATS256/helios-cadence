@@ -141,7 +141,7 @@ function CloudOpsPage() {
         description="Servers, managed services and cloud spend across all providers."
       />
       <div className="mb-4">
-        <Link to="/cloud-ops/fleet"><Button variant="outline" size="sm">Fleet control: monitor, manage &amp; configure</Button></Link>
+        <Link to="/noc" search={{ tab: "servers" }}><Button variant="outline" size="sm">Fleet control: monitor, manage &amp; configure</Button></Link>
       </div>
 
       {/* Hero chips — Customer 360 pattern */}
