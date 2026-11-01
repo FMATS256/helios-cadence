@@ -170,12 +170,97 @@ YAML
 docker compose up -d
 `,
   },
-  gitlab: stub("gitlab", "GitLab", "DevOps", 4, 8192, 80, ["ubuntu"]),
-  jenkins: stub("jenkins", "Jenkins", "DevOps", 2, 4096, 40, ["ubuntu", "debian"]),
-  laravel: stub("laravel", "Laravel", "Framework", 1, 1024, 20, ["ubuntu", "debian"]),
-  python: stub("python", "Python runtime", "Runtime", 1, 1024, 20, ["ubuntu", "debian"]),
-  apache: stub("apache", "Apache HTTP Server", "Web server", 1, 512, 20, ["ubuntu", "debian", "almalinux", "rocky"]),
-  freepbx: stub("freepbx", "FreePBX", "Telephony", 2, 2048, 40, ["almalinux", "rocky"]),
+  gitlab: {
+    id: "gitlab", label: "GitLab", category: "DevOps",
+    min_cpu: 4, min_ram_mb: 8192, min_disk_gb: 80,
+    supported_os: ["ubuntu"], implemented: true, ports: [80, 443, 22],
+    post_install_checks: [{ label: "HTTP", kind: "http", port: 80, path: "/users/sign_in" }],
+    render: () => `${shebang}
+apt-get update && apt-get install -y curl ca-certificates tzdata openssh-server
+curl -fsSL https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
+IP=$(curl -fsS https://api.ipify.org || hostname -I | awk '{print $1}')
+EXTERNAL_URL="http://$IP" apt-get install -y gitlab-ce
+echo "Initial root password: /etc/gitlab/initial_root_password (deleted after 24h)"
+`,
+  },
+  jenkins: {
+    id: "jenkins", label: "Jenkins", category: "DevOps",
+    min_cpu: 2, min_ram_mb: 4096, min_disk_gb: 40,
+    supported_os: ["ubuntu", "debian"], implemented: true, ports: [8080],
+    post_install_checks: [{ label: "HTTP 8080", kind: "http", port: 8080, path: "/login" }],
+    render: () => `${shebang}
+apt-get update && apt-get install -y fontconfig openjdk-17-jre curl gnupg
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key -o /usr/share/keyrings/jenkins-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
+apt-get update && apt-get install -y jenkins
+systemctl enable --now jenkins
+`,
+  },
+  laravel: {
+    id: "laravel", label: "Laravel", category: "Framework",
+    min_cpu: 1, min_ram_mb: 1024, min_disk_gb: 20,
+    supported_os: ["ubuntu", "debian"], implemented: true, ports: [80, 443],
+    post_install_checks: [{ label: "HTTP", kind: "http", port: 80, path: "/" }],
+    render: (p) => {
+      const dbPass = String(p.db_password ?? randomPass());
+      return `${shebang}
+apt-get update
+apt-get install -y nginx mariadb-server php-fpm php-cli php-mysql php-mbstring php-xml php-curl php-zip php-bcmath unzip curl git
+systemctl enable --now nginx mariadb
+curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+mysql -e "CREATE DATABASE IF NOT EXISTS laravel; CREATE USER IF NOT EXISTS 'laravel'@'localhost' IDENTIFIED BY '${dbPass}'; GRANT ALL ON laravel.* TO 'laravel'@'localhost'; FLUSH PRIVILEGES;"
+cd /var/www && COMPOSER_ALLOW_SUPERUSER=1 composer create-project --no-interaction laravel/laravel app
+cd app
+sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=mysql/; s/^# *DB_HOST=.*/DB_HOST=127.0.0.1/; s/^# *DB_DATABASE=.*/DB_DATABASE=laravel/; s/^# *DB_USERNAME=.*/DB_USERNAME=laravel/; s/^# *DB_PASSWORD=.*/DB_PASSWORD=${dbPass}/" .env
+php artisan migrate --force || true
+chown -R www-data:www-data /var/www/app
+PHPSOCK=$(ls /run/php/php*-fpm.sock | head -1)
+cat > /etc/nginx/sites-available/default <<NGINX
+server {
+  listen 80 default_server;
+  root /var/www/app/public;
+  index index.php;
+  location / { try_files \\$uri \\$uri/ /index.php?\\$query_string; }
+  location ~ \\.php$ { include snippets/fastcgi-php.conf; fastcgi_pass unix:$PHPSOCK; }
+}
+NGINX
+systemctl reload nginx
+`;
+    },
+  },
+  python: {
+    id: "python", label: "Python runtime", category: "Runtime",
+    min_cpu: 1, min_ram_mb: 1024, min_disk_gb: 20,
+    supported_os: ["ubuntu", "debian"], implemented: true, ports: [],
+    post_install_checks: [{ label: "TCP 22", kind: "tcp", port: 22 }],
+    render: () => `${shebang}
+apt-get update && apt-get install -y python3 python3-venv python3-pip python3-dev build-essential git
+python3 -m venv /opt/app-venv
+/opt/app-venv/bin/pip install --upgrade pip wheel gunicorn
+`,
+  },
+  apache: {
+    id: "apache", label: "Apache HTTP Server", category: "Web server",
+    min_cpu: 1, min_ram_mb: 512, min_disk_gb: 20,
+    supported_os: ["ubuntu", "debian", "almalinux", "rocky"], implemented: true, ports: [80, 443],
+    post_install_checks: [{ label: "HTTP", kind: "http", port: 80, path: "/" }],
+    render: () => `${shebang}
+if command -v apt-get >/dev/null; then apt-get update && apt-get install -y apache2 && systemctl enable --now apache2
+else dnf install -y httpd && systemctl enable --now httpd; fi
+`,
+  },
+  freepbx: {
+    id: "freepbx", label: "FreePBX 17", category: "Telephony",
+    min_cpu: 2, min_ram_mb: 2048, min_disk_gb: 40,
+    supported_os: ["debian"], implemented: true, ports: [80, 443, 5060],
+    post_install_checks: [{ label: "HTTP", kind: "http", port: 80, path: "/admin" }],
+    render: () => `${shebang}
+# Official Sangoma installer for FreePBX 17 on Debian 12
+cd /tmp
+curl -fsSL https://github.com/FreePBX/sng_freepbx_debian_install/raw/master/sng_freepbx_debian_install.sh -o install.sh
+bash install.sh
+`,
+  },
   "3cx": stub("3cx", "3CX", "Telephony", 2, 2048, 40, ["debian"]),
   "active-directory": stub("active-directory", "Active Directory", "Identity", 2, 4096, 60, ["windows"]),
 };

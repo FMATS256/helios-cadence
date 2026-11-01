@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/safe-output";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -103,7 +104,7 @@ export function PaymentsPage() {
         r.receipt_number, r.reference ?? "", r.account_number, r.amount, r.currency,
         r.method, r.status, r.reconciliation_status ?? "pending", r.service_context ?? "",
         new Date(r.paid_at).toISOString(),
-      ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
+      ].map((c) => csvCell(c)).join(",")),
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

@@ -1,3 +1,4 @@
+import { safeSearchTerm } from "@/lib/safe-output";
 import { createServerFn } from "@tanstack/react-start";
 import { signatureTitle } from "./email-signature.shared";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -110,7 +111,7 @@ export const listEnquiries = createServerFn({ method: "POST" })
     if (data.folder === "enquiries") q = q.eq("status", "open");
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     if (data.search?.trim()) {
-      const s = data.search.trim();
+      const s = safeSearchTerm(data.search);
       q = q.or(`reference.ilike.%${s}%,subject.ilike.%${s}%,contact_email.ilike.%${s}%,contact_name.ilike.%${s}%`);
     }
     const { data: rows, error } = await q;

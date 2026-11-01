@@ -1,6 +1,7 @@
 // Server-only helper: fire-and-forget notification sends that never break the
 // caller's write path. Suppression is enforced server-side by Lovable; we log
 // unusual outcomes but never throw.
+import { maskEmail } from "@/lib/safe-output";
 import { sendTemplateEmail } from './email-templates/send-email'
 import { sendResendEmail, type Attachment } from './email-templates/send-resend'
 
@@ -27,9 +28,9 @@ export async function notify(
       idempotencyKey,
       ...(sender ?? {}),
     })
-    if (!res.sent) console.info(`[notify] ${templateName} -> ${to}: ${res.reason}`)
+    if (!res.sent) console.info(`[notify] ${templateName} -> ${maskEmail(to)}: ${res.reason}`)
   } catch (e: any) {
-    console.error(`[notify] ${templateName} -> ${to} failed:`, e?.code ?? e?.message ?? e)
+    console.error(`[notify] ${templateName} -> ${maskEmail(to)} failed:`, e?.code ?? e?.message ?? e)
   }
 }
 
@@ -59,8 +60,8 @@ export async function notifyWithAttachment(
       templateData,
       attachments,
     })
-    if (!res.sent) console.info(`[notifyWithAttachment] ${templateName} -> ${to}: ${res.error}`)
+    if (!res.sent) console.info(`[notifyWithAttachment] ${templateName} -> ${maskEmail(to)}: ${res.error}`)
   } catch (e: any) {
-    console.error(`[notifyWithAttachment] ${templateName} -> ${to} failed:`, e?.code ?? e?.message ?? e)
+    console.error(`[notifyWithAttachment] ${templateName} -> ${maskEmail(to)} failed:`, e?.code ?? e?.message ?? e)
   }
 }

@@ -1,5 +1,6 @@
 // Finance AI agent: reads Finance data and only creates proposals.
 // Every change waits for a Finance staff approval (see applyProposal).
+import { safeSearchTerm } from "@/lib/safe-output";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, tool, stepCountIs } from "ai";
 import { z } from "zod";
@@ -36,7 +37,7 @@ function buildTools(db: Admin, taskId: string, roles: FinanceAgentRole[]) {
       execute: async ({ query }) => {
         const q = query.replace(/[%,()]/g, " ").trim();
         const { data } = await db.from("customers").select("id, account_number, company_name, primary_email, status")
-          .or(`company_name.ilike.%${q}%,account_number.ilike.%${q}%`).is("archived_at", null).limit(10);
+          .or(`company_name.ilike.%${safeSearchTerm(q)}%,account_number.ilike.%${safeSearchTerm(q)}%`).is("archived_at", null).limit(10);
         return data ?? [];
       },
     }),

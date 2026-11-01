@@ -10,7 +10,7 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Quotation previews and PDF downloads share a saved-value document model; pure PDF generation renders the branded layout without changing external-engine lifecycle or financial calculations.
+- Quotation previews and PDFs share a saved-value document model without changing financial calculations.
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
@@ -29,6 +29,7 @@
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; they are not filed as enquiries.
-- Firewall changes: Vultr API only, staff-only, logged; sensitive ports/wide ranges never open to everyone.
+- Firewall: Vultr-only, staff-only, logged; no public sensitive ports.
 - Per-order-billed provider orders and server rebuild/restore/app-install requests run only after an ops manager/master admin (not the requester, unless master) atomically claims them; power/snapshots are immediate staff actions.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
+- Staff test mail goes only to the caller; customer mail to recorded contacts; exports/prints/searches use safe-output helpers

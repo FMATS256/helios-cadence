@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/safe-output";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -213,7 +214,7 @@ function InvoiceList({
     const lines = [headers.join(",")].concat(filtered.map((r) => [
       r.invoice_number, r.account_number, r.customers?.company_name ?? "", r.status,
       r.issue_date, r.due_date ?? "", r.currency, r.subtotal, r.tax, r.total, r.paid_amount ?? 0, r.balance ?? 0,
-    ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")));
+    ].map((c) => csvCell(c)).join(",")));
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

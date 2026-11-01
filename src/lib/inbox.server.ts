@@ -1254,6 +1254,6 @@ export async function getAttachmentDownloadUrl(_emailId: string, attachmentId: s
 }
 
 export async function getStoredAttachmentDownloadUrl(storagePath: string): Promise<{ url?: string; error?: string }> {
-  const { data, error } = await adminClient().storage.from("email-attachments").createSignedUrl(storagePath, 300);
+  const { data, error } = await adminClient().storage.from("email-attachments").createSignedUrl(storagePath, 60);
   return error ? { error: error.message } : { url: data?.signedUrl };
 }

@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/safe-output";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -26,7 +27,7 @@ const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : "
 function download(name: string, rows: Record<string, any>[]) {
   if (!rows.length) { toast.error("Nothing to export"); return; }
   const keys = Object.keys(rows[0]!);
-  const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const esc = (v: any) => csvCell(v);
   const csv = [keys.join(","), ...rows.map((r) => keys.map((k) => esc(r[k])).join(","))].join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");

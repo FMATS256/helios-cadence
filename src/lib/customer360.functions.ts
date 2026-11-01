@@ -896,7 +896,7 @@ export const getDocumentLink = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: doc } = await db.from("customer_documents").select("file_path").eq("id", data.document_id).maybeSingle();
     if (!doc?.file_path) throw new Error("No file attached to this document");
-    const { data: signed, error } = await db.storage.from("customer-documents").createSignedUrl(doc.file_path, 300);
+    const { data: signed, error } = await db.storage.from("customer-documents").createSignedUrl(doc.file_path, 60);
     if (error) throw new Error(error.message);
     return { url: signed?.signedUrl };
   });

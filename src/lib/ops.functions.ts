@@ -1,3 +1,4 @@
+import { safeSearchTerm } from "@/lib/safe-output";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -566,7 +567,7 @@ export const globalSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { q: string; limit?: number }) => input)
   .handler(async ({ data, context }) => {
-    const q = (data.q || "").trim();
+    const q = safeSearchTerm(data.q);
     if (!q) return { customers: [], invoices: [], payments: [], tickets: [], subscriptions: [], assets: [], credentials: [] };
     const limit = Math.min(data.limit ?? 6, 15);
     const { data: hasRole } = await context.supabase.rpc("has_any_role", { _user_id: context.userId });

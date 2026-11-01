@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/safe-output";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -281,16 +282,16 @@ function PosPage() {
   function printReceipt(sale: any) {
 
     const lines = (sale.pos_sale_items || []).map((l: any) =>
-      `<tr><td>${l.name}</td><td style="text-align:right">${l.quantity}</td><td style="text-align:right">${money(l.unit_price)}</td><td style="text-align:right">${money(l.line_total)}</td></tr>`).join("");
-    const html = `<html><head><title>${sale.sale_number}</title><style>
+      `<tr><td>${escapeHtml(l.name)}</td><td style="text-align:right">${l.quantity}</td><td style="text-align:right">${money(l.unit_price)}</td><td style="text-align:right">${money(l.line_total)}</td></tr>`).join("");
+    const html = `<html><head><title>${escapeHtml(sale.sale_number)}</title><style>
       body{font-family:ui-sans-serif,system-ui;padding:24px;max-width:420px}
       h1{font-size:18px;margin:0} table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
       td,th{padding:4px 0;border-bottom:1px dashed #ccc} .tot{font-weight:700;font-size:14px}
     </style></head><body>
-      <h1>IMT Solutions</h1><p style="font-size:12px;margin:4px 0">Receipt ${sale.sale_number}<br/>${new Date(sale.created_at || Date.now()).toLocaleString()}<br/>${sale.walkin_name || sale.account_number || ""}</p>
+      <h1>IMT Solutions</h1><p style="font-size:12px;margin:4px 0">Receipt ${escapeHtml(sale.sale_number)}<br/>${new Date(sale.created_at || Date.now()).toLocaleString()}<br/>${escapeHtml(sale.walkin_name || sale.account_number || "")}</p>
       <table><thead><tr><th style="text-align:left">Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${lines}</tbody></table>
-      <p class="tot">Subtotal ${money(sale.subtotal)}<br/>Discount ${money(sale.discount)}<br/>Tax ${money(sale.tax)}<br/>TOTAL ${money(sale.total)}<br/>Paid ${money(sale.amount_paid)} (${sale.payment_method})<br/>Change ${money(sale.change_due)}</p>
-      <p style="font-size:11px">Served by ${sale.sold_by_name || "IMT staff"} — thank you for your business.</p>
+      <p class="tot">Subtotal ${money(sale.subtotal)}<br/>Discount ${money(sale.discount)}<br/>Tax ${money(sale.tax)}<br/>TOTAL ${money(sale.total)}<br/>Paid ${money(sale.amount_paid)} (${escapeHtml(sale.payment_method)})<br/>Change ${money(sale.change_due)}</p>
+      <p style="font-size:11px">Served by ${escapeHtml(sale.sold_by_name || "IMT staff")} — thank you for your business.</p>
     </body></html>`;
     const w = window.open("", "_blank", "width=480,height=640");
     if (!w) { toast.error("Allow pop-ups to print receipts"); return; }

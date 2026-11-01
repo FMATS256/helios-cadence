@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -90,7 +91,7 @@ function BalancesPage() {
         r.account_number, r.company_name, r.invoiced.toFixed(2), r.paid.toFixed(2),
         r.balance.toFixed(2), r.overdue.toFixed(2), r.open_invoices,
         r.oldest_due ?? "", r.last_payment_at ?? "",
-      ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")),
+      ].map((c) => csvCell(c)).join(",")),
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
