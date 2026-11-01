@@ -377,7 +377,7 @@ function NewServerPage() {
               {Array.from(new Set((tierPackages.data ?? []).map((p: any) => p.workload as string))).map((w) => (
                 <div key={w} className="mb-4 last:mb-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    {({ voip: "VoIP / PBX", accounting: "Accounting (general)", web: "Web hosting", pastel: "Sage Pastel", evol: "Sage 200 Evolution", qbd: "QuickBooks Desktop", pall: "Palladium", odoo: "Odoo / ERPNext", nc: "Nextcloud files", bkp: "Backup vault", rds: "Remote desktop", vms: "CCTV recording", mail: "Mail server" } as Record<string, string>)[w] ?? w}
+                    {({ voip: "VoIP / PBX", accounting: "Accounting (general)", web: "Web hosting", pastel: "Sage Pastel", evol: "Sage 200 Evolution", qbd: "QuickBooks Desktop", pall: "Palladium", odoo: "Odoo / ERPNext", nc: "Nextcloud files", bkp: "Backup vault", rds: "Remote desktop", vms: "CCTV recording", mail: "Mail server", clinic: "Clinics & Hospitals", legal: "Law Firms", acctfirm: "Accounting Firms" } as Record<string, string>)[w] ?? w}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {(tierPackages.data ?? []).filter((p: any) => p.workload === w).map((p: any) => {
