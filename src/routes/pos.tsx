@@ -20,6 +20,7 @@ import {
   ShoppingCart, Plus, Minus, Trash2, Search, Package, Printer, Ban, RefreshCw, Receipt,
   ScanLine, Upload, ClipboardCheck, FileText, Download,
 } from "lucide-react";
+import { PosReconciliation } from "@/components/pos-reconciliation";
 import { getPosWorkspace, createPosSale, voidPosSale, updatePosItem, bulkUpsertPosItems, getPosCloseout, closePosDay, getPosSalePdf } from "@/lib/pos.functions";
 
 
@@ -326,6 +327,7 @@ function PosPage() {
           <TabsTrigger value="stock">Stock &amp; Pricing</TabsTrigger>
           <TabsTrigger value="sales">Sales History</TabsTrigger>
           <TabsTrigger value="closeouts">Daily Closeouts</TabsTrigger>
+          {data?.can_reconcile && <TabsTrigger value="reconcile">Finance Reconciliation</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="counter" className="mt-4">
@@ -451,6 +453,10 @@ function PosPage() {
                 : <span className="text-xs text-muted-foreground">—</span> },
               { header: "Paid via", cell: (r: any) => <StatusBadge tone="info">{r.payment_method}</StatusBadge> },
               { header: "Status", cell: (r: any) => <StatusBadge tone={r.status === "void" ? "danger" : "success"}>{r.status}</StatusBadge> },
+              { header: "Finance", cell: (r: any) => r.status === "void" ? <span className="text-xs text-muted-foreground">—</span>
+                  : r.reconciliation_status === "reconciled" ? <StatusBadge tone="success">reconciled</StatusBadge>
+                  : r.reconciliation_status === "disputed" ? <StatusBadge tone="danger">query</StatusBadge>
+                  : <StatusBadge tone="warning">awaiting Finance</StatusBadge> },
               { header: "Sold by", cell: (r: any) => <span className="text-xs text-muted-foreground">{r.sold_by_name || "—"}</span> },
               {
                 header: "", align: "right", cell: (r: any) => (
@@ -469,6 +475,12 @@ function PosPage() {
             ]}
           />
         </TabsContent>
+
+        {data?.can_reconcile && (
+          <TabsContent value="reconcile" className="mt-4">
+            <PosReconciliation accounts={accounts} />
+          </TabsContent>
+        )}
 
         <TabsContent value="closeouts" className="mt-4">
           <DataGrid
