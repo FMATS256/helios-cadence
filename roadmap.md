@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Done
+- Desktop client portal matches reference structure with IMT branding: inline gradient header, grey heading bands, document rows/action footers, photo welcome and four-column footer. Desktop 1280/1024 and mobile sign-in checked without overflow; hydration error corrected; ten portal tests passed.
 - Added My Statements for every linked client account, current and monthly 21st cutoffs, private per-currency PDF downloads independent of email; seven tests passed, real M10466 PDF downloaded through signed-in portal and visually inspected, desktop/phone checked without errors or overflow.
 - Added finance@ monthly statements on the 21st at 09:17 Harare, unique client-month delivery reservations, existing Quote Studio invoice attachments, Finance mailbox access and statement downloads; eight tests passed, actual UK2AFRICA PDF visually inspected, unsigned callback blocked and authorized non-due callback sends nothing.
 - Automatic subscription invoices scheduled daily at 02:00 Harare; creation-day anchoring, covered-month input, atomic invoice/line creation and subscription-period deduplication added. Four date tests, eleven invoice tests and rolled-back database expiry/amount/duplicate/permission checks passed; IMT Cloud Basic renews 28 November 2026. No email delivery or payment approval added.
@@ -43,6 +44,7 @@
 - Tightened audit log write rule; updated app libraries for the security advisory
 
 ## Open
+- [ ] Verify redesigned desktop portal with real linked-account data; requesting user has no matching login, so visual checks used sample rows and signed-out pages.
 - [ ] Activate monthly statement delivery by publishing; obtain UK2AFRICA billing email and verify a real Finance send/readback after sign-in. No delivery was attempted on October 31; the requesting user's own sign-in could not be minted.
 - [ ] Verify covered-month subscription creation through signed-in Finance UI; requesting user has no matching login. Database generation and safeguards are verified.
 - [ ] Verify signed-in portfolio/dispatch and billing reminder/payment-email round-trip; requesting user has no matching login and billing mailbox is empty, so sign-in and real payment correspondence are needed. No reminder was sent or payment recorded during this task.

@@ -22,6 +22,7 @@ import { ClientReceipts } from "@/components/client-receipts";
 import { activePortalServices } from "@/lib/client-active-services.shared";
 import { ServiceRequestDialog, ServiceDetailDialog, type ServiceRequestMode } from "@/components/client-service-request";
 import welcomeBg from "@/assets/portal-welcome-bg.jpg";
+import { ClientPortalFooter } from "@/components/client-portal-footer";
 
 const sections = [
   { title: "Dashboard", to: "/client", icon: LayoutDashboard },
@@ -45,7 +46,10 @@ function useAccount() {
 }
 
 export function ClientPortalLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const loading = !hydrated || authLoading;
   const account = useAccount();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -75,7 +79,7 @@ export function ClientPortalLayout() {
         {account.isPending ? <p>Loading your account…</p> : account.error ? <div className="space-y-3"><p role="alert">{account.error.message}</p><Button onClick={() => account.refetch()}>Retry</Button></div> : !account.data ? <div className="border-l-4 border-solar pl-5 py-3 space-y-3"><h1 className="text-2xl font-bold">Your client account</h1><p className="text-muted-foreground">Your sign-in is not linked to an IMT account yet. Contact your account manager to arrange access.</p><Button variant="outline" asChild><Link to="/client/access"><ShieldCheck className="h-4 w-4 mr-2" />Client access</Link></Button>{pathname === "/client/access" && <Outlet />}</div> : <><div className="flex flex-wrap items-center gap-2 mb-7 text-sm"><span className="font-medium">{account.data.company_name}</span><span className="text-muted-foreground">/</span><span className="font-mono text-muted-foreground">{account.data.account_number}</span><Badge variant="outline" className="ml-auto capitalize text-teal border-teal/30">{account.data.status}</Badge></div><Outlet /></>}
       </main>
     </>}
-    <footer className="max-w-6xl mx-auto px-4 sm:px-8 py-6 border-t border-border flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>IMT Solutions · Client accounts</span><span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-teal" />Secure account access</span></footer>
+    <ClientPortalFooter />
   </div>;
 }
 
@@ -136,9 +140,9 @@ export function ClientPortalView({ section }: { section: "overview" | "invoices"
   for (const i of data.invoices) outstanding.set(i.currency, (outstanding.get(i.currency) ?? 0) + i.balance);
   const openTickets = data.tickets.filter((t) => !["closed", "resolved"].includes(t.status));
   const title = { overview: "Account overview", invoices: "My Invoices", payments: "My Payments", services: "Your services", support: "Support requests" }[section];
-  return <div className="min-h-[520px] space-y-8">
+  return <div className={`portal-section portal-section-${section} min-h-[520px] space-y-8`}>
     {section === "invoices" && <section className="bills-mobile-heading hidden"><h1>My Bills</h1><p>Showing {invoices.length} {invoices.length === 1 ? "bill" : "bills"}</p><Button className="w-full bg-solar text-solar-foreground hover:bg-solar/90" onClick={() => setPayment(true)}>SEND PROOF OF PAYMENT</Button></section>}
-    <div className={`flex flex-wrap items-center justify-between gap-4 ${["overview", "invoices", "services"].includes(section) ? "bills-desktop-heading" : ""}`}><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Send proof of payment"}</Button></div></div>
+    <div className={`portal-page-heading flex flex-wrap items-center justify-between gap-4 ${["overview", "invoices", "services"].includes(section) ? "bills-desktop-heading" : ""}`}><div><p className="text-xs font-semibold text-teal uppercase mb-2">{section === "overview" ? "MY ACCOUNT" : section}</p><h1 className="text-2xl sm:text-3xl font-bold">{title}</h1></div><div className="flex flex-wrap gap-2">{section !== "support" && <Button onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4 mr-2" />Pay now</Button>}<Button variant={section === "support" ? "default" : "outline"} onClick={() => section === "support" ? setNewTicket(true) : setPayment(true)}><Plus className="h-4 w-4 mr-2" />{section === "support" ? "New request" : "Send proof of payment"}</Button></div></div>
     {section === "overview" && <>
       <section className="portal-welcome hidden"><div className="portal-welcome-heading" style={{ backgroundImage: `url(${welcomeBg})` }}><span className="portal-welcome-avatar"><UserRound /></span><h1>Welcome {data.profile?.company_name || account.data?.company_name}</h1><p>{data.profile?.account_number || account.data?.account_number}</p><Button className="w-full bg-solar text-solar-foreground hover:bg-solar/90" onClick={async () => { await cache.cancelQueries(); cache.clear(); await supabase.auth.signOut(); navigate({ to: "/client", replace: true }); }}><LogOut className="h-4 w-4" />Logout</Button></div><div className="portal-welcome-account"><div className="grid grid-cols-2 gap-4"><Link to="/client/services" resetScroll={false}><span><Settings /></span>My Services</Link><Link to="/client/invoices" resetScroll={false}><span><FileText /></span>My Bills</Link></div><p className="mt-8 mb-4 text-lg">Your outstanding invoice balance</p><div className="portal-welcome-balance">{outstanding.size ? [...outstanding].map(([currency, value]) => <p key={currency} className={value > 0 ? "text-destructive" : "text-teal"}>{money(value, currency)}</p>) : <p className="text-teal">{money(0)}</p>}</div><Button className="w-full bg-solar text-solar-foreground hover:bg-solar/90 mt-6" onClick={() => setPayNow(true)}><CreditCard className="h-4 w-4" />Make a payment</Button><Button variant="outline" className="w-full mt-3" onClick={() => setMode({ type: "add" })}><Plus className="h-4 w-4" />Add a service</Button><Button variant="link" asChild className="mt-4"><Link to="/client/support" resetScroll={false}>Contact your account manager<ChevronRight className="h-4 w-4" /></Link></Button></div></section>
       <div className="portal-desktop-dashboard"><ClientDashboard data={data} onPay={() => setPayNow(true)} onProof={() => setPayment(true)} onMode={setMode} onOpen={setDetail} /></div>

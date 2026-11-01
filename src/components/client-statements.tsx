@@ -36,8 +36,8 @@ export function ClientStatements() {
     }
     saveFile(file);
   }
-  return <section className="space-y-5 min-w-0">
-    <h1 className="text-2xl sm:text-3xl font-bold">My Statements</h1>
+  return <section className="portal-statements space-y-5 min-w-0">
+    <header className="portal-page-heading"><h1 className="text-2xl sm:text-3xl font-bold">My Statements</h1></header>
     {query.isPending ? <p className="py-8 text-muted-foreground">Loading statements…</p> : query.error ? <div role="alert" className="space-y-3"><p>{query.error.message}</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div> : !query.data?.length ? <p className="py-8 text-muted-foreground">No statements available.</p> : query.data.map(row => <article key={row.date} className="border border-border bg-card rounded-sm overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
         <div className="flex gap-3 min-w-0"><FileText className="h-5 w-5 text-teal shrink-0 mt-1" /><div><h2 className="font-semibold">{row.current ? "Current account statement" : new Date(`${row.date}T12:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</h2><p className="text-sm text-muted-foreground mt-1">As at {new Date(`${row.date}T12:00:00Z`).toLocaleDateString("en-GB")}</p></div></div>
