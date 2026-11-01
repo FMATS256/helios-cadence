@@ -156,6 +156,22 @@ export function whm(server: WhmServer | null) {
     domains: (user: string) => call(server, "", {}, { cpanelUser: user, uapi: { module: "DomainInfo", func: "list_domains" } }),
     databases: (user: string) => call(server, "", {}, { cpanelUser: user, uapi: { module: "Mysql", func: "list_databases" } }),
     emailAccounts: (user: string) => call(server, "", {}, { cpanelUser: user, uapi: { module: "Email", func: "list_pops" } }),
+    /** Mailbox management (cPanel Email module). */
+    mailboxes: (user: string) => call(server, "", {}, { cpanelUser: user, uapi: { module: "Email", func: "list_pops_with_disk" } }),
+    mailboxPassword: (user: string, email: string, password: string) => {
+      const [u, domain] = email.split("@");
+      return call(server, "", { email: u, domain, password }, { cpanelUser: user, uapi: { module: "Email", func: "passwd_pop" } });
+    },
+    mailboxQuota: (user: string, email: string, quotaMb: number) => {
+      const [u, domain] = email.split("@");
+      return call(server, "", { email: u, domain, quota: quotaMb }, { cpanelUser: user, uapi: { module: "Email", func: "edit_pop_quota" } });
+    },
+    mailboxCreate: (user: string, email: string, password: string, quotaMb: number) => {
+      const [u, domain] = email.split("@");
+      return call(server, "", { email: u, domain, password, quota: quotaMb }, { cpanelUser: user, uapi: { module: "Email", func: "add_pop" } });
+    },
+    mailboxLogin: (user: string, email: string, suspend: boolean) =>
+      call(server, "", { email }, { cpanelUser: user, uapi: { module: "Email", func: suspend ? "suspend_login" : "unsuspend_login" } }),
     sslHosts: (user: string) => call(server, "", {}, { cpanelUser: user, uapi: { module: "SSL", func: "installed_hosts" } }),
     phpVersion: (user: string) =>
       call(server, "", {}, { cpanelUser: user, uapi: { module: "LangPHP", func: "php_get_system_default_version" } }),
