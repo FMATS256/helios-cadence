@@ -7519,6 +7519,7 @@ export type Database = {
         Returns: boolean
       }
       invoke_assistant_daily_reports: { Args: never; Returns: number }
+      invoke_internal_hook: { Args: { hook: string }; Returns: number }
       invoke_monthly_finance_statements: { Args: never; Returns: number }
       is_billing_staff: { Args: { _user_id: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
