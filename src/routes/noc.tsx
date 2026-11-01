@@ -24,6 +24,7 @@ import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } fr
 import { runAllChecksNow } from "@/lib/monitoring.functions";
 import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 import { TicketWorkbench } from "@/components/techops/ticket-workbench";
+import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
 
 export const Route = createFileRoute("/noc")({
@@ -139,6 +140,7 @@ function NocPage() {
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
+          <TabsTrigger value="servers">Servers</TabsTrigger>
           <TabsTrigger value="health">Service Health</TabsTrigger>
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
@@ -147,7 +149,6 @@ function NocPage() {
           <TabsTrigger value="remote">Remote Actions</TabsTrigger>
           <TabsTrigger value="accounts">Client accounts & access</TabsTrigger>
           {tickets.length > 0 && <TabsTrigger value="tickets">Open Tickets</TabsTrigger>}
-          {servers.length > 0 && <TabsTrigger value="servers">Servers</TabsTrigger>}
           <TabsTrigger value="map">Service Map</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
@@ -229,21 +230,7 @@ function NocPage() {
           </TabsContent>
         )}
 
-        {servers.length > 0 && (
-          <TabsContent value="servers" className="mt-4">
-            <DetailCard title="Cloud Servers" padded={false}>
-              <DataGrid
-                rows={servers}
-                columns={[
-                  { header: "Server", cell: (s: any) => <span className="font-medium">{s.name}</span> },
-                  { header: "Provider", cell: (s: any) => s.provider ?? "—" },
-                  { header: "IP", cell: (s: any) => s.ip_address ?? "—" },
-                  { header: "Status", cell: (s: any) => <StatusBadge tone={toneForStatus(s.status)}>{s.status ?? "unknown"}</StatusBadge> },
-                ]}
-              />
-            </DetailCard>
-          </TabsContent>
-        )}
+        <TabsContent value="servers" className="mt-4"><FleetPage /></TabsContent>
 
         <EmbeddedPageContext.Provider value={true}>
           <TabsContent value="uptime" className="mt-4"><MonitoringPage /></TabsContent>
