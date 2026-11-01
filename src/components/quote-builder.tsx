@@ -15,6 +15,7 @@ import { Plus, Trash2, Eye, Save, Loader2, Building2, Download, UserPlus, Packag
 import { toast } from "sonner";
 import { QuotationPreview } from "./quotation-preview";
 import { quotationDocument } from "@/lib/quotation-document.shared";
+import { INDUSTRY_BUNDLES, resolveBundle } from "@/lib/industry-bundles.shared";
 
 export interface QuoteLineDraft {
   description: string;
@@ -427,6 +428,14 @@ export function QuoteBuilderDialog({
               <Button type="button" variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}>
                 <Plus className="h-4 w-4 mr-1.5" />Add blank line
               </Button>
+              <Select value="" onValueChange={addBundle} disabled={sourcesLoading}>
+                <SelectTrigger className="h-9 w-auto min-w-[200px]"><SelectValue placeholder="Add industry bundle…" /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_BUNDLES.map((b) => (
+                    <SelectItem key={b.key} value={b.key}>{b.name} · {b.market}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
 
