@@ -26,6 +26,7 @@ import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 import { TicketWorkbench } from "@/components/techops/ticket-workbench";
 import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
+import { NocToolkitSection } from "@/components/techops/noc-toolkit-section";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
@@ -138,6 +139,7 @@ function NocPage() {
 
       <Tabs defaultValue={tab ?? "telemetry"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="toolkit">NOC Toolkit</TabsTrigger>
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
           <TabsTrigger value="servers">Servers</TabsTrigger>
@@ -154,6 +156,7 @@ function NocPage() {
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="toolkit" className="mt-4"><NocToolkitSection /></TabsContent>
         <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
         <TabsContent value="workbench" className="mt-4"><TicketWorkbench /></TabsContent>
         <TabsContent value="health" className="mt-4">
