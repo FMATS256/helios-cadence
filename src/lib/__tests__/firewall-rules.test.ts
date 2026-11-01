@@ -8,5 +8,6 @@ describe("firewall rule validation", () => {
   it("blocks RDP open to the internet", () => expect(() => validateRule({ protocol: "tcp", port: "3389", source: "0.0.0.0/0" })).toThrow(/Remote Desktop/));
   it("allows RDP from a single office IP", () => expect(validateRule({ protocol: "tcp", port: "3389", source: "41.57.10.4/32" }).port).toBe("3389"));
   it("blocks a range that covers SQL Server", () => expect(() => validateRule({ protocol: "tcp", port: "1400:1500", source: "0.0.0.0/0" })).toThrow(/SQL Server/));
-  it("blocks wide ranges open to everyone", () => expect(() => validateRule({ protocol: "udp", port: "20000:40000", source: "0.0.0.0/0" })).toThrow());
+  it("allows the VoIP media range", () => expect(validateRule({ protocol: "udp", port: "9000:10999", source: "0.0.0.0/0" }).port).toBe("9000:10999"));
+  it("blocks wide ranges open to everyone", () => expect(() => validateRule({ protocol: "udp", port: "30000:40000", source: "0.0.0.0/0" })).toThrow());
 });

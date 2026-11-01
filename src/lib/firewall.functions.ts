@@ -38,7 +38,7 @@ export function validateRule(r: RuleInput): RuleInput {
     if (hit && prefix < 16) {
       throw new Error(`Security policy: ${hit.name} (port ${hit.port}) must not be open to the internet. Allow only the client's office IP or the VPN range (a /16 or smaller).`);
     }
-    if ((b ?? a) - a > 1000 && prefix === 0) throw new Error("Security policy: port ranges wider than 1000 ports cannot be open to everyone");
+    if ((b ?? a) - a > 2000 && prefix === 0) throw new Error("Security policy: port ranges wider than 2000 ports cannot be open to everyone");
   }
   return { protocol: r.protocol, port: r.protocol === "icmp" ? "" : port, source, notes: (r.notes ?? "").slice(0, 200) };
 }
@@ -56,7 +56,6 @@ export const SENSITIVE_PORTS = [
   { port: 6379, name: "Redis" },
   { port: 9200, name: "Elasticsearch" },
   { port: 11211, name: "Memcached" },
-  { port: 10000, name: "Webmin admin panel" },
 ];
 
 async function loadServer(context: any, server_id: string) {
