@@ -47,6 +47,20 @@ export const provisionVultrStorage = createServerFn({ method: "POST" })
     });
     const os = created.object_storage ?? {};
 
+    // Create the client's bucket once the S3 endpoint is ready (Vultr activates within ~1 minute).
+    const bucket = `imt-${data.name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 40)}-${Date.now().toString(36)}`.replace(/-+$/, "");
+    let bucketCreated = false;
+    if (os.s3_access_key && os.s3_secret_key && os.s3_hostname) {
+      const { AwsClient } = await import("aws4fetch");
+      const s3 = new AwsClient({ accessKeyId: os.s3_access_key, secretAccessKey: os.s3_secret_key, service: "s3", region: "us-east-1" });
+      for (let i = 0; i < 6 && !bucketCreated; i++) {
+        const r = await s3.fetch(`https://${os.s3_hostname}/${bucket}`, { method: "PUT" }).catch(() => null);
+        if (r && (r.ok || r.status === 409)) bucketCreated = true;
+        else await new Promise((res) => setTimeout(res, 10000));
+      }
+    }
+
+
     let credId: string | null = null;
     if (os.s3_secret_key) {
       const { encryptSecret } = await import("./encryption.server");
