@@ -25,7 +25,7 @@ export async function prepareClientStatements(db: any, customerId: string, from:
   const files = [];
   for (const currency of currencies) {
     const model = statementModel(customer, invoices, payments, refunds, from, to, currency);
-    files.push(invoicePdfResponse(await statementPdf(model, manager?.name || "Finance Department"), `Statement-${customer.account_number}-${to}-${currency}`));
+    files.push(invoicePdfResponse(await statementPdf(model, manager?.name || "Finance Department", { email: manager?.email, phone: manager?.phone }), `Statement-${customer.account_number}-${to}-${currency}`));
   }
   return { customer, manager, invoices, files };
 }
