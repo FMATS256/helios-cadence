@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { ensureMasterAdmin } from "@/lib/bootstrap.functions";
-import { KeyRound, LifeBuoy, Server, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, KeyRound, LifeBuoy, LockKeyhole, Mail, Server, ShieldCheck } from "lucide-react";
 
 
 export const Route = createFileRoute("/auth")({
@@ -27,6 +27,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [master, setMaster] = useState<{ email: string; ready: boolean } | null>(null);
   const bootstrap = useServerFn(ensureMasterAdmin);
@@ -68,7 +69,17 @@ function AuthPage() {
 
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+    <div className="auth-page min-h-screen bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <header className="auth-mobile-header lg:hidden">
+        <div className="flex items-center gap-3">
+          <div className="auth-mobile-logo"><img src={imtLogo.url} alt="" className="h-10 w-10 object-contain" /></div>
+          <div>
+            <p className="font-display text-2xl font-bold">IMT Solutions</p>
+            <p className="mt-1 text-sm text-navy-foreground/75">Operations Platform</p>
+          </div>
+        </div>
+        <div className="mt-5 flex items-center gap-2 text-xs text-navy-foreground/80"><ShieldCheck className="h-4 w-4" aria-hidden="true" />Secure account access</div>
+      </header>
       {/* Left — welcome panel */}
       <aside
         className="relative hidden overflow-hidden text-navy-foreground p-8 lg:p-12 lg:flex flex-col justify-between lg:min-h-screen"
@@ -135,11 +146,11 @@ function AuthPage() {
       </aside>
 
       {/* Right — sign in card */}
-      <main className="flex min-h-screen flex-col justify-center px-5 py-8 sm:p-10 lg:p-12 lg:min-h-0 lg:items-center">
-        <div className="w-full max-w-md mx-auto">
+      <main className="auth-main flex min-h-screen flex-col justify-center px-5 py-8 sm:p-10 lg:p-12 lg:min-h-0 lg:items-center">
+        <div className="auth-form-container w-full max-w-md mx-auto">
           {/* Mobile brand bar */}
           <div
-            className="mb-6 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-navy-foreground shadow-[var(--shadow-elegant)] lg:hidden"
+            className="mb-6 hidden items-center gap-3 rounded-2xl px-4 py-3.5 text-navy-foreground shadow-[var(--shadow-elegant)]"
             style={{ background: "var(--gradient-navy)" }}
           >
             <img src={imtLogo.url} alt="IMT Solutions" className="h-9 w-9 shrink-0 object-contain" />
@@ -149,7 +160,7 @@ function AuthPage() {
             </div>
           </div>
 
-          <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
+          <div className="auth-heading flex items-start justify-between gap-3 mb-6 sm:mb-8">
             <div className="min-w-0">
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
                 {mode === "signin" ? "Sign In" : "Reset Password"}
@@ -169,35 +180,45 @@ function AuthPage() {
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="si-email">Email</Label>
+                <div className="auth-input-wrap relative">
+                <Mail className="auth-field-icon hidden" aria-hidden="true" />
                 <Input id="si-email" type="email" required autoComplete="email"
                   placeholder="you@company.com"
                   value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 text-base" />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="si-pw">Password</Label>
-                <Input id="si-pw" type="password" required autoComplete="current-password"
+                <div className="auth-input-wrap relative">
+                <LockKeyhole className="auth-field-icon hidden" aria-hidden="true" />
+                <Input id="si-pw" type={showPassword ? "text" : "password"} required autoComplete="current-password"
                   placeholder="••••••••"
                   value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 text-base" />
+                <Button type="button" variant="ghost" size="icon" className="auth-password-toggle absolute right-1 top-1 hidden" aria-label={showPassword ? "Hide password" : "Show password"} title={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
+              <div className="auth-options flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer text-muted-foreground">
                   <Checkbox id="remember" />
                   <span>Keep me logged in</span>
                 </label>
-                <button type="button" onClick={() => setMode("reset")} className="text-solar font-medium hover:underline">
+                <Button type="button" variant="link" onClick={() => setMode("reset")} className="auth-reset-link h-auto p-0 text-solar font-medium hover:underline">
                   Forgot password?
-                </button>
+                </Button>
               </div>
 
               <Button type="submit" disabled={busy}
-                className="w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
+                className="auth-submit w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
                 style={{ background: "var(--gradient-solar)" }}>
                 {busy ? "Signing in…" : "Sign in"}
+                {!busy && <ArrowRight className="ml-1 h-4 w-4 lg:hidden" aria-hidden="true" />}
               </Button>
 
               {master?.ready && (
-                <div className="rounded-xl border border-solar/30 bg-solar/5 p-3 space-y-2">
+                <div className="hidden lg:block rounded-xl border border-solar/30 bg-solar/5 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] uppercase tracking-widest font-semibold text-solar">Master Administrator</p>
                     <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={fillMaster}>
@@ -212,7 +233,7 @@ function AuthPage() {
               )}
 
 
-              <p className="text-[11px] text-center text-muted-foreground pt-2">
+              <p className="auth-invite-note text-[11px] text-center text-muted-foreground pt-2">
                 Access is invite-only. Contact your Master Administrator to be onboarded.
               </p>
             </form>
@@ -228,13 +249,14 @@ function AuthPage() {
                   value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 text-base" />
               </div>
               <Button type="submit" disabled={busy}
-                className="w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
+                className="auth-submit w-full h-11 text-solar-foreground text-base font-semibold shadow-lg"
                 style={{ background: "var(--gradient-solar)" }}>
                 {busy ? "Sending…" : "Send reset link"}
               </Button>
             </form>
           )}
         </div>
+        <footer className="auth-mobile-footer lg:hidden">© {new Date().getFullYear()} IMT Solutions</footer>
       </main>
     </div>
   );

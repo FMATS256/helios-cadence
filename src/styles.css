@@ -193,6 +193,31 @@
   }
 }
 
+/* Sign-in presentation is isolated from staff and client account pages. */
+@media (max-width: 1023px) {
+  .auth-page { min-height: 100svh; display: flex; flex-direction: column; background: var(--card); }
+  .auth-mobile-header { padding: 28px 24px 24px; padding-top: max(28px, env(safe-area-inset-top)); background: var(--gradient-navy); color: var(--navy-foreground); border-bottom: 3px solid var(--solar); }
+  .auth-mobile-header p { letter-spacing: 0; }
+  .auth-mobile-logo { width: 56px; height: 56px; flex-shrink: 0; display: grid; place-items: center; background: var(--navy-foreground); border-radius: var(--radius); }
+  .auth-main { min-height: 0; flex: 1; justify-content: flex-start; padding: 28px 24px 16px; }
+  .auth-heading { margin-bottom: 24px; }
+  .auth-heading h2 { font-size: 28px; line-height: 1.25; letter-spacing: 0; }
+  .auth-heading p { margin-top: 8px; font-size: 14px; line-height: 1.5; }
+  .auth-page form { gap: 0; }
+  .auth-page label { font-size: 13px; }
+  .auth-page input:not([type="checkbox"]) { height: 52px; border-radius: var(--radius); background: var(--background); box-shadow: none; font-size: 16px; }
+  .auth-input-wrap input { padding-left: 42px; }
+  .auth-input-wrap #si-pw { padding-right: 46px; }
+  .auth-field-icon { display: block; position: absolute; left: 14px; top: 18px; width: 16px; height: 16px; color: var(--muted-foreground); pointer-events: none; }
+  .auth-password-toggle { display: flex; top: 6px; width: 40px; height: 40px; color: var(--muted-foreground); }
+  .auth-options { gap: 8px; min-height: 36px; flex-wrap: wrap; }
+  .auth-options label, .auth-reset-link { font-size: 12px; }
+  .auth-reset-link { min-height: 36px; }
+  .auth-submit { height: 52px; border-radius: var(--radius); box-shadow: var(--shadow-glow); }
+  .auth-invite-note { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); line-height: 1.65; font-size: 12px; }
+  .auth-mobile-footer { margin-top: auto; padding-top: 24px; padding-bottom: env(safe-area-inset-bottom); text-align: center; color: var(--muted-foreground); font-size: 11px; }
+}
+
 /* Mobile keeps the approved portal presentation. */
 @media (max-width: 639px) {
   .portal-bills-page { background: var(--card); }
