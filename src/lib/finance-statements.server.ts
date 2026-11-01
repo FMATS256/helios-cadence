@@ -25,7 +25,7 @@ export async function prepareClientStatements(db: any, customerId: string, from:
   const files = [];
   for (const currency of currencies) {
     const model = statementModel(customer, invoices, payments, refunds, from, to, currency);
-    files.push(invoicePdfResponse(await statementPdf(model, manager?.name || "Finance Department"), `Statement-${customer.account_number}-${to}-${currency}`));
+    files.push(invoicePdfResponse(await statementPdf(model, manager?.name || "Finance Department", { email: manager?.email, phone: manager?.phone }), `Statement-${customer.account_number}-${to}-${currency}`));
   }
   return { customer, manager, invoices, files };
 }
@@ -57,12 +57,12 @@ export async function sendMonthlyStatements(now = new Date()) {
           db.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", inv.id),
         ]);
         if (lines.error || allocations.error) throw new Error("Invoice details unavailable; no email sent");
-        const pdf = await officialInvoicePdf(inv, lines.data ?? [], prepared.customer, allocations.data ?? [], { userId: c.account_manager_id, userName: prepared.manager?.name || "IMT Solutions" });
+        const pdf = await officialInvoicePdf(inv, lines.data ?? [], prepared.customer, allocations.data ?? [], { userId: c.account_manager_id, userName: prepared.manager?.name || "IMT Solutions" }, { name: prepared.manager?.name || "IMT Solutions", email: prepared.manager?.email, phone: prepared.manager?.phone });
         files.push(invoicePdfResponse(pdf.bytes, inv.invoice_number));
       }
       if (files.reduce((s, f) => s + f.base64.length * 0.75, 0) > 15 * 1024 * 1024) throw new Error("Monthly documents exceed attachment size limit; Finance review required");
       const result = await createAndSendEnquiryEmail({
-        senderId: c.account_manager_id, senderName: "IMT Solutions Finance", senderRole: "Finance", senderEmail: STATEMENT_MAILBOX, mailbox: STATEMENT_MAILBOX,
+        senderId: c.account_manager_id, senderName: "IMT Solutions Finance", senderRole: "Finance", senderEmail: STATEMENT_MAILBOX, mailbox: STATEMENT_MAILBOX, noSignature: true,
         to: c.primary_email, customerId: c.id, subject: `Account statement ${prepared.customer.account_number} - ${window.to}`, originalSubject: true,
         body: `Dear ${prepared.customer.company_name},\n\nPlease find your account statement as at ${window.to}${invoices.length ? " and invoice(s)" : ""} attached.\n\nFor account queries, reply to this email.`, files: files.map(f => ({ ...f, contentType: "application/pdf" })),
       });

@@ -4,7 +4,7 @@ import { IMT_ADDRESS, INVOICE_TERMS, initialsOf, invoiceSettlement, invoiceStudi
 import { validateInvoiceDates } from "./invoice-validation.shared";
 
 /** Who the invoice is sold by — always the customer's account manager. */
-export type InvoiceRep = { name: string; code?: string };
+export type InvoiceRep = { name: string; code?: string; email?: string | null; phone?: string | null };
 
 /** Keep the API's actual document, logo, boxes, bank details and QR image intact.
  * The engine fixes its invoice heading and recalculates taxes; replace only text
@@ -20,7 +20,7 @@ export async function officialInvoicePdf(invoice: any, lines: any[], customer: a
   const repName = rep?.name || actor?.userName || "IMT Solutions";
   const result = await quoteStudio.renderPdf(invoiceStudioPayload(invoice, lines, customer, repName), actor);
   if (!result.ok) throw new Error(result.error);
-  return { ...settlement, bytes: await applyInvoiceValues(result.data.bytes, invoice, lines, settlement, { name: repName, code: rep?.code ?? initialsOf(repName) }) };
+  return { ...settlement, bytes: await applyInvoiceValues(result.data.bytes, invoice, lines, settlement, { name: repName, code: rep?.code ?? initialsOf(repName), email: rep?.email, phone: rep?.phone }) };
 }
 
 const BLANK = "<> Tj";
@@ -103,6 +103,14 @@ export async function applyInvoiceValues(bytes: Uint8Array, invoice: any, lines:
     const ink = rgb(0.09, 0.09, 0.11);
     firstPage.drawText(rep.name, { x: 248.9, y: 483.7, size: 8.5, font: regular, color: ink });
     if (rep.code) firstPage.drawText(rep.code, { x: 322.7, y: 483.7, size: 8.5, font: regular, color: ink });
+  }
+  // Contact strip: account manager and Accounts team, bottom of page one.
+  if (firstPage) {
+    const muted = rgb(0.3, 0.33, 0.38);
+    const am = `Account Manager: ${rep?.name || "IMT Solutions"}${rep?.email ? ` | ${rep.email}` : ""} | ${rep?.phone || "+263 86 12 004321"}`;
+    const acc = "Accounts Team: finance@imtsolutions.co.zw | +263 86 12 004321";
+    firstPage.drawText(am, { x: 36, y: 26, size: 7, font: bold, color: muted });
+    firstPage.drawText(acc, { x: 36, y: 16, size: 7, font: regular, color: muted });
   }
   doc.setTitle(`${settlement.settled ? "Sales Invoice" : "Invoice"} ${invoice.invoice_number}`);
   return doc.save();

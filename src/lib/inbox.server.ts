@@ -328,6 +328,7 @@ function replyHtml(opts: {
   replyText: string;
   replyHtml?: string | null;
   signatureHtml?: string;
+  noSignature?: boolean;
   quotes: { from: string; at: string; text: string | null; direction: string }[];
 }): string {
   const quotesHtml = opts.quotes
@@ -340,7 +341,7 @@ function replyHtml(opts: {
     .join("");
   return `<div style="font-family:Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:16px;line-height:1.5">
   <div>${opts.replyHtml ? sanitizeEmailHtml(opts.replyHtml) : textToHtml(opts.replyText)}</div>
-  <!--imt-sig--><div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div><!--/imt-sig-->
+  ${opts.noSignature ? "" : `<!--imt-sig--><div style="margin-top:24px">${opts.signatureHtml ? sanitizeEmailHtml(opts.signatureHtml) : imtSignature({ name: opts.amName, role: opts.amRole, email: opts.amEmail })}</div><!--/imt-sig-->`}
   ${quotesHtml ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">--- Previous messages ---</div>${quotesHtml}` : ""}
 </div>`;
 }
@@ -976,6 +977,7 @@ export async function sendEnquiryReply(opts: {
   senderEmail: string | null;
   mailbox?: string;
   signatureHtml?: string;
+  noSignature?: boolean;
   body: string;
   bodyHtml?: string | null;
   cc?: string[];
@@ -1028,10 +1030,11 @@ export async function sendEnquiryReply(opts: {
     replyText: opts.body,
     replyHtml: opts.bodyHtml,
     signatureHtml: opts.signatureHtml,
+    noSignature: opts.noSignature,
     quotes,
   });
   const hideReference = opts.originalSubject || !isDepartmentMailbox(enquiry.mailbox_address);
-  const text = `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}${hideReference ? "" : `\nEnquiry reference: ${enquiry.reference}`}`;
+  const text = opts.noSignature ? opts.body : `${opts.body}\n\n---\n${opts.senderName} · ${opts.senderRole} · IMT Solutions · ${AM_PHONE}${hideReference ? "" : `\nEnquiry reference: ${enquiry.reference}`}`;
   const baseSubject = enquiry.subject.startsWith("Re:") ? enquiry.subject : `Re: ${enquiry.subject}`;
   const taggedSubject = opts.originalSubject ? enquiry.subject : hideReference ? baseSubject : new RegExp(enquiry.reference, "i").test(baseSubject)
     ? baseSubject
@@ -1195,6 +1198,7 @@ export async function createAndSendEnquiryEmail(opts: {
   senderEmail: string | null;
   mailbox?: string;
   signatureHtml?: string;
+  noSignature?: boolean;
   to: string;
   subject: string;
   body: string;
@@ -1236,6 +1240,7 @@ export async function createAndSendEnquiryEmail(opts: {
     senderEmail: opts.senderEmail,
     mailbox: opts.mailbox,
     signatureHtml: opts.signatureHtml,
+    noSignature: opts.noSignature,
     body: opts.body,
     bodyHtml: opts.bodyHtml,
     cc: opts.cc,

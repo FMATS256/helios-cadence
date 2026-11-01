@@ -3,7 +3,7 @@ import { quotationBrand } from "./quotation-document.shared";
 import { STATEMENT_MAILBOX, statementModel } from "./statement-document.shared";
 
 /** Approved IMT statement hierarchy, with fine field and column dividers. */
-export async function statementPdf(model: ReturnType<typeof statementModel>, manager: string) {
+export async function statementPdf(model: ReturnType<typeof statementModel>, manager: string, contact?: { email?: string | null; phone?: string | null; accountsPhone?: string | null }) {
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const blue = rgb(0.122, 0.38, 0.682), ink = rgb(0.137, 0.169, 0.216), muted = rgb(0.467, 0.514, 0.576), ruleColor = rgb(0.863, 0.902, 0.945), pale = rgb(0.937, 0.957, 0.98), paper = rgb(1, 1, 1);
@@ -58,7 +58,12 @@ export async function statementPdf(model: ReturnType<typeof statementModel>, man
   band(y, 23, blue); band(y + 23, 25);
   ["Not yet due", "1-30 days", "31-60 days", "61-90 days", "90+ days", "Total overdue"].forEach((l, i) => { const x = 36 + i * 523.28 / 6; if (i) vertical(x, y, y + 48); text(x + 7, y + 8, l, 7, true, paper); text(x + 7, y + 31, (i < 5 ? model.ageing[i] : model.ageing.slice(1).reduce((a, b) => a + b, 0)).toFixed(2), 8, true); }); y += 62;
   text(36, y, "Invoice balances reflect allocated payments; net account balance also includes unallocated receipts.", 8); text(36, y + 17, "This statement is not a tax invoice or payment receipt. Only verified received payments are included.", 8, false, muted);
-  rule(754); text(36, 767, "ACCOUNT QUERIES", 8, true, blue); text(36, 785, manager, 8); text(559, 785, STATEMENT_MAILBOX, 8, false, blue, true);
+  rule(754);
+  text(36, 763, "YOUR ACCOUNT MANAGER", 7.5, true, blue); text(36, 776, manager, 8, true);
+  if (contact?.email) text(36, 788, contact.email, 7.5, false, ink, false, 260);
+  if (contact?.phone) text(36, 799, contact.phone, 7.5);
+  text(559, 763, "ACCOUNTS TEAM", 7.5, true, blue, true); text(559, 776, "IMT Solutions Finance", 8, true, ink, true);
+  text(559, 788, STATEMENT_MAILBOX, 7.5, false, ink, true); text(559, 799, contact?.accountsPhone || "+263 86 12 004321", 7.5, false, ink, true);
   doc.getPages().forEach((p, i) => { page = p; text(36, 820, "IMT Solutions / Customer account statement", 7, false, muted); text(559, 820, `Page ${i + 1} of ${doc.getPageCount()}`, 7, false, muted, true); });
   doc.setTitle(`Account statement ${model.customer.account_number} ${model.to}`);
   return doc.save();
