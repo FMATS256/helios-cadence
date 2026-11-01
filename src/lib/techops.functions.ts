@@ -511,7 +511,7 @@ export const uploadJobPhoto = createServerFn({ method: "POST" })
     } as any).select("*").single();
     if (error) throw new Error(error.message);
 
-    const { data: signed } = await supabaseAdmin.storage.from("job-photos").createSignedUrl(path, 3600);
+    const { data: signed } = await supabaseAdmin.storage.from("job-photos").createSignedUrl(path, 300);
     return { ...row, url: signed?.signedUrl ?? null };
   });
 

@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";

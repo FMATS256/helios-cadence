@@ -1,3 +1,4 @@
+import { safeSearchTerm } from "@/lib/safe-output";
 import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
@@ -21,7 +22,7 @@ export default defineTool({
   handler: async ({ search, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     let q = sb(ctx).from("customers").select("account_number,company_name,status,industry").is("archived_at", null).order("account_number").limit(limit);
-    if (search) q = q.or(`company_name.ilike.%${search}%,account_number.ilike.%${search}%`);
+    const term = safeSearchTerm(search); if (term) q = q.or(`company_name.ilike.%${term}%,account_number.ilike.%${term}%`);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     return {

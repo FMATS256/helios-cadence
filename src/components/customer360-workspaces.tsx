@@ -4,6 +4,7 @@
  * mutations run through the authenticated server functions in
  * `src/lib/customer360.functions.ts`.
  */
+import { csvCell } from "@/lib/safe-output";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
