@@ -53,6 +53,7 @@ import {
 } from "@/components/customer360-workspaces";
 import { AssignTechDialog, CustomerTasksCard } from "@/components/assign-tech-dialog";
 import { Wrench } from "lucide-react";
+import { ServiceDetailDialog, type ServiceDetail } from "@/components/customer360-service-detail";
 
 export const Route = createFileRoute("/customers/$accountNumber")({
   head: ({ params }) => ({ meta: [{ title: `${params.accountNumber} — IMT Customer 360` }, { name: "description", content: "Connected client services, portal access, finance and support in IMT Customer 360." }, { property: "og:title", content: `${params.accountNumber} — IMT Customer 360` }, { property: "og:description", content: "Client account, services, finance and support workspace." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
@@ -292,6 +293,7 @@ function Customer360() {
     onError: (e: any) => toast.error(e?.message || "Action failed"),
   });
 
+  const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(null);
   const [editSub, setEditSub] = useState<{ sub: any; mode: "upgrade" | "downgrade" } | null>(null);
   const [editForm, setEditForm] = useState({ plan_name: "", description: "", amount: 0, billing_cycle: "monthly" });
 
@@ -750,6 +752,46 @@ function Customer360() {
               </CardContent>
             </Card>
 
+            {/* Service discovery — every service on the account, click for details */}
+            <Card className="lg:col-span-3">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="font-display flex items-center gap-2"><Server className="h-4 w-4 text-solar" />Services on this account</CardTitle>
+                <span className="text-xs text-muted-foreground">Click a service for full details</span>
+              </CardHeader>
+              <CardContent className="p-0">
+                {serviceLineGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No services on file yet.</p>
+                ) : (
+                  <div className="divide-y border-t">
+                    {serviceLineGroups.flatMap(({ line, data }) => {
+                      const Icon = line.icon;
+                      const items: Array<{ key: string; kind: ServiceDetail["kind"]; title: string; sub: string; amount: string; status: string; record: any }> = [
+                        ...data!.subs.map((s: any) => ({ key: `sub-${s.id}`, kind: "Subscription" as const, title: s.plan_name, sub: `${s.billing_cycle || "monthly"}${s.next_renewal ? ` · Renews ${new Date(s.next_renewal).toLocaleDateString()}` : ""}`, amount: money(Number(s.amount) || 0, s.currency || "USD"), status: s.status, record: s })),
+                        ...data!.services.map((s: any) => ({ key: `svc-${s.id}`, kind: "Service" as const, title: s.service_name, sub: [s.vendor, s.plan].filter(Boolean).join(" · ") || s.service_type, amount: `${money(Number(s.monthly_cost) || 0)}/mo`, status: s.status, record: s })),
+                        ...data!.packages.map((p: any) => ({ key: `pkg-${p.id}`, kind: "Package" as const, title: p.catalog?.name || "Package", sub: `${p.catalog?.code || p.catalog?.category || "Package"}${p.quantity ? ` · Qty ${p.quantity}` : ""}`, amount: p.unit_price != null ? money(Number(p.unit_price) || 0, p.currency || "USD") : "", status: p.status || "active", record: p })),
+                        ...data!.assets.map((a: any) => ({ key: `asset-${a.id}`, kind: "Asset" as const, title: a.name || a.asset_type, sub: a.model || a.serial_number || a.asset_type, amount: "", status: a.status || "in use", record: a })),
+                      ];
+                      return items.map((it) => (
+                        <button type="button" key={it.key} onClick={() => setServiceDetail({ kind: it.kind, title: it.title, lineLabel: line.label, record: it.record })}
+                          className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
+                          <div className="h-8 w-8 shrink-0 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{it.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{line.label} · {it.kind} · {it.sub}</p>
+                          </div>
+                          {it.amount && <span className="hidden sm:inline text-sm font-mono shrink-0">{it.amount}</span>}
+                          <StatusPill tone={it.status === "active" ? "success" : it.status === "paused" ? "warning" : "neutral"}>{it.status}</StatusPill>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        </button>
+                      ));
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* IMT service lines snapshot */}
             <Card className="lg:col-span-3">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -786,6 +828,7 @@ function Customer360() {
           </div>
         </TabsContent>
 
+        <ServiceDetailDialog detail={serviceDetail} onClose={() => setServiceDetail(null)} />
         <TabsContent value="services" className="mt-4">
           <div className="space-y-4">
             {serviceLineGroups.length === 0 && (
@@ -818,7 +861,7 @@ function Customer360() {
                   </CardHeader>
                   <CardContent className="p-0 divide-y border-t">
                     {data!.subs.map((s: any) => (
-                      <div key={`sub-${s.id}`} className="p-3 flex items-center justify-between">
+                      <button type="button" key={`sub-${s.id}`} onClick={() => setServiceDetail({ kind: "Subscription", title: s.plan_name, lineLabel: line.label, record: s })} className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{s.plan_name}</p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -830,10 +873,10 @@ function Customer360() {
                           <span className="text-sm font-mono">{money(Number(s.amount) || 0, s.currency || "USD")}</span>
                           <StatusPill tone={s.status === "active" ? "success" : s.status === "paused" ? "warning" : "neutral"}>{s.status}</StatusPill>
                         </div>
-                      </div>
+                      </button>
                     ))}
                     {data!.services.map((s: any) => (
-                      <div key={`svc-${s.id}`} className="p-3 flex items-center justify-between">
+                      <button type="button" key={`svc-${s.id}`} onClick={() => setServiceDetail({ kind: "Service", title: s.service_name, lineLabel: line.label, record: s })} className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{s.service_name}</p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -845,10 +888,10 @@ function Customer360() {
                           <span className="text-sm font-mono">{money(Number(s.monthly_cost) || 0)}/mo</span>
                           <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
                         </div>
-                      </div>
+                      </button>
                     ))}
                     {data!.packages.map((p: any) => (
-                      <div key={`pkg-${p.id}`} className="p-3 flex items-center justify-between">
+                      <button type="button" key={`pkg-${p.id}`} onClick={() => setServiceDetail({ kind: "Package", title: p.catalog?.name || "Package", lineLabel: line.label, record: p })} className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{p.catalog?.name || "Package"}</p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -860,25 +903,25 @@ function Customer360() {
                           {p.unit_price != null && <span className="text-sm font-mono">{money(Number(p.unit_price) || 0, p.currency || "USD")}</span>}
                           <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status || "active"}</StatusPill>
                         </div>
-                      </div>
+                      </button>
                     ))}
                     {data!.assets.map((a: any) => (
-                      <div key={`asset-${a.id}`} className="p-3 flex items-center justify-between">
+                      <button type="button" key={`asset-${a.id}`} onClick={() => setServiceDetail({ kind: "Asset", title: a.name || a.asset_type, lineLabel: line.label, record: a })} className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{a.name || a.asset_type}</p>
                           <p className="text-xs text-muted-foreground truncate">Asset · {a.model || a.serial_number || a.asset_type}</p>
                         </div>
                         <StatusPill tone={a.status === "active" ? "success" : "neutral"}>{a.status || "in use"}</StatusPill>
-                      </div>
+                      </button>
                     ))}
                     {data!.credentials.map((c: any) => (
-                      <div key={`cred-${c.id}`} className="p-3 flex items-center justify-between">
+                      <button type="button" key={`cred-${c.id}`} onClick={() => setServiceDetail({ kind: "Credential", title: c.name, lineLabel: line.label, record: c })} className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{c.name}</p>
                           <p className="text-xs text-muted-foreground truncate">Credential · {c.system || c.category || "vault entry"}</p>
                         </div>
                         {c.expires_at && <span className="text-xs text-muted-foreground">Expires {new Date(c.expires_at).toLocaleDateString()}</span>}
-                      </div>
+                      </button>
                     ))}
                   </CardContent>
                 </Card>
