@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
 import { can } from "@/lib/rbac";
+import { canOpenPage } from "@/lib/department-access";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -102,8 +103,13 @@ const configNav: NavNode[] = [
 ];
 
 function NavSection({
-  label, nodes, isActive, isMaster,
-}: { label: string; nodes: NavNode[]; isActive: (u: string) => boolean; isMaster: boolean }) {
+  label, nodes, isActive, isMaster, roles,
+}: { label: string; nodes: NavNode[]; isActive: (u: string) => boolean; isMaster: boolean; roles: string[] }) {
+  const visible = nodes
+    .filter((n) => !n.masterOnly || isMaster)
+    .map((n) => (n.children ? { ...n, children: n.children.filter((c) => canOpenPage(c.url, roles)) } : n))
+    .filter((n) => (n.children ? n.children.length > 0 : canOpenPage(n.url, roles)));
+  if (!visible.length) return null;
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="text-sidebar-foreground/45 text-[10px] tracking-[2px] font-semibold uppercase">
@@ -111,7 +117,7 @@ function NavSection({
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu className="gap-0.5">
-          {nodes.filter((n) => !n.masterOnly || isMaster).map((node) =>
+          {visible.map((node) =>
             node.children ? (
               <NavParent key={node.title} node={node} isActive={isActive} />
             ) : (
@@ -181,7 +187,7 @@ function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) =>
 
 function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isMaster } = useRoles();
+  const { isMaster, roles } = useRoles();
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
   return (
@@ -201,8 +207,8 @@ function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-1">
-        <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} />
-        <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} />
+        <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+        <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} roles={roles} />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
@@ -298,8 +304,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset className="bg-background min-w-0">
         <TopBar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto"><PageGuard>{children}</PageGuard></main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+function PageGuard({ children }: { children: React.ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { roles, loading } = useRoles();
+  if (loading) return <>{children}</>;
+  if (canOpenPage(pathname, roles)) return <>{children}</>;
+  return (
+    <div className="p-8 max-w-lg mx-auto text-center space-y-3">
+      <Shield className="h-10 w-10 mx-auto text-muted-foreground" />
+      <h1 className="font-display text-xl font-semibold">Not available for your role</h1>
+      <p className="text-sm text-muted-foreground">This page belongs to another department. Ask an administrator if you need access.</p>
+      <Button asChild variant="outline"><Link to="/">Back to dashboard</Link></Button>
+    </div>
   );
 }

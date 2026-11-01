@@ -288,6 +288,13 @@
       "when": 1793536841529,
       "tag": "0040_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793545540410,
+      "tag": "0041_department_rbac",
+      "breakpoints": true
     }
   ]
 }
