@@ -36,7 +36,7 @@ const DIVISIONS: Division[] = [
     workloads: ["bkp", "nc"] },
   { key: "security", title: "Managed Security", icon: ShieldCheck,
     items: ["WireGuard business VPN", "Firewall port management", "Server hardening", "Patch management"],
-    links: [{ label: "Fleet Control & firewalls", to: "/noc?tab=servers" }, { label: "Credential Vault", to: "/techops/vault" }],
+    links: [{ label: "Fleet Control & firewalls", to: "/cloud-ops/fleet" }, { label: "Credential Vault", to: "/techops/vault" }],
     workloads: [] },
   { key: "apps", title: "Business Applications", icon: AppWindow,
     items: ["Nextcloud", "Accounting & ERP hosting", "Document management", "Clinic systems (after compliance review)"],
