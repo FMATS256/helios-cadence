@@ -10,7 +10,7 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Quotation previews and PDFs share a saved-value document model without changing financial calculations.
+- Quotation previews and PDFs share one saved-value document model; calculations unchanged.
 
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
