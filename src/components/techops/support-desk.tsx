@@ -451,7 +451,7 @@ function BillingPanel({ customerId, full }: { customerId: string; full: boolean 
       {full && <>
         <DetailCard title="By package" padded={false}>
           {packages.length === 0 && <p className="p-3 text-sm text-muted-foreground">No invoiced packages yet.</p>}
-          {packages.map((k) => <Row key={k.key}><span className="text-sm"><span className="font-medium">{k.name}</span> <span className="text-xs text-muted-foreground">{k.invoices} invoice(s) · billed {k.currency} {k.billed.toFixed(2)} · paid {k.paid.toFixed(2)} · last paid {k.lastPaidAt ? shortDate(k.lastPaidAt) : "—"}</span></span><StatusBadge tone={k.outstanding > 0 ? "warning" as any : "success" as any}>{k.outstanding > 0 ? `${k.currency} ${k.outstanding.toFixed(2)} due` : "paid"}</StatusBadge></Row>)}
+          {packages.map((k) => <Row key={k.key}><span className="text-sm"><span className="font-medium">{k.name}</span> <span className="text-xs text-muted-foreground">{k.invoices} invoice(s) · billed {k.currency} {k.billed.toFixed(2)} · paid {k.paid.toFixed(2)} · last paid {k.lastPaidAt ? shortDate(k.lastPaidAt) : "—"}</span></span><StatusBadge tone={toneForStatus(k.outstanding > 0 ? "overdue" : "paid")}>{k.outstanding > 0 ? `${k.currency} ${k.outstanding.toFixed(2)} due` : "paid"}</StatusBadge></Row>)}
         </DetailCard>
         <DetailCard title="Invoices" padded={false}>
           {inv.length === 0 && <p className="p-3 text-sm text-muted-foreground">No invoices.</p>}
