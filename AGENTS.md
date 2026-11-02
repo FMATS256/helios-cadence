@@ -11,7 +11,7 @@
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
-- Inbox outbound mail uses only the IMT gateway and saves message/quotation snapshot first; reply previews of inbound HTML stay sanitized and outside the sent body.
+- Inbox outbound mail uses only the IMT gateway, saving message/quotation snapshots first; inbound HTML previews stay sanitized and out of sent bodies.
 - Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
 - Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
@@ -27,7 +27,7 @@
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
-- Firewall: Vultr-only, staff-only, logged; no public sensitive ports. Provider orders and server rebuild/restore/app-install need atomic ops-manager/master-admin approval (no self-approval unless master); power/snapshots are immediate.
+- Firewall is Vultr-only, staff-only, logged, with no public sensitive ports; provider orders and rebuild/restore/app-install need ops-manager/master-admin approval (no non-master self-approval).
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET via public.invoke_internal_hook; test mail goes only to the caller, customer mail to recorded contacts.
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
