@@ -422,7 +422,7 @@ function VoipActions({ v }: { v: any }) {
   });
   return (
     <>
-      <Act label="Sync balance" fn={syncVoipAccount} data={{ id: v.id }} />
+      <Act label="Sync balance" fn={syncVoipAccount} data={{ id: v.id }} service="voip" entityId={v.id} customerId={v.customer_id} />
       <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}>Recharge</Button>
       {open && (
         <span className="flex w-full flex-wrap items-center gap-2 pt-2">
