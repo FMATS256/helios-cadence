@@ -91,8 +91,8 @@ function GlobalSearchPalette({ open, onOpenChange }: { open: boolean; onOpenChan
     pushRecent(c);
     onOpenChange(false);
     setQ("");
-    if (c.id) openClientDesk(c.id);
-    else navigate({ to: "/customers/$accountNumber", params: { accountNumber: c.account_number } });
+    if (c.account_number) navigate({ to: "/customers/$accountNumber", params: { accountNumber: c.account_number }, search: { tab: "desk" } });
+    else if (c.id) openClientDesk(c.id);
   };
   const goDesk = (customerId: string | null | undefined, fallback: () => void) => {
     onOpenChange(false); setQ("");
