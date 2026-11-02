@@ -1,6 +1,10 @@
 # Roadmap
 
+## Open
+- Project moved to a new workspace: integrations from the previous workspace must be relinked one by one. Firecrawl is done; other previously used services still need connecting as the user names them.
+
 ## Done
+- Firecrawl relinked in the new workspace (gateway-backed, Lovable-managed credentials); credential probe returned a live result.
 - Desktop client portal matches reference structure with IMT branding: inline gradient header, grey heading bands, document rows/action footers, photo welcome and four-column footer. Desktop 1280/1024 and mobile sign-in checked without overflow; hydration error corrected; ten portal tests passed.
 - Added My Statements for every linked client account, current and monthly 21st cutoffs, private per-currency PDF downloads independent of email; seven tests passed, real M10466 PDF downloaded through signed-in portal and visually inspected, desktop/phone checked without errors or overflow.
 - Added finance@ monthly statements on the 21st at 09:17 Harare, unique client-month delivery reservations, existing Quote Studio invoice attachments, Finance mailbox access and statement downloads; eight tests passed, actual UK2AFRICA PDF visually inspected, unsigned callback blocked and authorized non-due callback sends nothing.
