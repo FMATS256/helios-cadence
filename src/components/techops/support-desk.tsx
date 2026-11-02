@@ -58,7 +58,7 @@ function ClientDesk({ d }: { d: any }) {
   const svcTabs: [string, string, number][] = [
     ["all", "All services", -1], ["hosting", "Email & hosting", d.hosting.length], ["voip", "VoIP", d.voip.length],
     ["starlink", "Starlink", d.starlink.length], ["servers", "Servers", d.servers.length], ["storage", "Storage", d.storage.length],
-    ["licences", "Microsoft 365 & licences", d.licenses.length + d.subscriptions.length], ["equipment", "Equipment", d.assets.length], ["tickets", "Tickets", d.tickets.length],
+    ["licences", "Microsoft 365 & licences", d.licenses.length + d.subscriptions.length], ["equipment", "Equipment", d.assets.length], ["tickets", "Tickets", d.tickets.length], ["billing", "Billing & portal", -1],
   ];
   const counts = [
     ["Hosting & email", d.hosting.length], ["VoIP", d.voip.length], ["Starlink", d.starlink.length], ["Servers", d.servers.length],
@@ -97,6 +97,8 @@ function ClientDesk({ d }: { d: any }) {
           <Button key={k} size="sm" role="tab" aria-selected={view === k} variant={view === k ? "default" : "ghost"} onClick={() => setView(k)}>{l}{n > 0 ? ` (${n})` : ""}</Button>
         ))}
       </div>
+
+      <BillingPanel customerId={c.id} full={view === "billing"} />
 
       {show("hosting") && d.hosting.map((h: any) => <HostingCard key={h.id} h={h} />)}
 
@@ -359,5 +361,49 @@ function TicketStatus({ t }: { t: any }) {
       <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
       <SelectContent>{["open", "in_progress", "pending", "resolved", "closed"].map((x) => <SelectItem key={x} value={x}>{x.replace("_", " ")}</SelectItem>)}</SelectContent>
     </Select>
+  );
+}
+
+/** Account billing, payments and portal access shown on every service tab (summary) and the Billing tab (full). */
+function BillingPanel({ customerId, full }: { customerId: string; full: boolean }) {
+  const q = useQuery({
+    queryKey: ["desk_billing", customerId],
+    queryFn: async () => {
+      const [inv, pay, prof] = await Promise.all([
+        supabase.from("invoices").select("id,invoice_number,issue_date,due_date,total,amount_paid,currency,status").eq("customer_id", customerId).is("archived_at", null).order("issue_date", { ascending: false }).limit(full ? 50 : 10),
+        supabase.from("payments").select("id,amount,currency,method,reference,receipt_number,paid_at,status,service_context").eq("customer_id", customerId).order("paid_at", { ascending: false }).limit(full ? 50 : 5),
+        supabase.from("profiles").select("id,email").eq("customer_id", customerId),
+      ]);
+      return { inv: inv.data ?? [], pay: pay.data ?? [], portal: prof.data ?? [] };
+    },
+  });
+  if (!q.data) return null;
+  const { inv, pay, portal } = q.data;
+  const owed = inv.reduce((a: number, i: any) => a + Math.max(0, Number(i.total) - Number(i.amount_paid)), 0);
+  const overdue = inv.filter((i: any) => Number(i.total) > Number(i.amount_paid) && i.due_date && i.due_date < new Date().toISOString().slice(0, 10)).length;
+  const last = pay[0];
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2 border bg-card p-3 sm:grid-cols-4">
+        <div><p className="text-[11px] text-muted-foreground">Outstanding</p><p className="text-lg font-semibold">${owed.toFixed(2)}</p></div>
+        <div><p className="text-[11px] text-muted-foreground">Overdue invoices</p><p className={`text-lg font-semibold ${overdue ? "text-destructive" : ""}`}>{overdue}</p></div>
+        <div><p className="text-[11px] text-muted-foreground">Last payment</p><p className="text-sm font-semibold">{last ? `${last.currency} ${Number(last.amount).toFixed(2)} · ${shortDate(last.paid_at)}` : "None"}</p></div>
+        <div><p className="text-[11px] text-muted-foreground">Client portal</p><p className="text-sm font-semibold">{portal.length ? `${portal.length} login(s) active` : "No portal login"}</p></div>
+      </div>
+      {full && <>
+        <DetailCard title="Invoices" padded={false}>
+          {inv.length === 0 && <p className="p-3 text-sm text-muted-foreground">No invoices.</p>}
+          {inv.map((i: any) => <Row key={i.id}><span className="text-sm"><span className="font-medium">{i.invoice_number}</span> <span className="text-xs text-muted-foreground">issued {shortDate(i.issue_date)} · due {shortDate(i.due_date)} · {i.currency} {Number(i.amount_paid).toFixed(2)} / {Number(i.total).toFixed(2)} paid</span></span><StatusBadge tone={toneForStatus(i.status)}>{i.status}</StatusBadge></Row>)}
+        </DetailCard>
+        <DetailCard title="Payments" padded={false}>
+          {pay.length === 0 && <p className="p-3 text-sm text-muted-foreground">No payments.</p>}
+          {pay.map((p: any) => <Row key={p.id}><span className="text-sm"><span className="font-medium">{p.currency} {Number(p.amount).toFixed(2)}</span> <span className="text-xs text-muted-foreground">{shortDate(p.paid_at)} · {p.method ?? "—"} · ref {p.reference ?? "—"} · receipt {p.receipt_number ?? "—"}{p.service_context ? ` · ${p.service_context}` : ""}</span></span><StatusBadge tone={toneForStatus(p.status)}>{p.status}</StatusBadge></Row>)}
+        </DetailCard>
+        <DetailCard title="Client portal access" padded={false}>
+          {portal.length === 0 && <p className="p-3 text-sm text-muted-foreground">This client has no portal login yet. An administrator links one from Permissions.</p>}
+          {portal.map((u: any) => <Row key={u.id}><span className="text-sm">{u.email}</span><Link to="/reset-password"><Button size="sm" variant="outline"><KeyRound className="h-4 w-4 mr-1.5" />Reset portal password</Button></Link></Row>)}
+        </DetailCard>
+      </>}
+    </div>
   );
 }
