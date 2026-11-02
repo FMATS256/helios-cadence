@@ -12,14 +12,13 @@
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
 - Quotation previews and PDFs share one saved-value document model.
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
-- Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
+- Inbox outbound mail uses only the IMT gateway and saves message/quotation snapshot first; reply previews of inbound HTML stay sanitized and outside the sent body.
 - Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
 - Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
 - Department senders are authorized from protected staff roles; personal drafts and organization are atomically persisted under owner-only policies, while internal notes inherit enquiry visibility.
 - Inbox and transactional signatures share one email-safe table template and staff-title resolver (mobile-safe typography, one linked promo image); custom personal signatures override it.
 - Inbox conversation rendering uses a dedicated collapsible message view with the latest message expanded first, authorized thread prefetching and foreground refresh, so older HTML signatures do not delay access to new replies.
 - Compose restoration and outbound conversation display remove identifiable staff signature blocks without changing stored messages; delivery appends signatures separately so clients still receive them.
-- Reply composers preview latest inbound HTML separately (sanitized, read-only), never in the sent body.
 - Portal sign-in resolves email/username/account number to the login email server-side, returning only a session; new accounts get client-only logins with temporary credentials in the welcome email, never overwriting existing logins.
 - Login email and business email are separate: profiles.work_email (when set) is used for sending, mailbox, signatures and manager contact; login email is only for sign-in.
 - Technical workspaces are two tabbed hubs (/noc, /techops/dashboard); merged pages live as sections in src/components/techops and collapse their frame via EmbeddedPageContext, while their old URLs remain redirects.
