@@ -309,6 +309,20 @@
       "when": 1793551008827,
       "tag": "0043_pos_finance_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793619183437,
+      "tag": "0044_service_ops_events_staff_insert",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793619207313,
+      "tag": "0045_service_ops_events_tech_insert_only",
+      "breakpoints": true
     }
   ]
 }

@@ -102,6 +102,8 @@ function ClientDesk({ d }: { d: any }) {
 
       <BillingPanel customerId={c.id} full={view === "billing"} />
 
+      {view !== "billing" && view !== "tickets" && <ActivityLog customerId={c.id} filter={view} />}
+
       {show("hosting") && d.hosting.map((h: any) => <HostingCard key={h.id} h={h} />)}
 
       {show("voip") && d.voip.length > 0 && (
@@ -120,7 +122,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.starlink.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Satellite className="h-4 w-4" /><span className="font-medium">{s.kit_serial ?? s.starlink_account_number}</span><span className="text-xs text-muted-foreground">{s.plan_type ?? "—"} · {s.service_address ?? ""} · checked {shortDate(s.last_checked_at)}</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Act label="Check status" fn={checkStarlinkAccount} data={{ id: s.id }} /></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Act label="Check status" fn={checkStarlinkAccount} data={{ id: s.id }} service="starlink" entityId={s.id} customerId={c.id} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -131,7 +133,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.servers.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Server className="h-4 w-4" /><span className="font-medium">{s.name}</span><span className="text-xs text-muted-foreground">{s.provider} · {(s.public_ips ?? []).join?.(", ") || "no IP"} · {s.cpu_cores ?? "?"} vCPU / {s.ram_mb ? Math.round(s.ram_mb / 1024) : "?"} GB</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} />}<ConsoleButton serverId={s.id} /></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} service="server" entityId={s.id} customerId={c.id} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} service="server" entityId={s.id} customerId={c.id} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} service="server" entityId={s.id} customerId={c.id} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} service="server" entityId={s.id} customerId={c.id} />}<ConsoleButton serverId={s.id} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -298,15 +300,65 @@ function TicketDialog({ customerId, init, onClose }: { customerId: string; init:
   );
 }
 
-function Act({ label, fn, data, confirm }: { label: string; fn: any; data: any; confirm?: boolean }) {
+/** Records the outcome of an engineer action against the client's service history. */
+async function logDeskAction(e: { service: string; entityId?: string; customerId?: string; action: string; ok: boolean; message?: string }) {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  await supabase.from("service_ops_events").insert({
+    service_type: e.service, entity_id: e.entityId ?? null, customer_id: e.customerId ?? null,
+    action: e.action, status: e.ok ? "success" : "failed", message: e.message ?? null, actor_id: u.user.id,
+  } as any);
+}
+
+function Act({ label, fn, data, confirm, service, entityId, customerId }: { label: string; fn: any; data: any; confirm?: boolean; service?: string; entityId?: string; customerId?: string }) {
   const qc = useQueryClient();
   const f = useServerFn(fn) as any;
+  const [state, setState] = useState<"idle" | "running" | "ok" | "failed">("idle");
+  const log = (ok: boolean, message?: string) =>
+    service ? logDeskAction({ service, entityId, customerId, action: label, ok, message }).finally(() => qc.invalidateQueries({ queryKey: ["desk_activity"] })) : undefined;
   const m = useMutation({
-    mutationFn: () => f({ data }),
-    onSuccess: () => { toast.success(`${label}: done`); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
-    onError: (e: any) => toast.error(e.message),
+    mutationFn: () => { setState("running"); return f({ data }); },
+    onSuccess: () => { setState("ok"); toast.success(`${label}: done`); log(true); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
+    onError: (e: any) => { setState("failed"); toast.error(e.message); log(false, e.message); },
   });
-  return <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => { if (!confirm || window.confirm(`${label}?`)) m.mutate(); }}>{m.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}{label}</Button>;
+  const msg = confirm ? `${label}? This affects the live service${service ? ` (${service})` : ""} and will be recorded in the activity log.` : "";
+  return (
+    <Button size="sm" variant={state === "failed" ? "destructive" : "outline"} disabled={m.isPending} title={state === "idle" ? undefined : `Last result: ${state}`}
+      onClick={() => { if (!confirm || window.confirm(msg)) m.mutate(); }}>
+      {m.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}{m.isPending ? `${label}…` : label}
+    </Button>
+  );
+}
+
+const SERVICE_LABEL: Record<string, string> = { server: "Server", starlink: "Starlink", voip: "VoIP", hosting: "Hosting", storage: "Storage" };
+
+/** Per-client history of every engineer action (who, what, result). */
+function ActivityLog({ customerId, filter }: { customerId: string; filter: string }) {
+  const q = useQuery({
+    queryKey: ["desk_activity", customerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("service_ops_events").select("id,service_type,action,status,message,actor_id,created_at").eq("customer_id", customerId).order("created_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      const ids = [...new Set((data ?? []).map((r) => r.actor_id).filter(Boolean))] as string[];
+      const { data: people } = ids.length ? await supabase.from("profiles").select("id,full_name").in("id", ids) : { data: [] as any[] };
+      const names = new Map((people ?? []).map((p: any) => [p.id, p.full_name]));
+      return (data ?? []).map((r) => ({ ...r, who: names.get(r.actor_id ?? "") ?? "System" }));
+    },
+  });
+  const map: Record<string, string[]> = { servers: ["server"], starlink: ["starlink"], voip: ["voip"], hosting: ["hosting", "web_hosting"], storage: ["storage", "cloud_storage"] };
+  const rows = (q.data ?? []).filter((r) => !map[filter] || map[filter].includes(r.service_type));
+  return (
+    <DetailCard title="Activity log" padded={false}>
+      {q.isLoading ? <p className="p-3 text-sm text-muted-foreground">Loading activity…</p>
+        : rows.length === 0 ? <p className="p-3 text-sm text-muted-foreground">No engineer actions recorded for this view yet.</p>
+        : rows.map((r) => (
+          <Row key={r.id}>
+            <span className="flex items-center gap-2"><Activity className="h-4 w-4" /><span className="font-medium">{r.action}</span><span className="text-xs text-muted-foreground">{SERVICE_LABEL[r.service_type] ?? r.service_type} · {r.who} · {new Date(r.created_at).toLocaleString()}{r.message ? ` · ${r.message}` : ""}</span></span>
+            <StatusBadge tone={r.status === "success" ? "success" : r.status === "failed" ? "danger" : "warning"}>{r.status}</StatusBadge>
+          </Row>
+        ))}
+    </DetailCard>
+  );
 }
 
 function ConsoleButton({ serverId }: { serverId: string }) {
@@ -370,7 +422,7 @@ function VoipActions({ v }: { v: any }) {
   });
   return (
     <>
-      <Act label="Sync balance" fn={syncVoipAccount} data={{ id: v.id }} />
+      <Act label="Sync balance" fn={syncVoipAccount} data={{ id: v.id }} service="voip" entityId={v.id} customerId={v.customer_id} />
       <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}>Recharge</Button>
       {open && (
         <span className="flex w-full flex-wrap items-center gap-2 pt-2">
