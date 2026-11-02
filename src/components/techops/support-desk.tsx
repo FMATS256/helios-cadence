@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { supabase } from "@/integrations/supabase/client";
 import { syncVoipAccount, recordVoipRecharge } from "@/lib/voip.functions";
 import { checkStarlinkAccount } from "@/lib/starlink.functions";
-import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
+import { powerProviderServer, refreshProviderServer, getServerConsoleUrl } from "@/lib/providers.functions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, Satellite, Server, HardDrive, Globe, Package, KeyRound, LifeBuoy, Truck, Activity, ExternalLink, Loader2, Copy } from "lucide-react";
 import { deskClient, deskMailboxes, deskMailboxAction, deskEmailHealth, deskOpenTicket } from "@/lib/support-desk.functions";
-import { hostingSsoLink, hostingLifecycleAction } from "@/lib/hosting.functions";
+import { hostingSsoLink, hostingLifecycleAction, storageLifecycleAction } from "@/lib/hosting.functions";
 
 const listeners = new Set<(id: string) => void>();
 /** Open the client support panel from anywhere (global search, tickets, dashboards). */
@@ -129,7 +129,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.servers.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Server className="h-4 w-4" /><span className="font-medium">{s.name}</span><span className="text-xs text-muted-foreground">{s.provider} · {(s.public_ips ?? []).join?.(", ") || "no IP"} · {s.cpu_cores ?? "?"} vCPU / {s.ram_mb ? Math.round(s.ram_mb / 1024) : "?"} GB</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} />}<Link to="/cloud-ops/$id" params={{ id: s.id }}><Button size="sm" variant="ghost">Console & more</Button></Link></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} />}<ConsoleButton serverId={s.id} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -140,7 +140,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.storage.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><HardDrive className="h-4 w-4" /><span className="font-medium">{s.name}</span><span className="text-xs text-muted-foreground">{Number(s.used_tb ?? 0).toFixed(2)} / {s.storage_tb} TB used · last backup {shortDate(s.last_backup_at)}</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Link to="/cloud-storage"><Button size="sm" variant="outline">Increase / manage</Button></Link></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><StorageActions s={s} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -302,6 +302,55 @@ function Act({ label, fn, data, confirm }: { label: string; fn: any; data: any; 
     onError: (e: any) => toast.error(e.message),
   });
   return <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => { if (!confirm || window.confirm(`${label}?`)) m.mutate(); }}>{m.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}{label}</Button>;
+}
+
+function ConsoleButton({ serverId }: { serverId: string }) {
+  const f = useServerFn(getServerConsoleUrl);
+  const [busy, setBusy] = useState(false);
+  return <Button size="sm" variant="outline" disabled={busy} onClick={async () => {
+    const w = window.open("about:blank", "_blank");
+    setBusy(true);
+    try { const { url } = await f({ data: { server_id: serverId } }); if (w) w.location.href = url; else window.location.href = url; }
+    catch (e: any) { w?.close(); toast.error(e.message); }
+    finally { setBusy(false); }
+  }}>{busy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ExternalLink className="h-3 w-3 mr-1" />}Console</Button>;
+}
+
+function StorageActions({ s }: { s: any }) {
+  const qc = useQueryClient();
+  const fn = useServerFn(storageLifecycleAction);
+  const [open, setOpen] = useState(false);
+  const [tb, setTb] = useState(String(s.storage_tb ?? ""));
+  const [used, setUsed] = useState(String(s.used_tb ?? ""));
+  const m = useMutation({
+    mutationFn: (d: any) => fn({ data: { id: s.id, ...d } }),
+    onSuccess: () => { toast.success("Storage updated"); setOpen(false); qc.invalidateQueries({ queryKey: ["desk_client"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const sizes = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10];
+  return <>
+    <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Manage space</Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Manage storage — {s.name}</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div><Label>Capacity</Label>
+            <Select value={tb} onValueChange={setTb}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{sizes.map((x) => <SelectItem key={x} value={String(x)}>{x < 1 ? `${x * 1000} GB` : `${x} TB`} — ${(x * 13.5).toFixed(2)}/mo</SelectItem>)}</SelectContent></Select>
+            <Button className="mt-2" size="sm" disabled={m.isPending || Number(tb) === Number(s.storage_tb)} onClick={() => m.mutate({ action: "resize", storage_tb: Number(tb) })}>Change capacity</Button>
+          </div>
+          <div><Label>Used (TB)</Label><Input type="number" step="0.01" value={used} onChange={(e) => setUsed(e.target.value)} />
+            <Button className="mt-2" size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate({ action: "record_usage", used_tb: Number(used) })}>Save usage</Button>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          {s.status === "suspended"
+            ? <Button variant="outline" disabled={m.isPending} onClick={() => m.mutate({ action: "resume" })}>Resume</Button>
+            : <Button variant="outline" disabled={m.isPending} onClick={() => window.confirm("Suspend this storage?") && m.mutate({ action: "suspend", reason: "Suspended from Service desk" })}>Suspend</Button>}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>;
 }
 
 function VoipActions({ v }: { v: any }) {

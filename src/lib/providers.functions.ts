@@ -555,3 +555,22 @@ export const decideServerOrder = createServerFn({ method: "POST" })
       return { ok: false, status: "failed", error: message };
     }
   });
+
+/** Fresh provider web-console (KVM) link for a server; opened in a new tab from the Service desk. */
+export const getServerConsoleUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { server_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { assertRole } = await import("./hosting.server");
+    await assertRole(context as any, ["operations_manager", "cloud_engineer", "technical_support"]);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: srv } = await supabaseAdmin.from("cloud_servers").select("id,provider,provider_server_id").eq("id", data.server_id).single();
+    if (!srv?.provider_server_id) throw new Error("No provider ID on this server record");
+    if (srv.provider !== "vultr") throw new Error("Web console links are only available for Vultr servers");
+    const { getProvider } = await import("./providers/registry.server");
+    const info = await getProvider("vultr" as ProviderName).getServer(srv.provider_server_id);
+    const url = (info.raw as any)?.kvm as string | undefined;
+    if (!url) throw new Error("Vultr did not return a console link for this server");
+    await supabaseAdmin.from("cloud_activity").insert({ server_id: srv.id, action: "console.open", detail: { by: context.userId } as any });
+    return { url };
+  });

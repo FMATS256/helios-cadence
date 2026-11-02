@@ -27,7 +27,13 @@ export async function sendCustomerWelcome(db: any, customerId: string) {
     try {
       const { provisionPortalLogin } = await import("./portal-login.server");
       const creds = await provisionPortalLogin(db, customer);
-      if (creds) login = { ...creds, url: "https://management.imtsolutions.co.zw/client" };
+      if (creds) {
+        login = { ...creds, url: "https://management.imtsolutions.co.zw/client" };
+        try {
+          const { autoProvisionClientServices } = await import("./client-services-provision.server");
+          await autoProvisionClientServices(db, customer);
+        } catch (e) { console.error("Automatic hosting/mailbox setup", customer.account_number, e); }
+      }
     } catch (e) { console.error("Portal login provisioning", customer.account_number, e); }
     const details = welcomeDetails(customer, manager, (subscriptions ?? []).map((s: any) => s.plan_name), login);
     const { createAndSendEnquiryEmail } = await import("./inbox.server");
