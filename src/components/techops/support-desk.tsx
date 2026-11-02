@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncVoipAccount, recordVoipRecharge } from "@/lib/voip.functions";
 import { checkStarlinkAccount } from "@/lib/starlink.functions";
 import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -23,23 +23,27 @@ const listeners = new Set<(id: string) => void>();
 /** Open the client support panel from anywhere (global search, tickets, dashboards). */
 export function openClientDesk(customerId: string) { listeners.forEach((l) => l(customerId)); }
 
+/** Opening a client from anywhere now navigates to their full Customer 360 page (Service desk tab). */
 export function ClientDeskSheet() {
-  const [id, setId] = useState<string | null>(null);
-  useEffect(() => { const l = (x: string) => setId(x); listeners.add(l); return () => { listeners.delete(l); }; }, []);
+  const navigate = useNavigate();
+  useEffect(() => {
+    const l = async (x: string) => {
+      const { data } = await supabase.from("customers").select("account_number").eq("id", x).maybeSingle();
+      if (data?.account_number) navigate({ to: "/customers/$accountNumber", params: { accountNumber: data.account_number }, search: { tab: "desk" } as any });
+      else toast.error("Client not found");
+    };
+    listeners.add(l); return () => { listeners.delete(l); };
+  }, [navigate]);
+  return null;
+}
+
+/** Inline per-service support workspace used inside Customer 360. */
+export function ClientServiceDesk({ customerId }: { customerId: string }) {
   const fnClient = useServerFn(deskClient);
-  const client = useQuery({ queryKey: ["desk_client", id], queryFn: () => fnClient({ data: { id: id! } }), enabled: !!id });
-  return (
-    <Sheet open={!!id} onOpenChange={(o) => !o && setId(null)}>
-      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto p-4">
-        <SheetHeader><SheetTitle>Client support panel</SheetTitle></SheetHeader>
-        <div className="mt-3">
-          {client.isLoading && <p className="text-sm text-muted-foreground">Loading client…</p>}
-          {client.error && <p className="text-sm text-destructive">{(client.error as Error).message}</p>}
-          {client.data && <ClientDesk d={client.data} />}
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+  const client = useQuery({ queryKey: ["desk_client", customerId], queryFn: () => fnClient({ data: { id: customerId } }) });
+  if (client.isLoading) return <p className="text-sm text-muted-foreground">Loading services…</p>;
+  if (client.error) return <p className="text-sm text-destructive">{(client.error as Error).message}</p>;
+  return client.data ? <ClientDesk d={client.data} /> : null;
 }
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -49,6 +53,13 @@ function Row({ children }: { children: React.ReactNode }) {
 function ClientDesk({ d }: { d: any }) {
   const c = d.customer;
   const [ticket, setTicket] = useState<null | { onsite: boolean; subject: string }>(null);
+  const [view, setView] = useState("all");
+  const show = (k: string) => view === "all" || view === k;
+  const svcTabs: [string, string, number][] = [
+    ["all", "All services", -1], ["hosting", "Email & hosting", d.hosting.length], ["voip", "VoIP", d.voip.length],
+    ["starlink", "Starlink", d.starlink.length], ["servers", "Servers", d.servers.length], ["storage", "Storage", d.storage.length],
+    ["licences", "Microsoft 365 & licences", d.licenses.length + d.subscriptions.length], ["equipment", "Equipment", d.assets.length], ["tickets", "Tickets", d.tickets.length],
+  ];
   const counts = [
     ["Hosting & email", d.hosting.length], ["VoIP", d.voip.length], ["Starlink", d.starlink.length], ["Servers", d.servers.length],
     ["Storage", d.storage.length], ["Licences", d.licenses.length], ["Equipment", d.assets.length], ["Open tickets", d.tickets.filter((t: any) => !["resolved", "closed"].includes(t.status)).length],
@@ -81,9 +92,15 @@ function ClientDesk({ d }: { d: any }) {
         )}
       </div>
 
-      {d.hosting.map((h: any) => <HostingCard key={h.id} h={h} />)}
+      <div className="flex flex-wrap gap-1.5 border bg-card p-1.5" role="tablist">
+        {svcTabs.filter(([, , n]) => n !== 0).map(([k, l, n]) => (
+          <Button key={k} size="sm" role="tab" aria-selected={view === k} variant={view === k ? "default" : "ghost"} onClick={() => setView(k)}>{l}{n > 0 ? ` (${n})` : ""}</Button>
+        ))}
+      </div>
 
-      {d.voip.length > 0 && (
+      {show("hosting") && d.hosting.map((h: any) => <HostingCard key={h.id} h={h} />)}
+
+      {show("voip") && d.voip.length > 0 && (
         <DetailCard title="VoIP lines" padded={false}>
           {d.voip.map((v: any) => (
             <Row key={v.id}>
@@ -94,7 +111,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      {d.starlink.length > 0 && (
+      {show("starlink") && d.starlink.length > 0 && (
         <DetailCard title="Starlink" padded={false}>
           {d.starlink.map((s: any) => (
             <Row key={s.id}>
@@ -105,7 +122,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      {d.servers.length > 0 && (
+      {show("servers") && d.servers.length > 0 && (
         <DetailCard title="Servers" padded={false}>
           {d.servers.map((s: any) => (
             <Row key={s.id}>
@@ -116,7 +133,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      {d.storage.length > 0 && (
+      {show("storage") && d.storage.length > 0 && (
         <DetailCard title="Cloud storage" padded={false}>
           {d.storage.map((s: any) => (
             <Row key={s.id}>
@@ -127,7 +144,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      {(d.licenses.length > 0 || d.subscriptions.length > 0) && (
+      {show("licences") && (d.licenses.length > 0 || d.subscriptions.length > 0) && (
         <DetailCard title="Licences & subscriptions (e.g. Microsoft 365)" padded={false}>
           {d.licenses.map((l: any) => (
             <Row key={l.id}><span className="flex items-center gap-2"><Package className="h-4 w-4" /><span className="font-medium">{l.product}</span><span className="text-xs text-muted-foreground">{l.vendor ?? ""} · {l.assigned_seats ?? 0}/{l.seats ?? 0} seats · expires {shortDate(l.expiry_date)}</span></span><span className="flex gap-2"><StatusBadge tone={toneForStatus(l.status)}>{l.status}</StatusBadge><SeatEditor l={l} /></span></Row>
@@ -138,7 +155,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      {d.assets.length > 0 && (
+      {show("equipment") && d.assets.length > 0 && (
         <DetailCard title="On-site equipment (routers, CCTV, switches…)" padded={false}>
           {d.assets.map((a: any) => (
             <Row key={a.id}>
@@ -149,7 +166,7 @@ function ClientDesk({ d }: { d: any }) {
         </DetailCard>
       )}
 
-      <DetailCard title="Recent tickets" padded={false}>
+      {show("tickets") && <DetailCard title="Recent tickets" padded={false}>
         {d.tickets.length === 0 && <p className="p-3 text-sm text-muted-foreground">No tickets for this client.</p>}
         {d.tickets.map((t: any) => (
           <Row key={t.id}>
@@ -157,7 +174,7 @@ function ClientDesk({ d }: { d: any }) {
             <span className="flex gap-2"><StatusBadge tone={toneForStatus(t.priority)}>{t.priority}</StatusBadge><TicketStatus t={t} /></span>
           </Row>
         ))}
-      </DetailCard>
+      </DetailCard>}
 
       {ticket && <TicketDialog customerId={c.id} init={ticket} onClose={() => setTicket(null)} />}
     </div>

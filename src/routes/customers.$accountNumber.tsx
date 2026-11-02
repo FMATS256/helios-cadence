@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ClientServiceDesk } from "@/components/techops/support-desk";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TITLES } from "@/lib/titles";
@@ -181,7 +182,7 @@ function tabList(show: Record<string, boolean>) {
     packages: "Packages", subscriptions: "Subscriptions", transactions: "Transactions",
     invoices: "Invoices", payments: "Payments", quotes: "Quotes", assets: "Assets",
     tickets: "Tickets", renewals: "Renewals", contacts: "Contacts",
-    credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes", access: "Portal & Support",
+    credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes", access: "Portal & Support", desk: "Service desk",
   };
   return Object.keys(labels)
     .filter((k) => show[k])
@@ -642,7 +643,7 @@ function Customer360() {
             quotes: quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
             renewals: renewalsAll.length > 0, contacts: (contacts.length + branches.length) > 0,
             credentials: credentials.length > 0, comms: communications.length > 0,
-            timeline: timeline.length > 0, notes: true, access: true,
+            timeline: timeline.length > 0, notes: true, access: true, desk: true,
           }).map((t) => (
             <TabsTrigger key={t.value} value={t.value} className={TAB_STYLES[t.value] ?? TAB_STYLES.overview}>
               {t.label}
@@ -653,6 +654,7 @@ function Customer360() {
         {/* Reserve the current viewing depth so switching to a shorter tab
             cannot shrink the page and yank the tab strip out of place. */}
         <div ref={tabBodyRef}>
+        <TabsContent value="desk" className="mt-4"><ClientServiceDesk customerId={customer.id} /></TabsContent>
         <TabsContent value="access" className="mt-4 space-y-6">
           <AccountAccessPanel customerId={customer.id} />
           <div className="border-t border-border pt-4 flex flex-wrap gap-2">
