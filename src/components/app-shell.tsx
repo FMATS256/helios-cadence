@@ -26,7 +26,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
 import { can } from "@/lib/rbac";
-import { canOpenPage } from "@/lib/department-access";
+import { canOpenPage, isNocWorkstation } from "@/lib/department-access";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -229,6 +229,7 @@ function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) =>
 function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isMaster, roles } = useRoles();
+  const noc = isNocWorkstation(roles);
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
   return (
@@ -242,14 +243,20 @@ function AppSidebar() {
           />
           <div className="group-data-[collapsible=icon]:hidden min-w-0">
             <div className="font-display text-sm font-bold text-sidebar-foreground leading-none truncate">IMT Solutions</div>
-            <div className="text-[10px] tracking-[2px] text-sidebar-foreground/60 mt-1">OPERATIONS PLATFORM</div>
+            <div className="text-[10px] tracking-[2px] text-sidebar-foreground/60 mt-1">{noc ? "ENGINEER WORKSTATION" : "OPERATIONS PLATFORM"}</div>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="px-1">
-        <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} roles={roles} />
-        <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+        {noc ? (
+          <NavSection label="Technical Operations" nodes={nocNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+        ) : (
+          <>
+            <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+            <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
