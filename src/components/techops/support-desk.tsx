@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, Satellite, Server, HardDrive, Globe, Package, KeyRound, LifeBuoy, Truck, Activity, ExternalLink, Loader2, Copy } from "lucide-react";
 import { deskClient, deskMailboxes, deskMailboxAction, deskEmailHealth, deskOpenTicket } from "@/lib/support-desk.functions";
+import { DnsEditor } from "@/components/techops/dns-editor";
 import { splitByPackage } from "@/lib/package-billing";
 import { hostingSsoLink, hostingLifecycleAction, storageLifecycleAction } from "@/lib/hosting.functions";
 
@@ -187,6 +188,7 @@ function ClientDesk({ d }: { d: any }) {
 function HostingCard({ h }: { h: any }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [dns, setDns] = useState(false);
   const [secret, setSecret] = useState<{ email: string; password: string } | null>(null);
   const [newBox, setNewBox] = useState({ user: "", quota: "1024" });
   const fnList = useServerFn(deskMailboxes);
@@ -215,6 +217,7 @@ function HostingCard({ h }: { h: any }) {
           <StatusBadge tone={toneForStatus(h.status)}>{h.status}</StatusBadge>
           <Button size="sm" variant="outline" onClick={() => health.mutate()} disabled={health.isPending}>{health.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Activity className="h-4 w-4 mr-1" />}Is email working?</Button>
           <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}><Mail className="h-4 w-4 mr-1" />Mailboxes</Button>
+          {connected && <Button size="sm" variant="outline" onClick={() => setDns((o) => !o)}><Globe className="h-4 w-4 mr-1" />DNS records</Button>}
           {connected && <Button size="sm" variant="outline" onClick={async () => { try { const r = await fnSso({ data: { id: h.id } }); window.open(r.url, "_blank", "noopener"); } catch (e: any) { toast.error(e.message); } }}><ExternalLink className="h-4 w-4 mr-1" />cPanel</Button>}
           {h.status === "suspended" && <Button size="sm" onClick={async () => { try { await fnLife({ data: { id: h.id, action: "unsuspend" } }); toast.success("Restored"); } catch (e: any) { toast.error(e.message); } }}>Unsuspend</Button>}
         </span>
@@ -227,6 +230,7 @@ function HostingCard({ h }: { h: any }) {
           <Check ok={health.data.webmail.ok} label="Webmail" detail={health.data.webmail.ok ? `reachable in ${health.data.webmail.ms} ms` : "not reachable"} />
         </div>
       )}
+      {dns && connected && <DnsEditor hostingId={h.id} domain={h.domain} />}
       {open && (
         <div className="p-3 space-y-2">
           {!connected && <p className="text-sm text-muted-foreground">Mailbox tools need this account linked to a WHM server (set up under Web Hosting).</p>}

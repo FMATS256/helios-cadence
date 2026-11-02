@@ -80,8 +80,7 @@ export const saveDnsRecord = createServerFn({ method: "POST" })
     }
     const { recordServiceAction } = await import("./hosting.server");
     await recordServiceAction(db, {
-      service_type: "hosting", service_id: row.id, customer_id: row.customer_id,
-      action: "dns_change", performed_by: context.userId, notes: summary,
-    } as any).catch(() => {});
+      service_type: "web_hosting", row, action: "dns_change", title: summary, actor_id: context.userId,
+    }).catch(() => {});
     return { ok: true, summary };
   });
