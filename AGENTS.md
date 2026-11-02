@@ -10,7 +10,7 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
+- Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so receipts update account and ledger balances.
 - Inbox outbound mail uses only the IMT gateway, saving message/quotation snapshots first; inbound HTML previews stay sanitized and out of sent bodies.
 - Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
 - Email HTML renders sandboxed/sanitized; attachments require visible message ownership and are copied into retained storage from gateway content or short-lived HTTPS links, never another mail provider. Prepare blobs before clicks; preview only safe image/PDF/text.
