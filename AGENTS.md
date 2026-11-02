@@ -34,3 +34,4 @@
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
+- Customer 360 Service desk engineer actions record their success/failure in service_ops_events (insert limited to tech/ops staff as themselves) and show a per-client activity log, so every live change is attributable.
