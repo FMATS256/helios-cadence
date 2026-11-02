@@ -35,3 +35,4 @@
 - Test mail goes only to the caller, customer mail to recorded contacts; exports/prints/searches use safe-output helpers
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
+- New client portal logins auto-provision their pending hosting accounts on the default WHM server and a mailbox only when the client's email matches the hosting domain; generated passwords go only to the Credential Vault and failures are logged, never blocking onboarding.
