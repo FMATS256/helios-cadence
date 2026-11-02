@@ -26,7 +26,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
 import { can } from "@/lib/rbac";
-import { canOpenPage } from "@/lib/department-access";
+import { canOpenPage, isNocWorkstation } from "@/lib/department-access";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -92,6 +92,47 @@ const siteNav: NavNode[] = [
       { title: "Automation", url: "/automation", icon: Zap },
       { title: "Credential Vault", url: "/techops/vault", icon: KeyRound },
       { title: "Notifications", url: "/notifications", icon: Bell },
+    ],
+  },
+];
+
+// Engineer workstation menu — shown only to NOC/technical accounts.
+const nocNav: NavNode[] = [
+  { title: "Command Centre", url: "/", icon: LayoutDashboard },
+  { title: "NOC Command", url: "/noc", icon: ShieldCheck },
+  { title: "Customer 360", url: "/customers", icon: Users },
+  {
+    title: "Service Fleet", url: "/cloud-ops", icon: Server,
+    children: [
+      { title: "Starlink Fleet", url: "/starlink", icon: Satellite },
+      { title: "Cloud & VPS Ops", url: "/cloud-ops", icon: Cloud },
+      { title: "Web & Email Hosting", url: "/web-hosting", icon: Globe },
+      { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
+      { title: "VoIP & SIP", url: "/voip", icon: PhoneCall },
+      { title: "Managed Cloud", url: "/managed-cloud", icon: Cloud },
+    ],
+  },
+  {
+    title: "Tickets & Field Ops", url: "/tickets", icon: LifeBuoy,
+    children: [
+      { title: "Tickets", url: "/tickets", icon: LifeBuoy },
+      { title: "Field TechOps", url: "/techops/dashboard", icon: Wrench },
+    ],
+  },
+  {
+    title: "Tools & Vault", url: "/techops/vault", icon: KeyRound,
+    children: [
+      { title: "Credential Vault", url: "/techops/vault", icon: KeyRound },
+      { title: "Client Password Reset", url: "/reset-password", icon: Shield },
+      { title: "Notifications", url: "/notifications", icon: Bell },
+    ],
+  },
+  {
+    title: "Documentation", url: "/knowledge", icon: BookOpen,
+    children: [
+      { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
+      { title: "Hardware Inventory", url: "/inventory", icon: Warehouse },
+      { title: "Email Inbox", url: "/inbox", icon: Inbox },
     ],
   },
 ];
@@ -188,6 +229,7 @@ function NavParent({ node, isActive }: { node: NavNode; isActive: (u: string) =>
 function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isMaster, roles } = useRoles();
+  const noc = isNocWorkstation(roles);
   const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
 
   return (
@@ -201,14 +243,20 @@ function AppSidebar() {
           />
           <div className="group-data-[collapsible=icon]:hidden min-w-0">
             <div className="font-display text-sm font-bold text-sidebar-foreground leading-none truncate">IMT Solutions</div>
-            <div className="text-[10px] tracking-[2px] text-sidebar-foreground/60 mt-1">OPERATIONS PLATFORM</div>
+            <div className="text-[10px] tracking-[2px] text-sidebar-foreground/60 mt-1">{noc ? "ENGINEER WORKSTATION" : "OPERATIONS PLATFORM"}</div>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="px-1">
-        <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} roles={roles} />
-        <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+        {noc ? (
+          <NavSection label="Technical Operations" nodes={nocNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+        ) : (
+          <>
+            <NavSection label="Site Navigation" nodes={siteNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+            <NavSection label="Config Navigation" nodes={configNav} isActive={isActive} isMaster={isMaster} roles={roles} />
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border group-data-[collapsible=icon]:hidden">

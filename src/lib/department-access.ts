@@ -83,6 +83,12 @@ function matchRule(pathname: string): Rule | null {
   return best;
 }
 
+/** True only for engineer accounts: technical roles with no admin, finance or sales role. */
+export function isNocWorkstation(roles: readonly string[]): boolean {
+  const deps = departmentsOf(roles);
+  return deps.includes("tech") && !deps.some((d) => d === "admin" || d === "finance" || d === "sales") && !roles.includes("master_admin");
+}
+
 /** Whether a staff member with these roles may open the page. Unlisted pages stay open to staff. */
 export function canOpenPage(pathname: string, roles: readonly string[]): boolean {
   if (roles.includes("master_admin")) return true;
