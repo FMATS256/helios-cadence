@@ -10,8 +10,7 @@
 - Website account opening uses the existing IMT HMAC connection and a service-only atomic database function with durable application IDs; manager selection and contact creation commit together, so retries cannot duplicate accounts or leave partial onboarding.
 - Email and original account-opening API addresses share one server handler; a customer-insert trigger saves the assigned manager's in-app alert atomically for every creation path without duplicate alerts on application replays.
 - Staff creation, lead conversion and website opening await one shared welcome sender with an atomic customer claim; the existing IMT inbox transport persists personalized signed messages before sending, and failed/ambiguous attempts are never blindly resent.
-- Quotation previews and PDFs share one saved-value document model; calculations unchanged.
-
+- Quotation previews and PDFs share one saved-value document model.
 - Direct Finance payment recording must require a destination cash account and post both its cash movement and balanced journal entry, so recorded receipts always update account and ledger balances.
 - Inbox outbound mail uses only the IMT website gateway and saves its message and quotation snapshot before delivery, so failures never cause unrecorded or fallback sends.
 - Base44 webhook takes client ownership from the protected system setting, never incoming identifiers, so tickets can't be routed to another client.
@@ -32,7 +31,7 @@
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
 - Firewall: Vultr-only, staff-only, logged; no public sensitive ports. Provider orders and server rebuild/restore/app-install need atomic ops-manager/master-admin approval (no self-approval unless master); power/snapshots are immediate.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
-- Test mail goes only to the caller, customer mail to recorded contacts; exports/prints/searches use safe-output helpers
+- Test mail only to caller; customer mail to recorded contacts; outputs use safe-output helpers.
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
-- New client portal logins auto-provision their pending hosting accounts on the default WHM server and a mailbox only when the client's email matches the hosting domain; generated passwords go only to the Credential Vault and failures are logged, never blocking onboarding.
+- New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
