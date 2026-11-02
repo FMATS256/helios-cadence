@@ -27,6 +27,7 @@ import {
   provisionHostingAccount, hostingLifecycleAction, hostingSsoLink, syncHosting,
   listWhmServers, saveWhmServer, testWhmServer,
 } from "@/lib/hosting.functions";
+import { HostingMigrationWorkbench } from "@/components/hosting-migration-workbench";
 
 export const Route = createFileRoute("/web-hosting")({
   head: () => ({
@@ -296,6 +297,8 @@ function WebHostingPage() {
           empty={<EmptyState title="No hosting accounts yet" description="Add a cPanel account to start tracking hosting revenue and renewals." icon={Globe} />}
         />
       </DetailCard>
+
+      <HostingMigrationWorkbench customers={customers} onChanged={refresh} />
 
       <ChangePackageDialog
         target={pkgTarget}
