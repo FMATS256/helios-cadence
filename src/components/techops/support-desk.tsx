@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, Satellite, Server, HardDrive, Globe, Package, KeyRound, LifeBuoy, Truck, Activity, ExternalLink, Loader2, Copy } from "lucide-react";
 import { deskClient, deskMailboxes, deskMailboxAction, deskEmailHealth, deskOpenTicket } from "@/lib/support-desk.functions";
+import { splitByPackage } from "@/lib/package-billing";
 import { hostingSsoLink, hostingLifecycleAction, storageLifecycleAction } from "@/lib/hosting.functions";
 
 const listeners = new Set<(id: string) => void>();
@@ -423,11 +424,19 @@ function BillingPanel({ customerId, full }: { customerId: string; full: boolean 
         supabase.from("payments").select("id,amount,currency,method,reference,receipt_number,paid_at,status,service_context").eq("customer_id", customerId).order("paid_at", { ascending: false }).limit(full ? 50 : 5),
         supabase.from("profiles").select("id,email").eq("customer_id", customerId),
       ]);
-      return { inv: inv.data ?? [], pay: pay.data ?? [], portal: prof.data ?? [] };
+      const ids = (inv.data ?? []).map((i: any) => i.id);
+      const [lines, allocs, cat] = ids.length ? await Promise.all([
+        supabase.from("invoice_line_items").select("invoice_id,description,item_code,line_total").in("invoice_id", ids),
+        supabase.from("payment_allocations").select("invoice_id,amount,payments(paid_at)").in("invoice_id", ids),
+        supabase.from("service_catalog").select("code,name"),
+      ]) : [{ data: [] }, { data: [] }, { data: [] }] as any[];
+      const names = Object.fromEntries(((cat.data ?? []) as any[]).map((c) => [c.code, c.name]));
+      const packages = splitByPackage(inv.data as any ?? [], (lines.data ?? []) as any, ((allocs.data ?? []) as any[]).map((a) => ({ invoice_id: a.invoice_id, amount: Number(a.amount), paid_at: a.payments?.paid_at ?? null })), names);
+      return { inv: inv.data ?? [], pay: pay.data ?? [], portal: prof.data ?? [], packages };
     },
   });
   if (!q.data) return null;
-  const { inv, pay, portal } = q.data;
+  const { inv, pay, portal, packages } = q.data;
   const owed = inv.reduce((a: number, i: any) => a + Math.max(0, Number(i.total) - Number(i.amount_paid)), 0);
   const overdue = inv.filter((i: any) => Number(i.total) > Number(i.amount_paid) && i.due_date && i.due_date < new Date().toISOString().slice(0, 10)).length;
   const last = pay[0];
@@ -440,6 +449,10 @@ function BillingPanel({ customerId, full }: { customerId: string; full: boolean 
         <div><p className="text-[11px] text-muted-foreground">Client portal</p><p className="text-sm font-semibold">{portal.length ? `${portal.length} login(s) active` : "No portal login"}</p></div>
       </div>
       {full && <>
+        <DetailCard title="By package" padded={false}>
+          {packages.length === 0 && <p className="p-3 text-sm text-muted-foreground">No invoiced packages yet.</p>}
+          {packages.map((k) => <Row key={k.key}><span className="text-sm"><span className="font-medium">{k.name}</span> <span className="text-xs text-muted-foreground">{k.invoices} invoice(s) · billed {k.currency} {k.billed.toFixed(2)} · paid {k.paid.toFixed(2)} · last paid {k.lastPaidAt ? shortDate(k.lastPaidAt) : "—"}</span></span><StatusBadge tone={k.outstanding > 0 ? "warning" as any : "success" as any}>{k.outstanding > 0 ? `${k.currency} ${k.outstanding.toFixed(2)} due` : "paid"}</StatusBadge></Row>)}
+        </DetailCard>
         <DetailCard title="Invoices" padded={false}>
           {inv.length === 0 && <p className="p-3 text-sm text-muted-foreground">No invoices.</p>}
           {inv.map((i: any) => <Row key={i.id}><span className="text-sm"><span className="font-medium">{i.invoice_number}</span> <span className="text-xs text-muted-foreground">issued {shortDate(i.issue_date)} · due {shortDate(i.due_date)} · {i.currency} {Number(i.amount_paid).toFixed(2)} / {Number(i.total).toFixed(2)} paid</span></span><StatusBadge tone={toneForStatus(i.status)}>{i.status}</StatusBadge></Row>)}
