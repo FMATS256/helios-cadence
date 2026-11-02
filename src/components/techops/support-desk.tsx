@@ -102,6 +102,8 @@ function ClientDesk({ d }: { d: any }) {
 
       <BillingPanel customerId={c.id} full={view === "billing"} />
 
+      {view !== "billing" && view !== "tickets" && <ActivityLog customerId={c.id} filter={view} />}
+
       {show("hosting") && d.hosting.map((h: any) => <HostingCard key={h.id} h={h} />)}
 
       {show("voip") && d.voip.length > 0 && (
@@ -120,7 +122,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.starlink.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Satellite className="h-4 w-4" /><span className="font-medium">{s.kit_serial ?? s.starlink_account_number}</span><span className="text-xs text-muted-foreground">{s.plan_type ?? "—"} · {s.service_address ?? ""} · checked {shortDate(s.last_checked_at)}</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Act label="Check status" fn={checkStarlinkAccount} data={{ id: s.id }} /></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.status)}>{s.status}</StatusBadge><Act label="Check status" fn={checkStarlinkAccount} data={{ id: s.id }} service="starlink" entityId={s.id} customerId={c.id} /></span>
             </Row>
           ))}
         </DetailCard>
@@ -131,7 +133,7 @@ function ClientDesk({ d }: { d: any }) {
           {d.servers.map((s: any) => (
             <Row key={s.id}>
               <span className="flex items-center gap-2"><Server className="h-4 w-4" /><span className="font-medium">{s.name}</span><span className="text-xs text-muted-foreground">{s.provider} · {(s.public_ips ?? []).join?.(", ") || "no IP"} · {s.cpu_cores ?? "?"} vCPU / {s.ram_mb ? Math.round(s.ram_mb / 1024) : "?"} GB</span></span>
-              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} />}<ConsoleButton serverId={s.id} /></span>
+              <span className="flex gap-2"><StatusBadge tone={toneForStatus(s.power_state ?? s.status)}>{s.power_state ?? s.status}</StatusBadge><Act label="Refresh" fn={refreshProviderServer} data={{ server_id: s.id }} service="server" entityId={s.id} customerId={c.id} /><Act label="Reboot" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "reboot" }} service="server" entityId={s.id} customerId={c.id} />{s.power_state === "stopped" || s.power_state === "off" ? <Act label="Power on" fn={powerProviderServer} data={{ server_id: s.id, action: "on" }} service="server" entityId={s.id} customerId={c.id} /> : <Act label="Power off" confirm fn={powerProviderServer} data={{ server_id: s.id, action: "off" }} service="server" entityId={s.id} customerId={c.id} />}<ConsoleButton serverId={s.id} /></span>
             </Row>
           ))}
         </DetailCard>
