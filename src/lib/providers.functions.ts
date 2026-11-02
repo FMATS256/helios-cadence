@@ -562,7 +562,7 @@ export const getServerConsoleUrl = createServerFn({ method: "POST" })
   .inputValidator((d: { server_id: string }) => d)
   .handler(async ({ data, context }) => {
     const { assertRole } = await import("./hosting.server");
-    await assertRole(context as any, ["operations_manager", "cloud_engineer", "technical_support", "noc_engineer"]);
+    await assertRole(context as any, ["operations_manager", "cloud_engineer", "technical_support"]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: srv } = await supabaseAdmin.from("cloud_servers").select("id,provider,provider_server_id").eq("id", data.server_id).single();
     if (!srv?.provider_server_id) throw new Error("No provider ID on this server record");
