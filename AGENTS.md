@@ -29,9 +29,8 @@
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
 - Firewall: Vultr-only, staff-only, logged; no public sensitive ports. Provider orders and server rebuild/restore/app-install need atomic ops-manager/master-admin approval (no self-approval unless master); power/snapshots are immediate.
-- Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET; cron calls public.invoke_internal_hook to block outside triggering.
-- Test mail only to caller; customer mail to recorded contacts; outputs use safe-output helpers.
+- Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET via public.invoke_internal_hook; test mail goes only to the caller, customer mail to recorded contacts.
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
-- Customer 360 Service desk engineer actions record their success/failure in service_ops_events (insert limited to tech/ops staff as themselves) and show a per-client activity log, so every live change is attributable.
+- Customer 360 desk actions log outcomes to service_ops_events (tech/ops staff insert as themselves) so live changes are attributable.
