@@ -96,6 +96,47 @@ const siteNav: NavNode[] = [
   },
 ];
 
+// Engineer workstation menu — shown only to NOC/technical accounts.
+const nocNav: NavNode[] = [
+  { title: "Command Centre", url: "/", icon: LayoutDashboard },
+  { title: "NOC Command", url: "/noc", icon: ShieldCheck },
+  { title: "Customer 360", url: "/customers", icon: Users },
+  {
+    title: "Service Fleet", url: "/cloud-ops", icon: Server,
+    children: [
+      { title: "Starlink Fleet", url: "/starlink", icon: Satellite },
+      { title: "Cloud & VPS Ops", url: "/cloud-ops", icon: Cloud },
+      { title: "Web & Email Hosting", url: "/web-hosting", icon: Globe },
+      { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
+      { title: "VoIP & SIP", url: "/voip", icon: PhoneCall },
+      { title: "Managed Cloud", url: "/managed-cloud", icon: Cloud },
+    ],
+  },
+  {
+    title: "Tickets & Field Ops", url: "/tickets", icon: LifeBuoy,
+    children: [
+      { title: "Tickets", url: "/tickets", icon: LifeBuoy },
+      { title: "Field TechOps", url: "/techops/dashboard", icon: Wrench },
+    ],
+  },
+  {
+    title: "Tools & Vault", url: "/techops/vault", icon: KeyRound,
+    children: [
+      { title: "Credential Vault", url: "/techops/vault", icon: KeyRound },
+      { title: "Client Password Reset", url: "/reset-password", icon: Shield },
+      { title: "Notifications", url: "/notifications", icon: Bell },
+    ],
+  },
+  {
+    title: "Documentation", url: "/knowledge", icon: BookOpen,
+    children: [
+      { title: "Knowledge Base", url: "/knowledge", icon: BookOpen },
+      { title: "Hardware Inventory", url: "/inventory", icon: Warehouse },
+      { title: "Email Inbox", url: "/inbox", icon: Inbox },
+    ],
+  },
+];
+
 const configNav: NavNode[] = [
   { title: "Config", url: "/settings", icon: Settings },
   { title: "Email Studio", url: "/email-studio", icon: Mail, masterOnly: true },
