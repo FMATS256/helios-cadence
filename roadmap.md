@@ -4,6 +4,7 @@
 - Project moved to a new workspace: integrations from the previous workspace must be relinked one by one. Firecrawl is done; other previously used services still need connecting as the user names them.
 
 ## Done
+- FortiGate month-to-month rentals added to the service catalogue under a new firewall category: small unit FW-FG-SMALL $185/month and large unit FW-FG-LARGE $270/month, each all-inclusive of unit rental, licence, subscription and support; assigning either starts automatic monthly billing. Four pricing tests pass and the rows were read back signed-in in the catalogue with the firewall filter applied.
 - Firecrawl relinked in the new workspace (gateway-backed, Lovable-managed credentials); credential probe returned a live result.
 - Desktop client portal matches reference structure with IMT branding: inline gradient header, grey heading bands, document rows/action footers, photo welcome and four-column footer. Desktop 1280/1024 and mobile sign-in checked without overflow; hydration error corrected; ten portal tests passed.
 - Added My Statements for every linked client account, current and monthly 21st cutoffs, private per-currency PDF downloads independent of email; seven tests passed, real M10466 PDF downloaded through signed-in portal and visually inspected, desktop/phone checked without errors or overflow.
