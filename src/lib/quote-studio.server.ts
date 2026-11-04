@@ -248,13 +248,18 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     };
   });
 
+  // line_total is a generated column that already includes VAT, so the engine's
+  // VAT analysis is derived from quantity, unit price and rate instead — the
+  // same way the saved quotation document adds up.
   const subtotal = items.length
-    ? items.reduce((s, it) => s + (it.total ?? it.quantity * it.unitPrice), 0)
+    ? round2(items.reduce((s, it) => s + round2(it.quantity * it.unitPrice), 0))
     : Number(quote.amount ?? 0);
-  const tax = (lines ?? []).reduce(
-    (s, l) => s + (Number(l.line_total ?? 0) * Number(l.tax_rate ?? 0)) / 100,
-    0,
-  );
+  const tax = items.length
+    ? round2(items.reduce(
+        (s, it) => s + round2(round2(it.quantity * it.unitPrice) * it.taxRate / 100), 0,
+      ))
+    : 0;
+
 
   const c = quote.customers ?? {};
   // Walk-in clients have no customer record — their details live on the quote.
