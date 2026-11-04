@@ -14,6 +14,8 @@
  *   QUOTE_STUDIO_ORG_ID   optional tenant/organisation id
  */
 
+import { round2 } from "./money.shared";
+
 export type StudioResult<T = any> =
   | { configured: false; ok: false; error: string }
   | { configured: true; ok: true; data: T }
@@ -228,33 +230,42 @@ const str = (v: any, fallback = ""): string => {
 
 /** Build the engine payload from a quote row + its line items. */
 export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep | null): StudioDocumentInput {
-  const items: StudioItem[] = (lines ?? []).map((l, i) => {
+  // line_total is a generated column that already includes VAT, so the VAT
+  // analysis is derived from quantity, unit price and rate instead.
+  const computed = (lines ?? []).map((l, i) => {
     const quantity = Number(l.quantity ?? 1);
     const unitPrice = Number(l.unit_price ?? 0);
     const taxRate = Number(l.tax_rate ?? 0);
-    return {
-      id: String(l.id ?? i + 1),
-      name: str(l.description, "Item"),
-      code: l.item_code ?? undefined,
-      sku: l.item_code ?? undefined,
-      description: str(l.description, "Item"),
-      quantity,
-      qty: quantity,
-      unitPrice,
-      price: unitPrice,
-      vat: taxRate,
-      taxRate,
-      total: Number(l.line_total ?? quantity * unitPrice),
-    };
+    const net = round2(quantity * unitPrice);
+    const vat = round2(net * taxRate / 100);
+    return { l, i, quantity, taxRate, net, vat, gross: round2(net + vat) };
   });
 
-  const subtotal = items.length
-    ? items.reduce((s, it) => s + (it.total ?? it.quantity * it.unitPrice), 0)
+  // The engine reads every price as VAT-inclusive, so its item rows carry the
+  // gross amount; that keeps its Sub Total / Tax Total / Quotation Total equal
+  // to the saved quotation document.
+  const items: StudioItem[] = computed.map(({ l, i, quantity, taxRate, gross }) => ({
+    id: String(l.id ?? i + 1),
+    name: str(l.description, "Item"),
+    code: l.item_code ?? undefined,
+    sku: l.item_code ?? undefined,
+    description: str(l.description, "Item"),
+    quantity,
+    qty: quantity,
+    unitPrice: gross,
+    price: gross,
+    vat: taxRate,
+    taxRate,
+    total: gross,
+  }));
+
+  const subtotal = computed.length
+    ? round2(computed.reduce((s, c) => s + c.net, 0))
     : Number(quote.amount ?? 0);
-  const tax = (lines ?? []).reduce(
-    (s, l) => s + (Number(l.line_total ?? 0) * Number(l.tax_rate ?? 0)) / 100,
-    0,
-  );
+  const tax = computed.length ? round2(computed.reduce((s, c) => s + c.vat, 0)) : 0;
+
+
+
 
   const c = quote.customers ?? {};
   // Walk-in clients have no customer record — their details live on the quote.
