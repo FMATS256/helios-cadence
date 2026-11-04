@@ -6,6 +6,8 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { round2 } from "./money.shared";
+
 
 const QUOTE_ROLES = ["operations_manager", "sales", "finance", "account_manager"];
 
@@ -638,7 +640,6 @@ export const saveQuote = createServerFn({ method: "POST" })
     }
 
 
-    const { round2 } = await import("./quotation-document.shared");
     const subtotal = round2(lines.reduce((s, l) => s + l.line_total, 0));
     const tax = round2(lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0));
     const discount = Number(data.discount ?? 0) || 0;

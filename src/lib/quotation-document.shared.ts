@@ -12,12 +12,8 @@ export type QuotationDocument = {
   subtotal: number; tax: number; discount: number; total: number;
 };
 
-/**
- * Half-up rounding to cents. Plain toFixed() drifts on exact .005 values
- * (361.515 becomes "361.51"), which would leave a quotation that does not add up.
- */
-export const round2 = (value: number) =>
-  Math.round(value * 100 + (value >= 0 ? 1e-9 : -1e-9)) / 100;
+export { round2 } from "./money.shared";
+
 
 /** VAT-exclusive value of one line: quantity x unit price. */
 const netOf = (quantity: number, price: number) => round2(quantity * price);
