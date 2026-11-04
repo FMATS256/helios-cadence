@@ -230,37 +230,40 @@ const str = (v: any, fallback = ""): string => {
 
 /** Build the engine payload from a quote row + its line items. */
 export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep | null): StudioDocumentInput {
-  const items: StudioItem[] = (lines ?? []).map((l, i) => {
+  // line_total is a generated column that already includes VAT, so the VAT
+  // analysis is derived from quantity, unit price and rate instead.
+  const computed = (lines ?? []).map((l, i) => {
     const quantity = Number(l.quantity ?? 1);
     const unitPrice = Number(l.unit_price ?? 0);
     const taxRate = Number(l.tax_rate ?? 0);
-    return {
-      id: String(l.id ?? i + 1),
-      name: str(l.description, "Item"),
-      code: l.item_code ?? undefined,
-      sku: l.item_code ?? undefined,
-      description: str(l.description, "Item"),
-      quantity,
-      qty: quantity,
-      unitPrice,
-      price: unitPrice,
-      vat: taxRate,
-      taxRate,
-      total: Number(l.line_total ?? quantity * unitPrice),
-    };
+    const net = round2(quantity * unitPrice);
+    const vat = round2(net * taxRate / 100);
+    return { l, i, quantity, taxRate, net, vat, gross: round2(net + vat) };
   });
 
-  // line_total is a generated column that already includes VAT, so the engine's
-  // VAT analysis is derived from quantity, unit price and rate instead — the
-  // same way the saved quotation document adds up.
-  const subtotal = items.length
-    ? round2(items.reduce((s, it) => s + round2(it.quantity * it.unitPrice), 0))
+  // The engine reads every price as VAT-inclusive, so its item rows carry the
+  // gross amount; that keeps its Sub Total / Tax Total / Quotation Total equal
+  // to the saved quotation document.
+  const items: StudioItem[] = computed.map(({ l, i, quantity, taxRate, gross }) => ({
+    id: String(l.id ?? i + 1),
+    name: str(l.description, "Item"),
+    code: l.item_code ?? undefined,
+    sku: l.item_code ?? undefined,
+    description: str(l.description, "Item"),
+    quantity,
+    qty: quantity,
+    unitPrice: gross,
+    price: gross,
+    vat: taxRate,
+    taxRate,
+    total: gross,
+  }));
+
+  const subtotal = computed.length
+    ? round2(computed.reduce((s, c) => s + c.net, 0))
     : Number(quote.amount ?? 0);
-  const tax = items.length
-    ? round2(items.reduce(
-        (s, it) => s + round2(round2(it.quantity * it.unitPrice) * Number(it.taxRate ?? 0) / 100), 0,
-      ))
-    : 0;
+  const tax = computed.length ? round2(computed.reduce((s, c) => s + c.vat, 0)) : 0;
+
 
 
 
