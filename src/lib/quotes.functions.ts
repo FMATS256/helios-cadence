@@ -638,10 +638,12 @@ export const saveQuote = createServerFn({ method: "POST" })
     }
 
 
-    const subtotal = lines.reduce((s, l) => s + l.line_total, 0);
-    const tax = lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0);
+    const { round2 } = await import("./quotation-document.shared");
+    const subtotal = round2(lines.reduce((s, l) => s + l.line_total, 0));
+    const tax = round2(lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0));
     const discount = Number(data.discount ?? 0) || 0;
-    const total = Number((subtotal + tax - discount).toFixed(2));
+    const total = round2(subtotal + tax - discount);
+
 
     let quoteNumber = (data.quote_number ?? "").trim() || null;
     if (!data.id && !quoteNumber) {
