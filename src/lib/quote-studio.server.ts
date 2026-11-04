@@ -258,9 +258,10 @@ export function buildDocumentPayload(quote: any, lines: any[], rep?: StudioRep |
     : Number(quote.amount ?? 0);
   const tax = items.length
     ? round2(items.reduce(
-        (s, it) => s + round2(round2(it.quantity * it.unitPrice) * it.taxRate / 100), 0,
+        (s, it) => s + round2(round2(it.quantity * it.unitPrice) * Number(it.taxRate ?? 0) / 100), 0,
       ))
     : 0;
+
 
 
   const c = quote.customers ?? {};

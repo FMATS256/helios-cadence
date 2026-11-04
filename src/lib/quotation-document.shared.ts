@@ -12,7 +12,10 @@ export type QuotationDocument = {
   subtotal: number; tax: number; discount: number; total: number;
 };
 
-export { round2 } from "./money.shared";
+import { round2 } from "./money.shared";
+
+export { round2 };
+
 
 
 /** VAT-exclusive value of one line: quantity x unit price. */
