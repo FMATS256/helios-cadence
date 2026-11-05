@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Open
+- [x] Replaced boxed invoice emails with business correspondence and one signature; two PDF transport tests pass. INV-01027 test accepted by the website gateway for fmats256@gmail.com, with sender copy to Ammara. Recipient inbox receipt remains unconfirmed.
 - Project moved to a new workspace: integrations from the previous workspace must be relinked one by one. Firecrawl is done; other previously used services still need connecting as the user names them.
 
 ## Done

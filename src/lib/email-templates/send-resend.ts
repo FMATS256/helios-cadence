@@ -43,8 +43,9 @@ export interface SendResendEmailOptions {
 }
 
 function serverSupabase() {
-  const url = process.env.SUPABASE_URL!
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('Email customer lookup is not configured')
   return createClient(url, key, { auth: { persistSession: false } })
 }
 
@@ -116,7 +117,7 @@ function bytesToBase64(bytes: Uint8Array | Buffer): string {
 }
 
 export type SendResendEmailResult =
-  | { sent: true }
+  | { sent: true; id?: string }
   | { sent: false; error: string }
 
 export async function sendResendEmail(
@@ -124,11 +125,11 @@ export async function sendResendEmail(
 ): Promise<SendResendEmailResult> {
   const apiKey = process.env.LOVABLE_API_KEY
   const resendKey = process.env.RESEND_API_KEY
-  if (!apiKey) throw new Error('LOVABLE_API_KEY is not configured')
   // Resend is the attachment-capable sender; when its connector is not linked
   // in this workspace, fall back to the IMT website mail gateway (the canonical
   // outbound transport) instead of failing the send.
-  const useImtGateway = !resendKey
+  const useImtGateway = options.templateName === 'invoice' || !resendKey
+  if (!useImtGateway && !apiKey) throw new Error('LOVABLE_API_KEY is not configured')
 
   const template = TEMPLATES[options.templateName]
   if (!template) {
@@ -156,9 +157,13 @@ export async function sendResendEmail(
     templateName: options.templateName,
     sampleDataOverride: templateData,
     supabase,
+    // Invoices must never fall back to a saved legacy boxed HTML design.
+    draft: options.templateName === 'invoice' ? { mode: 'code' } : undefined,
   })
   const { text, subject } = rendered
-  const html = options.signatureHtml ? `${rendered.html}${options.signatureHtml}` : rendered.html
+  const html = options.signatureHtml
+    ? rendered.html.replace(/<\/body>/i, `<!--imt-sig-->${options.signatureHtml}<!--/imt-sig--></body>`)
+    : rendered.html
 
   const fromDomain =
     options.fromDomain ?? process.env.RESEND_FROM_DOMAIN ?? DEFAULT_FROM_DOMAIN
@@ -201,7 +206,7 @@ export async function sendResendEmail(
       })),
     })
     if (!result.ok) return { sent: false, error: result.error }
-    return { sent: true }
+    return { sent: true, id: result.id }
   }
 
   const response = await fetch(GATEWAY_URL, {
