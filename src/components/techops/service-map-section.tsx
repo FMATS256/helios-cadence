@@ -12,7 +12,7 @@ import {
   MapPin, Search, Layers, X, PanelTop, PanelBottom, RefreshCw,
 } from "lucide-react";
 import { getServiceMap, type MapSite } from "@/lib/servicemap.functions";
-import { KIND_COLOR } from "@/components/service-map-view";
+import { KIND_COLOR } from "@/lib/service-map.shared";
 
 const ServiceMapView = lazy(() => import("@/components/service-map-view"));
 
