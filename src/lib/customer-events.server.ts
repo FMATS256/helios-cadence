@@ -2,8 +2,6 @@
 // Every customer-facing mutation records BOTH an audit_log row (who/what/when/
 // old/new/module/ip) and a customer_timeline entry, so the timeline and the
 // audit trail can never drift apart.
-import { getRequest } from "@tanstack/react-start/server";
-
 export type CustomerEvent = {
   customer_id: string;
   account_number: string;
@@ -25,8 +23,11 @@ export type CustomerEvent = {
   actor_email?: string | null;
 };
 
-function requestMeta() {
+async function requestMeta() {
   try {
+    // Dynamic import: a static one pulls @tanstack/react-start/server into the
+    // client graph via routeTree.gen.ts and breaks the build.
+    const { getRequest } = await import("@tanstack/react-start/server");
     const req = getRequest();
     const h = req?.headers;
     return {
