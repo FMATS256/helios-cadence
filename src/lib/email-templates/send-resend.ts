@@ -185,6 +185,25 @@ export async function sendResendEmail(
     }))
   }
 
+  if (useImtGateway) {
+    const { sendInboxEmail } = await import('../inbox.server')
+    const result = await sendInboxEmail({
+      from,
+      to: recipient,
+      subject,
+      html,
+      text,
+      replyTo: options.replyTo,
+      attachments: options.attachments?.map((att) => ({
+        filename: att.filename,
+        content: att.content,
+        contentType: att.contentType,
+      })),
+    })
+    if (!result.ok) return { sent: false, error: result.error }
+    return { sent: true }
+  }
+
   const response = await fetch(GATEWAY_URL, {
     method: 'POST',
     headers: {
