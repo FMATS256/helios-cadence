@@ -72,5 +72,5 @@
 - [ ] Security: remaining email-recipient, export-formula, link-expiry warnings (awaiting user go-ahead)
 - [x] Vultr storage: real instance + bucket + monthly subscription billing (not live-tested, incurs charges)
 
-- [ ] Reconnect Resend for invoice/quote email; verify next invoice send
-- [ ] Connect website API (clarify which)
+- [x] Invoice/quote email uses IMT website mail gateway (Resend declined)
+- [x] Website mail gateway already connected
