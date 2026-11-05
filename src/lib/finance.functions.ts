@@ -521,7 +521,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
       attachments: [attachment],
     });
 
-    if (!res.sent) throw new Error("Invoice email could not be sent — please try again.");
+    if (!res.sent) throw new Error(`Invoice email could not be sent: ${res.error}`);
 
     // Land a copy in the account manager's real IMT inbox so they have the
     // exact invoice email in their own mailbox.
@@ -555,7 +555,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
         module: "billing",
         entity_type: "invoice",
         entity_id: invoice.id,
-        new_value: { to: recipient, from: fromHeader, invoice_url: invoiceUrl, total: Number((invoice as any).total ?? 0) },
+        new_value: { to: recipient, from: fromHeader, invoice_url: invoiceUrl, total: Number((invoice as any).total ?? 0), provider_id: res.id, attachment_filename: attachment.filename, attachment_bytes: pdf.bytes.byteLength },
         major: true,
         actor_id: context.userId,
         actor_email: senderEmail || null,
