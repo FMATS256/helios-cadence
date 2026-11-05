@@ -71,3 +71,6 @@
 - [x] Security: scheduled jobs locked behind secret; cron rescheduled
 - [ ] Security: remaining email-recipient, export-formula, link-expiry warnings (awaiting user go-ahead)
 - [x] Vultr storage: real instance + bucket + monthly subscription billing (not live-tested, incurs charges)
+
+- [ ] Reconnect Resend for invoice/quote email; verify next invoice send
+- [ ] Connect website API (clarify which)
