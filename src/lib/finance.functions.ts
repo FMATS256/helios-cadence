@@ -495,7 +495,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
     };
     const { imtSignature } = await import("./email-signature.shared");
     const signatureHtml = imtSignature({ name: senderName, role: "account_manager", email: senderEmail || "sales@imtsolutions.co.zw" });
-    const fromHeader = `"${senderName} (IMT Solutions)" <${senderEmail}>`;
+    const fromHeader = `"${senderName}" <${senderEmail}>`;
 
     const templateData = {
       companyName: cust?.company_name,
