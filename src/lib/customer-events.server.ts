@@ -61,7 +61,7 @@ export async function recordAudit(
     new_value?: Record<string, any> | null;
   },
 ) {
-  const { ip, ua } = requestMeta();
+  const { ip, ua } = await requestMeta();
   try {
     await admin.from("audit_log").insert({
       actor_id: a.actor_id ?? null,
@@ -86,7 +86,7 @@ export async function recordAudit(
  * roll back the business action that already succeeded.
  */
 export async function recordCustomerEvent(admin: any, e: CustomerEvent) {
-  const { ip, ua } = requestMeta();
+  const { ip, ua } = await requestMeta();
   const results = await Promise.allSettled([
     admin.from("audit_log").insert({
       actor_id: e.actor_id ?? null,
