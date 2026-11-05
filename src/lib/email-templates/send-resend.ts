@@ -125,7 +125,10 @@ export async function sendResendEmail(
   const apiKey = process.env.LOVABLE_API_KEY
   const resendKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error('LOVABLE_API_KEY is not configured')
-  if (!resendKey) throw new Error('RESEND_API_KEY is not configured')
+  // Resend is the attachment-capable sender; when its connector is not linked
+  // in this workspace, fall back to the IMT website mail gateway (the canonical
+  // outbound transport) instead of failing the send.
+  const useImtGateway = !resendKey
 
   const template = TEMPLATES[options.templateName]
   if (!template) {
