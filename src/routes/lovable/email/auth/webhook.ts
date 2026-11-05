@@ -17,8 +17,11 @@ const SITE_URL = `https://${ROOT_DOMAIN}`
 
 // The SDK handler owns verification, dispatch, and retry semantics; this file
 // owns only the email decisions: subjects, templates, and per-type props.
-const handler = createAuthEmailHandler({
-  apiKey: process.env.LOVABLE_API_KEY!,
+function handler(request: Request) {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) return new Response('Auth email service is not configured', { status: 503 });
+  return createAuthEmailHandler({
+  apiKey,
   from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
   senderDomain: SENDER_DOMAIN,
   sendUrl: process.env.LOVABLE_SEND_URL,
@@ -75,7 +78,8 @@ const handler = createAuthEmailHandler({
         React.createElement(ReauthenticationEmail, { token: data.token ?? '' }),
     },
   },
-})
+})(request)
+}
 
 export const Route = createFileRoute("/lovable/email/auth/webhook")({
   server: {
