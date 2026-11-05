@@ -6,12 +6,13 @@ import { createFileRoute } from "@tanstack/react-router";
 // (≈1 hour after the WhatsApp request) has passed. Each pass notifies staff to
 // confirm; after MAX_SUPPLIER_CHECKS passes without a supplier reply the
 // recharge is marked failed and everyone is notified.
-async function runStarlinkTick() {
+async function runStarlinkTick(request: Request) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const {
     SUPPLIER_RECHECK_MINUTES, MAX_SUPPLIER_CHECKS, recordRechargeEvent, notifyStarlinkStaff,
   } = await import("@/lib/starlink-workflow.server");
-  const { recordCustomerEvent } = await import("@/lib/customer-events.server");
+  const { recordCustomerEvent, metaFromRequest } = await import("@/lib/customer-events.server");
+  const meta = metaFromRequest(request);
 
   const now = new Date();
   const { data: due, error } = await (supabaseAdmin.from("starlink_recharges") as any)
@@ -47,7 +48,7 @@ async function runStarlinkTick() {
         event_type: "starlink_recharge_completed", title: "Starlink recharge completed",
         description: `${reference} · supplier confirmed`, module: "starlink",
         entity_type: "starlink_recharge", entity_id: r.id, major: true,
-      });
+      }, meta);
       await notifyStarlinkStaff(supabaseAdmin, "Starlink recharge completed", `${r.account_number} · ${reference}`);
       rechecked++;
       continue;
@@ -70,7 +71,7 @@ async function runStarlinkTick() {
         event_type: "starlink_recharge_failed", title: "Starlink recharge failed",
         description: `${reference} · no supplier confirmation after ${attempts} follow-ups`,
         module: "starlink", entity_type: "starlink_recharge", entity_id: r.id, major: true,
-      });
+      }, meta);
       await notifyStarlinkStaff(
         supabaseAdmin, "Starlink recharge needs attention",
         `${r.account_number} · ${reference} · supplier never confirmed after ${attempts} follow-ups.`,
@@ -103,8 +104,8 @@ async function runStarlinkTick() {
 export const Route = createFileRoute("/api/public/hooks/starlink-tick")({
   server: {
     handlers: {
-      GET: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
-      POST: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick()), { headers: { "content-type": "application/json" } }),
+      GET: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick(request)), { headers: { "content-type": "application/json" } }),
+      POST: async ({ request }) => denyUnlessInternal(request) ?? new Response(JSON.stringify(await runStarlinkTick(request)), { headers: { "content-type": "application/json" } }),
     },
   },
 });

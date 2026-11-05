@@ -464,7 +464,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
     const [itemsR, allocR, profileR] = await Promise.all([
       supabaseAdmin.from("invoice_line_items").select("*").eq("invoice_id", invoice.id).order("position"),
       supabaseAdmin.from("payment_allocations").select("amount,payments:payment_id(status)").eq("invoice_id", invoice.id),
-      supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle(),
+      supabaseAdmin.from("profiles").select("full_name, email, work_email").eq("id", context.userId).maybeSingle(),
     ]);
     if (itemsR.error || allocR.error) throw new Error("Invoice items or payment records could not be loaded");
     const lineRows = rows(itemsR as any) as any[];
@@ -481,7 +481,7 @@ export const emailInvoice = createServerFn({ method: "POST" })
     const { accountManagerContact } = await import("./account-managers.server");
     const am = await accountManagerContact(supabaseAdmin, cust?.account_manager_id).catch(() => null);
     const profile = (profileR as any)?.data ?? null;
-    const senderEmail = (am?.email || profile?.email || (context.claims?.email as string) || "").trim();
+    const senderEmail = (am?.email || (profile as any)?.work_email || profile?.email || (context.claims?.email as string) || "").trim();
     const senderName = am?.name || profile?.full_name || senderEmail.split("@")[0] || "IMT Solutions";
     const invoiceUrl = `${SITE}/invoices/${invoice.id}`;
 

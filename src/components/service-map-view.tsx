@@ -1,15 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import type { MapSite } from "@/lib/servicemap.functions";
-
-export const KIND_COLOR: Record<string, string> = {
-  customer: "#1F6BE0",
-  branch: "#7C3AED",
-  starlink: "#0EA5E9",
-  nas: "#F59E0B",
-  asset: "#10B981",
-  stock: "#64748B",
-};
+import { KIND_COLOR } from "@/lib/service-map.shared";
 
 function tone(site: MapSite) {
   const s = (site.status ?? "").toLowerCase();
