@@ -23,13 +23,14 @@ export type CustomerEvent = {
   actor_email?: string | null;
 };
 
-async function requestMeta() {
+export type RequestMeta = { ip?: string | null; ua?: string | null };
+
+/** Extract caller IP/UA from a Request the caller already holds. This module is
+ * reachable from the client graph via API routes in routeTree.gen.ts, so it must
+ * never import @tanstack/react-start/server (getRequest) — callers pass meta in. */
+export function metaFromRequest(request?: Request | null): RequestMeta {
   try {
-    // Dynamic import: a static one pulls @tanstack/react-start/server into the
-    // client graph via routeTree.gen.ts and breaks the build.
-    const { getRequest } = await import("@tanstack/react-start/server");
-    const req = getRequest();
-    const h = req?.headers;
+    const h = request?.headers;
     return {
       ip:
         h?.get("cf-connecting-ip") ||
@@ -60,8 +61,9 @@ export async function recordAudit(
     old_value?: Record<string, any> | null;
     new_value?: Record<string, any> | null;
   },
+  meta?: RequestMeta,
 ) {
-  const { ip, ua } = await requestMeta();
+  const { ip = null, ua = null } = meta ?? {};
   try {
     await admin.from("audit_log").insert({
       actor_id: a.actor_id ?? null,
@@ -85,8 +87,8 @@ export async function recordAudit(
  * Write the audit + timeline pair. Never throws — a logging failure must not
  * roll back the business action that already succeeded.
  */
-export async function recordCustomerEvent(admin: any, e: CustomerEvent) {
-  const { ip, ua } = await requestMeta();
+export async function recordCustomerEvent(admin: any, e: CustomerEvent, meta?: RequestMeta) {
+  const { ip = null, ua = null } = meta ?? {};
   const results = await Promise.allSettled([
     admin.from("audit_log").insert({
       actor_id: e.actor_id ?? null,
