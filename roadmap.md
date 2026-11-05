@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Open
+- [ ] Replace boxed invoice emails with business correspondence, remove the duplicate signature, verify PDF attachment transport, and send a test to fmats256@gmail.com.
 - Project moved to a new workspace: integrations from the previous workspace must be relinked one by one. Firecrawl is done; other previously used services still need connecting as the user names them.
 
 ## Done
