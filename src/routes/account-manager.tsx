@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, SectionHeader } from "@/components/enterprise";
 import { AccountPortfolio } from "@/components/account-portfolio";
+import { LicenceQueue } from "@/components/license-desk";
 
 export const Route = createFileRoute("/account-manager")({
   head: () => ({ meta: [
@@ -15,5 +16,5 @@ export const Route = createFileRoute("/account-manager")({
 });
 
 function AccountManagerPage() {
-  return <PageShell><SectionHeader eyebrow="Client operations" title="Account Manager" /><AccountPortfolio /></PageShell>;
+  return <PageShell><SectionHeader eyebrow="Client operations" title="Account Manager" /><div className="mb-4"><LicenceQueue mode="am" /></div><AccountPortfolio /></PageShell>;
 }

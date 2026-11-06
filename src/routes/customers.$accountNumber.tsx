@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ClientServiceDesk } from "@/components/techops/support-desk";
+import { ClientLicensesPanel } from "@/components/license-desk";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TITLES } from "@/lib/titles";
@@ -167,6 +168,7 @@ const TAB_STYLES: Record<string, string> = {
   quotes:         "text-violet/70 hover:bg-violet/10 hover:text-violet data-[state=active]:bg-violet/15 data-[state=active]:text-violet data-[state=active]:border-violet/40 data-[state=active]:font-semibold",
   assets:         "text-teal/70 hover:bg-teal/10 hover:text-teal data-[state=active]:bg-teal/15 data-[state=active]:text-teal data-[state=active]:border-teal/40 data-[state=active]:font-semibold",
   tickets:        "text-destructive/70 hover:bg-destructive/10 hover:text-destructive data-[state=active]:bg-destructive/15 data-[state=active]:text-destructive data-[state=active]:border-destructive/40 data-[state=active]:font-semibold",
+  licences:       "text-info/70 hover:bg-info/10 hover:text-info data-[state=active]:bg-info/15 data-[state=active]:text-info data-[state=active]:border-info/40 data-[state=active]:font-semibold",
   renewals:       "text-chart-1/70 hover:bg-chart-1/10 hover:text-chart-1 data-[state=active]:bg-chart-1/15 data-[state=active]:text-chart-1 data-[state=active]:border-chart-1/40 data-[state=active]:font-semibold",
   contacts:       "text-chart-3/70 hover:bg-chart-3/10 hover:text-chart-3 data-[state=active]:bg-chart-3/15 data-[state=active]:text-chart-3 data-[state=active]:border-chart-3/40 data-[state=active]:font-semibold",
   credentials:    "text-chart-2/70 hover:bg-chart-2/10 hover:text-chart-2 data-[state=active]:bg-chart-2/15 data-[state=active]:text-chart-2 data-[state=active]:border-chart-2/40 data-[state=active]:font-semibold",
@@ -181,7 +183,7 @@ function tabList(show: Record<string, boolean>) {
     overview: "Overview", services: "Services", "services-mgmt": "Services Mgmt",
     packages: "Packages", subscriptions: "Subscriptions", transactions: "Transactions",
     invoices: "Invoices", payments: "Payments", quotes: "Quotes", assets: "Assets",
-    tickets: "Tickets", renewals: "Renewals", contacts: "Contacts",
+    tickets: "Tickets", renewals: "Renewals", licences: "Licences", contacts: "Contacts",
     credentials: "Credentials", comms: "Communications", timeline: "Timeline", notes: "Notes", access: "Portal & Support", desk: "Service desk",
   };
   return Object.keys(labels)
@@ -641,7 +643,7 @@ function Customer360() {
             subscriptions: subscriptions.length > 0, transactions: (invoices.length + payments.length) > 0,
             invoices: invoices.length > 0, payments: payments.length > 0,
             quotes: quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
-            renewals: renewalsAll.length > 0, contacts: (contacts.length + branches.length) > 0,
+            renewals: renewalsAll.length > 0, licences: true, contacts: (contacts.length + branches.length) > 0,
             credentials: credentials.length > 0, comms: communications.length > 0,
             timeline: timeline.length > 0, notes: true, access: true, desk: true,
           }).map((t) => (
@@ -1329,6 +1331,8 @@ function Customer360() {
             ))}
           </CardContent></Card>
         </TabsContent>
+
+        <TabsContent value="licences" className="mt-4"><ClientLicensesPanel customerId={customer.id} /></TabsContent>
 
         <TabsContent value="renewals" className="mt-4">
           <Card><CardContent className="p-0 divide-y">
