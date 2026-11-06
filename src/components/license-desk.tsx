@@ -82,7 +82,7 @@ export function ClientLicensesPanel({ customerId }: { customerId: string }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {rows.length === 0 ? <EmptyState title="No licences recorded" description="Licences recorded on the vendor licensing pages appear here." /> : rows.map((l) => {
-            const d = daysUntil(l.expiry_date); const st = renewalState(l.expiry_date);
+            const d = daysUntil(l.expiry_date); const st = renewalState(d);
             return (
               <div key={l.id} className="rounded-lg border border-border p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
@@ -202,7 +202,7 @@ export function LicenceQueue({ mode }: { mode: "am" | "finance" | "noc" }) {
             return (
               <div key={r.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-sm">
                 <div className="min-w-0">{client}<div className="text-xs text-muted-foreground">{vName(r.vendor)} · {r.product} · {r.seats} seat(s)</div></div>
-                <StatusBadge tone={RENEW_TONE[renewalState(r.expiry_date)]}>{d !== null && d < 0 ? `expired ${-d}d` : `${d}d left`}</StatusBadge>
+                <StatusBadge tone={RENEW_TONE[renewalState(d)]}>{d !== null && d < 0 ? `expired ${-d}d` : `${d}d left`}</StatusBadge>
               </div>
             );
           }
