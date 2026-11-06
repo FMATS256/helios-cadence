@@ -207,6 +207,23 @@ export const updateServiceTask = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Ticket-style history: every status/assignment change is written to the job thread.
+    const changes: string[] = [];
+    if (patch.status && patch.status !== existing.status) changes.push(`Status changed to ${String(patch.status).replace(/_/g, " ")}`);
+    if (data.assigned_to !== undefined && (patch.assigned_to ?? null) !== (existing.assigned_to ?? null)) changes.push(patch.assigned_to ? "Reassigned to another engineer" : "Returned to the team queue");
+    if (changes.length) {
+      await context.supabase.from("work_order_updates").insert({
+        task_id: existing.id, author_id: context.userId, kind: "status",
+        body: changes.join(" · ") + (data.completion_notes?.trim() ? `\n\n${data.completion_notes.trim()}` : ""),
+      } as any);
+      if (patch.status && patch.status !== existing.status && existing.requested_by && existing.requested_by !== context.userId) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: existing.requested_by, kind: "task_update",
+          title: `Work order ${String(patch.status).replace(/_/g, " ")} · ${existing.title}`,
+          body: data.completion_notes?.trim() || changes.join(" · "), link: `/techops/jobs/${existing.id}`,
+        } as any);
+      }
+    }
     if (patch.assigned_to && patch.assigned_to !== existing.assigned_to) {
       await supabaseAdmin.from("notifications").insert({
         user_id: patch.assigned_to,
@@ -233,4 +250,66 @@ export const updateServiceTask = createServerFn({ method: "POST" })
       });
     }
     return row;
+  });
+
+async function notifyPeople(ids: (string | null | undefined)[], exclude: string, n: { kind: string; title: string; body: string; link: string }) {
+  const recipients = Array.from(new Set(ids.filter((id): id is string => Boolean(id) && id !== exclude)));
+  if (!recipients.length) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("notifications").insert(recipients.map((user_id) => ({ user_id, ...n })) as any);
+}
+
+/** Engineer claims an unassigned team-queue job. Atomic: only succeeds while nobody owns it. */
+export const claimServiceTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await requireStaff(context);
+    const { data: row, error } = await context.supabase.from("service_tasks")
+      .update({ assigned_to: context.userId, status: "assigned" } as any)
+      .eq("id", data.id).is("assigned_to", null).in("status", ["pending", "assigned"])
+      .select("*").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("This job has already been claimed by another engineer.");
+    const name = (context.claims as any)?.email ?? "An engineer";
+    await context.supabase.from("work_order_updates").insert({ task_id: data.id, author_id: context.userId, kind: "claimed", body: "Claimed this job" } as any);
+    await notifyPeople([(row as any).requested_by], context.userId, {
+      kind: "task_assigned", title: `Work order claimed · ${(row as any).title}`, body: `${name} has taken this job.`, link: `/techops/jobs/${data.id}`,
+    });
+    return row;
+  });
+
+export const listWorkOrderUpdates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { task_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    await requireStaff(context);
+    const { data: rows, error } = await context.supabase.from("work_order_updates")
+      .select("*").eq("task_id", data.task_id).order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    const ids = [...new Set((rows ?? []).map((r: any) => r.author_id).filter(Boolean))] as string[];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = ids.length ? await supabaseAdmin.from("profiles").select("id, full_name, email").in("id", ids) : { data: [] as any[] };
+    const map = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name || p.email]));
+    return (rows ?? []).map((r: any) => ({ ...r, author: map.get(r.author_id) ?? "Staff" }));
+  });
+
+export const addWorkOrderUpdate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { task_id: string; body: string }) => {
+    const body = String(input.body ?? "").trim();
+    if (!body) throw new Error("Write an update first");
+    if (body.length > 4000) throw new Error("Update is too long");
+    return { task_id: input.task_id, body };
+  })
+  .handler(async ({ data, context }) => {
+    await requireStaff(context);
+    const { data: task, error: tErr } = await context.supabase.from("service_tasks").select("id, title, assigned_to, requested_by").eq("id", data.task_id).single();
+    if (tErr || !task) throw new Error("Work order not found");
+    const { error } = await context.supabase.from("work_order_updates").insert({ task_id: data.task_id, author_id: context.userId, kind: "comment", body: data.body } as any);
+    if (error) throw new Error(error.message);
+    await notifyPeople([(task as any).assigned_to, (task as any).requested_by], context.userId, {
+      kind: "task_update", title: `New update · ${(task as any).title}`, body: data.body.slice(0, 180), link: `/techops/jobs/${data.task_id}`,
+    });
+    return { ok: true };
   });
