@@ -52,15 +52,15 @@ function SophosPage() {
   const conn = useQuery({ queryKey: ["sophos-conn"], queryFn: () => connFn(), enabled: ready });
   const customers = useQuery({
     queryKey: ["sophos-customers"], enabled: ready,
-    queryFn: async () => (await supabase.from("customers").select("id, name, account_number").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("customers").select("id, name:company_name, account_number").order("company_name")).data ?? [],
   });
   const tenants = useQuery({
     queryKey: ["sophos-tenants"], enabled: ready,
-    queryFn: async () => (await supabase.from("sophos_tenants").select("*, customers(name, account_number)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("sophos_tenants").select("*, customers(company_name, account_number)").order("created_at", { ascending: false })).data ?? [],
   });
   const orders = useQuery({
     queryKey: ["sophos-orders"], enabled: ready,
-    queryFn: async () => (await supabase.from("sophos_license_orders").select("*, customers(name, account_number)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("sophos_license_orders").select("*, customers(company_name, account_number)").order("created_at", { ascending: false })).data ?? [],
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["sophos-tenants"] }).then(() => qc.invalidateQueries({ queryKey: ["sophos-orders"] }));
 
@@ -180,7 +180,7 @@ function SophosPage() {
                   <div className="flex-1 min-w-[220px]">
                     <div className="font-semibold">{x.product} × {x.quantity}</div>
                     <div className="text-sm text-muted-foreground">
-                      {x.customers?.name} ({x.customers?.account_number}) · {label(x.order_type)} · {x.term_months === 1 ? "monthly" : `${x.term_months} months`}
+                      {x.customers?.company_name} ({x.customers?.account_number}) · {label(x.order_type)} · {x.term_months === 1 ? "monthly" : `${x.term_months} months`}
                       {x.existing_serial ? ` · ${x.existing_serial}` : ""}{x.expiry_date ? ` · expires ${x.expiry_date}` : ""}
                     </div>
                   </div>
@@ -231,7 +231,7 @@ function SophosPage() {
                   <ShieldCheck className="h-5 w-5 text-primary" />
                   <div className="flex-1 min-w-[200px]">
                     <div className="font-semibold">{x.tenant_name}</div>
-                    <div className="text-sm text-muted-foreground">{x.customers?.name} ({x.customers?.account_number}) · region {x.data_region.toUpperCase()}{x.sophos_tenant_id ? ` · ${x.sophos_tenant_id}` : ""}</div>
+                    <div className="text-sm text-muted-foreground">{x.customers?.company_name} ({x.customers?.account_number}) · region {x.data_region.toUpperCase()}{x.sophos_tenant_id ? ` · ${x.sophos_tenant_id}` : ""}</div>
                   </div>
                   <StatusBadge tone={TONE[x.status] ?? "neutral"}>{label(x.status)}</StatusBadge>
                 </CardContent></Card>
