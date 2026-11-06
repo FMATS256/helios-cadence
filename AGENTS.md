@@ -34,5 +34,5 @@
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
 - Customer 360 desk actions log to service_ops_events as actor.
 
-- Vendor licensing: one component; DB trigger enforces approval/fulfilment.
-- Work orders: atomic claim; thread in work_order_updates.
+- Vendor licensing: one component; trigger enforces approval.
+- Work orders: atomic claim, work_order_updates thread.
