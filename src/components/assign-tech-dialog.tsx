@@ -54,7 +54,7 @@ export function AssignTechDialog({
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
-        assigned_to: assignee || null,
+        assigned_to: assignee && assignee !== "team" ? assignee : null,
         due_date: dueDate || null,
         scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
         subscription_id: defaults?.subscription_id ?? null,
@@ -62,7 +62,7 @@ export function AssignTechDialog({
       },
     }),
     onSuccess: (task: any) => {
-      toast.success(assignee ? "Task assigned to the technical team" : "Task queued for the technical team");
+      toast.success(assignee && assignee !== "team" ? "Task assigned to the technical team" : "Task queued for the technical team");
       qc.invalidateQueries({ queryKey: ["customer-360", ctx.accountNumber] });
       qc.invalidateQueries({ queryKey: ["service-tasks"] });
       onClose();
@@ -110,10 +110,11 @@ export function AssignTechDialog({
               placeholder="Specs, DID range, IP requirements, site contact, access notes…" maxLength={2000} />
           </div>
           <div className="space-y-1.5">
-            <Label>Assign technician</Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger><SelectValue placeholder="Leave in team queue" /></SelectTrigger>
+            <Label>Send to</Label>
+            <Select value={assignee || "team"} onValueChange={setAssignee}>
+              <SelectTrigger><SelectValue placeholder="Whole technical team" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="team">Whole technical team (first to claim)</SelectItem>
                 {staff.map((s: any) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}{s.role ? ` · ${String(s.role).replace(/_/g, " ")}` : ""}</SelectItem>
                 ))}
