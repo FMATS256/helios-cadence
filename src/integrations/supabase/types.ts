@@ -6298,6 +6298,128 @@ export type Database = {
           },
         ]
       }
+      sophos_license_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          customer_id: string
+          existing_serial: string | null
+          expiry_date: string | null
+          id: string
+          notes: string | null
+          order_type: string
+          product: string
+          quantity: number
+          requested_by: string | null
+          status: string
+          tenant_id: string | null
+          term_months: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_id: string
+          existing_serial?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          order_type?: string
+          product: string
+          quantity?: number
+          requested_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          term_months?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_id?: string
+          existing_serial?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          order_type?: string
+          product?: string
+          quantity?: number
+          requested_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          term_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sophos_license_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sophos_license_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "sophos_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sophos_tenants: {
+        Row: {
+          admin_email: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          data_region: string
+          id: string
+          last_error: string | null
+          sophos_tenant_id: string | null
+          status: string
+          tenant_name: string
+          updated_at: string
+        }
+        Insert: {
+          admin_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          data_region?: string
+          id?: string
+          last_error?: string | null
+          sophos_tenant_id?: string | null
+          status?: string
+          tenant_name: string
+          updated_at?: string
+        }
+        Update: {
+          admin_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          data_region?: string
+          id?: string
+          last_error?: string | null
+          sophos_tenant_id?: string | null
+          status?: string
+          tenant_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sophos_tenants_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       starlink_accounts: {
         Row: {
           account_number: string
@@ -7560,6 +7682,8 @@ export type Database = {
         }
         Returns: Json
       }
+      can_approve_sophos: { Args: { _uid: string }; Returns: boolean }
+      can_manage_sophos: { Args: { _uid: string }; Returns: boolean }
       can_see_customer: {
         Args: { _customer: string; _uid: string }
         Returns: boolean
