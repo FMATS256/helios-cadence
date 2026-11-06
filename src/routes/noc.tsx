@@ -22,11 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Activity, ShieldCheck, Siren, NotebookPen, RefreshCw, LifeBuoy } from "lucide-react";
 import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } from "@/lib/noc.functions";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
-import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 import { TicketWorkbench } from "@/components/techops/ticket-workbench";
 import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
-import { NocToolkitSection } from "@/components/techops/noc-toolkit-section";
+import { ClientResourcesSection } from "@/components/techops/client-resources-section";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
