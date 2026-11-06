@@ -175,7 +175,7 @@ export const registerServer = createServerFn({ method: "POST" })
       status: "pending",
       power_state: "unknown",
       created_by: context.userId,
-    }).select("id").single();
+    } as any).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: row.id };
   });
@@ -210,7 +210,7 @@ export const createHostingAccount = createServerFn({ method: "POST" })
       status: "pending",
       provisioning_status: "pending",
       created_by: context.userId,
-    }).select("id").single();
+    } as any).select("id").single();
     if (error) throw new Error(error.message);
     return { ok: true, id: row.id };
   });
