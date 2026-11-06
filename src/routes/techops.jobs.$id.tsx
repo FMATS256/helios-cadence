@@ -24,6 +24,7 @@ import {
   allocateEquipment, updateEquipmentStatus, seedJobChecklist, addChecklistItem, toggleChecklistItem,
   uploadJobPhoto, deleteJobPhoto, captureSignoff, completeJob, listStockItems,
 } from "@/lib/techops.functions";
+import { WorkOrderThread } from "@/components/techops/work-order-thread";
 
 export const Route = createFileRoute("/techops/jobs/$id")({
   head: () => ({
@@ -253,6 +254,8 @@ function JobPage() {
         ]}
         visibleCount={6}
       />
+
+      <WorkOrderThread task={{ ...job, assignee: data?.assignee, requester: data?.requester }} />
 
       <Tabs defaultValue="site">
         <TabsList className="w-full justify-start overflow-x-auto">

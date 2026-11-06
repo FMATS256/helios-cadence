@@ -54,6 +54,8 @@ export const RULES: Rule[] = [
   // Technical
   { prefix: "/noc", allow: ["tech"] },
   { prefix: "/techops", allow: ["tech"] },
+  // Account managers follow the work orders they dispatch, like a ticket.
+  { prefix: "/techops/jobs", allow: ["tech", "sales"] },
   { prefix: "/techops/vault", allow: ["tech"] },
   { prefix: "/credentials", allow: ["tech"] },
   { prefix: "/reset-password", allow: ["tech", "sales"] },

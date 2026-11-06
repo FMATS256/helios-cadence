@@ -7679,6 +7679,41 @@ export type Database = {
         }
         Relationships: []
       }
+      work_order_updates: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          task_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          kind?: string
+          task_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_updates_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_audit_log: {
         Row: {
           action: string

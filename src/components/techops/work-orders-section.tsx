@@ -7,6 +7,7 @@ import { listServiceTasks, updateServiceTask } from "@/lib/service-tasks.functio
 import { TASK_STATUSES } from "@/lib/service-tasks.shared";
 import { useTechnicians } from "@/components/assign-tech-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { WorkOrderButtons } from "@/components/techops/work-order-thread";
 import {
   PageShell, SectionHeader, StatChipRow, DataGrid, StatusBadge, toneForStatus,
   EmptyState, shortDate, type ColumnDef,
@@ -25,7 +26,7 @@ export function WorkOrdersPage() {
   const updateFn = useServerFn(updateServiceTask);
   const { data: staff = [] } = useTechnicians();
 
-  const [tab, setTab] = useState("open");
+  const [tab, setTab] = useState("queue");
   const [search, setSearch] = useState("");
 
   const { user } = useAuth();
@@ -59,6 +60,8 @@ export function WorkOrdersPage() {
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
     return tasks.filter((t) => {
+      if (tab === "queue" && (t.assigned_to || ["completed", "cancelled"].includes(t.status))) return false;
+      if (tab === "mine" && (t.assigned_to !== user?.id || ["completed", "cancelled"].includes(t.status))) return false;
       if (tab === "open" && ["completed", "cancelled"].includes(t.status)) return false;
       if (tab === "unassigned" && t.assigned_to) return false;
       if (tab === "in_progress" && t.status !== "in_progress") return false;
@@ -67,7 +70,7 @@ export function WorkOrdersPage() {
       return [t.title, t.customer?.company_name, t.account_number, t.service_type, t.task_type, t.assignee]
         .some((f) => String(f ?? "").toLowerCase().includes(s));
     });
-  }, [tasks, tab, search]);
+  }, [tasks, tab, search, user?.id]);
 
   const columns: ColumnDef<any>[] = [
     { header: "Task", cell: (r: any) => (
@@ -97,6 +100,7 @@ export function WorkOrdersPage() {
       </Select>
     ) },
     { header: "Due", cell: (r: any) => (r.due_date ? shortDate(r.due_date) : "—") },
+    { header: "Action", cell: (r: any) => <WorkOrderButtons task={r} /> },
     { header: "Status", cell: (r: any) => (
       <div className="flex items-center gap-2">
         <StatusBadge tone={toneForStatus(r.status)}>{String(r.status).replace(/_/g, " ")}</StatusBadge>
@@ -123,7 +127,7 @@ export function WorkOrdersPage() {
     <PageShell>
       <SectionHeader
         title="Technical Work Orders"
-        description="Deployment, provisioning and field tasks raised from customer accounts."
+        description="Claim jobs from the team queue, work them in My jobs and close them with notes — like tickets."
         actions={<Button variant="outline" onClick={refresh}><RefreshCw className="h-4 w-4 mr-1.5" />Refresh</Button>}
       />
 
@@ -134,7 +138,9 @@ export function WorkOrdersPage() {
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList>
-                <TabsTrigger value="open">Open</TabsTrigger>
+                <TabsTrigger value="queue">Team queue ({tasks.filter((t) => !t.assigned_to && !["completed", "cancelled"].includes(t.status)).length})</TabsTrigger>
+                <TabsTrigger value="mine">My jobs ({tasks.filter((t) => t.assigned_to === user?.id && !["completed", "cancelled"].includes(t.status)).length})</TabsTrigger>
+                <TabsTrigger value="open">All open</TabsTrigger>
                 <TabsTrigger value="unassigned">Unassigned</TabsTrigger>
                 <TabsTrigger value="in_progress">In progress</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>

@@ -337,6 +337,13 @@
       "when": 1793989169917,
       "tag": "0047_vendor_licensing",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793991808347,
+      "tag": "0048_work_order_updates",
+      "breakpoints": true
     }
   ]
 }
