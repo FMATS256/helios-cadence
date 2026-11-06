@@ -47,6 +47,7 @@ const siteNav: NavNode[] = [
       { title: "Web Hosting", url: "/web-hosting", icon: Globe },
       { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP", url: "/voip", icon: PhoneCall },
+      { title: "Sophos Licensing", url: "/sophos", icon: ShieldCheck },
 
     ],
   },
@@ -109,6 +110,7 @@ const nocNav: NavNode[] = [
       { title: "Web & Email Hosting", url: "/web-hosting", icon: Globe },
       { title: "Storage & NAS", url: "/cloud-storage", icon: HardDrive },
       { title: "VoIP & SIP", url: "/voip", icon: PhoneCall },
+      { title: "Sophos Licensing", url: "/sophos", icon: ShieldCheck },
       { title: "Managed Cloud", url: "/managed-cloud", icon: Cloud },
     ],
   },
