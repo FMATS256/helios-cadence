@@ -124,7 +124,7 @@ export const getClientResources = createServerFn({ method: "GET" })
     const [serversR, hostingR, customersR] = await Promise.all([
       context.supabase
         .from("cloud_servers")
-        .select("id, name, provider, ip_address, status, power_state, image, datacenter, cpu_cores, ram_mb, monthly_cost_usd, selling_price_usd, customer_id, notes, created_at, customers(id, company_name, account_number)")
+        .select("id, name, provider, public_ips, status, power_state, image, datacenter, cpu_cores, ram_mb, monthly_cost_usd, selling_price_usd, customer_id, notes, created_at, customers(id, company_name, account_number)")
         .is("archived_at", null)
         .order("name"),
       context.supabase
@@ -164,7 +164,6 @@ export const registerServer = createServerFn({ method: "POST" })
       provider: data.provider.trim().toLowerCase(),
       customer_id: customer?.id ?? null,
       account_number: customer?.account_number ?? null,
-      ip_address: data.ip_address?.trim() || null,
       public_ips: data.ip_address?.trim() ? [data.ip_address.trim()] : [],
       image: data.image?.trim() || null,
       datacenter: data.datacenter?.trim() || null,

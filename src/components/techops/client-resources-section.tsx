@@ -48,7 +48,7 @@ export function ClientResourcesSection() {
       kind: "server",
       id: s.id,
       title: s.name,
-      sub: s.ip_address ?? s.provider ?? "",
+      sub: s.public_ips?.[0] ?? s.provider ?? "",
       customer: s.customers?.company_name ?? "Unassigned",
       status: s.power_state ?? s.status ?? "unknown",
       raw: s,
@@ -201,7 +201,7 @@ function ServerDetail({ server, onChanged, onClose }: { server: any; onChanged: 
         <Field label="Client" value={server.customers?.company_name ?? "Unassigned"} />
         <Field label="Account" value={server.customers?.account_number ?? server.account_number ?? "—"} />
         <Field label="Provider" value={server.provider} />
-        <Field label="IP address" value={server.ip_address ?? "—"} mono />
+        <Field label="IP address" value={server.public_ips?.[0] ?? "—"} mono />
         <Field label="Status" value={`${server.status ?? "—"} · power ${server.power_state ?? "unknown"}`} />
         <Field label="Location" value={server.datacenter ?? "—"} />
         <Field label="Image / OS" value={server.image ?? "—"} />
