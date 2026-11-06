@@ -90,6 +90,36 @@ export function ClientResourcesSection() {
     <div className="space-y-4">
       <StatChipRow chips={chips} cols={6} />
 
+      {/* Clear provisioning actions — the two things NOC does most */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setServerFormOpen(true)}
+          className="flex items-center gap-3 rounded-lg border border-teal-200 bg-teal-50 p-4 text-left transition hover:border-teal-400 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/40 dark:hover:bg-teal-950/70"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-600 text-white">
+            <ServerIcon className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block text-sm font-semibold text-teal-900 dark:text-teal-100">Provision a server</span>
+            <span className="block text-xs text-teal-700 dark:text-teal-300">Register a VPS or dedicated server for a client, then power and manage it.</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setHostingFormOpen(true)}
+          className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left transition hover:border-blue-400 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/70"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white">
+            <Globe className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block text-sm font-semibold text-blue-900 dark:text-blue-100">Provision web hosting</span>
+            <span className="block text-xs text-blue-700 dark:text-blue-300">Create a hosting account for a client domain, then deploy it on WHM/cPanel.</span>
+          </span>
+        </button>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <Input
           placeholder="Search client, server, domain or IP…"
@@ -107,10 +137,10 @@ export function ClientResourcesSection() {
         </Select>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" onClick={() => setServerFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />Register server
+            <Plus className="h-4 w-4 mr-1.5" />Provision server
           </Button>
           <Button onClick={() => setHostingFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />New hosting account
+            <Plus className="h-4 w-4 mr-1.5" />Provision hosting
           </Button>
           <Button variant="ghost" size="icon" title="Refresh" onClick={refresh} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
