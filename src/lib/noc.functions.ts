@@ -113,6 +113,108 @@ export const resolveIncident = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* ------------------------------------------------------------------ *
+ * Client resources — unified servers + hosting view for the NOC,
+ * with staff-gated registration forms.
+ * ------------------------------------------------------------------ */
+export const getClientResources = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    const [serversR, hostingR, customersR] = await Promise.all([
+      context.supabase
+        .from("cloud_servers")
+        .select("id, name, provider, public_ips, status, power_state, image, datacenter, cpu_cores, ram_mb, monthly_cost_usd, selling_price_usd, customer_id, notes, created_at, customers(id, company_name, account_number)")
+        .is("archived_at", null)
+        .order("name"),
+      context.supabase
+        .from("web_hosting_accounts")
+        .select("id, domain, plan, status, provisioning_status, username, control_panel_url, disk_quota_gb, disk_used_mb, bandwidth_gb, monthly_cost, currency, renewal_date, ssl_status, ip_address, customer_id, notes, created_at, customers(id, company_name, account_number)")
+        .is("archived_at", null)
+        .order("domain"),
+      context.supabase
+        .from("customers")
+        .select("id, account_number, company_name")
+        .is("archived_at", null)
+        .order("company_name"),
+    ]);
+    return {
+      servers: serversR.data ?? [],
+      hosting: hostingR.data ?? [],
+      customers: customersR.data ?? [],
+    };
+  });
+
+export const registerServer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    name: string; provider: string; customer_id?: string | null; ip_address?: string;
+    image?: string; datacenter?: string; cpu_cores?: number; ram_mb?: number;
+    monthly_cost_usd?: number; selling_price_usd?: number; notes?: string;
+  }) => d)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    if (!data.name?.trim()) throw new Error("Server name is required");
+    if (!data.provider?.trim()) throw new Error("Provider is required");
+    const customer = data.customer_id
+      ? (await context.supabase.from("customers").select("id, account_number").eq("id", data.customer_id).maybeSingle()).data
+      : null;
+    const { data: row, error } = await context.supabase.from("cloud_servers").insert({
+      name: data.name.trim(),
+      provider: data.provider.trim().toLowerCase(),
+      customer_id: customer?.id ?? null,
+      account_number: customer?.account_number ?? null,
+      public_ips: data.ip_address?.trim() ? [data.ip_address.trim()] : [],
+      image: data.image?.trim() || null,
+      datacenter: data.datacenter?.trim() || null,
+      cpu_cores: data.cpu_cores ?? null,
+      ram_mb: data.ram_mb ?? null,
+      monthly_cost_usd: data.monthly_cost_usd ?? 0,
+      selling_price_usd: data.selling_price_usd ?? 0,
+      notes: data.notes?.trim() || null,
+      status: "pending",
+      power_state: "unknown",
+      created_by: context.userId,
+    } as any).select("id").single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: row.id };
+  });
+
+export const createHostingAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    customer_id: string; domain: string; plan?: string; monthly_cost?: number;
+    currency?: string; renewal_date?: string; disk_quota_gb?: number; notes?: string;
+  }) => d)
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    if (!data.customer_id) throw new Error("Choose a client");
+    const domain = data.domain?.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!domain || !domain.includes(".")) throw new Error("Enter a valid domain, e.g. client.co.zw");
+    const { data: customer } = await context.supabase
+      .from("customers").select("id, account_number").eq("id", data.customer_id).maybeSingle();
+    if (!customer) throw new Error("Client not found");
+    const { data: existing } = await context.supabase
+      .from("web_hosting_accounts").select("id").eq("domain", domain).is("archived_at", null).maybeSingle();
+    if (existing) throw new Error(`A hosting account for ${domain} already exists`);
+    const { data: row, error } = await context.supabase.from("web_hosting_accounts").insert({
+      customer_id: customer.id,
+      account_number: customer.account_number ?? null,
+      domain,
+      plan: data.plan?.trim() || null,
+      monthly_cost: data.monthly_cost ?? 0,
+      currency: data.currency || "USD",
+      renewal_date: data.renewal_date || null,
+      disk_quota_gb: data.disk_quota_gb ?? null,
+      notes: data.notes?.trim() || null,
+      status: "pending",
+      provisioning_status: "pending",
+      created_by: context.userId,
+    } as any).select("id").single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: row.id };
+  });
+
 export const addShiftNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { note: string; shift?: string; shift_date?: string }) => d)

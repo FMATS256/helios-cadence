@@ -22,11 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Activity, ShieldCheck, Siren, NotebookPen, RefreshCw, LifeBuoy } from "lucide-react";
 import { getNocOverview, acknowledgeIncident, resolveIncident, addShiftNote } from "@/lib/noc.functions";
 import { runAllChecksNow } from "@/lib/monitoring.functions";
-import { DiagnosticsPanel, RemoteActionsPanel } from "@/components/noc-toolkit";
 import { TicketWorkbench } from "@/components/techops/ticket-workbench";
 import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
-import { NocToolkitSection } from "@/components/techops/noc-toolkit-section";
+import { ClientResourcesSection } from "@/components/techops/client-resources-section";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
@@ -137,9 +136,9 @@ function NocPage() {
         ]}
       />
 
-      <Tabs defaultValue={tab ?? "telemetry"} className="min-w-0 max-w-full">
+      <Tabs defaultValue={tab ?? "resources"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="toolkit">NOC Toolkit</TabsTrigger>
+          <TabsTrigger value="resources">Client Resources</TabsTrigger>
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
           <TabsTrigger value="servers">Servers</TabsTrigger>
@@ -147,8 +146,6 @@ function NocPage() {
           <TabsTrigger value="uptime">Uptime Checks</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-          <TabsTrigger value="remote">Remote Actions</TabsTrigger>
           <TabsTrigger value="accounts">Client accounts & access</TabsTrigger>
           {tickets.length > 0 && <TabsTrigger value="tickets">Open Tickets</TabsTrigger>}
           <TabsTrigger value="map">Service Map</TabsTrigger>
@@ -156,7 +153,7 @@ function NocPage() {
           <TabsTrigger value="handover">Shift Handover</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="toolkit" className="mt-4"><NocToolkitSection /></TabsContent>
+        <TabsContent value="resources" className="mt-4"><ClientResourcesSection /></TabsContent>
         <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
         <TabsContent value="workbench" className="mt-4"><TicketWorkbench /></TabsContent>
         <TabsContent value="health" className="mt-4">
@@ -206,13 +203,6 @@ function NocPage() {
           </DetailCard>
         </TabsContent>
 
-        <TabsContent value="diagnostics" className="mt-4">
-          <DiagnosticsPanel />
-        </TabsContent>
-
-        <TabsContent value="remote" className="mt-4">
-          <RemoteActionsPanel />
-        </TabsContent>
         <TabsContent value="accounts" className="mt-4"><AccountPortfolio noc /></TabsContent>
 
         {tickets.length > 0 && (

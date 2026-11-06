@@ -66,6 +66,7 @@
 - [ ] Independently verify external mailbox delivery, inbound reply round-trip and Bcc behavior; gateway acceptance is verified, not delivery
 - [ ] Add verified bank details to Quick Parts once supplied
 - [ ] Make cash payment recording explicit and fix Finance workspace overlap across screen sizes
+- [x] NOC Command Centre: removed toolkit/diagnostics/remote tabs; added Client Resources tab with register-server and create-hosting forms plus clickable resource details with power/lifecycle actions
 
 ## Later (from earlier plan)
 - Banking & reconciliation depth, accounts payable, financial reports, multi-branch finance, project finance
