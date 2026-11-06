@@ -49,6 +49,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServiceMapRouteImport } from './routes/service-map'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SophosRouteImport } from './routes/sophos'
 import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TicketsRouteImport } from './routes/tickets'
@@ -317,6 +318,11 @@ const ServiceMapRoute = ServiceMapRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SophosRoute = SophosRouteImport.update({
+  id: '/sophos',
+  path: '/sophos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StarlinkRoute = StarlinkRouteImport.update({
@@ -731,6 +737,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
+  '/sophos': typeof SophosRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
@@ -841,6 +848,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
+  '/sophos': typeof SophosRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
@@ -952,6 +960,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/service-map': typeof ServiceMapRoute
   '/settings': typeof SettingsRoute
+  '/sophos': typeof SophosRoute
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
@@ -1065,6 +1074,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/service-map'
     | '/settings'
+    | '/sophos'
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
@@ -1175,6 +1185,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/service-map'
     | '/settings'
+    | '/sophos'
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
@@ -1285,6 +1296,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/service-map'
     | '/settings'
+    | '/sophos'
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
@@ -1397,6 +1409,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServiceMapRoute: typeof ServiceMapRoute
   SettingsRoute: typeof SettingsRoute
+  SophosRoute: typeof SophosRoute
   StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRoute
@@ -1733,6 +1746,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sophos': {
+      id: '/sophos'
+      path: '/sophos'
+      fullPath: '/sophos'
+      preLoaderRoute: typeof SophosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/starlink': {
@@ -2336,6 +2356,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ServiceMapRoute: ServiceMapRoute,
   SettingsRoute: SettingsRoute,
+  SophosRoute: SophosRoute,
   StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRoute,
