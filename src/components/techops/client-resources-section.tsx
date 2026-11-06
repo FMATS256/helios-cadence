@@ -137,10 +137,10 @@ export function ClientResourcesSection() {
         </Select>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" onClick={() => setServerFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />Register server
+            <Plus className="h-4 w-4 mr-1.5" />Provision server
           </Button>
           <Button onClick={() => setHostingFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />New hosting account
+            <Plus className="h-4 w-4 mr-1.5" />Provision hosting
           </Button>
           <Button variant="ghost" size="icon" title="Refresh" onClick={refresh} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
