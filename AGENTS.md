@@ -34,4 +34,4 @@
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
 - Customer 360 desk actions log to service_ops_events as the acting staff member.
 
-- Vendor licensing (Sophos/Veeam/Kaspersky/M365/Zoho) shares one component and vendor_* tables; a DB trigger enforces Finance approval and applies fulfilment to licences.
+- Vendor licensing shares one component and vendor_* tables; a DB trigger enforces approval and applies fulfilment.

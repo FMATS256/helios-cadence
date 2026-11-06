@@ -30,6 +30,7 @@ import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as FinanceAgentRouteImport } from './routes/finance-agent'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as KasperskyRouteImport } from './routes/kaspersky'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LaptopTrackingRouteImport } from './routes/laptop-tracking'
 import { Route as LeadsRouteImport } from './routes/leads'
@@ -37,6 +38,7 @@ import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as ManagedCloudRouteImport } from './routes/managed-cloud'
 import { Route as ManagedNasRouteImport } from './routes/managed-nas'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as Microsoft365RouteImport } from './routes/microsoft-365'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as NocRouteImport } from './routes/noc'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -53,9 +55,11 @@ import { Route as SophosRouteImport } from './routes/sophos'
 import { Route as StarlinkRouteImport } from './routes/starlink'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as TicketsRouteImport } from './routes/tickets'
+import { Route as VeeamRouteImport } from './routes/veeam'
 import { Route as VoipRouteImport } from './routes/voip'
 import { Route as WebHostingRouteImport } from './routes/web-hosting'
 import { Route as WorkOrdersRouteImport } from './routes/work-orders'
+import { Route as ZohoRouteImport } from './routes/zoho'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AssetsIdRouteImport } from './routes/assets_.$id'
@@ -225,6 +229,11 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KasperskyRoute = KasperskyRouteImport.update({
+  id: '/kaspersky',
+  path: '/kaspersky',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
@@ -258,6 +267,11 @@ const ManagedNasRoute = ManagedNasRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Microsoft365Route = Microsoft365RouteImport.update({
+  id: '/microsoft-365',
+  path: '/microsoft-365',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MonitoringRoute = MonitoringRouteImport.update({
@@ -340,6 +354,11 @@ const TicketsRoute = TicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VeeamRoute = VeeamRouteImport.update({
+  id: '/veeam',
+  path: '/veeam',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VoipRoute = VoipRouteImport.update({
   id: '/voip',
   path: '/voip',
@@ -353,6 +372,11 @@ const WebHostingRoute = WebHostingRouteImport.update({
 const WorkOrdersRoute = WorkOrdersRouteImport.update({
   id: '/work-orders',
   path: '/work-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZohoRoute = ZohoRouteImport.update({
+  id: '/zoho',
+  path: '/zoho',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93ListToolsRoute =
@@ -718,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/kaspersky': typeof KasperskyRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
@@ -725,6 +750,7 @@ export interface FileRoutesByFullPath {
   '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
+  '/microsoft-365': typeof Microsoft365Route
   '/monitoring': typeof MonitoringRoute
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
@@ -741,9 +767,11 @@ export interface FileRoutesByFullPath {
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
+  '/veeam': typeof VeeamRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
+  '/zoho': typeof ZohoRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -829,6 +857,7 @@ export interface FileRoutesByTo {
   '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/kaspersky': typeof KasperskyRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
@@ -836,6 +865,7 @@ export interface FileRoutesByTo {
   '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
+  '/microsoft-365': typeof Microsoft365Route
   '/monitoring': typeof MonitoringRoute
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
@@ -852,9 +882,11 @@ export interface FileRoutesByTo {
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
+  '/veeam': typeof VeeamRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
+  '/zoho': typeof ZohoRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets/$id': typeof AssetsIdRoute
@@ -941,6 +973,7 @@ export interface FileRoutesById {
   '/finance-agent': typeof FinanceAgentRoute
   '/inbox': typeof InboxRoute
   '/inventory': typeof InventoryRoute
+  '/kaspersky': typeof KasperskyRoute
   '/knowledge': typeof KnowledgeRoute
   '/laptop-tracking': typeof LaptopTrackingRoute
   '/leads': typeof LeadsRoute
@@ -948,6 +981,7 @@ export interface FileRoutesById {
   '/managed-cloud': typeof ManagedCloudRoute
   '/managed-nas': typeof ManagedNasRoute
   '/mcp': typeof McpRoute
+  '/microsoft-365': typeof Microsoft365Route
   '/monitoring': typeof MonitoringRoute
   '/noc': typeof NocRoute
   '/notifications': typeof NotificationsRoute
@@ -964,9 +998,11 @@ export interface FileRoutesById {
   '/starlink': typeof StarlinkRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/tickets': typeof TicketsRoute
+  '/veeam': typeof VeeamRoute
   '/voip': typeof VoipRoute
   '/web-hosting': typeof WebHostingRoute
   '/work-orders': typeof WorkOrdersRoute
+  '/zoho': typeof ZohoRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/assets_/$id': typeof AssetsIdRoute
@@ -1055,6 +1091,7 @@ export interface FileRouteTypes {
     | '/finance-agent'
     | '/inbox'
     | '/inventory'
+    | '/kaspersky'
     | '/knowledge'
     | '/laptop-tracking'
     | '/leads'
@@ -1062,6 +1099,7 @@ export interface FileRouteTypes {
     | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
+    | '/microsoft-365'
     | '/monitoring'
     | '/noc'
     | '/notifications'
@@ -1078,9 +1116,11 @@ export interface FileRouteTypes {
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
+    | '/veeam'
     | '/voip'
     | '/web-hosting'
     | '/work-orders'
+    | '/zoho'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -1166,6 +1206,7 @@ export interface FileRouteTypes {
     | '/finance-agent'
     | '/inbox'
     | '/inventory'
+    | '/kaspersky'
     | '/knowledge'
     | '/laptop-tracking'
     | '/leads'
@@ -1173,6 +1214,7 @@ export interface FileRouteTypes {
     | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
+    | '/microsoft-365'
     | '/monitoring'
     | '/noc'
     | '/notifications'
@@ -1189,9 +1231,11 @@ export interface FileRouteTypes {
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
+    | '/veeam'
     | '/voip'
     | '/web-hosting'
     | '/work-orders'
+    | '/zoho'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets/$id'
@@ -1277,6 +1321,7 @@ export interface FileRouteTypes {
     | '/finance-agent'
     | '/inbox'
     | '/inventory'
+    | '/kaspersky'
     | '/knowledge'
     | '/laptop-tracking'
     | '/leads'
@@ -1284,6 +1329,7 @@ export interface FileRouteTypes {
     | '/managed-cloud'
     | '/managed-nas'
     | '/mcp'
+    | '/microsoft-365'
     | '/monitoring'
     | '/noc'
     | '/notifications'
@@ -1300,9 +1346,11 @@ export interface FileRouteTypes {
     | '/starlink'
     | '/subscriptions'
     | '/tickets'
+    | '/veeam'
     | '/voip'
     | '/web-hosting'
     | '/work-orders'
+    | '/zoho'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/assets_/$id'
@@ -1390,6 +1438,7 @@ export interface RootRouteChildren {
   FinanceAgentRoute: typeof FinanceAgentRoute
   InboxRoute: typeof InboxRoute
   InventoryRoute: typeof InventoryRoute
+  KasperskyRoute: typeof KasperskyRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LaptopTrackingRoute: typeof LaptopTrackingRoute
   LeadsRoute: typeof LeadsRoute
@@ -1397,6 +1446,7 @@ export interface RootRouteChildren {
   ManagedCloudRoute: typeof ManagedCloudRoute
   ManagedNasRoute: typeof ManagedNasRoute
   McpRoute: typeof McpRoute
+  Microsoft365Route: typeof Microsoft365Route
   MonitoringRoute: typeof MonitoringRoute
   NocRoute: typeof NocRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -1413,9 +1463,11 @@ export interface RootRouteChildren {
   StarlinkRoute: typeof StarlinkRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   TicketsRoute: typeof TicketsRoute
+  VeeamRoute: typeof VeeamRoute
   VoipRoute: typeof VoipRoute
   WebHostingRoute: typeof WebHostingRoute
   WorkOrdersRoute: typeof WorkOrdersRoute
+  ZohoRoute: typeof ZohoRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AssetsIdRoute: typeof AssetsIdRoute
@@ -1615,6 +1667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kaspersky': {
+      id: '/kaspersky'
+      path: '/kaspersky'
+      fullPath: '/kaspersky'
+      preLoaderRoute: typeof KasperskyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/knowledge': {
       id: '/knowledge'
       path: '/knowledge'
@@ -1662,6 +1721,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/microsoft-365': {
+      id: '/microsoft-365'
+      path: '/microsoft-365'
+      fullPath: '/microsoft-365'
+      preLoaderRoute: typeof Microsoft365RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/monitoring': {
@@ -1776,6 +1842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/veeam': {
+      id: '/veeam'
+      path: '/veeam'
+      fullPath: '/veeam'
+      preLoaderRoute: typeof VeeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/voip': {
       id: '/voip'
       path: '/voip'
@@ -1795,6 +1868,13 @@ declare module '@tanstack/react-router' {
       path: '/work-orders'
       fullPath: '/work-orders'
       preLoaderRoute: typeof WorkOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zoho': {
+      id: '/zoho'
+      path: '/zoho'
+      fullPath: '/zoho'
+      preLoaderRoute: typeof ZohoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -2337,6 +2417,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceAgentRoute: FinanceAgentRoute,
   InboxRoute: InboxRoute,
   InventoryRoute: InventoryRoute,
+  KasperskyRoute: KasperskyRoute,
   KnowledgeRoute: KnowledgeRoute,
   LaptopTrackingRoute: LaptopTrackingRoute,
   LeadsRoute: LeadsRoute,
@@ -2344,6 +2425,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManagedCloudRoute: ManagedCloudRoute,
   ManagedNasRoute: ManagedNasRoute,
   McpRoute: McpRoute,
+  Microsoft365Route: Microsoft365Route,
   MonitoringRoute: MonitoringRoute,
   NocRoute: NocRoute,
   NotificationsRoute: NotificationsRoute,
@@ -2360,9 +2442,11 @@ const rootRouteChildren: RootRouteChildren = {
   StarlinkRoute: StarlinkRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   TicketsRoute: TicketsRoute,
+  VeeamRoute: VeeamRoute,
   VoipRoute: VoipRoute,
   WebHostingRoute: WebHostingRoute,
   WorkOrdersRoute: WorkOrdersRoute,
+  ZohoRoute: ZohoRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
