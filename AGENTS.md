@@ -35,4 +35,4 @@
 - Customer 360 desk actions log to service_ops_events as the acting staff member.
 
 - Vendor licensing: one component; DB trigger enforces approval/fulfilment.
-- Work orders behave like tickets: service_tasks stay the single job record; team-queue jobs (no assignee) are claimed atomically, and claims/status changes/comments are logged in work_order_updates and notify the requester/owner.
+- Work orders are tickets on service_tasks: atomic claim of unassigned jobs; history/comments in work_order_updates.
