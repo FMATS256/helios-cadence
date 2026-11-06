@@ -64,6 +64,10 @@ export const RULES: Rule[] = [
   { prefix: "/cloud-storage", allow: ["tech", "sales", "finance"] },
   { prefix: "/voip", allow: ["tech", "sales", "finance"] },
   { prefix: "/sophos", allow: ["tech", "sales", "finance"] },
+  { prefix: "/veeam", allow: ["tech", "sales", "finance"] },
+  { prefix: "/kaspersky", allow: ["tech", "sales", "finance"] },
+  { prefix: "/microsoft-365", allow: ["tech", "sales", "finance"] },
+  { prefix: "/zoho", allow: ["tech", "sales", "finance"] },
   // Stock
   { prefix: "/inventory", allow: ["inventory", "finance", "sales", "tech"] },
   { prefix: "/pos", allow: ["sales", "inventory", "finance"] },
