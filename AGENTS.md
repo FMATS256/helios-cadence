@@ -33,3 +33,5 @@
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
 - Customer 360 desk actions log outcomes to service_ops_events (tech/ops staff insert as themselves) so live changes are attributable.
+
+- Sophos licensing (/sophos) queues tenants and Finance-approved licence orders (DB trigger blocks self-approval and client-set provisioning states); only the server integration marks items provisioned, so it can be wired once Sophos API credentials exist.
