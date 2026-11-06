@@ -30,6 +30,7 @@ import { MoneyPage } from "@/components/workspaces/money-workspace";
 import { ExpensesPage } from "@/components/workspaces/expenses-workspace";
 import { AccountingPage } from "@/components/workspaces/accounting-workspace";
 import { CustomerAccountsPage } from "@/components/workspaces/customer-accounts-workspace";
+import { LicenceQueue } from "@/components/license-desk";
 
 
 
@@ -82,7 +83,7 @@ function FinanceHub() {
         <WorkspaceTabs tabs={FINANCE_TABS as any} active={active} to="/finance" colorful onBeforeChange={reserveViewingDepth} />
       </div>
       <div ref={tabBodyRef}>
-        {active === "overview" && <FinanceWorkspace />}
+        {active === "overview" && <><div className="mb-4"><LicenceQueue mode="finance" /></div><FinanceWorkspace /></>}
         {active === "invoices" && <BillingPage />}
         {active === "payments" && <PaymentsPage />}
         {active === "customer-accounts" && <CustomerAccountsPage />}
