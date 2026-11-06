@@ -26,6 +26,7 @@ import { TicketWorkbench } from "@/components/techops/ticket-workbench";
 import { FleetPage } from "@/components/techops/fleet-section";
 import { AccountPortfolio } from "@/components/account-portfolio";
 import { ClientResourcesSection } from "@/components/techops/client-resources-section";
+import { VendorLicensing } from "@/components/vendor-licensing";
 
 export const Route = createFileRoute("/noc")({
   head: () => ({
@@ -139,6 +140,7 @@ function NocPage() {
       <Tabs defaultValue={tab ?? "resources"} className="min-w-0 max-w-full">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="resources">Client Resources</TabsTrigger>
+          <TabsTrigger value="licensing">Licensing</TabsTrigger>
           <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
           <TabsTrigger value="workbench">Ticket Workbench</TabsTrigger>
           <TabsTrigger value="servers">Servers</TabsTrigger>
@@ -154,6 +156,7 @@ function NocPage() {
         </TabsList>
 
         <TabsContent value="resources" className="mt-4"><ClientResourcesSection /></TabsContent>
+        <TabsContent value="licensing" className="mt-4"><VendorLicensing /></TabsContent>
         <TabsContent value="telemetry" className="mt-4"><TelemetrySection /></TabsContent>
         <TabsContent value="workbench" className="mt-4"><TicketWorkbench /></TabsContent>
         <TabsContent value="health" className="mt-4">

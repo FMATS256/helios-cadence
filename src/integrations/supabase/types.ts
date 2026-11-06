@@ -6976,6 +6976,228 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_license_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          customer_id: string
+          existing_serial: string | null
+          expiry_date: string | null
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          fulfilled_expiry: string | null
+          fulfilled_license_key: string | null
+          id: string
+          license_id: string | null
+          notes: string | null
+          order_type: string
+          product: string
+          quantity: number
+          requested_by: string | null
+          status: string
+          tenant_id: string | null
+          term_months: number
+          unit_price: number | null
+          updated_at: string
+          vendor: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_id: string
+          existing_serial?: string | null
+          expiry_date?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          fulfilled_expiry?: string | null
+          fulfilled_license_key?: string | null
+          id?: string
+          license_id?: string | null
+          notes?: string | null
+          order_type?: string
+          product: string
+          quantity?: number
+          requested_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          term_months?: number
+          unit_price?: number | null
+          updated_at?: string
+          vendor: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          customer_id?: string
+          existing_serial?: string | null
+          expiry_date?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          fulfilled_expiry?: string | null
+          fulfilled_license_key?: string | null
+          id?: string
+          license_id?: string | null
+          notes?: string | null
+          order_type?: string
+          product?: string
+          quantity?: number
+          requested_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          term_months?: number
+          unit_price?: number | null
+          updated_at?: string
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_license_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_license_orders_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_license_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_licenses: {
+        Row: {
+          auto_renew: boolean
+          billing_cycle: string
+          created_at: string
+          customer_id: string
+          expiry_date: string | null
+          id: string
+          license_key: string | null
+          product: string
+          seats: number
+          start_date: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          vendor: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          billing_cycle?: string
+          created_at?: string
+          customer_id: string
+          expiry_date?: string | null
+          id?: string
+          license_key?: string | null
+          product: string
+          seats?: number
+          start_date?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendor: string
+        }
+        Update: {
+          auto_renew?: boolean
+          billing_cycle?: string
+          created_at?: string
+          customer_id?: string
+          expiry_date?: string | null
+          id?: string
+          license_key?: string | null
+          product?: string
+          seats?: number
+          start_date?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_licenses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_licenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_tenants: {
+        Row: {
+          admin_email: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          data_region: string | null
+          external_id: string | null
+          id: string
+          notes: string | null
+          status: string
+          tenant_domain: string | null
+          tenant_name: string
+          updated_at: string
+          vendor: string
+        }
+        Insert: {
+          admin_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          data_region?: string | null
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tenant_domain?: string | null
+          tenant_name: string
+          updated_at?: string
+          vendor: string
+        }
+        Update: {
+          admin_email?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          data_region?: string | null
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tenant_domain?: string | null
+          tenant_name?: string
+          updated_at?: string
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_tenants_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           address: string | null

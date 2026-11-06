@@ -34,4 +34,4 @@
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
 - Customer 360 desk actions log to service_ops_events as the acting staff member.
 
-- Sophos orders: Finance/admin approval via DB trigger; only the integration sets provisioned.
+- Vendor licensing: one component; DB trigger enforces approval/fulfilment.
