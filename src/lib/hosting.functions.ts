@@ -6,7 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const HOSTING_ROLES = ["operations_manager", "cloud_engineer", "technical_support"];
+const HOSTING_ROLES = ["operations_manager", "cloud_engineer", "technical_support", "noc"];
 const STORAGE_ROLES = ["operations_manager", "cloud_engineer"];
 
 /* ------------------------------------------------------------------ *
