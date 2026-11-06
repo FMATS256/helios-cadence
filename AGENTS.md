@@ -27,11 +27,11 @@
 - The Personal Assistant (/assistant) is per-user and read-only: tools use the caller's RLS client and owner-only tables, so it sees only that user's data and never sends mail or changes records.
 - Personal Assistant actions (client emails, follow-ups, draft quotations) are proposals executed only after owner approval in-app or via a tokenised emailed confirm page (GET shows, POST runs); client mail sends from the configured client mailbox, owner reports from the assistant mailbox, one daily report per user-day.
 - Emails to the assistant mailbox from a master-admin owner's saved address are answered via the read-only assistant (system-wide lookup tool) and replied only to the owner's stored address, claimed once per provider id; not filed as enquiries.
-- Firewall is Vultr-only, staff-only, logged, with no public sensitive ports; provider orders and rebuild/restore/app-install need ops-manager/master-admin approval (no non-master self-approval).
+- Firewall is Vultr-only, staff-only, logged, no public sensitive ports; provider orders/rebuild/restore/app-install need ops-manager/master-admin approval.
 - Scheduled hooks under /api/public/hooks require Bearer AGENT_WEBHOOK_SECRET via public.invoke_internal_hook; test mail goes only to the caller, customer mail to recorded contacts.
 - Staff access is department-based: one page map (src/lib/department-access.ts) drives menu, page guard and dashboards, mirrored by is_finance_staff/is_tech_staff/is_sales_staff/manages_customer database policies, so hidden pages are also unreadable data.
 - POS sales stay pending until Finance reconciles them (posting cash, payment/invoice, ledger); DB triggers block non-Finance edits to reconciled sales/closeouts, (separation of duties).
 - New portal logins auto-provision pending WHM hosting, plus a mailbox only for an email on that domain; passwords go to the Vault, failures never block onboarding.
 - Customer 360 desk actions log outcomes to service_ops_events (tech/ops staff insert as themselves) so live changes are attributable.
 
-- Sophos orders need Finance/admin approval (no self-approval, DB trigger); only the server integration sets provisioned states.
+- Sophos orders: Finance/admin approval via DB trigger; only the integration sets provisioned.
