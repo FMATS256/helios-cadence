@@ -1,6 +1,6 @@
 import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { CustomerSalesDesk } from "@/components/customer-sales-desk";
+import { CustomerSalesDesk, CustomerPendingPayments } from "@/components/customer-sales-desk";
 import { QuoteBuilderDialog } from "@/components/quote-builder";
 import { useRoles } from "@/hooks/use-roles";
 import { customerSalesPermissions } from "@/lib/customer-sales.shared";
@@ -1234,6 +1234,7 @@ function Customer360() {
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4">
+          <CustomerPendingPayments customerId={customer.id} />
           {(() => {
             const real = (payments as any[]).filter((p) => p.method !== "account_credit");
             const total = real.reduce((s, p) => s + Number(p.amount || 0), 0);

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRoles } from '@/hooks/use-roles';
 import { customerSalesPermissions, quoteCanConvert } from '@/lib/customer-sales.shared';
 import { convertQuoteToInvoice, getQuotePdf, sendQuoteToCustomer, setQuoteOutcome } from '@/lib/quotes.functions';
 import { emailInvoice, getStaffInvoicePdf } from '@/lib/finance.functions';
+import { getSubmissionContext } from '@/lib/payment-submissions.functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,15 @@ import { Check, CreditCard, Download, FileCheck, Mail, Pencil, Plus, Receipt } f
 import { toast } from 'sonner';
 
 const money = (value: number, currency = 'USD') => `${currency} ${Number(value || 0).toFixed(2)}`;
+
+export function CustomerPendingPayments({ customerId }: { customerId: string }) {
+  const { roles } = useRoles();
+  const load = useServerFn(getSubmissionContext);
+  const { data } = useQuery({ queryKey: ['submission-context', customerId], queryFn: () => load({ data: { customer_id: customerId } }), enabled: customerSalesPermissions(roles).canSubmitPayment });
+  const submissions = (data?.submissions ?? []).filter((s: any) => ['pending', 'clarification'].includes(s.status));
+  if (!submissions.length) return null;
+  return <section className="mb-4 space-y-2 border-b border-border pb-4"><h3 className="font-semibold">Awaiting Finance verification</h3>{submissions.map((s: any) => <div key={s.id} className="flex flex-wrap justify-between gap-2 text-sm"><span>{s.payment_date} · {s.method.replace(/_/g, ' ')} · {s.reference || 'No reference'}</span><span className="font-mono">{money(s.amount, s.currency)}</span><StatusPill tone="warning">{s.status}</StatusPill></div>)}</section>;
+}
 
 function savePdf(file: { filename: string; base64: string }) {
   const bytes = Uint8Array.from(atob(file.base64), c => c.charCodeAt(0));

@@ -245,10 +245,12 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
 
     // Destination account: NMB bank, cash drawer or mobile money.
     let accountId: string | null = null;
+    if (!data.cash_account_id) throw new Error("Select the bank or cash account that received the money");
     if (data.cash_account_id) {
       const { data: acc } = await db.from("cash_accounts")
-        .select("id,is_active").eq("id", data.cash_account_id).maybeSingle();
+        .select("id,is_active,currency").eq("id", data.cash_account_id).maybeSingle();
       if (!acc || !acc.is_active) throw new Error("Select an active bank, cash or mobile money account");
+      if (acc.currency !== (data.currency || "USD")) throw new Error("Payment currency must match the receiving account");
       accountId = acc.id;
     }
 
