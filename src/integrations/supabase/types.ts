@@ -5309,6 +5309,8 @@ export type Database = {
       }
       quote_line_items: {
         Row: {
+          billing_period_end: string | null
+          billing_period_start: string | null
           created_at: string
           description: string
           id: string
@@ -5321,6 +5323,8 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           description: string
           id?: string
@@ -5333,6 +5337,8 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -7952,6 +7958,10 @@ export type Database = {
       configure_finance_statement_schedule: {
         Args: { secret_value: string }
         Returns: undefined
+      }
+      convert_customer_quote: {
+        Args: { p_due_days?: number; p_quote_id: string }
+        Returns: Json
       }
       finance_statement_schedule_status: { Args: never; Returns: boolean }
       gen_customer_account_number: { Args: never; Returns: string }

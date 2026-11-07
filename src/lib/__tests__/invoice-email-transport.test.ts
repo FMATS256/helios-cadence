@@ -28,4 +28,11 @@ describe('invoice PDF transport', () => {
     mocks.send.mockResolvedValue({ ok: false, error: 'Gateway 422: invalid attachment' })
     expect(await sendResendEmail(options())).toEqual({ sent: false, error: 'Gateway 422: invalid attachment' })
   })
+  it('quotation PDFs also use the existing IMT gateway with exact attachment bytes', async () => {
+    const quote = { ...options(), templateName: 'quote', attachments: [{ filename: 'QT-2026-0005.pdf', content: new Uint8Array([37, 80, 68, 70, 45]), contentType: 'application/pdf' }] }
+    expect(await sendResendEmail(quote)).toEqual({ sent: true, id: 'confirmed-id' })
+    const attachment = mocks.send.mock.calls[0]?.[0].attachments[0]
+    expect(attachment.filename).toBe('QT-2026-0005.pdf')
+    expect(Array.from(attachment.content)).toEqual([37, 80, 68, 70, 45])
+  })
 })

@@ -1,5 +1,9 @@
 import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { CustomerSalesDesk, CustomerPendingPayments } from "@/components/customer-sales-desk";
+import { QuoteBuilderDialog } from "@/components/quote-builder";
+import { useRoles } from "@/hooks/use-roles";
+import { customerSalesPermissions } from "@/lib/customer-sales.shared";
 import { ComposeEmailDialog } from "@/components/compose-email-dialog";
 import { AccountAccessPanel } from "@/components/account-access-panel";
 import { useState, useMemo, useRef } from "react";
@@ -216,6 +220,8 @@ function Customer360() {
     });
   };
   const { user } = useAuth();
+  const { roles } = useRoles();
+  const salesPermissions = customerSalesPermissions(roles);
   const qc = useQueryClient();
   const fetch360 = useServerFn(getCustomer360);
   const genInvoice = useServerFn(generateInvoiceForSubscription);
@@ -641,8 +647,8 @@ function Customer360() {
             overview: true, services: subscriptions.length + services.length + packages.length > 0,
             "services-mgmt": subscriptions.length > 0, packages: packages.length > 0,
             subscriptions: subscriptions.length > 0, transactions: (invoices.length + payments.length) > 0,
-            invoices: invoices.length > 0, payments: payments.length > 0,
-            quotes: quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
+            invoices: true, payments: true,
+            quotes: salesPermissions.canQuote || quotes.length > 0, assets: assets.length > 0, tickets: tickets.length > 0,
             renewals: renewalsAll.length > 0, licences: true, contacts: (contacts.length + branches.length) > 0,
             credentials: credentials.length > 0, comms: communications.length > 0,
             timeline: timeline.length > 0, notes: true, access: true, desk: true,
@@ -1224,24 +1230,11 @@ function Customer360() {
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-4">
-          <Card><CardContent className="p-0 divide-y">
-            {invoices.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No invoices yet.</p>}
-            {invoices.map((i: any) => (
-              <Link key={i.id} to="/invoices/$id" params={{ id: i.id }} className="p-4 flex items-center justify-between hover:bg-muted/30">
-                <div>
-                  <p className="font-mono text-sm font-semibold">{i.invoice_number}</p>
-                  <p className="text-xs text-muted-foreground">Issued {i.issue_date} · Due {i.due_date || "—"}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono">{money(i.total, i.currency)}</span>
-                  <StatusPill tone={i.status === "paid" ? "success" : i.status === "overdue" ? "danger" : "info"}>{i.status}</StatusPill>
-                </div>
-              </Link>
-            ))}
-          </CardContent></Card>
+          <CustomerSalesDesk customer={customer} invoices={invoices} mode="invoices" />
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4">
+          <CustomerPendingPayments customerId={customer.id} />
           {(() => {
             const real = (payments as any[]).filter((p) => p.method !== "account_credit");
             const total = real.reduce((s, p) => s + Number(p.amount || 0), 0);
@@ -1281,21 +1274,7 @@ function Customer360() {
         </TabsContent>
 
         <TabsContent value="quotes" className="mt-4">
-          <Card><CardContent className="p-0 divide-y">
-            {quotes.length === 0 && <p className="text-sm text-muted-foreground text-center py-12">No quotes yet.</p>}
-            {quotes.map((q: any) => (
-              <div key={q.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-mono text-sm font-semibold">{q.quote_number}</p>
-                  <p className="text-xs text-muted-foreground">{q.title || "—"} · {new Date(q.created_at).toLocaleDateString()}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono">{money(q.total, q.currency)}</span>
-                  <StatusPill tone={q.status === "accepted" ? "success" : "neutral"}>{q.status}</StatusPill>
-                </div>
-              </div>
-            ))}
-          </CardContent></Card>
+          <CustomerSalesDesk customer={customer} quotes={quotes} />
         </TabsContent>
 
         <TabsContent value="assets" className="mt-4">
@@ -1676,6 +1655,8 @@ function IspHeroPane(props: {
 }) {
   const { view, stats, onLifecycle, onSendReminder, onEdit, onRefresh } = props;
   const customer = view.customer as any;
+  const { roles } = useRoles();
+  const salesPermissions = customerSalesPermissions(roles);
   const ctx: ClientContext = {
     customerId: customer.id,
     accountNumber: customer.account_number,
@@ -1735,9 +1716,9 @@ function IspHeroPane(props: {
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
         <ActionBtn tone="emerald" icon={Receipt}     label="Request Invoice"    onClick={() => setOpen("invoice")} />
-        <ActionBtn tone="emerald" icon={DollarSign}  label="Receive Payment"    onClick={() => setOpen("cash")} />
-        <ActionBtn tone="sky"     icon={CreditCard}  label="Submit Payment"     onClick={() => setOpen("payment")} />
-        <ActionBtn tone="indigo"  icon={FileCheck}   label="New Quotation"      onClick={() => setOpen("quote")} />
+        {salesPermissions.canRecordPayment && <ActionBtn tone="emerald" icon={DollarSign} label="Receive Payment" onClick={() => setOpen("cash")} />}
+        {salesPermissions.canSubmitPayment && <ActionBtn tone="sky" icon={CreditCard} label="Submit Cash / Bank Payment" onClick={() => setOpen("payment")} />}
+        {salesPermissions.canQuote && <ActionBtn tone="indigo" icon={FileCheck} label="New Quotation" onClick={() => setOpen("quote")} />}
         <ComposeEmailDialog
           accountNumber={customer.account_number}
           trigger={
@@ -1803,7 +1784,7 @@ function IspHeroPane(props: {
         <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
       )}
       {open === "cash"    && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
-      {open === "quote"   && <CreateQuoteDialog   ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "quote" && <QuoteBuilderDialog open onOpenChange={(v) => { if (!v) setOpen(null); }} customers={[customer]} defaultCustomerId={customer.id} onSaved={onRefresh} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "comm"    && <LogCommDialog       ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "tech"    && <AssignTechDialog    ctx={ctx} onClose={() => setOpen(null)} defaults={{ service_type: view.cloudServers.length ? "cloud" : view.voip.length ? "voip" : "general" }} />}

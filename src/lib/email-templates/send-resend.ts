@@ -128,7 +128,7 @@ export async function sendResendEmail(
   // Resend is the attachment-capable sender; when its connector is not linked
   // in this workspace, fall back to the IMT website mail gateway (the canonical
   // outbound transport) instead of failing the send.
-  const useImtGateway = options.templateName === 'invoice' || !resendKey
+  const useImtGateway = ['invoice', 'quote'].includes(options.templateName) || !resendKey
   if (!useImtGateway && !apiKey) throw new Error('LOVABLE_API_KEY is not configured')
 
   const template = TEMPLATES[options.templateName]
@@ -158,7 +158,7 @@ export async function sendResendEmail(
     sampleDataOverride: templateData,
     supabase,
     // Invoices must never fall back to a saved legacy boxed HTML design.
-    draft: options.templateName === 'invoice' ? { mode: 'code' } : undefined,
+    draft: ['invoice', 'quote'].includes(options.templateName) ? { mode: 'code' } : undefined,
   })
   const { text, subject } = rendered
   const html = options.signatureHtml

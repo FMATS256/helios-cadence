@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { Button, Section, Text } from '@react-email/components'
+import { Body, Head, Html, Preview, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
-import { BRAND, DetailRow, EmailShell, greeting, styles } from './_brand'
+import { BRAND, greeting } from './_brand'
 
 interface LineItem { description: string; quantity: number; unit_price: number; line_total: number }
 interface Props {
@@ -38,62 +38,19 @@ export const QuoteEmail = ({
   quoteUrl,
   message,
 }: Props) => {
-  const hasDoc = Boolean(quoteUrl && quoteUrl !== BRAND.siteUrl)
   return (
-  <EmailShell
-    preview={`Quotation ${quoteNumber} — ${fmt(total, currency)}`}
-    kicker="Quotation"
-    title={`Quote ${quoteNumber}`}
-    subtitle={`${title} · ${fmt(total, currency)}`}
-  >
-    <Text style={styles.text}>{greeting(recipientTitle, companyName)}</Text>
-    <Text style={styles.text}>
-      {message || (hasDoc
-        ? 'Please find your quotation below. The attached document contains the full breakdown and terms.'
-        : 'Please find your quotation below.')}
-    </Text>
-
-    <Section style={styles.card}>
-      <Text style={styles.cardTitle}>Quotation Details</Text>
-      <DetailRow label="Quote Number" value={quoteNumber} />
-      <DetailRow label="Reference" value={title} />
-      <DetailRow label="Issued" value={issueDate} />
-      <DetailRow label="Valid Until" value={validUntil} />
-    </Section>
-
-    <Section style={styles.card}>
-      <Text style={styles.cardTitle}>Products & Services</Text>
-      {items.map((it, i) => (
-        <Text key={i} style={styles.row}>
-          <span style={{ ...styles.rowValue, display: 'block' }}>{it.description}</span>
-          <span style={styles.rowLabel}>Qty {it.quantity} × {fmt(it.unit_price, currency)}</span>
-          <span style={{ float: 'right', ...styles.rowValue }}>{fmt(it.line_total, currency)}</span>
-        </Text>
-      ))}
-      <Text style={{ ...styles.row, borderTop: `1px solid ${BRAND.border}`, paddingTop: '10px', marginTop: '10px' }}>
-        <span style={styles.rowLabel}>Subtotal</span>
-        <span style={{ float: 'right' }}>{fmt(subtotal, currency)}</span>
-      </Text>
-      {tax > 0 && (
-        <Text style={styles.row}>
-          <span style={styles.rowLabel}>Tax</span>
-          <span style={{ float: 'right' }}>{fmt(tax, currency)}</span>
-        </Text>
-      )}
-      <Text style={{ ...styles.row, fontSize: '16px', color: BRAND.teal, fontWeight: 700 }}>
-        <span>Total</span>
-        <span style={{ float: 'right' }}>{fmt(total, currency)}</span>
-      </Text>
-    </Section>
-
-    {hasDoc && (
-      <Section style={{ textAlign: 'center', margin: '10px 0 24px' }}>
-        <Button style={styles.button} href={quoteUrl}>View Quotation</Button>
-      </Section>
-    )}
-  </EmailShell>
+  <Html lang="en"><Head /><Preview>{`Quotation ${quoteNumber} — ${fmt(total, currency)}`}</Preview>
+    <Body style={{ backgroundColor: '#ffffff', color: BRAND.ink, fontFamily: 'Arial, Helvetica, sans-serif', padding: '16px' }}>
+      <Text style={paragraph}>{greeting(recipientTitle, companyName)}</Text>
+      <Text style={paragraph}>{message || `Please find attached quotation ${quoteNumber} for ${title}, totalling ${fmt(total, currency)}.`}</Text>
+      <Text style={paragraph}>The attached PDF contains the full breakdown and terms.{validUntil ? ` This quotation is valid until ${validUntil}.` : ''}</Text>
+      <Text style={paragraph}>Please reply to confirm acceptance or request any changes.</Text>
+    </Body>
+  </Html>
   )
 }
+
+const paragraph = { fontSize: '14px', lineHeight: '21px', margin: '0 0 16px' }
 
 export default QuoteEmail
 

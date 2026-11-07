@@ -49,7 +49,7 @@ export function SubmitPaymentDialog({
 
   const activeCustomer = customerId ?? customer;
 
-  const { data: ctx } = useQuery({
+  const { data: ctx, isLoading: contextLoading, error: contextError } = useQuery({
     queryKey: ["submission-context", activeCustomer],
     queryFn: () => loadCtx({ data: { customer_id: activeCustomer } }),
     enabled: open && !!activeCustomer,
@@ -69,6 +69,7 @@ export function SubmitPaymentDialog({
     if (!activeCustomer) return toast.error("Select a customer");
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return toast.error("Enter the amount received");
+    if (!activeAccount) return toast.error("Select the bank or cash account that received the money");
     setBusy(true);
     try {
       let proofId: string | null = null;
@@ -95,6 +96,7 @@ export function SubmitPaymentDialog({
           customer_id: activeCustomer,
           invoice_id: invoice === "none" ? null : invoice,
           amount: value,
+          currency: selected?.currency || accounts.find(a => a.id === activeAccount)?.currency || "USD",
           method,
           payment_date: date,
           reference: reference.trim() || null,
@@ -129,6 +131,7 @@ export function SubmitPaymentDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {contextError && <p className="text-sm text-destructive">{contextError instanceof Error ? contextError.message : "Payment details could not be loaded"}</p>}
           {!customerId && (
             <div>
               <Label>Customer</Label>
@@ -227,7 +230,7 @@ export function SubmitPaymentDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={busy} onClick={() => send(false)}>
+          <Button disabled={busy || contextLoading || !!contextError || !activeAccount} onClick={() => send(false)}>
             <Send className="mr-1.5 h-4 w-4" />{busy ? "Submitting…" : "Submit to billing"}
           </Button>
         </DialogFooter>

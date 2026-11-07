@@ -19,12 +19,15 @@ import { INDUSTRY_BUNDLES, resolveBundle } from "@/lib/industry-bundles.shared";
 
 export interface QuoteLineDraft {
   description: string;
+  item_code?: string;
+  billing_period_start?: string;
+  billing_period_end?: string;
   quantity: string;
   unit_price: string;
   tax_rate: string;
 }
 
-const emptyLine = (): QuoteLineDraft => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "0" });
+const emptyLine = (): QuoteLineDraft => ({ description: "", quantity: "1", unit_price: "0", tax_rate: "15.5" });
 
 const fmt = (n: number, cur: string) =>
   `${cur} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -125,6 +128,9 @@ export function QuoteBuilderDialog({
         (existing.lines ?? []).length
           ? (existing.lines as any[]).map((l) => ({
               description: l.description ?? "",
+              item_code: l.item_code ?? "",
+              billing_period_start: l.billing_period_start ?? "",
+              billing_period_end: l.billing_period_end ?? "",
               quantity: String(l.quantity ?? 1),
               unit_price: String(l.unit_price ?? 0),
               tax_rate: String(l.tax_rate ?? 0),
@@ -167,9 +173,10 @@ export function QuoteBuilderDialog({
     const suffix = row.billing_cycle && row.billing_cycle !== "one_time" ? ` — ${String(row.billing_cycle).replace(/_/g, " ")}` : "";
     const draft: QuoteLineDraft = {
       description: desc + suffix,
+      item_code: row.code ?? "",
       quantity: "1",
       unit_price: String(row.price ?? 0),
-      tax_rate: "0",
+      tax_rate: "15.5",
     };
     setLines((prev) => {
       const blank = prev.length === 1 && !prev[0].description.trim() && !Number(prev[0].unit_price);
@@ -190,7 +197,7 @@ export function QuoteBuilderDialog({
     if (!rows.length) { toast.error(`${bundle.name}: none of its products are on sale`); return; }
     const drafts: QuoteLineDraft[] = rows.map(({ row, qty }: any) => {
       const suffix = row.billing_cycle && row.billing_cycle !== "one_time" ? ` — ${String(row.billing_cycle).replace(/_/g, " ")}` : "";
-      return { description: `${row.name} (${row.code})${suffix}`, quantity: String(qty), unit_price: String(row.price ?? 0), tax_rate: "0" };
+      return { item_code: row.code, description: `${row.name} (${row.code})${suffix}`, quantity: String(qty), unit_price: String(row.price ?? 0), tax_rate: "15.5" };
     });
     setLines((prev) => {
       const blank = prev.length === 1 && !prev[0].description.trim() && !Number(prev[0].unit_price);
@@ -238,6 +245,9 @@ export function QuoteBuilderDialog({
           discount: Number(form.discount) || 0,
           lines: lines.map((l) => ({
             description: l.description,
+            item_code: l.item_code || undefined,
+            billing_period_start: l.billing_period_start || null,
+            billing_period_end: l.billing_period_end || null,
             quantity: Number(l.quantity) || 0,
             unit_price: Number(l.unit_price) || 0,
             tax_rate: Number(l.tax_rate) || 0,
@@ -426,6 +436,11 @@ export function QuoteBuilderDialog({
                     <tr key={i}>
                       <td className="p-2">
                         <Input value={l.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Item description" />
+                        <Input className="mt-1" aria-label={`Item code ${i + 1}`} value={l.item_code ?? ""} onChange={(e) => setLine(i, { item_code: e.target.value })} placeholder="Item Code / SKU" />
+                        <div className="mt-1 flex gap-1">
+                          <Input aria-label={`Service period start ${i + 1}`} title="Service period start (optional)" type="date" value={l.billing_period_start ?? ""} onChange={(e) => setLine(i, { billing_period_start: e.target.value })} />
+                          <Input aria-label={`Service period end ${i + 1}`} title="Service period end (optional)" type="date" value={l.billing_period_end ?? ""} onChange={(e) => setLine(i, { billing_period_end: e.target.value })} />
+                        </div>
                       </td>
                       <td className="p-2"><Input className="text-right" type="number" step="1" value={l.quantity} onChange={(e) => setLine(i, { quantity: e.target.value })} /></td>
                       <td className="p-2"><Input className="text-right" type="number" step="0.01" value={l.unit_price} onChange={(e) => setLine(i, { unit_price: e.target.value })} /></td>
