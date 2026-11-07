@@ -344,6 +344,13 @@
       "when": 1793991808347,
       "tag": "0048_work_order_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794027556329,
+      "tag": "0049_atomic_customer_quote_conversion",
+      "breakpoints": true
     }
   ]
 }
