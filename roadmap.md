@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Open
+- [ ] Customer 360: complete quotation builder, client PDF sending, account-manager invoice conversion and cash/bank submissions with Finance-only posting; verify permissions and signed-in flow.
 - [ ] Connect Kaspersky Security Center live client devices, protection status and alerts to Customer 360; blocked by confirmation of Kaspersky product, reachable Administration Server address and authorized read-only connection, then client-to-Kaspersky group mapping.
 - [x] Replaced boxed invoice emails with business correspondence and one signature; two PDF transport tests pass. INV-01027 test accepted by the website gateway for fmats256@gmail.com, with sender copy to Ammara. Recipient inbox receipt remains unconfirmed.
 - Project moved to a new workspace: integrations from the previous workspace must be relinked one by one. Firecrawl is done; other previously used services still need connecting as the user names them.
