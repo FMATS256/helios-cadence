@@ -1504,7 +1504,7 @@ function ispChips(view: Customer360View): Chip[] {
   } else if (view.assets.length) {
     chips.push({ label: "ASSIGNED ASSETS", value: view.assets.length, color: "#7c3aed", text: "#ffffff" });
   } else {
-    chips.push({ label: "ACTIVE SERVICES", value: s.activeServices, color: "#7c3aed", text: "#ffffff" });
+    chips.push({ label: "QUOTATIONS", value: (view.quotes as any[]).length, color: "#7c3aed", text: "#ffffff" });
   }
 
   if (view.cloudServers.length) {
@@ -1513,10 +1513,10 @@ function ispChips(view: Customer360View): Chip[] {
     chips.push({ label: "MONITORS UP", value: `${s.monitorsUp}/${view.monitoringChecks.length}`, color: "#2563eb", text: "#ffffff" });
   } else if (view.webHosting.length) {
     chips.push({ label: "HOSTING ACCOUNTS", value: view.webHosting.length, color: "#2563eb", text: "#ffffff" });
-  } else if (s.openTickets > 0) {
-    chips.push({ label: "OPEN TICKETS", value: s.openTickets, color: "#2563eb", text: "#ffffff" });
-  } else {
+  } else if (s.activeSubscriptions > 0) {
     chips.push({ label: "SUBSCRIPTIONS", value: s.activeSubscriptions, color: "#2563eb", text: "#ffffff" });
+  } else {
+    chips.push({ label: "INVOICES", value: (view.invoices as any[]).length, color: "#2563eb", text: "#ffffff" });
   }
 
   const nextR = collectRenewals(view, 365)[0];
@@ -1524,10 +1524,8 @@ function ispChips(view: Customer360View): Chip[] {
     chips.push({ label: "EXPIRATION", value: new Date(nextR.date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
   } else if ((view.customer as any)?.contract_end_date) {
     chips.push({ label: "CONTRACT ENDS", value: new Date((view.customer as any).contract_end_date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
-  } else if ((view.customer as any)?.created_at) {
-    chips.push({ label: "CUSTOMER SINCE", value: String(new Date((view.customer as any).created_at).getFullYear()), color: "#ea580c", text: "#ffffff" });
   } else {
-    chips.push({ label: "STATUS", value: (view.customer as any)?.status || "active", color: "#ea580c", text: "#ffffff" });
+    chips.push({ label: "CONTACTS", value: view.contacts.length, color: "#ea580c", text: "#ffffff" });
   }
 
   const credit = Number((view.customer as any)?.credit_balance || 0);
@@ -1536,7 +1534,8 @@ function ispChips(view: Customer360View): Chip[] {
   } else if (view.starlink.length || view.voip.length) {
     chips.push({ label: "PREPAID SERVICES", value: view.starlink.length + view.voip.length, color: "#0d9488", text: "#ffffff" });
   } else {
-    chips.push({ label: "MRR", value: money(s.mrr), color: "#0d9488", text: "#ffffff" });
+    const openQuotes = (view.quotes as any[]).filter((q) => ["draft", "sent", "viewed"].includes(String(q.status))).length;
+    chips.push({ label: "OPEN QUOTES", value: openQuotes, color: "#0d9488", text: "#ffffff" });
   }
 
   const cutoff = Date.now() - 90 * 86400000;
@@ -1545,7 +1544,10 @@ function ispChips(view: Customer360View): Chip[] {
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   chips.push({ label: "PAID (90d)", value: money(paid90), color: "#10b981", text: "#ffffff" });
 
-  chips.push({ label: "BALANCE DUE", value: money(s.openInvoiceTotal), color: "#dc2626", text: "#ffffff" });
+  const totalInvoiced = (view.invoices as any[])
+    .filter((i) => !["void", "cancelled", "draft"].includes(String(i.status)))
+    .reduce((sum, i) => sum + Number(i.total || 0), 0);
+  chips.push({ label: "TOTAL INVOICED", value: money(totalInvoiced), color: "#dc2626", text: "#ffffff" });
   return chips;
 }
 
