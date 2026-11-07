@@ -1617,7 +1617,6 @@ function IspHeroPane(props: {
 
   const chips = useMemo(() => ispChips(view), [view]);
   const info = useMemo(() => ispQuickInfo(view), [view]);
-  const arr = stats.mrr * 12;
   const suspended = customer?.status !== "active";
 
   const hasPrepaid = view.starlink.length > 0 || view.voip.length > 0;
