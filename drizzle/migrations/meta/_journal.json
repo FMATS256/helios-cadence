@@ -351,6 +351,13 @@
       "when": 1794027556329,
       "tag": "0049_atomic_customer_quote_conversion",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794027749120,
+      "tag": "0050_quote_conversion_timeline_fields",
+      "breakpoints": true
     }
   ]
 }
