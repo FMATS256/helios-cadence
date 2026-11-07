@@ -1504,7 +1504,7 @@ function ispChips(view: Customer360View): Chip[] {
   } else if (view.assets.length) {
     chips.push({ label: "ASSIGNED ASSETS", value: view.assets.length, color: "#7c3aed", text: "#ffffff" });
   } else {
-    chips.push({ label: "ACTIVE SERVICES", value: s.activeServices, color: "#7c3aed", text: "#ffffff" });
+    chips.push({ label: "QUOTATIONS", value: (view.quotes as any[]).length, color: "#7c3aed", text: "#ffffff" });
   }
 
   if (view.cloudServers.length) {
@@ -1513,10 +1513,10 @@ function ispChips(view: Customer360View): Chip[] {
     chips.push({ label: "MONITORS UP", value: `${s.monitorsUp}/${view.monitoringChecks.length}`, color: "#2563eb", text: "#ffffff" });
   } else if (view.webHosting.length) {
     chips.push({ label: "HOSTING ACCOUNTS", value: view.webHosting.length, color: "#2563eb", text: "#ffffff" });
-  } else if (s.openTickets > 0) {
-    chips.push({ label: "OPEN TICKETS", value: s.openTickets, color: "#2563eb", text: "#ffffff" });
-  } else {
+  } else if (s.activeSubscriptions > 0) {
     chips.push({ label: "SUBSCRIPTIONS", value: s.activeSubscriptions, color: "#2563eb", text: "#ffffff" });
+  } else {
+    chips.push({ label: "INVOICES", value: (view.invoices as any[]).length, color: "#2563eb", text: "#ffffff" });
   }
 
   const nextR = collectRenewals(view, 365)[0];
@@ -1524,10 +1524,8 @@ function ispChips(view: Customer360View): Chip[] {
     chips.push({ label: "EXPIRATION", value: new Date(nextR.date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
   } else if ((view.customer as any)?.contract_end_date) {
     chips.push({ label: "CONTRACT ENDS", value: new Date((view.customer as any).contract_end_date).toLocaleDateString(), color: "#ea580c", text: "#ffffff" });
-  } else if ((view.customer as any)?.created_at) {
-    chips.push({ label: "CUSTOMER SINCE", value: String(new Date((view.customer as any).created_at).getFullYear()), color: "#ea580c", text: "#ffffff" });
   } else {
-    chips.push({ label: "STATUS", value: (view.customer as any)?.status || "active", color: "#ea580c", text: "#ffffff" });
+    chips.push({ label: "CONTACTS", value: view.contacts.length, color: "#ea580c", text: "#ffffff" });
   }
 
   const credit = Number((view.customer as any)?.credit_balance || 0);
@@ -1536,7 +1534,8 @@ function ispChips(view: Customer360View): Chip[] {
   } else if (view.starlink.length || view.voip.length) {
     chips.push({ label: "PREPAID SERVICES", value: view.starlink.length + view.voip.length, color: "#0d9488", text: "#ffffff" });
   } else {
-    chips.push({ label: "MRR", value: money(s.mrr), color: "#0d9488", text: "#ffffff" });
+    const openQuotes = (view.quotes as any[]).filter((q) => ["draft", "sent", "viewed"].includes(String(q.status))).length;
+    chips.push({ label: "OPEN QUOTES", value: openQuotes, color: "#0d9488", text: "#ffffff" });
   }
 
   const cutoff = Date.now() - 90 * 86400000;
@@ -1545,7 +1544,10 @@ function ispChips(view: Customer360View): Chip[] {
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   chips.push({ label: "PAID (90d)", value: money(paid90), color: "#10b981", text: "#ffffff" });
 
-  chips.push({ label: "BALANCE DUE", value: money(s.openInvoiceTotal), color: "#dc2626", text: "#ffffff" });
+  const totalInvoiced = (view.invoices as any[])
+    .filter((i) => !["void", "cancelled", "draft"].includes(String(i.status)))
+    .reduce((sum, i) => sum + Number(i.total || 0), 0);
+  chips.push({ label: "TOTAL INVOICED", value: money(totalInvoiced), color: "#dc2626", text: "#ffffff" });
   return chips;
 }
 
@@ -1580,9 +1582,6 @@ function ispQuickInfo(view: Customer360View): Array<{ label: string; value: stri
   if (lastPay?.paid_at) rows.push({ label: "Last Payment", value: new Date(lastPay.paid_at).toLocaleDateString(), sub: `${lastPay.currency || "USD"} ${Number(lastPay.amount || 0).toFixed(2)}` });
 
   const c = view.customer as any;
-  if (c?.created_at) rows.push({ label: "Registered On", value: new Date(c.created_at).toLocaleDateString() });
-  if (c?.account_type) rows.push({ label: "Account Type", value: String(c.account_type) });
-  if (c?.status) rows.push({ label: "Status", value: String(c.status) });
   if (view.contacts.length) rows.push({ label: "Contacts on File", value: String(view.contacts.length) });
   if (c?.account_number) rows.push({ label: "Subscriber Code", value: c.account_number });
   return rows;
@@ -1618,7 +1617,6 @@ function IspHeroPane(props: {
 
   const chips = useMemo(() => ispChips(view), [view]);
   const info = useMemo(() => ispQuickInfo(view), [view]);
-  const arr = stats.mrr * 12;
   const suspended = customer?.status !== "active";
 
   const hasPrepaid = view.starlink.length > 0 || view.voip.length > 0;
@@ -1709,14 +1707,6 @@ function IspHeroPane(props: {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <KpiTile icon={DollarSign} label="Balance Due" value={money(stats.openInvoiceTotal)} tone={stats.openInvoiceTotal > 0 ? "warning" : "success"} />
-        <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
-        <KpiTile icon={TrendingUp} label="ARR (Est.)" value={money(arr)} tone="info" />
-        <KpiTile icon={Activity} label="Active Services" value={stats.activeServices} tone="info" />
-        <KpiTile icon={LifeBuoy} label="Open Tickets" value={stats.openTickets} tone={stats.criticalTickets > 0 ? "danger" : stats.openTickets > 0 ? "warning" : "success"} />
       </div>
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
