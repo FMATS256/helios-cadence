@@ -563,7 +563,7 @@ function Customer360() {
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold bg-muted text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-                {contractActive ? "Online" : "Offline"}
+                {contractActive ? "Contract active" : "No active contract"}
               </span>
             </div>
             <div className="w-full mt-5 pt-4 border-t border-border grid grid-cols-2 gap-y-2 text-left text-xs">
@@ -587,10 +587,18 @@ function Customer360() {
                 </Select>
               } />
               <MetaRow label="Account Type" value={(customer as any).account_type || "Regular"} pill />
-              <MetaRow label="Group" value={tier} />
-              <MetaRow label="Zone" value={(customer as any).zone || "N/A"} />
-              <MetaRow label="Node" value={(customer as any).node || "N/A"} />
-              <MetaRow label="Last Logoff" value={customerSince ? customerSince.toISOString().slice(0, 10) : "—"} />
+              <MetaRow label="Monthly Value" value={`$${Number(stats.mrr || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+              <MetaRow label="Balance Due" value={
+                <span className={stats.overdueInvoiceCount > 0 ? "text-destructive font-semibold" : Number(stats.openInvoiceTotal) > 0 ? "text-warning font-semibold" : "text-success font-semibold"}>
+                  {Number(stats.openInvoiceTotal) > 0 ? `$${Number(stats.openInvoiceTotal).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${stats.overdueInvoiceCount > 0 ? ` · ${stats.overdueInvoiceCount} overdue` : ""}` : "Up to date"}
+                </span>
+              } />
+              <MetaRow label="Active Services" value={`${(stats.activeSubscriptions || 0) + (packages as any[]).filter((p: any) => p.status === "active").length}`} />
+              <MetaRow label="Renewals (30d)" value={<span className={stats.renewals30 > 0 ? "text-warning font-semibold" : ""}>{stats.renewals30 || 0}</span>} />
+              <MetaRow label="Open Tickets" value={<span className={stats.criticalTickets > 0 ? "text-destructive font-semibold" : ""}>{stats.openTickets || 0}{stats.criticalTickets > 0 ? ` · ${stats.criticalTickets} critical` : ""}</span>} />
+              <MetaRow label="Client Since" value={customerSince ? customerSince.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"} />
+              <MetaRow label="Phone" value={customer.primary_phone || "—"} />
+              <MetaRow label="Industry" value={customer.industry || "—"} />
             </div>
           </CardContent>
         </Card>
