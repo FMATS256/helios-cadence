@@ -1,6 +1,7 @@
 import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { CustomerSalesDesk, CustomerPendingPayments } from "@/components/customer-sales-desk";
+import { CustomerAccountOverview, AccountTransactions } from "@/components/customer-account-overview";
 import { QuoteBuilderDialog } from "@/components/quote-builder";
 import { useRoles } from "@/hooks/use-roles";
 import { customerSalesPermissions } from "@/lib/customer-sales.shared";
@@ -48,7 +49,6 @@ import {
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
-import { RequestInvoiceDialog } from "@/components/request-invoice-dialog";
 
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
@@ -672,6 +672,8 @@ function Customer360() {
           </div>
         </TabsContent>
         <TabsContent value="overview" className="mt-4">
+          <CustomerAccountOverview view={view} />
+          <div className="mt-6 border-t border-border pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="font-display flex items-center gap-2"><FileText className="h-4 w-4 text-solar" />Profile</CardTitle></CardHeader>
@@ -771,46 +773,6 @@ function Customer360() {
               </CardContent>
             </Card>
 
-            {/* Service discovery — every service on the account, click for details */}
-            <Card className="lg:col-span-3">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-display flex items-center gap-2"><Server className="h-4 w-4 text-solar" />Services on this account</CardTitle>
-                <span className="text-xs text-muted-foreground">Click a service for full details</span>
-              </CardHeader>
-              <CardContent className="p-0">
-                {serviceLineGroups.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No services on file yet.</p>
-                ) : (
-                  <div className="divide-y border-t">
-                    {serviceLineGroups.flatMap(({ line, data }) => {
-                      const Icon = line.icon;
-                      const items: Array<{ key: string; kind: ServiceDetail["kind"]; title: string; sub: string; amount: string; status: string; record: any }> = [
-                        ...data!.subs.map((s: any) => ({ key: `sub-${s.id}`, kind: "Subscription" as const, title: s.plan_name, sub: `${s.billing_cycle || "monthly"}${s.next_renewal ? ` · Renews ${new Date(s.next_renewal).toLocaleDateString()}` : ""}`, amount: money(Number(s.amount) || 0, s.currency || "USD"), status: s.status, record: s })),
-                        ...data!.services.map((s: any) => ({ key: `svc-${s.id}`, kind: "Service" as const, title: s.service_name, sub: [s.vendor, s.plan].filter(Boolean).join(" · ") || s.service_type, amount: `${money(Number(s.monthly_cost) || 0)}/mo`, status: s.status, record: s })),
-                        ...data!.packages.map((p: any) => ({ key: `pkg-${p.id}`, kind: "Package" as const, title: p.catalog?.name || "Package", sub: `${p.catalog?.code || p.catalog?.category || "Package"}${p.quantity ? ` · Qty ${p.quantity}` : ""}`, amount: p.unit_price != null ? money(Number(p.unit_price) || 0, p.currency || "USD") : "", status: p.status || "active", record: p })),
-                        ...data!.assets.map((a: any) => ({ key: `asset-${a.id}`, kind: "Asset" as const, title: a.name || a.asset_type, sub: a.model || a.serial_number || a.asset_type, amount: "", status: a.status || "in use", record: a })),
-                      ];
-                      return items.map((it) => (
-                        <button type="button" key={it.key} onClick={() => setServiceDetail({ kind: it.kind, title: it.title, lineLabel: line.label, record: it.record })}
-                          className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
-                          <div className="h-8 w-8 shrink-0 rounded flex items-center justify-center" style={{ background: `${line.color}18`, color: line.color }}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate">{it.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{line.label} · {it.kind} · {it.sub}</p>
-                          </div>
-                          {it.amount && <span className="hidden sm:inline text-sm font-mono shrink-0">{it.amount}</span>}
-                          <StatusPill tone={it.status === "active" ? "success" : it.status === "paused" ? "warning" : "neutral"}>{it.status}</StatusPill>
-                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        </button>
-                      ));
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* IMT service lines snapshot */}
             <Card className="lg:col-span-3">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -844,6 +806,7 @@ function Customer360() {
                 )}
               </CardContent>
             </Card>
+          </div>
           </div>
         </TabsContent>
 
@@ -1198,35 +1161,7 @@ function Customer360() {
         </TabsContent>
 
         <TabsContent value="transactions" className="mt-4">
-          <Card><CardContent className="p-0 divide-y">
-            {(() => {
-              const events: Array<{ id: string; date: string; kind: "invoice" | "payment"; ref: string; label: string; amount: number; currency?: string; status: string; to?: string }> = [];
-              for (const i of invoices as any[]) events.push({ id: `i-${i.id}`, date: i.issue_date || i.created_at, kind: "invoice", ref: i.invoice_number, label: `Invoice · ${i.notes || i.status}`, amount: Number(i.total || 0), currency: i.currency, status: i.status, to: `/invoices/${i.id}` });
-              for (const p of payments as any[]) events.push({ id: `p-${p.id}`, date: p.paid_at || p.created_at, kind: "payment", ref: p.receipt_number || p.reference || "—", label: `Payment · ${p.method || "—"}`, amount: -Number(p.amount || 0), currency: p.currency, status: p.reconciliation_status || p.status });
-              events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              if (events.length === 0) return <p className="text-sm text-muted-foreground text-center py-12">No transactions yet.</p>;
-              return events.map((e) => {
-                const Row = (
-                  <div key={e.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-9 w-9 rounded-md flex items-center justify-center ${e.kind === "invoice" ? "bg-warning/15 text-warning" : "bg-success/15 text-success"}`}>
-                        {e.kind === "invoice" ? <Receipt className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-mono text-sm font-semibold truncate">{e.ref}</p>
-                        <p className="text-xs text-muted-foreground truncate">{e.label} · {e.date ? new Date(e.date).toLocaleDateString() : "—"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`font-mono text-sm ${e.amount < 0 ? "text-success" : ""}`}>{money(Math.abs(e.amount), e.currency)}</span>
-                      <StatusPill tone={e.status === "paid" || e.status === "matched" || e.status === "received" ? "success" : e.status === "overdue" ? "danger" : "info"}>{e.status}</StatusPill>
-                    </div>
-                  </div>
-                );
-                return e.to ? <Link key={e.id} to={"/invoices/$id"} params={{ id: e.to.split("/").pop()! }} className="block">{Row}</Link> : Row;
-              });
-            })()}
-          </CardContent></Card>
+          <AccountTransactions view={view} />
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-4">
@@ -1663,9 +1598,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit" | "cash">(null);
-  // Separation of duties: invoices are raised by billing from requests, so
-  // every user — including billing and admins — requests one from here.
+  const [open, setOpen] = useState<null | "service" | "payment" | "quote" | "ticket" | "comm" | "tech" | "credit" | "cash">(null);
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
   const wsCtx = {
     customerId: customer.id,
@@ -1715,7 +1648,7 @@ function IspHeroPane(props: {
         <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
-        <ActionBtn tone="emerald" icon={Receipt}     label="Request Invoice"    onClick={() => setOpen("invoice")} />
+        {salesPermissions.canQuote && <Button size="sm" variant="outline" asChild><Link to="/customers/$accountNumber" params={{ accountNumber: customer.account_number }} search={{ tab: "quotes" }} resetScroll={false}><FileCheck className="mr-1.5 h-4 w-4" />Quotations / Convert to invoice</Link></Button>}
         {salesPermissions.canRecordPayment && <ActionBtn tone="emerald" icon={DollarSign} label="Receive Payment" onClick={() => setOpen("cash")} />}
         {salesPermissions.canSubmitPayment && <ActionBtn tone="sky" icon={CreditCard} label="Submit Cash / Bank Payment" onClick={() => setOpen("payment")} />}
         {salesPermissions.canQuote && <ActionBtn tone="indigo" icon={FileCheck} label="New Quotation" onClick={() => setOpen("quote")} />}
@@ -1780,9 +1713,6 @@ function IspHeroPane(props: {
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
       <SubmitPaymentDialog open={open === "payment"} onOpenChange={(v) => setOpen(v ? "payment" : null)} customerId={customer.id} />
-      {open === "invoice" && (
-        <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
-      )}
       {open === "cash"    && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "quote" && <QuoteBuilderDialog open onOpenChange={(v) => { if (!v) setOpen(null); }} customers={[customer]} defaultCustomerId={customer.id} onSaved={onRefresh} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}

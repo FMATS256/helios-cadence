@@ -25,7 +25,7 @@ type Lic = { id: string; vendor: string; product: string; seats: number; license
 type Action = { kind: "renewal" | "add_seats" | "technical"; lic: Lic };
 
 /** Customer 360: the client's licences with commercial actions (Finance approval) and technical hand-off to NOC. */
-export function ClientLicensesPanel({ customerId }: { customerId: string }) {
+export function ClientLicensesPanel({ customerId, embedded = false }: { customerId: string; embedded?: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const ticketFn = useServerFn(createTicketForCustomer);
@@ -34,7 +34,11 @@ export function ClientLicensesPanel({ customerId }: { customerId: string }) {
 
   const lic = useQuery({
     queryKey: ["client-licenses", customerId], enabled: !!user,
-    queryFn: async () => ((await supabase.from("vendor_licenses").select("*").eq("customer_id", customerId).order("expiry_date", { ascending: true, nullsFirst: false })).data ?? []) as Lic[],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vendor_licenses").select("*").eq("customer_id", customerId).order("expiry_date", { ascending: true, nullsFirst: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Lic[];
+    },
   });
   const orders = useQuery({
     queryKey: ["client-license-orders", customerId], enabled: !!user,
@@ -73,15 +77,18 @@ export function ClientLicensesPanel({ customerId }: { customerId: string }) {
   });
 
   const rows = lic.data ?? [];
+  const Frame = embedded ? "section" : Card;
+  const Header = embedded ? "div" : CardHeader;
+  const Content = embedded ? "div" : CardContent;
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+      <Frame>
+        <Header className={embedded ? "mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3" : "flex-row items-center justify-between space-y-0"}>
           <CardTitle className="text-base flex items-center gap-2"><KeyRound className="h-4 w-4" /> Licences</CardTitle>
-          <span className="text-xs text-muted-foreground">Renewals and seats go to Finance · technical changes go to NOC</span>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {rows.length === 0 ? <EmptyState title="No licences recorded" description="Licences recorded on the vendor licensing pages appear here." /> : rows.map((l) => {
+          <span className="text-xs text-muted-foreground">{rows.length} licences</span>
+        </Header>
+        <Content className="space-y-3">
+          {lic.isLoading ? <p className="text-sm text-muted-foreground">Loading licences…</p> : lic.isError ? <p className="text-sm text-destructive">Could not load licences.</p> : rows.length === 0 ? <p className="py-4 text-sm text-muted-foreground">No vendor licences recorded.</p> : rows.map((l) => {
             const d = daysUntil(l.expiry_date); const st = renewalState(d);
             return (
               <div key={l.id} className="rounded-lg border border-border p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -102,8 +109,8 @@ export function ClientLicensesPanel({ customerId }: { customerId: string }) {
               </div>
             );
           })}
-        </CardContent>
-      </Card>
+        </Content>
+      </Frame>
 
       {(orders.data?.length ?? 0) > 0 && (
         <Card>
