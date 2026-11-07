@@ -1,3 +1,4 @@
+import { serviceStatusTone } from "@/lib/customer360/account-status";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -99,7 +100,7 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
                     {l.license_key && <span className="font-mono truncate">{l.license_key}</span>}
                     <span>{l.expiry_date ? `Expires ${l.expiry_date}${d !== null ? ` (${d < 0 ? `${-d} days ago` : `${d} days`})` : ""}` : "No expiry"}</span>
                   </div>
-                  <div className="mt-1 flex gap-1.5"><StatusBadge tone={l.status === "active" ? "success" : "neutral"}>{label(l.status)}</StatusBadge><StatusBadge tone={RENEW_TONE[st]}>{st}</StatusBadge></div>
+                  <div className="mt-1 flex gap-1.5"><StatusBadge tone={serviceStatusTone(l.status)}>{label(l.status)}</StatusBadge><StatusBadge tone={RENEW_TONE[st]}>{st}</StatusBadge></div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => open("renewal", l)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Renew</Button>

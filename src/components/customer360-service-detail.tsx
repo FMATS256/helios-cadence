@@ -1,3 +1,4 @@
+import { serviceStatusTone, invoiceOverdue } from "@/lib/customer360/account-status";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusPill } from "@/components/page";
 import { useQuery } from "@tanstack/react-query";
@@ -123,7 +124,7 @@ function SubscriptionPayments({ subscriptionId }: { subscriptionId: string }) {
           {inv.map((i: any) => (
             <div key={i.id} className="px-3 py-2 text-xs flex justify-between gap-2">
               <span className="font-medium">{i.invoice_number}{i.subscription_period_start ? ` · period from ${d(i.subscription_period_start)}` : ""}</span>
-              <span className="text-muted-foreground capitalize">{i.status} · {i.currency} {Number(i.amount_paid || 0).toFixed(2)}/{Number(i.total || 0).toFixed(2)}</span>
+              <span className={`capitalize ${invoiceOverdue(i) ? "text-destructive font-semibold" : "text-muted-foreground"}`}>{invoiceOverdue(i) ? "overdue" : i.status} · {i.currency} {Number(i.amount_paid || 0).toFixed(2)}/{Number(i.total || 0).toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -134,7 +135,7 @@ function SubscriptionPayments({ subscriptionId }: { subscriptionId: string }) {
 
 export function ServiceDetailDialog({ detail, onClose }: { detail: ServiceDetail | null; onClose: () => void }) {
   const rec = detail?.record || {};
-  const status = rec.status || (detail?.kind === "Asset" ? "in use" : "active");
+  const status = rec.status || "Not recorded";
   const rows = flatten(rec).filter(([k]) => k !== "Status");
   return (
     <Dialog open={!!detail} onOpenChange={(o) => !o && onClose()}>
@@ -143,7 +144,7 @@ export function ServiceDetailDialog({ detail, onClose }: { detail: ServiceDetail
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{detail?.lineLabel} · {detail?.kind}</p>
           <DialogTitle className="font-display flex items-center gap-2 flex-wrap">
             {detail?.title}
-            <StatusPill tone={status === "active" ? "success" : status === "paused" ? "warning" : "neutral"}>{status}</StatusPill>
+            <StatusPill tone={serviceStatusTone(status)}>{status}</StatusPill>
           </DialogTitle>
         </DialogHeader>
         {rows.length === 0 ? (
