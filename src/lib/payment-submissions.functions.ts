@@ -8,6 +8,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { recordCustomerEvent, recordAudit } from "./customer-events.server";
+import { assertCustomerSalesAccess } from "./customer-sales.server";
 
 type Ctx = { supabase: any; userId: string };
 
@@ -154,6 +155,7 @@ export const getSubmissionContext = createServerFn({ method: "POST" })
   .inputValidator((input: { customer_id: string }) => input)
   .handler(async ({ data, context }) => {
     await assertStaff(context);
+    await assertCustomerSalesAccess(context, data.customer_id);
     const db = await admin();
     const { data: cust } = await db.from("customers")
       .select("id,account_number,company_name,primary_email,status").eq("id", data.customer_id).maybeSingle();
@@ -179,6 +181,7 @@ export const checkDuplicatePayment = createServerFn({ method: "POST" })
   .inputValidator((input: { customer_id: string; invoice_id?: string | null; amount: number; reference?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await assertStaff(context);
+    await assertCustomerSalesAccess(context, data.customer_id);
     const db = await admin();
     const amount = round(n(data.amount));
     const ref = data.reference?.trim().toLowerCase() || null;
@@ -223,6 +226,7 @@ export const submitPaymentToBilling = createServerFn({ method: "POST" })
   }) => input)
   .handler(async ({ data, context }) => {
     await assertStaff(context);
+    await assertCustomerSalesAccess(context, data.customer_id);
     const amount = round(n(data.amount));
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Amount received must be greater than zero");
     const db = await admin();

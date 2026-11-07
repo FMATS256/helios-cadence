@@ -432,6 +432,8 @@ export const emailInvoice = createServerFn({ method: "POST" })
   .inputValidator((input: { invoice_id: string; to?: string }) => input)
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
+    const visible = await context.supabase.from("invoices").select("id").eq("id", data.invoice_id).maybeSingle();
+    if (visible.error || !visible.data) throw new Error("Invoice not found or access denied");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: invoice, error } = await supabaseAdmin

@@ -7,9 +7,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { round2 } from "./money.shared";
+import { QUOTE_SALES_ROLES } from "./customer-sales.shared";
+import { z } from "zod";
 
 
-const QUOTE_ROLES = ["operations_manager", "sales", "finance", "account_manager"];
+const QUOTE_ROLES = QUOTE_SALES_ROLES;
 
 const QUOTE_SELECT =
   "*, customers(id,account_number,company_name,primary_email,primary_phone,billing_address,account_manager_id)";
@@ -33,11 +35,11 @@ async function salesRepOf(db: any, quote: any, ctx: { userId: string; claims?: a
   for (const id of ids) {
     const { data } = await db
       .from("profiles")
-      .select("full_name,email,phone")
+      .select("full_name,email,work_email,phone")
       .eq("id", id)
       .maybeSingle();
     const name = (data?.full_name ?? "").trim();
-    if (name) return { name, email: data?.email ?? null, phone: (data as any)?.phone ?? null };
+    if (name) return { name, email: data?.work_email || data?.email || null, phone: (data as any)?.phone ?? null };
   }
   const claims: any = ctx.claims ?? {};
   return {
@@ -57,6 +59,16 @@ async function loadQuote(db: any, id: string) {
     .eq("quote_id", id)
     .order("position", { ascending: true });
   return { quote: data, lines: (lines ?? []) as any[] };
+}
+
+async function authorizeQuote(context: any, quote: any) {
+  if (quote.customer_id) {
+    const { assertCustomerSalesAccess } = await import("./customer-sales.server");
+    await assertCustomerSalesAccess(context, quote.customer_id);
+  } else if (quote.created_by !== context.userId) {
+    const { data: billing } = await context.supabase.rpc("is_billing_staff", { _user_id: context.userId });
+    if (!billing) throw new Error("This walk-in quotation belongs to another staff member");
+  }
 }
 
 async function record(
@@ -184,6 +196,7 @@ export const pushQuoteToStudio = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
     const { quote, lines } = await loadQuote(db, data.id);
+    await authorizeQuote(context, quote);
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be pushed to Quote Studio");
 
     const { quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } = await import("./quote-studio.server");
@@ -236,6 +249,7 @@ export const syncQuoteFromStudio = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
     const { quote } = await loadQuote(db, data.id);
+    await authorizeQuote(context, quote);
     if (!quote.studio_document_id) throw new Error("This quote has not been pushed to Quote Studio yet");
 
     const { quoteStudio, pdfUrlOf } = await import("./quote-studio.server");
@@ -296,6 +310,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
     const { quote, lines } = await loadQuote(db, data.id);
+    await authorizeQuote(context, quote);
     if (quote.status === "cancelled") throw new Error("Cancelled quotes cannot be sent");
 
     const to = (data.email || quote.customers?.primary_email || quote.walkin_email || "").trim();
@@ -340,47 +355,27 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
     const representative = await salesRepOf(db, quote, context);
     pdfBytes = await brandedQuotationPdf(quote, lines, representative.name ?? undefined);
 
-    const items = (lines ?? []).map((l: any) => ({
-      description: l.description,
-      quantity: Number(l.quantity ?? 1),
-      unit_price: Number(l.unit_price ?? 0),
-      line_total: Number(l.line_total ?? 0),
-    }));
-    const subtotal = items.length
-      ? items.reduce((s: number, l: any) => s + l.line_total, 0)
-      : Number(quote.amount ?? 0);
-
-    const attachments = pdfBytes
-      ? [
-          {
-            filename: `Quotation-${quote.quote_number ?? String(quote.id).slice(0, 8).toUpperCase()}.pdf`,
-            content: pdfBytes,
-            contentType: "application/pdf",
-          },
-        ]
-      : [];
-
-    const { notifyWithAttachment } = await import("./notify.server");
-    await notifyWithAttachment(
-      "quote",
-      to,
-      {
-        companyName: quote.customers?.company_name ?? quote.walkin_name ?? quote.account_number ?? "there",
-        quoteNumber: quote.quote_number ?? "",
-        title: quote.title ?? "Quotation",
-        issueDate: (quote.created_at ?? "").slice(0, 10),
-        validUntil: quote.valid_until ?? undefined,
-        currency: quote.currency ?? "USD",
-        subtotal,
-        tax: 0,
-        total: subtotal,
-        items,
-        quoteUrl: pdfUrl ?? undefined,
-        message: data.message ?? undefined,
-      },
-      attachments,
-      `quote-${quote.id}-${Date.now()}`,
-    );
+    const { quotationDocument } = await import("./quotation-document.shared");
+    const doc = quotationDocument(quote, lines, representative.name ?? undefined);
+    if (quote.customer_id) {
+      const { assertCustomerAddresses } = await import("./recipient-guard.server");
+      await assertCustomerAddresses(quote.customer_id, [to]);
+    } else if (to.toLowerCase() !== String(quote.walkin_email || "").toLowerCase()) {
+      throw new Error("Save the recipient on the walk-in quotation first");
+    }
+    const { imtSignature } = await import("./email-signature.shared");
+    const sender = representative.email;
+    if (!sender) throw new Error("Complete the account manager’s business email first");
+    const { sendResendEmail } = await import("./email-templates/send-resend");
+    const sent = await sendResendEmail({
+      templateName: "quote", to, from: `"${representative.name}" <${sender}>`, replyTo: sender,
+      signatureHtml: imtSignature({ name: representative.name || sender, role: "account_manager", email: sender }),
+      templateData: { companyName: doc.customer.name, quoteNumber: doc.reference, title: doc.title,
+        issueDate: doc.date.slice(0, 10), validUntil: doc.validUntil, currency: doc.currency,
+        subtotal: doc.subtotal, tax: doc.tax, total: doc.total, message: data.message },
+      attachments: [{ filename: `${doc.reference.replace(/[^\w.-]/g, "-")}.pdf`, content: pdfBytes, contentType: "application/pdf" }],
+    });
+    if (!sent.sent) throw new Error(`Quotation email could not be sent: ${sent.error}`);
 
     const now = new Date().toISOString();
     const patch: Record<string, any> = {
@@ -399,7 +394,7 @@ export const sendQuoteToCustomer = createServerFn({ method: "POST" })
       event: "quote_sent",
       title: `Quote ${quote.quote_number ?? ""} sent to ${to}`.trim(),
       description: pdfBytes
-        ? "Quotation email delivered with PDF attachment"
+        ? "Quotation email accepted by gateway with PDF attachment"
         : pdfUrl
           ? "Quotation email delivered with document link"
           : "Quotation email delivered",
@@ -422,6 +417,7 @@ export const setQuoteOutcome = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
     const { quote } = await loadQuote(db, data.id);
+    await authorizeQuote(context, quote);
     if (quote.status === data.outcome) throw new Error(`Quote is already ${data.outcome}`);
     if (quote.status === "accepted" && data.outcome !== "cancelled") {
       throw new Error("An accepted quote can only be cancelled");
@@ -467,85 +463,13 @@ export const setQuoteOutcome = createServerFn({ method: "POST" })
  */
 export const convertQuoteToInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; due_days?: number }) => d)
+  .inputValidator((d: { id: string; due_days?: number }) => z.object({ id: z.string().uuid(), due_days: z.number().int().min(0).max(365).optional() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { assertRole, admin } = await import("./hosting.server");
-    await assertRole(context, ["operations_manager", "finance", "sales"]);
-    const db = await admin();
-    const { quote, lines } = await loadQuote(db, data.id);
-    if (!quote.customer_id) throw new Error("Attach the quote to a customer before invoicing");
-    if (quote.status !== "accepted") throw new Error("Only accepted quotes can be converted to an invoice");
-    if ((quote as any).invoice_id) {
-      const { data: existing } = await db
-        .from("invoices")
-        .select("id, invoice_number")
-        .eq("id", (quote as any).invoice_id)
-        .maybeSingle();
-      if (existing) {
-        return {
-          invoice_id: existing.id as string,
-          invoice_number: existing.invoice_number as string,
-          already: true,
-        };
-      }
-    }
-
-
-    const items = lines.length
-      ? lines
-      : [{ description: quote.title ?? "Quotation", quantity: 1, unit_price: Number(quote.amount ?? 0), tax_rate: 0, line_total: Number(quote.amount ?? 0) }];
-    const subtotal = items.reduce((s: number, l: any) => s + Number(l.line_total ?? 0), 0);
-    const tax = items.reduce((s: number, l: any) => s + (Number(l.line_total ?? 0) * Number(l.tax_rate ?? 0)) / 100, 0);
-    const dueDays = data.due_days ?? 14;
-    const issue = new Date();
-    const due = new Date(issue.getTime() + dueDays * 86_400_000);
-
-    const { data: inv, error } = await db
-      .from("invoices")
-      .insert({
-        customer_id: quote.customer_id,
-        account_number: quote.account_number,
-        invoice_number: `INV-${Date.now().toString().slice(-8)}`,
-        status: "draft",
-        currency: quote.currency ?? "USD",
-        subtotal,
-        tax,
-        total: subtotal + tax,
-        issue_date: issue.toISOString().slice(0, 10),
-        due_date: due.toISOString().slice(0, 10),
-        notes: `Generated from quote ${quote.quote_number ?? quote.id}`,
-        created_by: context.userId,
-      })
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-
-    await db.from("invoice_line_items").insert(
-      items.map((l: any, i: number) => ({
-        invoice_id: inv.id,
-        description: l.description ?? "Item",
-        quantity: Number(l.quantity ?? 1),
-        unit_price: Number(l.unit_price ?? 0),
-        tax_rate: Number(l.tax_rate ?? 0),
-        position: l.position ?? i,
-      })),
-    );
-
-    await db
-      .from("quotes")
-      .update({ invoice_id: inv.id, converted_at: new Date().toISOString() })
-      .eq("id", quote.id);
-
-    await record(db, context, quote, {
-      event: "quote_converted",
-      title: `Quote ${quote.quote_number ?? ""} converted to invoice ${inv.invoice_number}`.trim(),
-      new: { invoice_id: inv.id, total: inv.total },
+    const { data: result, error } = await context.supabase.rpc("convert_customer_quote", {
+      p_quote_id: data.id, p_due_days: data.due_days ?? 14,
     });
-    return {
-      invoice_id: inv.id as string,
-      invoice_number: inv.invoice_number as string,
-      already: false,
-    };
+    if (error) throw new Error(error.message);
+    return result as { invoice_id: string; invoice_number: string; already: boolean };
   });
 
 
@@ -581,6 +505,9 @@ interface QuoteLineInput {
   quantity: number;
   unit_price: number;
   tax_rate?: number;
+  item_code?: string;
+  billing_period_start?: string | null;
+  billing_period_end?: string | null;
 }
 
 interface SaveQuoteInput {
@@ -618,6 +545,9 @@ export const saveQuote = createServerFn({ method: "POST" })
         const price = Number(l.unit_price ?? 0) || 0;
         return {
           description: l.description.trim(),
+          item_code: l.item_code?.trim() || undefined,
+          billing_period_start: l.billing_period_start || null,
+          billing_period_end: l.billing_period_end || null,
           quantity: qty,
           unit_price: price,
           tax_rate: Number(l.tax_rate ?? 0) || 0,
@@ -626,9 +556,13 @@ export const saveQuote = createServerFn({ method: "POST" })
         };
       });
     if (!lines.length) throw new Error("Add at least one line item");
+    if (lines.some(l => !Number.isFinite(l.quantity) || l.quantity <= 0 || !Number.isFinite(l.unit_price) || l.unit_price < 0 || !Number.isFinite(l.tax_rate) || l.tax_rate < 0 || l.tax_rate > 100)) throw new Error("Enter valid quantities, prices and tax rates");
+    if (data.id) { const existing = await loadQuote(db, data.id); await authorizeQuote(context, existing.quote); }
 
     let cust: any = null;
     if (data.customer_id) {
+      const { assertCustomerSalesAccess } = await import("./customer-sales.server");
+      await assertCustomerSalesAccess(context, data.customer_id);
       const { data: found, error: custErr } = await db
         .from("customers")
         .select("id,account_number,company_name")
@@ -644,6 +578,7 @@ export const saveQuote = createServerFn({ method: "POST" })
     const tax = round2(lines.reduce((s, l) => s + (l.line_total * l.tax_rate) / 100, 0));
     const discount = Number(data.discount ?? 0) || 0;
     const total = round2(subtotal + tax - discount);
+    if (!Number.isFinite(discount) || discount < 0 || total <= 0) throw new Error("Discount must leave a positive quotation total");
 
 
     let quoteNumber = (data.quote_number ?? "").trim() || null;
@@ -690,7 +625,7 @@ export const saveQuote = createServerFn({ method: "POST" })
         .eq("id", quoteId);
       if (error) throw new Error(error.message);
       const { data: prev } = await db.from("quote_line_items").select("item_code, position").eq("quote_id", quoteId).order("position");
-      (prev ?? []).forEach((p: any, i: number) => { if (lines[i] && p.item_code) (lines[i] as any).item_code = p.item_code; });
+      (prev ?? []).forEach((p: any, i: number) => { if (lines[i] && !lines[i].item_code && p.item_code) (lines[i] as any).item_code = p.item_code; });
       await db.from("quote_line_items").delete().eq("quote_id", quoteId);
     } else {
       const { data: created, error } = await db
@@ -707,7 +642,8 @@ export const saveQuote = createServerFn({ method: "POST" })
       .insert(lines.map(({ line_total: _lt, ...l }) => ({ ...l, quote_id: quoteId })));
     if (lineErr) throw new Error(lineErr.message);
 
-    const { quote } = await loadQuote(db, quoteId!);
+    if (!quoteId) throw new Error("Quotation could not be saved");
+    const { quote } = await loadQuote(db, quoteId);
     await record(db, context, quote, {
       event: data.id ? "quote_updated" : "quote_created",
       title: `Quote ${quote.quote_number ?? ""} ${data.id ? "updated" : "created"}`.trim(),
@@ -722,7 +658,7 @@ export const saveQuote = createServerFn({ method: "POST" })
         const { studioConfig, quoteStudio, buildDocumentPayload, pdfUrlOf, documentIdOf } =
           await import("./quote-studio.server");
         if (studioConfig().configured) {
-          const { lines: fresh } = await loadQuote(db, quoteId!);
+          const { lines: fresh } = await loadQuote(db, quoteId);
           const payload = buildDocumentPayload(quote, fresh, await salesRepOf(db, quote, context));
           const actor = actorOf(context);
           const res = quote.studio_document_id
@@ -764,6 +700,7 @@ export const shareQuoteExternally = createServerFn({ method: "POST" })
     await assertRole(context, QUOTE_ROLES);
     const db = await admin();
     const { quote } = await loadQuote(db, data.id);
+    await authorizeQuote(context, quote);
 
     const phone = String(data.phone || quote.customers?.primary_phone || quote.walkin_phone || "").replace(/[^\d]/g, "");
     if (data.channel !== "link" && !phone) throw new Error("No phone number on file — enter one to share");
