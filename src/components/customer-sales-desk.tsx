@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { invoiceOverdue } from '@/lib/customer360/account-status';
 import { Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -98,7 +99,7 @@ export function CustomerSalesDesk({ customer, quotes = [], invoices = [], mode =
     </div> : <div className="divide-y divide-border">
       {!invoices.length && <p className="py-8 text-sm text-muted-foreground">No invoices on this account.</p>}
       {invoices.map(i => <article key={i.id} className="py-4 space-y-3">
-        <div className="flex flex-wrap justify-between gap-2"><div><Link to="/invoices/$id" params={{ id: i.id }} className="font-mono text-sm font-semibold text-primary hover:underline">{i.invoice_number}</Link><p className="text-xs text-muted-foreground">Issued {i.issue_date} · Due {i.due_date || 'not specified'}</p></div><StatusPill tone={i.status === 'paid' ? 'success' : 'info'}>{i.status}</StatusPill></div>
+        <div className="flex flex-wrap justify-between gap-2"><div><Link to="/invoices/$id" params={{ id: i.id }} className="font-mono text-sm font-semibold text-primary hover:underline">{i.invoice_number}</Link><p className={invoiceOverdue(i) ? "text-xs text-destructive font-semibold" : "text-xs text-muted-foreground"}>Issued {i.issue_date} · Due {i.due_date || 'not specified'}</p></div><StatusPill tone={invoiceOverdue(i) ? 'danger' : i.status === 'paid' ? 'success' : 'info'}>{invoiceOverdue(i) ? 'overdue' : i.status}</StatusPill></div>
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3"><div>Total <strong className="font-mono">{money(i.total, i.currency)}</strong></div><div>Paid <strong className="font-mono text-success">{money(i.amount_paid, i.currency)}</strong></div><div>Outstanding <strong className="font-mono">{money(Math.max(0, Number(i.total) - Number(i.amount_paid || 0)), i.currency)}</strong></div></div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" disabled={!!busy} onClick={() => run(`invoice-pdf-${i.id}`, async () => savePdf(await invoicePdf({ data: { invoice_id: i.id } })), 'Invoice PDF prepared')}><Download className="mr-1.5 h-4 w-4" />PDF</Button>
