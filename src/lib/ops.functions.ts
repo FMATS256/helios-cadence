@@ -1,4 +1,5 @@
 import { safeSearchTerm } from "@/lib/safe-output";
+import { activeAccountServiceCount, serviceStatusTone } from "@/lib/customer360/account-status";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -696,7 +697,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       supabaseAdmin.from("assets").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at,created_at").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("customer_timeline").select("*").eq("customer_id", cid).order("created_at", { ascending: false }).limit(100),
-      supabaseAdmin.from("customer_services").select("id, quantity, unit_price, status, started_on, ends_on, notes, catalog:service_catalog(id, code, name, category, billing_cycle, currency)").eq("customer_id", cid).order("created_at", { ascending: false }),
+      supabaseAdmin.from("customer_services").select("id, subscription_id, quantity, unit_price, status, started_on, next_renewal, notes, catalog:service_catalog(id, code, name, category, billing_cycle, currency)").eq("customer_id", cid).order("created_at", { ascending: false }),
       supabaseAdmin.from("customer_contacts").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("customer_branches").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("customer_notes").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
@@ -731,7 +732,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       const d = (new Date(iso).getTime() - now) / 86_400_000;
       return d >= 0 && d <= days;
     };
-    const isActive = (s: any) => ["active", "running", "on", "up"].includes(String(s?.status || "").toLowerCase());
+    const isActive = (s: any) => serviceStatusTone(s?.status) === "success";
 
     // Net of payment allocations so partially-settled invoices report the true balance.
     const openInvoices = (invoices as any[]).filter((i) => ["sent", "partial", "overdue"].includes(i.status));
@@ -799,7 +800,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
         activeAssets, credentialsExpiring, licensesExpiring, renewals30,
         // Back-compat aliases
         ticketCount: (tickets as any[]).length,
-        activeServices: activeCloudServices,
+        activeServices: activeAccountServiceCount(payload),
       },
     };
 
