@@ -1582,9 +1582,6 @@ function ispQuickInfo(view: Customer360View): Array<{ label: string; value: stri
   if (lastPay?.paid_at) rows.push({ label: "Last Payment", value: new Date(lastPay.paid_at).toLocaleDateString(), sub: `${lastPay.currency || "USD"} ${Number(lastPay.amount || 0).toFixed(2)}` });
 
   const c = view.customer as any;
-  if (c?.created_at) rows.push({ label: "Registered On", value: new Date(c.created_at).toLocaleDateString() });
-  if (c?.account_type) rows.push({ label: "Account Type", value: String(c.account_type) });
-  if (c?.status) rows.push({ label: "Status", value: String(c.status) });
   if (view.contacts.length) rows.push({ label: "Contacts on File", value: String(view.contacts.length) });
   if (c?.account_number) rows.push({ label: "Subscriber Code", value: c.account_number });
   return rows;
@@ -1711,14 +1708,6 @@ function IspHeroPane(props: {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <KpiTile icon={DollarSign} label="Balance Due" value={money(stats.openInvoiceTotal)} tone={stats.openInvoiceTotal > 0 ? "warning" : "success"} />
-        <KpiTile icon={TrendingUp} label="MRR" value={money(stats.mrr)} tone="success" />
-        <KpiTile icon={TrendingUp} label="ARR (Est.)" value={money(arr)} tone="info" />
-        <KpiTile icon={Activity} label="Active Services" value={stats.activeServices} tone="info" />
-        <KpiTile icon={LifeBuoy} label="Open Tickets" value={stats.openTickets} tone={stats.criticalTickets > 0 ? "danger" : stats.openTickets > 0 ? "warning" : "success"} />
       </div>
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
