@@ -36,5 +36,3 @@
 
 - Vendor licensing: one component; trigger enforces approval.
 - Work orders: atomic claim, work_order_updates thread.
-
-- Customer 360 sales uses the full saved quotation builder and a row-locked conversion RPC preserving the agreed total and service periods; invoices remain drafts and cash/bank evidence enters existing Billing review, preventing duplicate invoices and account-manager ledger posting.
