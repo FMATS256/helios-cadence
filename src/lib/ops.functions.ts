@@ -691,7 +691,7 @@ export const getCustomer360 = createServerFn({ method: "POST" })
       supabaseAdmin.from("subscriptions").select("*").eq("customer_id", cid).order("created_at", { ascending: false }),
       supabaseAdmin.from("invoices").select("*").eq("customer_id", cid).is("archived_at", null).order("issue_date", { ascending: false }).limit(100),
       supabaseAdmin.from("payments").select("*").eq("customer_id", cid).order("paid_at", { ascending: false }).limit(100),
-      supabaseAdmin.from("quotes").select("id,quote_number,title,status,total,currency,created_at").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(30),
+      supabaseAdmin.from("quotes").select("id,customer_id,quote_number,title,status,amount,currency,created_at,valid_until,sent_at,invoice_id").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(30),
       supabaseAdmin.from("tickets").select("*").eq("customer_id", cid).is("archived_at", null).order("created_at", { ascending: false }).limit(50),
       supabaseAdmin.from("assets").select("*").eq("customer_id", cid).is("archived_at", null),
       supabaseAdmin.from("credentials").select("id,name,credential_type,username,expires_at,created_at").eq("customer_id", cid).is("archived_at", null),
