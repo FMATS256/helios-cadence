@@ -1,3 +1,4 @@
+import { invoiceOverdue } from "./account-status";
 type RecordRow = Record<string, any>;
 export type AccountServiceRow = { key: string; category: string; title: string; status: string; renewal: string | null; identity: string; record: RecordRow; kind: "Subscription" | "Service" | "Package" | "Asset" };
 
@@ -22,7 +23,7 @@ export function accountServiceRows(view: Record<string, any>): AccountServiceRow
 
 export function accountTransactions(view: Record<string, any>) {
   return [
-    ...(view.invoices ?? []).map((i: RecordRow) => ({ key: `invoice-${i.id}`, invoiceId: i.id as string, kind: "Invoice", date: i.issue_date || i.created_at, reference: i.invoice_number, description: i.notes || "", amount: Number(i.total || 0), currency: i.currency || "USD", status: i.status || "Recorded", paid: Number(i.amount_paid || 0) })),
+    ...(view.invoices ?? []).map((i: RecordRow) => ({ key: `invoice-${i.id}`, invoiceId: i.id as string, kind: "Invoice", date: i.issue_date || i.created_at, reference: i.invoice_number, description: i.notes || "", amount: Number(i.total || 0), currency: i.currency || "USD", status: invoiceOverdue(i) ? "overdue" : i.status || "Recorded", paid: Number(i.amount_paid || 0) })),
     ...(view.payments ?? []).map((p: RecordRow) => ({ key: `payment-${p.id}`, invoiceId: null, kind: "Payment", date: p.paid_at || p.created_at, reference: p.receipt_number || p.reference || "Payment", description: [p.method?.replace(/_/g, " "), p.service_context, p.reference].filter(Boolean).join(" · "), amount: Number(p.amount || 0), currency: p.currency || "USD", status: p.status || p.reconciliation_status || "Recorded", paid: null })),
   ].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 }

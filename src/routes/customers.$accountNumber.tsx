@@ -1,3 +1,5 @@
+import { CustomerAccountWarnings } from "@/components/customer-account-warnings";
+import { serviceStatusTone, invoiceOverdue } from "@/lib/customer360/account-status";
 import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { CustomerSalesDesk, CustomerPendingPayments } from "@/components/customer-sales-desk";
@@ -341,8 +343,8 @@ function Customer360() {
 
 
   function subHealth(s: any): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
-    if (s.status === "cancelled") return { label: "Cancelled", tone: "neutral" };
-    if (s.status === "paused") return { label: "Suspended", tone: "warning" };
+    if (s.status === "cancelled") return { label: "Cancelled", tone: "danger" };
+    if (serviceStatusTone(s.status) === "danger") return { label: s.status || "Unknown", tone: "danger" };
     const d = daysUntil(s.next_renewal);
     if (d == null) return { label: "Active", tone: "success" };
     if (d < 0) return { label: `Overdue ${Math.abs(d)}d`, tone: "danger" };
@@ -546,6 +548,8 @@ function Customer360() {
         </div>
       </div>
 
+      <CustomerAccountWarnings view={view} onNavigate={setActiveTab} />
+
       {/* Hero: identity block (left) + dynamic capability-driven KPIs (right) */}
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-4">
         {/* Identity block */}
@@ -690,7 +694,7 @@ function Customer360() {
                 <Row k="Tier" v={<StatusPill tone={tierTone as any}>{tier}</StatusPill>} />
                 <Row k="Payment standing" v={(() => {
                   const today = new Date().toISOString().slice(0, 10);
-                  const overdue = (invoices as any[]).filter((i) => i.due_date && i.due_date < today && !["paid", "void", "cancelled", "draft"].includes(String(i.status)) && Number(i.total || 0) - Number(i.amount_paid || 0) > 0.01);
+                  const overdue = (invoices as any[]).filter((i) => invoiceOverdue(i, today));
                   const last = [...(payments as any[])].sort((a, b) => String(b.paid_at || b.created_at).localeCompare(String(a.paid_at || a.created_at)))[0];
                   return <span className="flex flex-wrap items-center gap-2">
                     <StatusPill tone={overdue.length ? "danger" : "success"}>{overdue.length ? `Overdue (${overdue.length})` : "Good standing"}</StatusPill>
@@ -861,7 +865,7 @@ function Customer360() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-sm font-mono">{money(Number(s.amount) || 0, s.currency || "USD")}</span>
-                          <StatusPill tone={s.status === "active" ? "success" : s.status === "paused" ? "warning" : "neutral"}>{s.status}</StatusPill>
+                          <StatusPill tone={serviceStatusTone(s.status)}>{s.status}</StatusPill>
                         </div>
                       </button>
                     ))}
@@ -876,7 +880,7 @@ function Customer360() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-sm font-mono">{money(Number(s.monthly_cost) || 0)}/mo</span>
-                          <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
+                          <StatusPill tone={serviceStatusTone(s.status)}>{s.status}</StatusPill>
                         </div>
                       </button>
                     ))}
@@ -891,7 +895,7 @@ function Customer360() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           {p.unit_price != null && <span className="text-sm font-mono">{money(Number(p.unit_price) || 0, p.currency || "USD")}</span>}
-                          <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status || "active"}</StatusPill>
+                          <StatusPill tone={serviceStatusTone(p.status)}>{p.status || "active"}</StatusPill>
                         </div>
                       </button>
                     ))}
@@ -901,7 +905,7 @@ function Customer360() {
                           <p className="text-sm font-semibold truncate">{a.name || a.asset_type}</p>
                           <p className="text-xs text-muted-foreground truncate">Asset · {a.model || a.serial_number || a.asset_type}</p>
                         </div>
-                        <StatusPill tone={a.status === "active" ? "success" : "neutral"}>{a.status || "in use"}</StatusPill>
+                        <StatusPill tone={serviceStatusTone(a.status)}>{a.status || "in use"}</StatusPill>
                       </button>
                     ))}
                     {data!.credentials.map((c: any) => (
@@ -1021,7 +1025,7 @@ function Customer360() {
                             <td className="px-4 py-3 text-right font-mono">{money(s.amount, s.currency)}</td>
                             <td className="px-4 py-3"><StatusPill tone={h.tone}>{h.label} · {s._score}</StatusPill></td>
 
-                            <td className="px-4 py-3"><StatusPill tone={active ? "success" : suspended ? "warning" : cancelled ? "danger" : "neutral"}>{s.status}</StatusPill></td>
+                            <td className="px-4 py-3"><StatusPill tone={serviceStatusTone(s.status)}>{s.status}</StatusPill></td>
                             <td className="px-4 py-3">
                               <div className="flex justify-end gap-1">
                                 <Button size="sm" variant="outline" onClick={() => invoiceFromSub.mutate(s.id)} disabled={invoiceFromSub.isPending || cancelled}>
@@ -1139,7 +1143,7 @@ function Customer360() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-sm font-mono">{money(line, cat.currency || "USD")}</span>
-                    <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status}</StatusPill>
+                    <StatusPill tone={serviceStatusTone(p.status)}>{p.status}</StatusPill>
                   </div>
                 </div>
               );
@@ -1158,7 +1162,7 @@ function Customer360() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-mono">{money(s.amount, s.currency)}</span>
-                  <StatusPill tone={s.status === "active" ? "success" : "neutral"}>{s.status}</StatusPill>
+                  <StatusPill tone={serviceStatusTone(s.status)}>{s.status}</StatusPill>
                   <Button size="sm" variant="outline" onClick={() => invoiceFromSub.mutate(s.id)} disabled={invoiceFromSub.isPending}>
                     <Receipt className="h-3.5 w-3.5 mr-1" />Invoice
                   </Button>
@@ -1236,7 +1240,7 @@ function Customer360() {
                     <p className="text-xs text-muted-foreground">{a.asset_tag} · SN {a.serial_number || "—"}</p>
                   </div>
                 </div>
-                <StatusPill tone={a.status === "active" || a.status === "deployed" ? "success" : "neutral"}>{a.status}</StatusPill>
+                <StatusPill tone={serviceStatusTone(a.status)}>{a.status}</StatusPill>
               </Link>
             ))}
           </CardContent></Card>

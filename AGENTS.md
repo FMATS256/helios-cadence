@@ -37,5 +37,5 @@
 - Vendor licensing: one component; trigger enforces approval.
 - Work orders: atomic claim, work_order_updates thread.
 <!-- LOVABLE:BEGIN -->
-- Customer 360 opening overview derives service records and transactions from the authorized account payload and reuses vendor licensing queries/actions; presentation never infers renewals or posts payments.
+- Customer 360 opening overview derives service records and transactions from the authorized account payload and reuses vendor licensing queries/actions; shared presentation helpers compute service tones and Harare-date account warnings from recorded data without inferring renewals or posting payments.
 <!-- LOVABLE:END -->
