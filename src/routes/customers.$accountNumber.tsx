@@ -1,6 +1,7 @@
 import { csvCell } from "@/lib/safe-output";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { CustomerSalesDesk, CustomerPendingPayments } from "@/components/customer-sales-desk";
+import { CustomerAccountOverview, AccountTransactions } from "@/components/customer-account-overview";
 import { QuoteBuilderDialog } from "@/components/quote-builder";
 import { useRoles } from "@/hooks/use-roles";
 import { customerSalesPermissions } from "@/lib/customer-sales.shared";
@@ -48,7 +49,6 @@ import {
   CreateQuoteDialog, CreateTicketDialog, LogCommDialog, type ClientContext,
 } from "@/components/client-action-dialogs";
 import { SubmitPaymentDialog } from "@/components/submit-payment-dialog";
-import { RequestInvoiceDialog } from "@/components/request-invoice-dialog";
 
 import {
   CORE_TABS, activeCapabilities, dynamicKpis, collectRenewals,
@@ -672,6 +672,8 @@ function Customer360() {
           </div>
         </TabsContent>
         <TabsContent value="overview" className="mt-4">
+          <CustomerAccountOverview view={view} />
+          <div className="mt-6 border-t border-border pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="font-display flex items-center gap-2"><FileText className="h-4 w-4 text-solar" />Profile</CardTitle></CardHeader>
@@ -844,6 +846,7 @@ function Customer360() {
                 )}
               </CardContent>
             </Card>
+          </div>
           </div>
         </TabsContent>
 
@@ -1663,9 +1666,7 @@ function IspHeroPane(props: {
     companyName: customer.company_name,
     primaryEmail: customer.primary_email,
   };
-  const [open, setOpen] = useState<null | "service" | "payment" | "invoice" | "quote" | "ticket" | "comm" | "tech" | "credit" | "cash">(null);
-  // Separation of duties: invoices are raised by billing from requests, so
-  // every user — including billing and admins — requests one from here.
+  const [open, setOpen] = useState<null | "service" | "payment" | "quote" | "ticket" | "comm" | "tech" | "credit" | "cash">(null);
   const [ws, setWs] = useState<WorkspaceKind | null>(null);
   const wsCtx = {
     customerId: customer.id,
@@ -1715,7 +1716,7 @@ function IspHeroPane(props: {
         <ActionBtn tone="indigo"  icon={PackageIcon} label="Change Package"     onClick={() => setWs("package")} />
         <ActionBtn tone="slate"   icon={Wrench}      label="Assign Tech Team"   onClick={() => setOpen("tech")} />
         <ActionBtn tone="amber"   icon={RefreshCw}   label={hasPrepaid ? "Recharge" : "Send Reminder"} onClick={hasPrepaid ? (() => { window.location.href = view.starlink.length ? "/starlink" : "/voip"; }) : onSendReminder} />
-        <ActionBtn tone="emerald" icon={Receipt}     label="Request Invoice"    onClick={() => setOpen("invoice")} />
+        {salesPermissions.canQuote && <Button size="sm" variant="outline" asChild><Link to="/customers/$accountNumber" params={{ accountNumber: customer.account_number }} search={{ tab: "quotes" }} resetScroll={false}><FileCheck className="mr-1.5 h-4 w-4" />Quotations / Convert to invoice</Link></Button>}
         {salesPermissions.canRecordPayment && <ActionBtn tone="emerald" icon={DollarSign} label="Receive Payment" onClick={() => setOpen("cash")} />}
         {salesPermissions.canSubmitPayment && <ActionBtn tone="sky" icon={CreditCard} label="Submit Cash / Bank Payment" onClick={() => setOpen("payment")} />}
         {salesPermissions.canQuote && <ActionBtn tone="indigo" icon={FileCheck} label="New Quotation" onClick={() => setOpen("quote")} />}
@@ -1780,9 +1781,6 @@ function IspHeroPane(props: {
 
       {open === "service" && <AddServiceDialog ctx={ctx} onClose={() => setOpen(null)} />}
       <SubmitPaymentDialog open={open === "payment"} onOpenChange={(v) => setOpen(v ? "payment" : null)} customerId={customer.id} />
-      {open === "invoice" && (
-        <RequestInvoiceDialog open onOpenChange={(v) => !v && setOpen(null)} customerId={customer.id} companyName={customer.company_name} currency={customer.currency ?? "USD"} />
-      )}
       {open === "cash"    && <RecordPaymentDialog ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "quote" && <QuoteBuilderDialog open onOpenChange={(v) => { if (!v) setOpen(null); }} customers={[customer]} defaultCustomerId={customer.id} onSaved={onRefresh} />}
       {open === "ticket"  && <CreateTicketDialog  ctx={ctx} onClose={() => setOpen(null)} />}
