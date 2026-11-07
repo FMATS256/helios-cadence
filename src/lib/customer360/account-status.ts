@@ -1,8 +1,15 @@
 import { accountServiceRows } from "./account-overview";
 
-const activeStates = new Set(["active", "running", "online", "deployed", "in_use", "in use"]);
+const activeStates = new Set(["active", "running", "online", "on", "up", "deployed", "in_use", "in use"]);
 export function serviceStatusTone(status?: string | null): "success" | "danger" {
   return activeStates.has(String(status || "").trim().toLowerCase()) ? "success" : "danger";
+}
+
+/** Count operational services once when a package/resource shares its billing subscription. */
+export function activeAccountServiceCount(view: Record<string, any>): number {
+  const records = accountServiceRows(view).filter(row => row.kind !== "Asset");
+  const representedSubscriptions = new Set(records.filter(row => row.kind !== "Subscription" && row.record.subscription_id).map(row => row.record.subscription_id));
+  return records.filter(row => serviceStatusTone(row.status) === "success" && !(row.kind === "Subscription" && representedSubscriptions.has(row.record.id))).length;
 }
 
 export function accountToday(now = new Date()): string {
