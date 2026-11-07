@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Open
-- [ ] Customer 360: make all recorded services, licences, renewal dates and transactions visible on opening; remove Request invoice and preserve quotation conversion and Finance approval.
+- [x] Customer 360: opening overview shows all recorded service categories, licences, renewal dates and complete invoice/payment history; Request invoice removed, quotation conversion and Finance approval preserved. Signed-in M10460 desktop/phone checks verified five service records, three transactions, service detail opening, quote controls and no mobile overflow or browser errors; visibility tests pass.
 - [x] Customer 360: full saved quotation builder, client PDF email transport, accepted-quote conversion with row locking, draft invoice links and cash/bank evidence submission. Signed-in administrator created a temporary USD 361.52 quote, converted it and read back a pending USD 1.23 payment with paid balance unchanged; mobile overflow check and 36 tests passed. Account-manager UI/session and live recipient delivery remain unverified; Billing must issue drafts and approve payments.
 - [ ] Connect Kaspersky Security Center live client devices, protection status and alerts to Customer 360; blocked by confirmation of Kaspersky product, reachable Administration Server address and authorized read-only connection, then client-to-Kaspersky group mapping.
 - [x] Replaced boxed invoice emails with business correspondence and one signature; two PDF transport tests pass. INV-01027 test accepted by the website gateway for fmats256@gmail.com, with sender copy to Ammara. Recipient inbox receipt remains unconfirmed.

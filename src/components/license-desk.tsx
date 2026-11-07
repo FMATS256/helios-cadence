@@ -34,7 +34,11 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
 
   const lic = useQuery({
     queryKey: ["client-licenses", customerId], enabled: !!user,
-    queryFn: async () => ((await supabase.from("vendor_licenses").select("*").eq("customer_id", customerId).order("expiry_date", { ascending: true, nullsFirst: false })).data ?? []) as Lic[],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vendor_licenses").select("*").eq("customer_id", customerId).order("expiry_date", { ascending: true, nullsFirst: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Lic[];
+    },
   });
   const orders = useQuery({
     queryKey: ["client-license-orders", customerId], enabled: !!user,
