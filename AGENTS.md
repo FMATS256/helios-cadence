@@ -39,4 +39,3 @@
 <!-- LOVABLE:BEGIN -->
 - Customer 360 opening overview derives service records and transactions from the authorized account payload and reuses vendor licensing queries/actions; shared presentation helpers compute service tones and Harare-date account warnings from recorded data without inferring renewals or posting payments.
 <!-- LOVABLE:END -->
-- Paid counter licence orders: account managers record received money via one atomic RPC that creates a pending payment submission and an approved order for NOC; Finance reconciles later, ledger untouched at the counter.
