@@ -6998,6 +6998,7 @@ export type Database = {
           license_id: string | null
           notes: string | null
           order_type: string
+          payment_submission_id: string | null
           product: string
           quantity: number
           requested_by: string | null
@@ -7023,6 +7024,7 @@ export type Database = {
           license_id?: string | null
           notes?: string | null
           order_type?: string
+          payment_submission_id?: string | null
           product: string
           quantity?: number
           requested_by?: string | null
@@ -7048,6 +7050,7 @@ export type Database = {
           license_id?: string | null
           notes?: string | null
           order_type?: string
+          payment_submission_id?: string | null
           product?: string
           quantity?: number
           requested_by?: string | null
@@ -7071,6 +7074,13 @@ export type Database = {
             columns: ["license_id"]
             isOneToOne: false
             referencedRelation: "vendor_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_license_orders_payment_submission_id_fkey"
+            columns: ["payment_submission_id"]
+            isOneToOne: false
+            referencedRelation: "payment_submissions"
             referencedColumns: ["id"]
           },
           {
@@ -8024,6 +8034,26 @@ export type Database = {
       recompute_payment_reconciliation: {
         Args: { _payment_id: string }
         Returns: undefined
+      }
+      record_counter_licence_payment: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_customer_id: string
+          p_existing_serial: string
+          p_expiry: string
+          p_license_id: string
+          p_method: string
+          p_notes: string
+          p_order_type: string
+          p_product: string
+          p_quantity: number
+          p_reference: string
+          p_tenant_id: string
+          p_term_months: number
+          p_vendor: string
+        }
+        Returns: Json
       }
       run_subscription_auto_billing: { Args: never; Returns: Json }
       save_email_workspace_value: {
