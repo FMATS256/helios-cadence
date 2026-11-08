@@ -31,7 +31,7 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
   const qc = useQueryClient();
   const ticketFn = useServerFn(createTicketForCustomer);
   const [act, setAct] = useState<Action | null>(null);
-  const [f, setF] = useState({ qty: "1", term: "12", notes: "", subject: "", priority: "normal" });
+  const [f, setF] = useState({ qty: "1", term: "12", notes: "", subject: "", priority: "normal", paid: true, amount: "", method: "cash", reference: "", currency: "USD" });
 
   const lic = useQuery({
     queryKey: ["client-licenses", customerId], enabled: !!user,
@@ -47,7 +47,7 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
   });
 
   const open = (kind: Action["kind"], l: Lic) => {
-    setF({ qty: "1", term: "12", notes: "", priority: "normal", subject: kind === "technical" ? `${vName(l.vendor)} ${l.product} — technical change` : "" });
+    setF({ qty: "1", term: "12", notes: "", priority: "normal", paid: true, amount: "", method: "cash", reference: "", currency: "USD", subject: kind === "technical" ? `${vName(l.vendor)} ${l.product} — technical change` : "" });
     setAct({ kind, lic: l });
   };
 
@@ -65,6 +65,16 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
       }
       const qty = act.kind === "renewal" ? l.seats : Number(f.qty);
       if (!Number.isInteger(qty) || qty < 1) throw new Error("Seats must be a whole number");
+      if (f.paid) {
+        const { error } = await supabase.rpc("record_counter_licence_payment", {
+          p_vendor: l.vendor, p_customer_id: customerId, p_license_id: l.id, p_tenant_id: l.tenant_id as string, p_product: l.product,
+          p_order_type: act.kind, p_quantity: qty, p_term_months: Number(f.term), p_existing_serial: l.license_key as string,
+          p_expiry: l.expiry_date as string, p_notes: f.notes || (null as unknown as string),
+          p_amount: Number(f.amount), p_currency: f.currency, p_method: f.method, p_reference: f.reference,
+        });
+        if (error) throw new Error(error.message);
+        return "Payment recorded — order released to NOC; Finance will reconcile";
+      }
       const { error } = await supabase.from("vendor_license_orders").insert({
         vendor: l.vendor, customer_id: customerId, tenant_id: l.tenant_id, license_id: l.id, product: l.product,
         quantity: qty, term_months: Number(f.term), order_type: act.kind, existing_serial: l.license_key,
@@ -152,11 +162,32 @@ export function ClientLicensesPanel({ customerId, embedded = false }: { customer
                 </Select>
               </div>
             </>}
+            {act && act.kind !== "technical" && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" checked={f.paid} onChange={(e) => setF({ ...f, paid: e.target.checked })} />
+                  Client has paid me now (release to NOC immediately)
+                </label>
+                {f.paid && <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1"><Label>Amount received</Label><Input type="number" min={0} step="0.01" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></div>
+                  <div className="space-y-1"><Label>Currency</Label>
+                    <Select value={f.currency} onValueChange={(v) => setF({ ...f, currency: v })}><SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{["USD", "ZWG"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                  <div className="space-y-1"><Label>Method</Label>
+                    <Select value={f.method} onValueChange={(v) => setF({ ...f, method: v })}><SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{[["cash", "Cash"], ["bank_transfer", "Bank transfer"], ["ecocash", "EcoCash"], ["innbucks", "InnBucks"], ["omari", "O'Mari"], ["card", "Card"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
+                  </div>
+                  <div className="space-y-1"><Label>Reference {f.method === "cash" ? "(optional)" : ""}</Label><Input value={f.reference} onChange={(e) => setF({ ...f, reference: e.target.value })} /></div>
+                  <p className="sm:col-span-2 text-xs text-muted-foreground">Recorded under your name. Finance reconciles it against the till or bank statement.</p>
+                </div>}
+              </div>
+            )}
             <div className="space-y-1"><Label>{act?.kind === "technical" ? "Details for the engineer" : "Notes for Finance"}</Label><Textarea rows={3} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAct(null)}>Cancel</Button>
-            <Button disabled={submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Sending…" : act?.kind === "technical" ? "Send to NOC" : "Send for approval"}</Button>
+            <Button disabled={submit.isPending} onClick={() => submit.mutate()}>{submit.isPending ? "Sending…" : act?.kind === "technical" ? "Send to NOC" : f.paid ? "Record payment & release" : "Send for approval"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

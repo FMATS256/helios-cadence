@@ -1,2 +1,2 @@
 # Sales workflow
-- Customer 360 sales uses the full saved quotation builder and a row-locked conversion RPC preserving the agreed total and service periods; invoices remain drafts and cash/bank evidence enters existing Billing review, preventing duplicate invoices and account-manager ledger posting.
+- Customer 360 sales uses the full saved quotation builder and a row-locked conversion RPC preserving the agreed total and service periods; invoices remain drafts and cash/bank evidence enters existing Billing review, preventing duplicate invoices and account-manager ledger posting.- Paid counter licence orders use one atomic RPC creating a pending payment submission plus an approved order for NOC; Finance reconciles later.
