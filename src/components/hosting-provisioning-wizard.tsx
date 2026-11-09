@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { listHostingPackages, provisionNewHostingAccount } from "@/lib/hosting.functions";
+import { listHostingPackages, provisionHostingAccount, provisionNewHostingAccount } from "@/lib/hosting.functions";
 import { packageLimit, type HostingPackageServer } from "@/lib/hosting-packages";
 
 const INITIAL = {
@@ -272,11 +272,112 @@ export function HostingProvisioningWizard({
   );
 }
 
+export function ExistingHostingPackageDialog({
+  account,
+  open,
+  onOpenChange,
+  onDone,
+}: {
+  account: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDone: () => void;
+}) {
+  const [serverId, setServerId] = useState("");
+  const [plan, setPlan] = useState("");
+  const listFn = useServerFn(listHostingPackages);
+  const provisionFn = useServerFn(provisionHostingAccount);
+  const options = useQuery({
+    queryKey: ["hosting-provisioning-packages"],
+    queryFn: async () => (await listFn()) as HostingPackageServer[],
+    enabled: open,
+    retry: false,
+  });
+  const servers = options.data ?? [];
+  const server = servers.find((item) => item.id === serverId);
+  const selectedPackage = server?.packages.find((item) => item.name === plan);
+
+  useEffect(() => {
+    if (!open || servers.length === 0) return;
+    const preferred = servers.find((item) => item.id === account?.whm_server_id && item.packages.length > 0)
+      ?? servers.find((item) => item.isDefault && item.packages.length > 0)
+      ?? servers.find((item) => item.packages.length > 0);
+    if (preferred && !serverId) setServerId(preferred.id);
+  }, [open, servers, account?.whm_server_id, serverId]);
+
+  const provision = useMutation({
+    mutationFn: () => provisionFn({ data: { id: account.id, plan, whm_server_id: serverId } }),
+    onSuccess: (result: any) => {
+      toast.success(`${account.domain} is active on ${plan}`, { description: `cPanel user: ${result.username}` });
+      setPlan("");
+      setServerId("");
+      onOpenChange(false);
+      onDone();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!provision.isPending) onOpenChange(next); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Choose a package for {account?.domain}</DialogTitle>
+          <DialogDescription>The selected live WHM package will be used to create this pending cPanel account.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>WHM server</Label>
+            <Select value={serverId} onValueChange={(value) => { setServerId(value); setPlan(""); }}>
+              <SelectTrigger><SelectValue placeholder={options.isLoading ? "Loading servers…" : "Choose a server"} /></SelectTrigger>
+              <SelectContent>{servers.map((item) => <SelectItem key={item.id} value={item.id} disabled={item.packages.length === 0}>{item.name}{item.packages.length === 0 ? " · Unavailable" : ""}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          {server?.error && <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{server.error}</p>}
+          {server && server.packages.length > 0 && (
+            <div className="space-y-2">
+              <Label>Available package</Label>
+              <Select value={plan} onValueChange={setPlan}>
+                <SelectTrigger><SelectValue placeholder="Choose a package" /></SelectTrigger>
+                <SelectContent>{server.packages.map((item) => <SelectItem key={item.name} value={item.name}>{friendlyPackageName(item.name)} · {item.diskMb == null ? "Unlimited disk" : formatMegabytes(item.diskMb)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          {selectedPackage && (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-4 text-sm">
+              <Review label="Disk" value={selectedPackage.diskMb == null ? "Unlimited" : formatMegabytes(selectedPackage.diskMb)} />
+              <Review label="Bandwidth" value={selectedPackage.bandwidthMb == null ? "Unlimited" : formatMegabytes(selectedPackage.bandwidthMb)} />
+              <Review label="Mailboxes" value={packageLimit(selectedPackage.emailAccounts)} />
+              <Review label="Databases" value={packageLimit(selectedPackage.databases)} />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={provision.isPending}>Cancel</Button>
+          <Button disabled={!selectedPackage || provision.isPending} onClick={() => provision.mutate()}>
+            {provision.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Server className="mr-1.5 h-4 w-4" />}
+            {provision.isPending ? "Provisioning…" : "Provision selected package"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function Review({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return <div><dt className="text-xs text-muted-foreground">{label}</dt><dd className={`mt-0.5 break-words font-medium ${mono ? "font-mono text-xs" : ""}`}>{value}</dd></div>;
 }
 
 function megabytesLabel(value: number): string {
-  const gb = value / 1024;
-  return `${Number.isInteger(gb) ? gb : gb.toFixed(2)} GB`;
+  return formatMegabytes(value);
+}
+
+function formatMegabytes(value: number): string {
+  if (value >= 1024 * 1024) return `${Number((value / (1024 * 1024)).toFixed(2))} TB`;
+  if (value >= 1024) return `${Number((value / 1024).toFixed(2))} GB`;
+  return `${value} MB`;
+}
+
+function friendlyPackageName(value: string): string {
+  const separator = value.indexOf("_");
+  return separator > 0 ? value.slice(separator + 1) : value;
 }
