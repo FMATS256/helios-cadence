@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import {
   PageShell, SectionHeader, KpiRow, DataGrid, DetailCard, StatusBadge, EmptyState,
   RefreshButton, money, shortDate, toneForStatus, type ColumnDef,
@@ -25,24 +24,25 @@ import { toast } from "sonner";
 import { getHostingOverview } from "@/lib/infra.functions";
 import {
   provisionHostingAccount, hostingLifecycleAction, hostingSsoLink, syncHosting,
-  listWhmServers, saveWhmServer, testWhmServer,
+  listWhmServers, saveWhmServer, testWhmServer, listHostingPackages,
 } from "@/lib/hosting.functions";
 import { HostingMigrationWorkbench } from "@/components/hosting-migration-workbench";
+import { HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
+import type { HostingPackageServer } from "@/lib/hosting-packages";
 
 export const Route = createFileRoute("/web-hosting")({
   head: () => ({
     meta: [
       { title: "Web Hosting — IMT Operations" },
-      { name: "description", content: "cPanel accounts, hosted domains, renewals and hosting revenue across every IMT customer." },
+      { name: "description", content: "Provision cPanel hosting from live WHM packages and manage domains, renewals and hosting revenue." },
+      { property: "og:title", content: "Web Hosting — IMT Operations" },
+      { property: "og:description", content: "Guided WHM provisioning, cPanel accounts, domains and renewals for IMT customers." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: WebHostingPage,
 });
-
-const EMPTY = {
-  customer_id: "", domain: "", provider: "", control_panel: "cpanel", control_panel_url: "",
-  username: "", plan: "", disk_quota_gb: "", bandwidth_gb: "", monthly_cost: "", renewal_date: "", notes: "",
-};
 
 function WebHostingPage() {
   const qc = useQueryClient();

@@ -18,7 +18,8 @@ import {
   Server as ServerIcon, Globe, Plus, Power, PowerOff, RotateCw, RefreshCw, Activity,
   Pause, Play, KeyRound, Trash2, ExternalLink, Loader2, Settings2, CloudUpload,
 } from "lucide-react";
-import { getClientResources, registerServer, createHostingAccount } from "@/lib/noc.functions";
+import { getClientResources, registerServer } from "@/lib/noc.functions";
+import { HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
 import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
 import { sampleServerMetrics } from "@/lib/servers.functions";
 import { provisionHostingAccount, hostingLifecycleAction, syncHosting, hostingSsoLink } from "@/lib/hosting.functions";
@@ -179,7 +180,7 @@ export function ClientResourcesSection() {
       </DetailCard>
 
       <ServerFormDialog open={serverFormOpen} onClose={() => setServerFormOpen(false)} customers={data?.customers ?? []} onSaved={refresh} />
-      <HostingFormDialog open={hostingFormOpen} onClose={() => setHostingFormOpen(false)} customers={data?.customers ?? []} onSaved={refresh} />
+      <HostingProvisioningWizard open={hostingFormOpen} onOpenChange={setHostingFormOpen} customers={data?.customers ?? []} onDone={refresh} />
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-2xl">
@@ -445,92 +446,6 @@ function ServerFormDialog({ open, onClose, customers, onSaved }: { open: boolean
         <DialogFooter>
           <Button onClick={() => save.mutate()} disabled={save.isPending || !form.name.trim()}>
             {save.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}Register server
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function HostingFormDialog({ open, onClose, customers, onSaved }: { open: boolean; onClose: () => void; customers: any[]; onSaved: () => void }) {
-  const fn = useServerFn(createHostingAccount);
-  const [form, setForm] = useState({ customer_id: "", domain: "", plan: "", monthly_cost: "", currency: "USD", renewal_date: "", disk_quota_gb: "", notes: "" });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
-
-  const save = useMutation({
-    mutationFn: () =>
-      fn({
-        data: {
-          customer_id: form.customer_id,
-          domain: form.domain,
-          plan: form.plan || undefined,
-          monthly_cost: form.monthly_cost ? Number(form.monthly_cost) : undefined,
-          currency: form.currency,
-          renewal_date: form.renewal_date || undefined,
-          disk_quota_gb: form.disk_quota_gb ? Number(form.disk_quota_gb) : undefined,
-          notes: form.notes || undefined,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Hosting account created — open it to provision on WHM");
-      setForm({ customer_id: "", domain: "", plan: "", monthly_cost: "", currency: "USD", renewal_date: "", disk_quota_gb: "", notes: "" });
-      onClose();
-      onSaved();
-    },
-    onError: (e: any) => toast.error(e?.message || "Failed to create hosting account"),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>New web hosting account</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1.5">
-            <Label>Client *</Label>
-            <Select value={form.customer_id} onValueChange={(v) => set("customer_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Choose a client…" /></SelectTrigger>
-              <SelectContent>
-                {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.company_name} ({c.account_number})</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label>Domain *</Label>
-            <Input value={form.domain} onChange={(e) => set("domain", e.target.value)} placeholder="client.co.zw" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Plan / package</Label>
-            <Input value={form.plan} onChange={(e) => set("plan", e.target.value)} placeholder="e.g. Business 10GB" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Disk quota (GB)</Label>
-            <Input value={form.disk_quota_gb} onChange={(e) => set("disk_quota_gb", e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Price /mo</Label>
-            <Input value={form.monthly_cost} onChange={(e) => set("monthly_cost", e.target.value)} inputMode="decimal" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Currency</Label>
-            <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["USD", "ZWG"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label>Renewal date</Label>
-            <Input type="date" value={form.renewal_date} onChange={(e) => set("renewal_date", e.target.value)} />
-          </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label>Notes</Label>
-            <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Nameservers, migration notes…" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.customer_id || !form.domain.trim()}>
-            {save.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}Create account
           </Button>
         </DialogFooter>
       </DialogContent>
