@@ -367,10 +367,6 @@ function Review({ label, value, mono }: { label: string; value: string; mono?: b
   return <div><dt className="text-xs text-muted-foreground">{label}</dt><dd className={`mt-0.5 break-words font-medium ${mono ? "font-mono text-xs" : ""}`}>{value}</dd></div>;
 }
 
-function megabytesLabel(value: number): string {
-  return formatMegabytes(value);
-}
-
 function formatMegabytes(value: number): string {
   if (value >= 1024 * 1024) return `${Number((value / (1024 * 1024)).toFixed(2))} TB`;
   if (value >= 1024) return `${Number((value / 1024).toFixed(2))} GB`;

@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { getHostingOverview } from "@/lib/infra.functions";
 import {
-  provisionHostingAccount, hostingLifecycleAction, hostingSsoLink, syncHosting,
+  hostingLifecycleAction, hostingSsoLink, syncHosting,
   listWhmServers, saveWhmServer, testWhmServer, listHostingPackages,
 } from "@/lib/hosting.functions";
 import { HostingMigrationWorkbench } from "@/components/hosting-migration-workbench";
@@ -57,7 +57,6 @@ function WebHostingPage() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["hosting-overview"] });
 
   const lifecycleFn = useServerFn(hostingLifecycleAction);
-  const provisionFn = useServerFn(provisionHostingAccount);
   const ssoFn = useServerFn(hostingSsoLink);
   const syncFn = useServerFn(syncHosting);
 
@@ -74,12 +73,6 @@ function WebHostingPage() {
       setPkgTarget(null);
       refresh();
     },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const provision = useMutation({
-    mutationFn: (v: { id: string; plan: string; whm_server_id: string }) => provisionFn({ data: v }),
-    onSuccess: (r: any) => { toast.success(`Provisioned on WHM as ${r.username}`); refresh(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -181,7 +174,7 @@ function WebHostingPage() {
       header: "", align: "right",
       cell: (r) => {
         const onWhm = r.provisioning_status === "whm" && !!r.username;
-        const busy = lifecycle.isPending || provision.isPending || sso.isPending || sync.isPending;
+        const busy = lifecycle.isPending || sso.isPending || sync.isPending;
         return (
           <div className="flex items-center justify-end gap-1">
             {onWhm ? (
