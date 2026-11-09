@@ -207,12 +207,12 @@ export function HostingProvisioningWizard({
                           className={`rounded-xl border p-4 text-left transition ${selected ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card hover:border-primary/50"}`}
                         >
                           <span className="flex items-start justify-between gap-3">
-                            <span className="flex min-w-0 items-center gap-2"><Package className="h-4 w-4 shrink-0 text-primary" /><span className="break-all font-semibold">{item.name}</span></span>
+                            <span className="flex min-w-0 items-center gap-2"><Package className="h-4 w-4 shrink-0 text-primary" /><span className="break-all font-semibold">{friendlyPackageName(item.name)}</span></span>
                             <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-primary bg-primary text-primary-foreground" : "bg-background"}`}>{selected && <Check className="h-3 w-3" />}</span>
                           </span>
                           <span className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                            <span>Disk: <strong className="font-medium text-foreground">{item.diskMb == null ? "Unlimited" : `${packageLimit(item.diskMb, " MB")} (${megabytesLabel(item.diskMb)})`}</strong></span>
-                            <span>Bandwidth: <strong className="font-medium text-foreground">{packageLimit(item.bandwidthMb, " MB")}</strong></span>
+                            <span>Disk: <strong className="font-medium text-foreground">{item.diskMb == null ? "Unlimited" : formatMegabytes(item.diskMb)}</strong></span>
+                            <span>Bandwidth: <strong className="font-medium text-foreground">{item.bandwidthMb == null ? "Unlimited" : formatMegabytes(item.bandwidthMb)}</strong></span>
                             <span>Mailboxes: <strong className="font-medium text-foreground">{packageLimit(item.emailAccounts)}</strong></span>
                             <span>Databases: <strong className="font-medium text-foreground">{packageLimit(item.databases)}</strong></span>
                           </span>
@@ -234,7 +234,7 @@ export function HostingProvisioningWizard({
                   <Review label="Domain" value={form.domain} mono />
                   <Review label="WHM server" value={selectedServer.name} />
                   <Review label="Package" value={selectedPackage.name} mono />
-                  <Review label="Disk quota" value={selectedPackage.diskMb == null ? "Unlimited" : `${packageLimit(selectedPackage.diskMb, " MB")} (${megabytesLabel(selectedPackage.diskMb)})`} />
+                  <Review label="Disk quota" value={selectedPackage.diskMb == null ? "Unlimited" : formatMegabytes(selectedPackage.diskMb)} />
                   <Review label="Selling price" value={`${form.currency} ${Number(form.monthly_cost || 0).toFixed(2)} / month`} />
                   <Review label="Renewal" value={form.renewal_date || "Not set"} />
                   <Review label="Initial status" value="Pending → Active after WHM confirms creation" />

@@ -26,7 +26,7 @@ import {
   listWhmServers, saveWhmServer, testWhmServer, listHostingPackages,
 } from "@/lib/hosting.functions";
 import { HostingMigrationWorkbench } from "@/components/hosting-migration-workbench";
-import { HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
+import { ExistingHostingPackageDialog, HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
 import type { HostingPackageServer } from "@/lib/hosting-packages";
 
 export const Route = createFileRoute("/web-hosting")({

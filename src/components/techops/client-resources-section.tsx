@@ -19,10 +19,10 @@ import {
   Pause, Play, KeyRound, Trash2, ExternalLink, Loader2, Settings2, CloudUpload,
 } from "lucide-react";
 import { getClientResources, registerServer } from "@/lib/noc.functions";
-import { HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
+import { ExistingHostingPackageDialog, HostingProvisioningWizard } from "@/components/hosting-provisioning-wizard";
 import { powerProviderServer, refreshProviderServer } from "@/lib/providers.functions";
 import { sampleServerMetrics } from "@/lib/servers.functions";
-import { provisionHostingAccount, hostingLifecycleAction, syncHosting, hostingSsoLink } from "@/lib/hosting.functions";
+import { hostingLifecycleAction, syncHosting, hostingSsoLink } from "@/lib/hosting.functions";
 
 type Resource =
   | { kind: "server"; id: string; title: string; sub: string; customer: string; status: string; raw: any }
@@ -260,7 +260,7 @@ function ServerDetail({ server, onChanged, onClose }: { server: any; onChanged: 
  * ------------------------------------------------------------------ */
 function HostingDetail({ account, onChanged, onClose }: { account: any; onChanged: () => void; onClose: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const fnProvision = useServerFn(provisionHostingAccount);
+  const [provisionOpen, setProvisionOpen] = useState(false);
   const fnLifecycle = useServerFn(hostingLifecycleAction);
   const fnSync = useServerFn(syncHosting);
   const fnSso = useServerFn(hostingSsoLink);
