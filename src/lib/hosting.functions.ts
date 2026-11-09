@@ -5,6 +5,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { megabytesToGb, normalizeWhmPackages } from "./hosting-packages";
 
 const HOSTING_ROLES = ["operations_manager", "cloud_engineer", "technical_support", "noc"];
 const STORAGE_ROLES = ["operations_manager", "cloud_engineer"];
@@ -102,67 +103,111 @@ export const getHostingAccount = createServerFn({ method: "GET" })
  * Provisioning
  * ------------------------------------------------------------------ */
 
+export const listHostingPackages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertRole, admin } = await import("./hosting.server");
+    await assertRole(context, HOSTING_ROLES);
+    const db = await admin();
+    const { data: servers, error } = await db.from("whm_servers").select("*")
+      .eq("active", true).order("is_default", { ascending: false }).order("created_at");
+    if (error) throw new Error(error.message);
+    const { whm } = await import("./whm.server");
+
+    return Promise.all(((servers ?? []) as any[]).map(async (server) => {
+      const result = await whm(server).listPackages();
+      return {
+        id: server.id,
+        name: server.name,
+        isDefault: Boolean(server.is_default),
+        nameservers: server.nameservers ?? [],
+        packages: result.ok ? normalizeWhmPackages(result.data) : [],
+        error: result.ok ? null : result.error,
+      };
+    }));
+  });
+
+export const provisionNewHostingAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    customer_id: string; domain: string; whm_server_id: string; plan: string;
+    monthly_cost?: number; currency?: string; renewal_date?: string; notes?: string;
+  }) => d)
+  .handler(async ({ data, context }) => {
+    const { assertRole, admin, provisionHostingRecord } = await import("./hosting.server");
+    await assertRole(context, HOSTING_ROLES);
+    if (!data.customer_id) throw new Error("Choose a client");
+    if (!data.whm_server_id) throw new Error("Choose a WHM server");
+    if (!data.plan?.trim()) throw new Error("Choose an available hosting package");
+    const domain = data.domain?.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(domain)) {
+      throw new Error("Enter a valid domain, e.g. client.co.zw");
+    }
+    const monthlyCost = Number(data.monthly_cost ?? 0);
+    if (!Number.isFinite(monthlyCost) || monthlyCost < 0) throw new Error("Enter a valid non-negative monthly price");
+    const currency = data.currency ?? "USD";
+    if (!["USD", "ZWG"].includes(currency)) throw new Error("Unsupported currency");
+
+    const db = await admin();
+    const [{ data: customer }, { data: existing }] = await Promise.all([
+      db.from("customers").select("id,account_number,company_name,primary_email").eq("id", data.customer_id).maybeSingle(),
+      db.from("web_hosting_accounts").select("id").eq("domain", domain).is("archived_at", null).limit(1),
+    ]);
+    if (!customer) throw new Error("Client not found");
+    if (existing?.length) throw new Error(`A hosting account for ${domain} already exists`);
+
+    const { loadWhmServer, whm } = await import("./whm.server");
+    const server = await loadWhmServer(db, data.whm_server_id);
+    if (!server || server.id !== data.whm_server_id) throw new Error("The selected WHM server is not active");
+    const packageResult = await whm(server).listPackages();
+    if (!packageResult.ok) throw new Error(`Could not verify WHM packages: ${packageResult.error}`);
+    const selectedPackage = normalizeWhmPackages(packageResult.data).find((item) => item.name === data.plan.trim());
+    if (!selectedPackage) throw new Error("That package is no longer available on the selected WHM server. Refresh and choose another.");
+
+    const { data: row, error } = await db.from("web_hosting_accounts").insert({
+      customer_id: customer.id,
+      account_number: customer.account_number ?? null,
+      domain,
+      plan: selectedPackage.name,
+      whm_server_id: server.id,
+      monthly_cost: monthlyCost,
+      currency,
+      renewal_date: data.renewal_date || null,
+      disk_quota_gb: megabytesToGb(selectedPackage.diskMb),
+      bandwidth_gb: megabytesToGb(selectedPackage.bandwidthMb),
+      notes: data.notes?.trim() || null,
+      status: "pending",
+      provisioning_status: "pending",
+      created_by: context.userId,
+    } as any).select("*").single();
+    if (error) throw new Error(error.message);
+
+    try {
+      const result = await provisionHostingRecord(db, { ...row, customers: customer }, {
+        plan: selectedPackage.name, whmServerId: server.id, actorId: context.userId,
+      });
+      return { ...result, id: row.id, provisioned: true };
+    } catch (error) {
+      return {
+        ok: true,
+        id: row.id,
+        provisioned: false,
+        error: error instanceof Error ? error.message : "WHM provisioning failed",
+      };
+    }
+  });
+
 export const provisionHostingAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; plan?: string | null; whm_server_id?: string | null }) => d)
   .handler(async ({ data, context }) => {
-    const { assertRole, admin, loadHostingAccount, recordServiceAction, syncHostingAccount } = await import("./hosting.server");
+    const { assertRole, admin, loadHostingAccount, provisionHostingRecord } = await import("./hosting.server");
     await assertRole(context, HOSTING_ROLES);
     const db = await admin();
     const row = await loadHostingAccount(db, data.id);
-    if (row.provisioning_status === "whm") throw new Error("This account is already provisioned on WHM");
-    if (row.status === "cancelled") throw new Error("Cancelled accounts cannot be provisioned");
-
-    const { loadWhmServer, whm, cpanelUsernameFor, generatePassword } = await import("./whm.server");
-    const server = await loadWhmServer(db, data.whm_server_id ?? row.whm_server_id);
-    const username = row.username?.trim() || cpanelUsernameFor(row.domain);
-    const password = generatePassword();
-
-    const res = await whm(server).createAccount({
-      username,
-      domain: row.domain,
-      password,
-      plan: data.plan ?? row.plan ?? null,
-      contactemail: row.customers?.primary_email ?? null,
-      quota_mb: row.disk_quota_gb ? Number(row.disk_quota_gb) * 1024 : null,
+    return provisionHostingRecord(db, row, {
+      plan: data.plan, whmServerId: data.whm_server_id, actorId: context.userId,
     });
-
-    if (!res.ok) {
-      await recordServiceAction(db, {
-        service_type: "web_hosting", row, action: "hosting_provision_failed", status: "failed",
-        title: `Hosting provisioning failed for ${row.domain}`, description: (res as any).error,
-        actor_id: context.userId, major: false,
-      });
-      throw new Error((res as any).error);
-    }
-
-    await db.from("web_hosting_accounts").update({
-      username,
-      status: "active",
-      provisioning_status: "whm",
-      whm_server_id: server?.id ?? null,
-      control_panel: "cpanel",
-      control_panel_url: row.control_panel_url || (server ? `https://${server.hostname}:2083` : null),
-      plan: data.plan ?? row.plan,
-    }).eq("id", row.id);
-
-    // Store the initial password in the encrypted credential vault.
-    const { vaultStoreHostingSecret } = await import("./hosting.server");
-    await vaultStoreHostingSecret(db, {
-      row, name: `cPanel — ${row.domain}`, username,
-      url: row.control_panel_url || (server ? `https://${server.hostname}:2083` : null),
-      secret: password, actorId: context.userId,
-    });
-
-    await recordServiceAction(db, {
-      service_type: "web_hosting", row, action: "service_activated",
-      title: `Hosting account provisioned — ${row.domain}`,
-      description: `cPanel user ${username} created on ${server?.name ?? "WHM"}`,
-      new_value: { username, plan: data.plan ?? row.plan }, actor_id: context.userId,
-    });
-
-    await syncHostingAccount(db, { ...row, username, whm_server_id: server?.id ?? null });
-    return { ok: true, username };
   });
 
 /* ------------------------------------------------------------------ *
