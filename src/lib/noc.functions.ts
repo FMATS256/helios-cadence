@@ -180,41 +180,6 @@ export const registerServer = createServerFn({ method: "POST" })
     return { ok: true, id: row.id };
   });
 
-export const createHostingAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: {
-    customer_id: string; domain: string; plan?: string; monthly_cost?: number;
-    currency?: string; renewal_date?: string; disk_quota_gb?: number; notes?: string;
-  }) => d)
-  .handler(async ({ data, context }) => {
-    await ensureStaff(context);
-    if (!data.customer_id) throw new Error("Choose a client");
-    const domain = data.domain?.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-    if (!domain || !domain.includes(".")) throw new Error("Enter a valid domain, e.g. client.co.zw");
-    const { data: customer } = await context.supabase
-      .from("customers").select("id, account_number").eq("id", data.customer_id).maybeSingle();
-    if (!customer) throw new Error("Client not found");
-    const { data: existing } = await context.supabase
-      .from("web_hosting_accounts").select("id").eq("domain", domain).is("archived_at", null).maybeSingle();
-    if (existing) throw new Error(`A hosting account for ${domain} already exists`);
-    const { data: row, error } = await context.supabase.from("web_hosting_accounts").insert({
-      customer_id: customer.id,
-      account_number: customer.account_number ?? null,
-      domain,
-      plan: data.plan?.trim() || null,
-      monthly_cost: data.monthly_cost ?? 0,
-      currency: data.currency || "USD",
-      renewal_date: data.renewal_date || null,
-      disk_quota_gb: data.disk_quota_gb ?? null,
-      notes: data.notes?.trim() || null,
-      status: "pending",
-      provisioning_status: "pending",
-      created_by: context.userId,
-    } as any).select("id").single();
-    if (error) throw new Error(error.message);
-    return { ok: true, id: row.id };
-  });
-
 export const addShiftNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { note: string; shift?: string; shift_date?: string }) => d)

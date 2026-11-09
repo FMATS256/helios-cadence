@@ -117,7 +117,8 @@ export function whm(server: WhmServer | null) {
   return {
     server,
     ping: () => call(server, "version"),
-
+    listPackages: () => call(server, "listpkgs"),
+ 
     createAccount: (a: {
       username: string; domain: string; password: string; plan?: string | null;
       contactemail?: string | null; quota_mb?: number | null;
@@ -126,7 +127,7 @@ export function whm(server: WhmServer | null) {
         username: a.username, domain: a.domain, password: a.password,
         plan: a.plan ?? server?.default_package ?? undefined,
         contactemail: a.contactemail ?? undefined,
-        quota: a.quota_mb ? Math.round(a.quota_mb / 1024) : undefined,
+        quota: a.quota_mb ? Math.round(a.quota_mb) : undefined,
         useregns: 1,
       }),
 
