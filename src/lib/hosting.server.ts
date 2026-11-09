@@ -124,6 +124,67 @@ export async function loadHostingAccount(db: any, id: string) {
   return data;
 }
 
+/** Provision an existing hosting row on WHM and activate it only after WHM confirms creation. */
+export async function provisionHostingRecord(
+  db: any,
+  row: any,
+  opts: { plan?: string | null; whmServerId?: string | null; actorId?: string | null } = {},
+) {
+  if (row.provisioning_status === "whm") throw new Error("This account is already provisioned on WHM");
+  if (row.status === "cancelled") throw new Error("Cancelled accounts cannot be provisioned");
+
+  const { loadWhmServer, whm, cpanelUsernameFor, generatePassword } = await import("./whm.server");
+  const server = await loadWhmServer(db, opts.whmServerId ?? row.whm_server_id);
+  const plan = opts.plan ?? row.plan ?? server?.default_package ?? null;
+  if (!plan) throw new Error("Choose an available WHM package before provisioning");
+  const username = row.username?.trim() || cpanelUsernameFor(row.domain);
+  const password = generatePassword();
+
+  const res = await whm(server).createAccount({
+    username,
+    domain: row.domain,
+    password,
+    plan,
+    contactemail: row.customers?.primary_email ?? null,
+    quota_mb: row.disk_quota_gb ? Number(row.disk_quota_gb) * 1024 : null,
+  });
+
+  if (!res.ok) {
+    await recordServiceAction(db, {
+      service_type: "web_hosting", row, action: "hosting_provision_failed", status: "failed",
+      title: `Hosting provisioning failed for ${row.domain}`, description: (res as any).error,
+      actor_id: opts.actorId ?? null, major: false,
+    });
+    throw new Error((res as any).error);
+  }
+
+  await db.from("web_hosting_accounts").update({
+    username,
+    status: "active",
+    provisioning_status: "whm",
+    whm_server_id: server?.id ?? null,
+    control_panel: "cpanel",
+    control_panel_url: row.control_panel_url || (server ? `https://${server.hostname}:2083` : null),
+    plan,
+  }).eq("id", row.id);
+
+  await vaultStoreHostingSecret(db, {
+    row, name: `cPanel — ${row.domain}`, username,
+    url: row.control_panel_url || (server ? `https://${server.hostname}:2083` : null),
+    secret: password, actorId: opts.actorId ?? null,
+  });
+
+  await recordServiceAction(db, {
+    service_type: "web_hosting", row, action: "service_activated",
+    title: `Hosting account provisioned — ${row.domain}`,
+    description: `cPanel user ${username} created on ${server?.name ?? "WHM"}`,
+    new_value: { username, plan }, actor_id: opts.actorId ?? null,
+  });
+
+  await syncHostingAccount(db, { ...row, username, whm_server_id: server?.id ?? null });
+  return { ok: true, username, plan };
+}
+
 export async function loadStorageAccount(db: any, id: string) {
   const { data, error } = await db
     .from("cloud_storage_accounts")
