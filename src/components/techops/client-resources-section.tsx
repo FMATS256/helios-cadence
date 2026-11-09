@@ -313,10 +313,10 @@ function HostingDetail({ account, onChanged, onClose }: { account: any; onChange
       <div className="flex flex-wrap gap-2 pt-2">
         {!isWhm && (
           <ActionBtn
-            busy={busy === "provision"}
-            onClick={() => run("provision", () => fnProvision({ data: { id: account.id } }), (r) => `Provisioned on WHM as ${r?.username}`)}
+            busy={false}
+            onClick={() => setProvisionOpen(true)}
             icon={<CloudUpload className="h-3.5 w-3.5" />}
-            label="Provision on WHM"
+            label="Choose package & provision"
           />
         )}
         {isWhm && (
@@ -343,6 +343,7 @@ function HostingDetail({ account, onChanged, onClose }: { account: any; onChange
           <ActionBtn busy={busy === "terminate"} onClick={() => lifecycle("terminate")} icon={<Trash2 className="h-3.5 w-3.5" />} label="Terminate" danger />
         )}
       </div>
+      <ExistingHostingPackageDialog account={account} open={provisionOpen} onOpenChange={setProvisionOpen} onDone={onChanged} />
     </>
   );
 }

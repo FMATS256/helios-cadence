@@ -48,6 +48,7 @@ function WebHostingPage() {
   const overviewFn = useServerFn(getHostingOverview);
   const [search, setSearch] = useState("");
   const [pkgTarget, setPkgTarget] = useState<any | null>(null);
+  const [provisionTarget, setProvisionTarget] = useState<any | null>(null);
 
   const overview = useQuery({ queryKey: ["hosting-overview"], queryFn: () => overviewFn() });
   const accounts = overview.data?.accounts ?? [];
@@ -77,7 +78,7 @@ function WebHostingPage() {
   });
 
   const provision = useMutation({
-    mutationFn: (id: string) => provisionFn({ data: { id } }),
+    mutationFn: (v: { id: string; plan: string; whm_server_id: string }) => provisionFn({ data: v }),
     onSuccess: (r: any) => { toast.success(`Provisioned on WHM as ${r.username}`); refresh(); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -198,7 +199,7 @@ function WebHostingPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {!onWhm && r.status !== "cancelled" && (
-                  <DropdownMenuItem onClick={() => provision.mutate(r.id)}>Provision on WHM</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setProvisionTarget(r)}>Choose package & provision</DropdownMenuItem>
                 )}
                 {onWhm && <DropdownMenuItem onClick={() => sync.mutate(r.id)}>Sync usage from cPanel</DropdownMenuItem>}
                 {onWhm && (
@@ -289,6 +290,15 @@ function WebHostingPage() {
       </DetailCard>
 
       <HostingMigrationWorkbench customers={customers} onChanged={refresh} />
+
+      {provisionTarget && (
+        <ExistingHostingPackageDialog
+          account={provisionTarget}
+          open={!!provisionTarget}
+          onOpenChange={(open) => { if (!open) setProvisionTarget(null); }}
+          onDone={refresh}
+        />
+      )}
 
       <ChangePackageDialog
         target={pkgTarget}
