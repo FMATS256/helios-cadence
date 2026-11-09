@@ -95,15 +95,6 @@ function WebHostingPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const setStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("web_hosting_accounts").update({ status } as any).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: (_d, v) => { toast.success(`Account ${v.status}`); refresh(); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return accounts;
@@ -313,66 +304,13 @@ function WebHostingPage() {
 
 function NewHostingDialog({ customers, onDone }: { customers: any[]; onDone: () => void }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>(EMPTY);
-
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!form.domain) throw new Error("Domain required");
-      const cust = customers.find((c) => c.id === form.customer_id);
-      const { error } = await supabase.from("web_hosting_accounts").insert({
-        ...form,
-        customer_id: form.customer_id || null,
-        account_number: cust?.account_number ?? null,
-        monthly_cost: Number(form.monthly_cost) || 0,
-        disk_quota_gb: form.disk_quota_gb ? Number(form.disk_quota_gb) : null,
-        bandwidth_gb: form.bandwidth_gb ? Number(form.bandwidth_gb) : null,
-        renewal_date: form.renewal_date || null,
-      } as any);
-      if (error) throw error;
-    },
-    onSuccess: () => { setOpen(false); setForm(EMPTY); onDone(); toast.success("Hosting account created"); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-          <Plus className="h-4 w-4 mr-1.5" />Add hosting
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>New hosting account</DialogTitle></DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 rounded-xl border bg-muted/20 p-4">
-            <div className="col-span-2 space-y-2">
-              <Label>Customer</Label>
-              <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Link to a customer" /></SelectTrigger>
-                <SelectContent>
-                  {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.account_number} · {c.company_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2 space-y-2"><Label>Domain *</Label><Input required value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value.toLowerCase() })} placeholder="client.co.zw" /></div>
-            <div className="space-y-2"><Label>Provider</Label><Input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} placeholder="Zim Domains / cPanel Inc" /></div>
-            <div className="space-y-2"><Label>Plan</Label><Input value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} placeholder="Business / Starter" /></div>
-            <div className="space-y-2"><Label>cPanel URL</Label><Input value={form.control_panel_url} onChange={(e) => setForm({ ...form, control_panel_url: e.target.value })} placeholder="https://cpanel.example.com:2083" /></div>
-            <div className="space-y-2"><Label>Username</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Disk (GB)</Label><Input type="number" value={form.disk_quota_gb} onChange={(e) => setForm({ ...form, disk_quota_gb: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Bandwidth (GB)</Label><Input type="number" value={form.bandwidth_gb} onChange={(e) => setForm({ ...form, bandwidth_gb: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Monthly cost (USD)</Label><Input type="number" step="0.01" value={form.monthly_cost} onChange={(e) => setForm({ ...form, monthly_cost: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Renewal date</Label><Input type="date" value={form.renewal_date} onChange={(e) => setForm({ ...form, renewal_date: e.target.value })} /></div>
-            <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={create.isPending} className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }}>
-              {create.isPending ? "Saving…" : "Save hosting account"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Button className="text-solar-foreground" style={{ background: "var(--gradient-solar)" }} onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4 mr-1.5" />Provision hosting
+      </Button>
+      <HostingProvisioningWizard open={open} onOpenChange={setOpen} customers={customers} onDone={onDone} />
+    </>
   );
 }
 
@@ -380,6 +318,18 @@ function ChangePackageDialog({
   target, onClose, onSubmit, pending,
 }: { target: any | null; onClose: () => void; onSubmit: (plan: string) => void; pending: boolean }) {
   const [plan, setPlan] = useState("");
+  const listFn = useServerFn(listHostingPackages);
+  const options = useQuery({
+    queryKey: ["hosting-provisioning-packages"],
+    queryFn: async () => (await listFn()) as HostingPackageServer[],
+    enabled: !!target,
+    retry: false,
+  });
+  const servers = options.data ?? [];
+  const server = servers.find((item) => item.id === target?.whm_server_id)
+    ?? servers.find((item) => item.isDefault)
+    ?? servers[0];
+  const packages = server?.packages ?? [];
   return (
     <Dialog open={!!target} onOpenChange={(o) => { if (!o) { setPlan(""); onClose(); } }}>
       <DialogContent>
@@ -391,13 +341,20 @@ function ChangePackageDialog({
             {target?.provisioning_status === "whm" && " The new package will be pushed to WHM."}
           </p>
           <div className="space-y-1.5">
-            <Label htmlFor="whm-plan">New package</Label>
-            <Input id="whm-plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. business-10gb" />
+            <Label>New package</Label>
+            <Select value={plan} onValueChange={setPlan} disabled={options.isLoading || !!server?.error}>
+              <SelectTrigger><SelectValue placeholder={options.isLoading ? "Loading WHM packages…" : "Choose an available package"} /></SelectTrigger>
+              <SelectContent>
+                {packages.map((item) => <SelectItem key={item.name} value={item.name}>{item.name}{item.diskMb != null ? ` · ${(item.diskMb / 1024).toFixed(item.diskMb % 1024 === 0 ? 0 : 2)} GB` : " · Unlimited disk"}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
+          {server?.error && <p className="text-sm text-destructive">{server.error}</p>}
+          {!options.isLoading && !server?.error && packages.length === 0 && <p className="text-sm text-muted-foreground">No packages are available from this WHM server. Refresh the server connection and try again.</p>}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button disabled={!plan.trim() || pending} onClick={() => onSubmit(plan.trim())}>
+          <Button disabled={!plan.trim() || plan === target?.plan || pending} onClick={() => onSubmit(plan.trim())}>
             {pending ? "Applying…" : "Change package"}
           </Button>
         </DialogFooter>
